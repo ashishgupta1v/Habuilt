@@ -292,6 +292,90 @@
                 </div>
             </div>
         </div>
+
+                <div class="p-6 bg-white border-b border-slate-200">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-bold flex items-center gap-2 text-slate-700">
+                        <span class="bg-slate-900 text-white p-1 rounded">🧭</span> Weekly Review Protocol
+                    </h2>
+                    <p class="text-xs text-slate-500">Sunday check-in. Keep it short, honest, and actionable.</p>
+                    <p class="text-[11px] text-slate-500 mt-1" x-text="'Auto weekly snapshot: ' + getWeeklySnapshotLabel()"></p>
+                    <p class="text-[11px] text-slate-500" x-text="'Auto monthly snapshot: ' + getMonthlySnapshotLabel()"></p>
+                </div>
+                <button
+                    @click="fillWeeklyReviewMetrics()"
+                    class="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide border transition"
+                    :class="darkMode ? 'bg-slate-800 text-slate-200 border-slate-600 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'">
+                    Use Auto Metrics
+                </button>
+            </div>
+
+            <div class="mt-4 grid md:grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                    <h3 class="text-xs font-black uppercase tracking-wide text-slate-600">Consistency Metrics (Editable)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-[11px] font-semibold text-slate-600">Review Date
+                            <input type="date" x-model="weeklyReview.reviewDate" @change="saveWeeklyReview()" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
+                        </label>
+                        <div></div>
+                        <label class="text-[11px] font-semibold text-slate-600">Weekly Points
+                            <input type="text" x-model="weeklyReview.metrics.weeklyPoints" @change="saveWeeklyReview()" placeholder="e.g. 104" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
+                        </label>
+                        <label class="text-[11px] font-semibold text-slate-600">Weekly Stickiness %
+                            <input type="text" x-model="weeklyReview.metrics.weeklyStickiness" @change="saveWeeklyReview()" placeholder="e.g. 71.4" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
+                        </label>
+                        <label class="text-[11px] font-semibold text-slate-600">Monthly Points
+                            <input type="text" x-model="weeklyReview.metrics.monthlyPoints" @change="saveWeeklyReview()" placeholder="e.g. 298" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
+                        </label>
+                        <label class="text-[11px] font-semibold text-slate-600">Monthly Stickiness %
+                            <input type="text" x-model="weeklyReview.metrics.monthlyStickiness" @change="saveWeeklyReview()" placeholder="e.g. 64.5" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                    <h3 class="text-xs font-black uppercase tracking-wide text-slate-600 mb-3">Real-World Checkpoints</h3>
+                    <div class="space-y-2">
+                        <template x-for="(check, checkIndex) in weeklyReview.checks" :key="'weekly-check-' + checkIndex">
+                            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2">
+                                <input type="checkbox" x-model="check.done" @change="saveWeeklyReview()" class="w-4 h-4 accent-emerald-600">
+                                <input type="text" x-model="check.text" @change="saveWeeklyReview()" class="flex-1 text-xs rounded-md border border-slate-200 px-2 py-1" maxlength="160">
+                                <button @click="removeWeeklyCheck(checkIndex)" class="text-slate-400 hover:text-red-500 text-xs font-bold px-1">✕</button>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <input type="text" x-model="newWeeklyCheck" @keydown.enter.prevent="addWeeklyCheck()" placeholder="Add a practical weekly check..." maxlength="160" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs">
+                        <button @click="addWeeklyCheck()" :disabled="!newWeeklyCheck.trim()" class="px-3 py-2 rounded-lg bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition">+ Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 bg-slate-50 rounded-xl border border-slate-200 p-4 grid md:grid-cols-2 gap-3">
+                <label class="text-[11px] font-semibold text-slate-600">Biggest Wins Worth Repeating
+                    <textarea x-model="weeklyReview.reflections.wins" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="What worked really well this week?"></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Missed Days & Friction Pattern
+                    <textarea x-model="weeklyReview.reflections.misses" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="When did you slip, and what was the pattern?"></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Trigger + If-Then Plan
+                    <textarea x-model="weeklyReview.reflections.triggerPlan" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="If X trigger happens, I will do Y minimum action."></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Reward Motivation Check
+                    <textarea x-model="weeklyReview.reflections.rewardTune" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="Are rewards still meaningful? What should change?"></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Scale-Down Rule for Hard Days
+                    <textarea x-model="weeklyReview.reflections.habitScale" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="Define your 2-minute version for tough days."></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Health Check (Sleep/Reflux/Stress)
+                    <textarea x-model="weeklyReview.reflections.healthCheck" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="Any warning signs or improvements?"></textarea>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600 md:col-span-2">Next Week Focus Commitments
+                    <textarea x-model="weeklyReview.reflections.nextWeekFocus" @blur="saveWeeklyReview()" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="Top 3 non-negotiables for next week."></textarea>
+                </label>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -323,6 +407,7 @@
                 darkMode: false,
                 dailyFocus: '',
                 wallet: 0,
+                newWeeklyCheck: '',
                 habits: [
                     { name: '3:30 AM Wake Up & Hydrate', pts: 3 },
                     { name: 'MOVERS Protocol (Mental Prep)', pts: 2 },
@@ -354,11 +439,104 @@
                 completions: {}, 
                 ledger: [],
                 focusNotes: {},
+                weeklyReview: {
+                    reviewDate: '',
+                    metrics: {
+                        weeklyPoints: '',
+                        weeklyStickiness: '',
+                        monthlyPoints: '',
+                        monthlyStickiness: ''
+                    },
+                    checks: [
+                        { text: 'I reviewed missed days and found one clear trigger.', done: false },
+                        { text: 'My rewards were motivating enough to drive consistency.', done: false },
+                        { text: 'I kept a minimum version of hard habits on busy days.', done: false },
+                        { text: 'I removed at least one friction point for next week.', done: false },
+                        { text: 'Sleep, reflux, and stress stayed manageable this week.', done: false }
+                    ],
+                    reflections: {
+                        wins: '',
+                        misses: '',
+                        triggerPlan: '',
+                        rewardTune: '',
+                        habitScale: '',
+                        healthCheck: '',
+                        nextWeekFocus: ''
+                    }
+                },
                 stats: {
                     personalBestDay: null,
                     personalBestPoints: 0,
                     dailyAverage: 0,
                     completionRate: 0
+                },
+
+                createDefaultWeeklyReview() {
+                    return {
+                        reviewDate: '',
+                        metrics: {
+                            weeklyPoints: '',
+                            weeklyStickiness: '',
+                            monthlyPoints: '',
+                            monthlyStickiness: ''
+                        },
+                        checks: [
+                            { text: 'I reviewed missed days and found one clear trigger.', done: false },
+                            { text: 'My rewards were motivating enough to drive consistency.', done: false },
+                            { text: 'I kept a minimum version of hard habits on busy days.', done: false },
+                            { text: 'I removed at least one friction point for next week.', done: false },
+                            { text: 'Sleep, reflux, and stress stayed manageable this week.', done: false }
+                        ],
+                        reflections: {
+                            wins: '',
+                            misses: '',
+                            triggerPlan: '',
+                            rewardTune: '',
+                            habitScale: '',
+                            healthCheck: '',
+                            nextWeekFocus: ''
+                        }
+                    };
+                },
+
+                normalizeWeeklyReview(raw) {
+                    const fallback = this.createDefaultWeeklyReview();
+                    if (!raw || typeof raw !== 'object') return fallback;
+
+                    const toText = value => {
+                        if (value === null || value === undefined) return '';
+                        return String(value);
+                    };
+
+                    const metrics = raw.metrics && typeof raw.metrics === 'object' ? raw.metrics : {};
+                    const reflections = raw.reflections && typeof raw.reflections === 'object' ? raw.reflections : {};
+                    const rawChecks = Array.isArray(raw.checks) ? raw.checks : [];
+                    const checks = rawChecks
+                        .map(item => ({
+                            text: toText(item?.text).trim(),
+                            done: !!item?.done
+                        }))
+                        .filter(item => item.text.length > 0);
+
+                    return {
+                        reviewDate: toText(raw.reviewDate),
+                        metrics: {
+                            weeklyPoints: toText(metrics.weeklyPoints),
+                            weeklyStickiness: toText(metrics.weeklyStickiness),
+                            monthlyPoints: toText(metrics.monthlyPoints),
+                            monthlyStickiness: toText(metrics.monthlyStickiness)
+                        },
+                        checks: checks.length > 0 ? checks : fallback.checks,
+                        reflections: {
+                            wins: toText(reflections.wins),
+                            misses: toText(reflections.misses),
+                            triggerPlan: toText(reflections.triggerPlan),
+                            rewardTune: toText(reflections.rewardTune),
+                            habitScale: toText(reflections.habitScale),
+                            healthCheck: toText(reflections.healthCheck),
+                            nextWeekFocus: toText(reflections.nextWeekFocus)
+                        }
+                    };
                 },
 
                 syncTodayContext() {
@@ -383,7 +561,10 @@
                         this.ledger = data.ledger || [];
                         this.darkMode = !!data.darkMode;
                         this.focusNotes = data.focusNotes || {};
+                        this.weeklyReview = this.normalizeWeeklyReview(data.weeklyReview);
                         this.lastSyncedAt = Number(data.updatedAt) || 0;
+                    } else {
+                        this.weeklyReview = this.createDefaultWeeklyReview();
                     }
 
                     if (!savedV3 && savedLegacy) {
@@ -415,6 +596,7 @@
                         ledger: this.ledger,
                         darkMode: this.darkMode,
                         focusNotes: this.focusNotes,
+                        weeklyReview: this.weeklyReview,
                         updatedAt
                     }));
 
@@ -487,6 +669,7 @@
                         ledger: this.ledger,
                         darkMode: this.darkMode,
                         focusNotes: this.focusNotes,
+                        weeklyReview: this.weeklyReview,
                         updatedAt: Date.now(),
                         updatedBy: this.clientInstanceId
                     };
@@ -501,6 +684,7 @@
                     this.ledger = payload.ledger || [];
                     this.darkMode = !!payload.darkMode;
                     this.focusNotes = payload.focusNotes || {};
+                    this.weeklyReview = this.normalizeWeeklyReview(payload.weeklyReview);
                     this.focusDay = this.currentDay;
                     this.lastSyncedAt = Number(payload.updatedAt) || Date.now();
 
@@ -513,6 +697,7 @@
                         ledger: this.ledger,
                         darkMode: this.darkMode,
                         focusNotes: this.focusNotes,
+                        weeklyReview: this.weeklyReview,
                         updatedAt: this.lastSyncedAt
                     }));
 
@@ -647,6 +832,85 @@
                     // Persist the current focusTasks array back into focusNotes
                     this.focusNotes[key] = this.focusTasks.map(t => ({ text: t.text, done: t.done }));
                     this.save();
+                },
+
+                saveWeeklyReview() {
+                    this.weeklyReview = this.normalizeWeeklyReview(this.weeklyReview);
+                    this.save();
+                },
+
+                addWeeklyCheck() {
+                    const text = this.newWeeklyCheck.trim();
+                    if (!text) return;
+                    this.weeklyReview.checks.push({ text, done: false });
+                    this.newWeeklyCheck = '';
+                    this.saveWeeklyReview();
+                },
+
+                removeWeeklyCheck(index) {
+                    this.weeklyReview.checks.splice(index, 1);
+                    if (this.weeklyReview.checks.length === 0) {
+                        this.weeklyReview.checks = this.createDefaultWeeklyReview().checks;
+                    }
+                    this.saveWeeklyReview();
+                },
+
+                getRollingWeekDays() {
+                    const end = this.getDaysPassed();
+                    const start = Math.max(1, end - 6);
+                    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+                },
+
+                getConsistencySummary(days) {
+                    const targetPerDay = Math.max(1, Math.ceil(this.getMaxDailyPoints() * 0.6));
+                    let points = 0;
+                    let completedDays = 0;
+
+                    days.forEach(day => {
+                        const dayTotal = this.getDayTotal(day);
+                        points += dayTotal;
+                        if (dayTotal >= targetPerDay) completedDays += 1;
+                    });
+
+                    const totalDays = days.length;
+                    const stickiness = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
+
+                    return { points, completedDays, totalDays, stickiness, targetPerDay };
+                },
+
+                getWeeklySummary() {
+                    return this.getConsistencySummary(this.getRollingWeekDays());
+                },
+
+                getMonthlySummary() {
+                    const daysThroughToday = Array.from({ length: this.getDaysPassed() }, (_, i) => i + 1);
+                    return this.getConsistencySummary(daysThroughToday);
+                },
+
+                getWeeklySnapshotLabel() {
+                    const summary = this.getWeeklySummary();
+                    return `${summary.points} pts • ${summary.completedDays}/${summary.totalDays} days • ${summary.stickiness.toFixed(1)}% (day complete ≥ ${summary.targetPerDay} pts)`;
+                },
+
+                getMonthlySnapshotLabel() {
+                    const summary = this.getMonthlySummary();
+                    return `${summary.points} pts • ${summary.completedDays}/${summary.totalDays} days • ${summary.stickiness.toFixed(1)}% (day complete ≥ ${summary.targetPerDay} pts)`;
+                },
+
+                fillWeeklyReviewMetrics() {
+                    const weekly = this.getWeeklySummary();
+                    const monthly = this.getMonthlySummary();
+                    this.weeklyReview.metrics.weeklyPoints = String(weekly.points);
+                    this.weeklyReview.metrics.weeklyStickiness = weekly.stickiness.toFixed(1);
+                    this.weeklyReview.metrics.monthlyPoints = String(monthly.points);
+                    this.weeklyReview.metrics.monthlyStickiness = monthly.stickiness.toFixed(1);
+
+                    if (!this.weeklyReview.reviewDate) {
+                        const now = new Date();
+                        this.weeklyReview.reviewDate = now.toISOString().slice(0, 10);
+                    }
+
+                    this.saveWeeklyReview();
                 },
 
                 toggleDarkMode() {
@@ -793,25 +1057,81 @@
                     }
 
                     rows.push('');
-                    rows.push('Daily Focus Notes');
-                    rows.push(['Day', 'Focus Note', 'Day Score'].map(value => this.csvEscape(value)).join(','));
+                    rows.push('Daily Focus Tasks');
+                    rows.push(['Day', 'Tasks', 'Day Score'].map(value => this.csvEscape(value)).join(','));
 
                     const focusEntries = Object.keys(this.focusNotes)
-                        .map(key => ({ day: Number(key.replace('day-', '')), note: this.focusNotes[key] }))
-                        .filter(entry => Number.isFinite(entry.day) && entry.day >= 1 && entry.day <= this.days.length && entry.note && entry.note.trim().length > 0)
+                        .map(key => {
+                            const day = Number(key.replace('day-', ''));
+                            const raw = this.focusNotes[key];
+                            const tasks = Array.isArray(raw)
+                                ? raw
+                                    .filter(task => task && typeof task.text === 'string' && task.text.trim().length > 0)
+                                    .map(task => ({ text: task.text.trim(), done: !!task.done }))
+                                : (typeof raw === 'string' && raw.trim().length > 0)
+                                    ? [{ text: raw.trim(), done: false }]
+                                    : [];
+                            return { day, tasks };
+                        })
+                        .filter(entry => Number.isFinite(entry.day) && entry.day >= 1 && entry.day <= this.days.length && entry.tasks.length > 0)
                         .sort((a, b) => a.day - b.day);
 
                     if (focusEntries.length === 0) {
-                        rows.push(['No focus notes', '', ''].map(value => this.csvEscape(value)).join(','));
+                        rows.push(['No focus tasks', '', ''].map(value => this.csvEscape(value)).join(','));
                     } else {
                         focusEntries.forEach(entry => {
+                            const serializedTasks = entry.tasks
+                                .map(task => `${task.done ? '[x]' : '[ ]'} ${task.text}`)
+                                .join(' | ');
+
                             rows.push([
                                 `Day ${entry.day}`,
-                                entry.note,
+                                serializedTasks,
                                 this.getDayTotal(entry.day)
                             ].map(value => this.csvEscape(value)).join(','));
                         });
                     }
+
+                    rows.push('');
+                    rows.push('Weekly Review Protocol');
+                    rows.push(['Review Date', 'Weekly Points', 'Weekly Stickiness %', 'Monthly Points', 'Monthly Stickiness %'].map(value => this.csvEscape(value)).join(','));
+                    rows.push([
+                        this.weeklyReview.reviewDate,
+                        this.weeklyReview.metrics.weeklyPoints,
+                        this.weeklyReview.metrics.weeklyStickiness,
+                        this.weeklyReview.metrics.monthlyPoints,
+                        this.weeklyReview.metrics.monthlyStickiness
+                    ].map(value => this.csvEscape(value)).join(','));
+
+                    rows.push('');
+                    rows.push('Weekly Checks');
+                    rows.push(['Done', 'Checkpoint'].map(value => this.csvEscape(value)).join(','));
+                    if (!Array.isArray(this.weeklyReview.checks) || this.weeklyReview.checks.length === 0) {
+                        rows.push(['', 'No weekly checks'].map(value => this.csvEscape(value)).join(','));
+                    } else {
+                        this.weeklyReview.checks.forEach(check => {
+                            rows.push([
+                                check.done ? 'Yes' : 'No',
+                                check.text || ''
+                            ].map(value => this.csvEscape(value)).join(','));
+                        });
+                    }
+
+                    rows.push('');
+                    rows.push('Weekly Reflections');
+                    rows.push(['Prompt', 'Response'].map(value => this.csvEscape(value)).join(','));
+                    const reflectionRows = [
+                        ['Biggest Wins Worth Repeating', this.weeklyReview.reflections?.wins || ''],
+                        ['Missed Days & Friction Pattern', this.weeklyReview.reflections?.misses || ''],
+                        ['Trigger + If-Then Plan', this.weeklyReview.reflections?.triggerPlan || ''],
+                        ['Reward Motivation Check', this.weeklyReview.reflections?.rewardTune || ''],
+                        ['Scale-Down Rule for Hard Days', this.weeklyReview.reflections?.habitScale || ''],
+                        ['Health Check (Sleep/Reflux/Stress)', this.weeklyReview.reflections?.healthCheck || ''],
+                        ['Next Week Focus Commitments', this.weeklyReview.reflections?.nextWeekFocus || '']
+                    ];
+                    reflectionRows.forEach(([promptText, responseText]) => {
+                        rows.push([promptText, responseText].map(value => this.csvEscape(value)).join(','));
+                    });
 
                     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
