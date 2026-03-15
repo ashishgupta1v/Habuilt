@@ -1,0 +1,89 @@
+{
+  "name": "habuilt/warrior-tracker",
+  "type": "project",
+  "description": "Warrior Tracker (Habuilt) built with Laravel 11 + Inertia + Vue 3 + Tailwind using strict DDD and event-driven architecture.",
+  "keywords": [
+    "laravel",
+    "ddd",
+    "inertia",
+    "vue",
+    "event-driven",
+    "habits"
+  ],
+  "license": "proprietary",
+  "require": {
+    "php": "^8.3",
+    "inertiajs/inertia-laravel": "^1.0",
+    "laravel/framework": "^11.0",
+    "laravel/reverb": "^1.0",
+    "laravel/tinker": "^2.9",
+    "spatie/laravel-data": "^4.10"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.23",
+    "larastan/larastan": "^2.9",
+    "laravel/pint": "^1.15",
+    "mockery/mockery": "^1.6",
+    "nunomaduro/collision": "^8.1",
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/Application/",
+      "Habuilt\\Domains\\Identity\\": "src/Domains/Identity/",
+      "Habuilt\\Domains\\Tracking\\": "src/Domains/Tracking/",
+      "Habuilt\\Domains\\Economy\\": "src/Domains/Economy/",
+      "Habuilt\\Application\\": "src/Application/",
+      "Habuilt\\Shared\\": "src/Shared/",
+      "Database\\Factories\\": "database/factories/",
+      "Database\\Seeders\\": "database/seeders/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
+    ],
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ],
+    "post-create-project-cmd": [
+      "@php artisan key:generate --ansi",
+      "@php artisan migrate --force --ansi"
+    ],
+    "dev": [
+      "Composer\\Config::disableProcessTimeout",
+      "npx concurrently -c \"#93c5fd,#c4b5fd,#fca5a5,#fde68a\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" \"npm run dev\""
+    ],
+    "test": [
+      "@php artisan test"
+    ],
+    "analyse": [
+      "vendor/bin/phpstan analyse"
+    ],
+    "format": [
+      "vendor/bin/pint"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "dont-discover": []
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "php-http/discovery": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
