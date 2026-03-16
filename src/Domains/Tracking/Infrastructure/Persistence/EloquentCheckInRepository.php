@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Habuilt\Domains\Tracking\Infrastructure\Persistence;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Habuilt\Domains\Identity\ValueObjects\UserId;
 use Habuilt\Domains\Tracking\Contracts\Repositories\CheckInRepositoryInterface;
 use Habuilt\Domains\Tracking\Infrastructure\Persistence\Eloquent\EloquentCheckInModel;
@@ -65,8 +66,17 @@ final class EloquentCheckInRepository implements CheckInRepositoryInterface
             id:          CheckInId::from($row->id),
             habitId:     HabitId::from($row->habit_id),
             userId:      UserId::from($row->user_id),
-            completedAt: new DateTimeImmutable($row->completed_at),
-            createdAt:   new DateTimeImmutable($row->created_at),
+            completedAt: $this->toDateTimeImmutable($row->completed_at),
+            createdAt:   $this->toDateTimeImmutable($row->created_at),
         );
+    }
+
+    private function toDateTimeImmutable(mixed $value): DateTimeImmutable
+    {
+        if ($value instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($value);
+        }
+
+        return new DateTimeImmutable((string) $value);
     }
 }

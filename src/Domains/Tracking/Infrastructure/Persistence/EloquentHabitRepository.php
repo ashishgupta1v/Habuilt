@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Habuilt\Domains\Tracking\Infrastructure\Persistence;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Habuilt\Domains\Identity\ValueObjects\UserId;
 use Habuilt\Domains\Tracking\Contracts\Repositories\HabitRepositoryInterface;
 use Habuilt\Domains\Tracking\Infrastructure\Persistence\Eloquent\EloquentHabitModel;
@@ -60,8 +61,17 @@ final class EloquentHabitRepository implements HabitRepositoryInterface
             name:            $row->name,
             pointsPerCheckIn: new PointValue((int) $row->points_per_check_in),
             isArchived:      (bool) $row->is_archived,
-            createdAt:       new DateTimeImmutable($row->created_at),
-            updatedAt:       new DateTimeImmutable($row->updated_at),
+            createdAt:       $this->toDateTimeImmutable($row->created_at),
+            updatedAt:       $this->toDateTimeImmutable($row->updated_at),
         );
+    }
+
+    private function toDateTimeImmutable(mixed $value): DateTimeImmutable
+    {
+        if ($value instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($value);
+        }
+
+        return new DateTimeImmutable((string) $value);
     }
 }

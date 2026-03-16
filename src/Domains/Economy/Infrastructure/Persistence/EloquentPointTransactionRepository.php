@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Habuilt\Domains\Economy\Infrastructure\Persistence;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Habuilt\Domains\Economy\Contracts\Repositories\PointTransactionRepositoryInterface;
 use Habuilt\Domains\Economy\Infrastructure\Persistence\Eloquent\EloquentPointTransactionModel;
 use Habuilt\Domains\Economy\Models\PointTransaction;
@@ -65,7 +66,16 @@ final class EloquentPointTransactionRepository implements PointTransactionReposi
             amount:      new PointValue((int) $row->amount),
             reason:      $row->reason,
             referenceId: CheckInId::from($row->reference_id),
-            occurredAt:  new DateTimeImmutable($row->occurred_at),
+            occurredAt:  $this->toDateTimeImmutable($row->occurred_at),
         );
+    }
+
+    private function toDateTimeImmutable(mixed $value): DateTimeImmutable
+    {
+        if ($value instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($value);
+        }
+
+        return new DateTimeImmutable((string) $value);
     }
 }
