@@ -8,7 +8,7 @@ use Habuilt\Domains\Economy\Contracts\Repositories\PointTransactionRepositoryInt
 use Habuilt\Domains\Economy\Contracts\Repositories\RewardRepositoryInterface;
 use Habuilt\Domains\Economy\Infrastructure\Persistence\EloquentPointTransactionRepository;
 use Habuilt\Domains\Economy\Infrastructure\Persistence\EloquentRewardRepository;
-use Habuilt\Domains\Economy\Listeners\CreditPointsOnHabitCompleted;
+use Habuilt\Domains\Economy\Listeners\CreditPointsForCompletedHabit;
 use Habuilt\Domains\Tracking\Contracts\Repositories\CheckInRepositoryInterface;
 use Habuilt\Domains\Tracking\Contracts\Repositories\HabitRepositoryInterface;
 use Habuilt\Domains\Tracking\Events\HabitCompleted;
@@ -44,7 +44,7 @@ final class DomainServiceProvider extends ServiceProvider
      */
     protected array $listen = [
         HabitCompleted::class => [
-            CreditPointsOnHabitCompleted::class,
+            CreditPointsForCompletedHabit::class,
         ],
     ];
 
@@ -58,6 +58,11 @@ final class DomainServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadMigrationsFrom([
+            base_path('src/Domains/Tracking/Infrastructure/Persistence/Migrations'),
+            base_path('src/Domains/Economy/Infrastructure/Persistence/Migrations'),
+        ]);
+
         $this->registerDomainListeners();
     }
 

@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-use Inertia\Inertia;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HabitCheckInController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => Inertia::render('Dashboard', [
-	'appName' => config('app.name', 'Warrior Tracker (Habuilt)'),
-	'today' => now()->toDateString(),
-]));
+Route::get('/', DashboardController::class)->name('dashboard');
+Route::post('/habits/{habit}/check-ins', HabitCheckInController::class)->name('habits.check-ins.store');
