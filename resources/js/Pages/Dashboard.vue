@@ -64,6 +64,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  staticPreview: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const page = usePage();
@@ -751,6 +755,10 @@ const clearLocalProgress = () => {
   newWeeklyCheck.value = '';
   persistLocalState();
 
+  if (props.staticPreview) {
+    return;
+  }
+
   router.delete('/habits/check-ins', {
     data: {
       month: props.month,
@@ -774,6 +782,10 @@ const clearLocalProgress = () => {
 };
 
 const goToMonth = (target) => {
+  if (props.staticPreview) {
+    return;
+  }
+
   if (!target || isNavigatingMonth.value) {
     return;
   }
@@ -840,6 +852,10 @@ const toggleHabitForDay = (habit, day) => {
 
   const wasCompleted = hasCompletedDay(habit, day);
   setHabitDayCompletion(habit, day, !wasCompleted);
+
+  if (props.staticPreview) {
+    return;
+  }
 
   pendingCells.value[pendingKey] = true;
   pendingCells.value = { ...pendingCells.value };
