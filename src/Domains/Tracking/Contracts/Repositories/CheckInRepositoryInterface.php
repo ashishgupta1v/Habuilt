@@ -7,6 +7,7 @@ namespace Habuilt\Domains\Tracking\Contracts\Repositories;
 use DateTimeImmutable;
 use Habuilt\Domains\Identity\ValueObjects\UserId;
 use Habuilt\Domains\Tracking\Models\CheckIn;
+use Habuilt\Domains\Tracking\ValueObjects\CheckInId;
 use Habuilt\Domains\Tracking\ValueObjects\HabitId;
 
 interface CheckInRepositoryInterface
@@ -19,6 +20,8 @@ interface CheckInRepositoryInterface
     public function findForHabitInRange(HabitId $habitId, DateTimeImmutable $from, DateTimeImmutable $to): array;
 
     public function save(CheckIn $checkIn): void;
+
+    public function deleteById(CheckInId $checkInId): int;
 
     public function clearForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int;
 }

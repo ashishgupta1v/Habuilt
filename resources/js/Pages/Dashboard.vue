@@ -36,6 +36,30 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  isCurrentMonth: {
+    type: Boolean,
+    default: true,
+  },
+  isFutureMonth: {
+    type: Boolean,
+    default: false,
+  },
+  canNavigatePrevMonth: {
+    type: Boolean,
+    default: false,
+  },
+  canNavigateNextMonth: {
+    type: Boolean,
+    default: false,
+  },
+  previousMonth: {
+    type: Object,
+    default: () => ({ month: 1, year: 2000 }),
+  },
+  nextMonth: {
+    type: Object,
+    default: () => ({ month: 1, year: 2000 }),
+  },
   habits: {
     type: Array,
     default: () => [],
@@ -72,6 +96,8 @@ const newFocusTask = ref('');
 const rewardLedger = ref([]);
 const newWeeklyCheck = ref('');
 const walletBalance = ref(0);
+const isNavigatingMonth = ref(false);
+const carryForwardSpent = ref(0);
 
 const rewards = ref([
   { type: 'Daily', item: '15 mins social media', cost: 6 },
@@ -83,6 +109,7 @@ const rewards = ref([
   { type: 'Month', item: 'Purchase 1 Useful Subscription', cost: 40 },
   { type: 'Quarter', item: 'Major Purchase', cost: 100 },
   { type: 'Half-Yr', item: 'Vacation', cost: 500 },
+  { type: 'Yearly', item: 'International Vacation', cost: 2000 },
 ]);
 
 const createDefaultWeeklyReview = () => ({
@@ -115,9 +142,11 @@ const weeklyReview = ref(createDefaultWeeklyReview());
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.${monthScope.value}`);
+const localStatePrefix = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.`);
 const monthLabel = computed(
   () => new Date(props.year, Math.max(0, props.month - 1), 1).toLocaleString('en-US', { month: 'long' }).toUpperCase(),
 );
+const selectedMonthIndex = computed(() => (props.year * 100) + props.month);
 
 const mapHabit = (habit) => ({
   id: habit.id,
@@ -162,6 +191,12 @@ watch(
 
 const days = computed(() => Array.from({ length: props.monthDays }, (_, index) => index + 1));
 
+const isWeekendDay = (day) => {
+  const weekDay = new Date(props.year, props.month - 1, day).getDay();
+
+  return weekDay === 0 || weekDay === 6;
+};
+
 const flashSuccess = computed(() => page.props.flash?.success ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
 
@@ -173,12 +208,27 @@ const getDayTotal = (day) => localHabits.value.reduce(
 );
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
-const monthTotalPoints = computed(() => days.value.reduce((sum, day) => sum + getDayTotal(day), 0));
 const maxDailyPoints = computed(() => localHabits.value.reduce((sum, habit) => sum + habit.points, 0));
-const daysPassed = computed(() => Math.max(1, Math.min(props.currentDay, props.monthDays)));
+const evaluatedDays = computed(() => {
+  if (props.isFutureMonth) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(props.currentDay, props.monthDays));
+});
+
+const monthTotalPoints = computed(() => {
+  if (evaluatedDays.value === 0) {
+    return 0;
+  }
+
+  return days.value
+    .filter((day) => day <= evaluatedDays.value)
+    .reduce((sum, day) => sum + getDayTotal(day), 0);
+});
 
 const completionRate = computed(() => {
-  const denominator = totalHabits.value * daysPassed.value;
+  const denominator = totalHabits.value * evaluatedDays.value;
 
   if (denominator === 0) {
     return 0;
@@ -187,19 +237,25 @@ const completionRate = computed(() => {
   let completedCells = 0;
 
   localHabits.value.forEach((habit) => {
-    completedCells += habit.completedDays.filter((day) => day <= daysPassed.value).length;
+    completedCells += habit.completedDays.filter((day) => day <= evaluatedDays.value).length;
   });
 
   return (completedCells / denominator) * 100;
 });
 
-const dailyAverage = computed(() => monthTotalPoints.value / daysPassed.value);
+const dailyAverage = computed(() => {
+  if (evaluatedDays.value === 0) {
+    return 0;
+  }
+
+  return monthTotalPoints.value / evaluatedDays.value;
+});
 
 const personalBest = computed(() => {
   let bestDay = null;
   let bestPoints = 0;
 
-  for (let day = 1; day <= daysPassed.value; day += 1) {
+  for (let day = 1; day <= evaluatedDays.value; day += 1) {
     const score = getDayTotal(day);
 
     if (bestDay === null || score > bestPoints) {
@@ -211,10 +267,32 @@ const personalBest = computed(() => {
   return { day: bestDay, points: bestPoints };
 });
 
-const pointsSpent = computed(() => rewardLedger.value.reduce((sum, item) => sum + item.cost, 0));
-const availableWallet = computed(() => Math.max(0, walletBalance.value - pointsSpent.value));
-const pointsToVacation = computed(() => Math.max(500 - availableWallet.value, 0));
-const vacationProgress = computed(() => Math.max(0, Math.min((availableWallet.value / 500) * 100, 100)));
+const monthRedeemed = computed(() => rewardLedger.value.reduce((sum, item) => {
+  const cost = Number(item?.cost);
+
+  return sum + (Number.isFinite(cost) ? cost : 0);
+}, 0));
+
+const monthEarned = computed(() => Math.max(0, monthTotalPoints.value));
+const availableWallet = computed(() => Math.max(0, walletBalance.value - carryForwardSpent.value));
+const activeMilestoneTarget = computed(() => (availableWallet.value >= 500 ? 2000 : 500));
+const activeMilestoneLabel = computed(() => (activeMilestoneTarget.value === 500 ? 'Vacation' : 'International Vacation'));
+const pointsToVacation = computed(() => Math.max(activeMilestoneTarget.value - availableWallet.value, 0));
+const vacationProgress = computed(
+  () => Math.max(0, Math.min((availableWallet.value / activeMilestoneTarget.value) * 100, 100)),
+);
+const milestoneMessage = computed(() => {
+  if (pointsToVacation.value > 0) {
+    return `${pointsToVacation.value} points left to hit ${activeMilestoneLabel.value}`;
+  }
+
+  if (activeMilestoneTarget.value === 500) {
+    return 'Vacation unlocked. Next milestone: International Vacation (2000 pts).';
+  }
+
+  return 'International Vacation unlocked. Time to redeem!';
+});
+const openingBalance = computed(() => Math.max(0, availableWallet.value - monthEarned.value + monthRedeemed.value));
 
 watch(
   () => props.wallet,
@@ -227,11 +305,15 @@ watch(
 const chartData = computed(() => days.value.map((day) => getDayTotal(day)));
 
 const chartWidth = 980;
-const chartHeight = 220;
-const chartPaddingX = 24;
-const chartPaddingTop = 14;
-const chartPaddingBottom = 34;
-const chartMaxValue = computed(() => Math.max(25, 1, maxDailyPoints.value, ...chartData.value));
+const chartHeight = 256;
+const chartPaddingX = 50;
+const chartPaddingTop = 18;
+const chartPaddingBottom = 56;
+const chartMaxValue = computed(() => {
+  const rawMax = Math.max(1, maxDailyPoints.value, ...chartData.value);
+
+  return Math.max(25, Math.ceil(rawMax / 5) * 5);
+});
 
 const getChartY = (value) => {
   const chartTop = chartPaddingTop;
@@ -265,6 +347,7 @@ const chartPoints = computed(() => {
     value,
     x: chartPaddingX + (step * index),
     y: getChartY(value),
+    isWeekend: [0, 6].includes(new Date(props.year, props.month - 1, days.value[index]).getDay()),
   }));
 });
 
@@ -334,6 +417,71 @@ const persistLocalState = () => {
     rewardLedger: rewardLedger.value,
     weeklyReview: weeklyReview.value,
   }));
+
+  recalculateCarryForwardSpent();
+};
+
+const monthIndexFromScope = (scope) => {
+  const match = /^([0-9]{4})-([0-9]{2})$/.exec(String(scope));
+
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return null;
+  }
+
+  return (year * 100) + month;
+};
+
+const recalculateCarryForwardSpent = () => {
+  if (typeof window === 'undefined') {
+    carryForwardSpent.value = 0;
+    return;
+  }
+
+  const prefix = localStatePrefix.value;
+  let spent = 0;
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+
+    if (!key || !key.startsWith(prefix)) {
+      continue;
+    }
+
+    const scope = key.slice(prefix.length);
+    const scopeIndex = monthIndexFromScope(scope);
+
+    if (scopeIndex === null || scopeIndex > selectedMonthIndex.value) {
+      continue;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(key);
+
+      if (!raw) {
+        continue;
+      }
+
+      const parsed = JSON.parse(raw);
+      const entries = Array.isArray(parsed?.rewardLedger) ? parsed.rewardLedger : [];
+
+      spent += entries.reduce((sum, entry) => {
+        const cost = Number(entry?.cost);
+
+        return sum + (Number.isFinite(cost) ? cost : 0);
+      }, 0);
+    } catch {
+      continue;
+    }
+  }
+
+  carryForwardSpent.value = Math.max(0, spent);
 };
 
 const normalizeWeeklyReview = (raw) => {
@@ -395,6 +543,7 @@ const loadLocalState = () => {
 
   if (!raw) {
     weeklyReview.value = createDefaultWeeklyReview();
+    recalculateCarryForwardSpent();
     return;
   }
 
@@ -409,6 +558,8 @@ const loadLocalState = () => {
   } catch {
     weeklyReview.value = createDefaultWeeklyReview();
   }
+
+  recalculateCarryForwardSpent();
 };
 
 const updateFocusTasksForDay = (tasks) => {
@@ -464,10 +615,10 @@ const createSummary = (dayList) => {
 };
 
 const weeklyDays = computed(() => {
-  const start = Math.max(1, daysPassed.value - 6);
+  const start = Math.max(1, evaluatedDays.value - 6);
   const result = [];
 
-  for (let day = start; day <= daysPassed.value; day += 1) {
+  for (let day = start; day <= evaluatedDays.value; day += 1) {
     result.push(day);
   }
 
@@ -475,7 +626,7 @@ const weeklyDays = computed(() => {
 });
 
 const weeklySummary = computed(() => createSummary(weeklyDays.value));
-const monthlySummary = computed(() => createSummary(days.value.filter((day) => day <= daysPassed.value)));
+const monthlySummary = computed(() => createSummary(days.value.filter((day) => day <= evaluatedDays.value)));
 
 const weeklySnapshotLabel = computed(
   () => `${weeklySummary.value.points} pts • ${weeklySummary.value.completedDays}/${weeklySummary.value.totalDays} days • ${weeklySummary.value.stickiness.toFixed(1)}% (day complete ≥ ${weeklySummary.value.targetPerDay} pts)`,
@@ -484,6 +635,22 @@ const weeklySnapshotLabel = computed(
 const monthlySnapshotLabel = computed(
   () => `${monthlySummary.value.points} pts • ${monthlySummary.value.completedDays}/${monthlySummary.value.totalDays} days • ${monthlySummary.value.stickiness.toFixed(1)}% (day complete ≥ ${monthlySummary.value.targetPerDay} pts)`,
 );
+
+const weeklyStickinessGuide = computed(() => {
+  const totalDays = Math.max(weeklySummary.value.totalDays, 1);
+  const completedDays = weeklySummary.value.completedDays;
+  const threshold = weeklySummary.value.targetPerDay;
+
+  return `Purpose: shows how consistently you hit your daily minimum in the last ${totalDays} days. Formula: (${completedDays} / ${totalDays}) × 100, where a day counts only if points are ≥ ${threshold}. Manual: count qualifying days, divide by ${totalDays}, then multiply by 100.`;
+});
+
+const monthlyStickinessGuide = computed(() => {
+  const totalDays = Math.max(monthlySummary.value.totalDays, 1);
+  const completedDays = monthlySummary.value.completedDays;
+  const threshold = monthlySummary.value.targetPerDay;
+
+  return `Purpose: shows month-to-date consistency of hitting your daily minimum. Formula: (${completedDays} / ${totalDays}) × 100, where a day counts only if points are ≥ ${threshold}. Manual: count qualifying days from day 1 to today, divide by ${totalDays}, then multiply by 100.`;
+});
 
 const fillWeeklyReviewMetrics = () => {
   weeklyReview.value = {
@@ -565,6 +732,25 @@ const clearLocalProgress = () => {
     return;
   }
 
+  const previousState = {
+    focusDay: focusDay.value,
+    focusTasksByDay: { ...focusTasksByDay.value },
+    newFocusTask: newFocusTask.value,
+    rewardLedger: [...rewardLedger.value],
+    weeklyReview: normalizeWeeklyReview(weeklyReview.value),
+    newWeeklyCheck: newWeeklyCheck.value,
+  };
+
+  // Optimistically clear visible progress (including Point Ledger) right away.
+  clearHabitChecklistProgressLocally();
+  focusDay.value = props.currentDay;
+  focusTasksByDay.value = {};
+  newFocusTask.value = '';
+  rewardLedger.value = [];
+  weeklyReview.value = createDefaultWeeklyReview();
+  newWeeklyCheck.value = '';
+  persistLocalState();
+
   router.delete('/habits/check-ins', {
     data: {
       month: props.month,
@@ -574,134 +760,75 @@ const clearLocalProgress = () => {
     },
     preserveScroll: true,
     preserveState: true,
-    onSuccess: () => {
-      clearHabitChecklistProgressLocally();
-      focusDay.value = props.currentDay;
-      focusTasksByDay.value = {};
-      newFocusTask.value = '';
-      rewardLedger.value = [];
-      walletBalance.value = 0;
-      weeklyReview.value = createDefaultWeeklyReview();
-      newWeeklyCheck.value = '';
+    onError: () => {
+      // Restore previous local state if backend clear fails.
+      focusDay.value = previousState.focusDay;
+      focusTasksByDay.value = previousState.focusTasksByDay;
+      newFocusTask.value = previousState.newFocusTask;
+      rewardLedger.value = previousState.rewardLedger;
+      weeklyReview.value = previousState.weeklyReview;
+      newWeeklyCheck.value = previousState.newWeeklyCheck;
       persistLocalState();
     },
   });
 };
 
-const csvEscape = (value) => {
-  const normalized = value === null || value === undefined ? '' : String(value);
-
-  if (/[",\n]/.test(normalized)) {
-    return `"${normalized.replace(/"/g, '""')}"`;
+const goToMonth = (target) => {
+  if (!target || isNavigatingMonth.value) {
+    return;
   }
 
-  return normalized;
+  isNavigatingMonth.value = true;
+
+  router.get(
+    '/',
+    {
+      month: target.month,
+      year: target.year,
+    },
+    {
+      preserveScroll: true,
+      preserveState: false,
+      replace: true,
+      onFinish: () => {
+        isNavigatingMonth.value = false;
+      },
+    },
+  );
 };
 
-const exportCsv = () => {
-  const rows = [];
-
-  rows.push('Habit Grid');
-  rows.push(['Habit', 'Pts', ...days.value.map((day) => `Day ${day}`)].map(csvEscape).join(','));
-
-  localHabits.value.forEach((habit) => {
-    rows.push([
-      habit.name,
-      habit.points,
-      ...days.value.map((day) => (habit.completedDays.includes(day) ? '✓' : '')),
-    ].map(csvEscape).join(','));
-  });
-
-  rows.push(['Daily Total Points', '', ...days.value.map((day) => getDayTotal(day))].map(csvEscape).join(','));
-  rows.push('');
-
-  rows.push('Reward Ledger');
-  rows.push(['Reward Item', 'Description', 'Date', 'Cost'].map(csvEscape).join(','));
-
-  if (rewardLedger.value.length === 0) {
-    rows.push(['No redemptions', '', '', ''].map(csvEscape).join(','));
-  } else {
-    rewardLedger.value.forEach((entry) => {
-      rows.push([entry.item, entry.description, entry.date, entry.cost].map(csvEscape).join(','));
-    });
+const goToPreviousMonth = () => {
+  if (!props.canNavigatePrevMonth) {
+    return;
   }
 
-  rows.push('');
-  rows.push('Daily Focus Tasks');
-  rows.push(['Day', 'Tasks', 'Day Score'].map(csvEscape).join(','));
+  goToMonth(props.previousMonth);
+};
 
-  const focusEntries = Object.entries(focusTasksByDay.value)
-    .map(([key, items]) => ({
-      day: Number(String(key).replace('day-', '')),
-      tasks: Array.isArray(items)
-        ? items
-          .filter((task) => task?.text && String(task.text).trim() !== '')
-          .map((task) => `${task.done ? '[x]' : '[ ]'} ${String(task.text).trim()}`)
-        : [],
-    }))
-    .filter((entry) => Number.isFinite(entry.day) && entry.tasks.length > 0)
-    .sort((a, b) => a.day - b.day);
-
-  if (focusEntries.length === 0) {
-    rows.push(['No focus tasks', '', ''].map(csvEscape).join(','));
-  } else {
-    focusEntries.forEach((entry) => {
-      rows.push([`Day ${entry.day}`, entry.tasks.join(' | '), getDayTotal(entry.day)].map(csvEscape).join(','));
-    });
+const goToNextMonth = () => {
+  if (!props.canNavigateNextMonth) {
+    return;
   }
 
-  rows.push('');
-  rows.push('Weekly Review');
-  rows.push(['Review Date', 'Weekly Points', 'Weekly Stickiness %', 'Monthly Points', 'Monthly Stickiness %'].map(csvEscape).join(','));
-  rows.push([
-    weeklyReview.value.reviewDate,
-    weeklyReview.value.metrics.weeklyPoints,
-    weeklyReview.value.metrics.weeklyStickiness,
-    weeklyReview.value.metrics.monthlyPoints,
-    weeklyReview.value.metrics.monthlyStickiness,
-  ].map(csvEscape).join(','));
-
-  rows.push('');
-  rows.push('Weekly Checks');
-  rows.push(['Done', 'Checkpoint'].map(csvEscape).join(','));
-
-  weeklyReview.value.checks.forEach((check) => {
-    rows.push([check.done ? 'Yes' : 'No', check.text].map(csvEscape).join(','));
-  });
-
-  rows.push('');
-  rows.push('Reflections');
-  rows.push(['Prompt', 'Response'].map(csvEscape).join(','));
-
-  [
-    ['Biggest Wins Worth Repeating', weeklyReview.value.reflections.wins],
-    ['Missed Days & Friction Pattern', weeklyReview.value.reflections.misses],
-    ['Trigger + If-Then Plan', weeklyReview.value.reflections.triggerPlan],
-    ['Reward Motivation Check', weeklyReview.value.reflections.rewardTune],
-    ['Scale-Down Rule for Hard Days', weeklyReview.value.reflections.habitScale],
-    ['Health Check (Sleep/Reflux/Stress)', weeklyReview.value.reflections.healthCheck],
-    ['Next Week Focus Commitments', weeklyReview.value.reflections.nextWeekFocus],
-  ].forEach(([prompt, response]) => {
-    rows.push([prompt, response].map(csvEscape).join(','));
-  });
-
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = `habuilt_export_${props.today || 'data'}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  goToMonth(props.nextMonth);
 };
 
 const hasCompletedDay = (habit, day) => habit.completedDays.includes(day);
 const keyFor = (habitId, day) => `${habitId}:${day}`;
 
-const completeHabitForDay = (habit, day) => {
-  if (hasCompletedDay(habit, day)) {
+const setHabitDayCompletion = (habit, day, completed) => {
+  if (completed) {
+    habit.completedDays.push(day);
+    habit.completedDays = [...new Set(habit.completedDays)].sort((a, b) => a - b);
+  } else {
+    habit.completedDays = habit.completedDays.filter((value) => value !== day);
+  }
+
+  habit.completedToday = habit.completedDays.includes(props.currentDay);
+};
+
+const toggleHabitForDay = (habit, day) => {
+  if (props.isFutureMonth) {
     return;
   }
 
@@ -711,35 +838,42 @@ const completeHabitForDay = (habit, day) => {
     return;
   }
 
-  habit.completedDays.push(day);
-  habit.completedDays = [...new Set(habit.completedDays)].sort((a, b) => a - b);
-  habit.completedToday = habit.completedDays.includes(props.currentDay);
+  const wasCompleted = hasCompletedDay(habit, day);
+  setHabitDayCompletion(habit, day, !wasCompleted);
 
   pendingCells.value[pendingKey] = true;
+  pendingCells.value = { ...pendingCells.value };
 
-  router.post(
-    `/habits/${habit.id}/check-ins`,
-    {
-      habit_id: habit.id,
-      day,
-      month: props.month,
-      year: props.year,
-      source: 'habit-grid',
-      user_id: props.userId,
+  const payload = {
+    habit_id: habit.id,
+    day,
+    month: props.month,
+    year: props.year,
+    source: 'habit-grid',
+    user_id: props.userId,
+  };
+
+  const requestOptions = {
+    preserveScroll: true,
+    preserveState: true,
+    onError: () => {
+      setHabitDayCompletion(habit, day, wasCompleted);
     },
-    {
-      preserveScroll: true,
-      preserveState: true,
-      onError: () => {
-        habit.completedDays = habit.completedDays.filter((value) => value !== day);
-        habit.completedToday = habit.completedDays.includes(props.currentDay);
-      },
-      onFinish: () => {
-        delete pendingCells.value[pendingKey];
-        pendingCells.value = { ...pendingCells.value };
-      },
+    onFinish: () => {
+      delete pendingCells.value[pendingKey];
+      pendingCells.value = { ...pendingCells.value };
     },
-  );
+  };
+
+  if (wasCompleted) {
+    router.delete(`/habits/${habit.id}/check-ins`, {
+      data: payload,
+      ...requestOptions,
+    });
+    return;
+  }
+
+  router.post(`/habits/${habit.id}/check-ins`, payload, requestOptions);
 };
 
 onMounted(() => {
@@ -761,7 +895,7 @@ watch(darkMode, () => {
 
 <template>
   <AppLayout>
-    <section>
+    <section :class="{ 'month-nav-loading': isNavigatingMonth }">
       <section class="card card--hero" id="overview">
         <header class="hero-head">
           <div class="hero-main">
@@ -812,8 +946,21 @@ watch(darkMode, () => {
 
           <div class="hero-side">
             <div class="hero-actions">
-              <button class="btn btn--secondary" @click="exportCsv">Export Data</button>
-              <button class="btn" @click="darkMode = !darkMode">{{ darkMode ? '☀ Light Mode' : '🌙 Stealth Mode' }}</button>
+              <button
+                class="btn btn--calendar"
+                :disabled="!canNavigatePrevMonth || isNavigatingMonth"
+                @click="goToPreviousMonth"
+              >
+                ← Prev Month
+              </button>
+              <button
+                class="btn btn--calendar"
+                :disabled="!canNavigateNextMonth || isNavigatingMonth"
+                @click="goToNextMonth"
+              >
+                Next Month →
+              </button>
+              <button class="btn" @click="darkMode = !darkMode">{{ darkMode ? '☀' : '🌙' }}</button>
             </div>
 
             <div class="kpis kpis--compact">
@@ -826,6 +973,16 @@ watch(darkMode, () => {
                 <strong>{{ availableWallet }}</strong>
               </article>
             </div>
+
+            <article class="balance-math">
+              <h3>Carry-Forward Balance Math</h3>
+              <div class="balance-math__grid">
+                <p><span>Opening Balance</span><strong>{{ openingBalance }}</strong></p>
+                <p><span>Month Earned</span><strong>{{ monthEarned }}</strong></p>
+                <p><span>Month Redeemed</span><strong>{{ monthRedeemed }}</strong></p>
+                <p><span>Closing Balance</span><strong>{{ availableWallet }}</strong></p>
+              </div>
+            </article>
           </div>
         </header>
 
@@ -868,8 +1025,9 @@ watch(darkMode, () => {
               <text
                 v-for="line in chartGridLines"
                 :key="`ylabel-${line.value}`"
-                :x="7"
-                :y="line.y + 3"
+                class="chart__y-label"
+                :x="chartPaddingX - 8"
+                :y="line.y"
               >{{ line.value }}</text>
             </g>
             <path class="chart__area" :d="chartAreaPath" />
@@ -886,23 +1044,28 @@ watch(darkMode, () => {
               <text
                 v-for="point in chartPoints"
                 :key="`xlabel-${point.day}`"
+                :class="['chart__x-label', { 'chart__x-label--weekend': point.isWeekend }]"
                 :x="point.x"
-                :y="chartHeight - 8"
+                :y="chartHeight - 20"
               >{{ point.day }}</text>
             </g>
           </svg>
         </div>
+        <p class="chart-legend-note">
+          <span class="chart-legend-note__dot" aria-hidden="true">●</span>
+          Weekend labels highlighted (Sat/Sun)
+        </p>
 
         <div class="progress-block">
           <div class="progress-head">
-            <p>Vacation Milestone (500 pts)</p>
+            <p>{{ activeMilestoneLabel }} Milestone ({{ activeMilestoneTarget }} pts)</p>
             <strong>{{ vacationProgress.toFixed(1) }}%</strong>
           </div>
           <div class="progress-track">
             <div class="progress-fill" :style="`width: ${vacationProgress}%`" />
           </div>
           <p class="progress-note">
-            {{ pointsToVacation > 0 ? `${pointsToVacation} points left to hit Vacation` : 'Vacation unlocked. Time to redeem!' }}
+            {{ milestoneMessage }}
           </p>
         </div>
 
@@ -942,7 +1105,10 @@ watch(darkMode, () => {
                   v-for="day in days"
                   :key="`head-${day}`"
                   class="habit-grid__day"
-                  :class="day === currentDay ? 'habit-grid__day--current' : ''"
+                  :class="[
+                    props.isCurrentMonth && day === props.currentDay ? 'habit-grid__day--current' : '',
+                    isWeekendDay(day) ? 'habit-grid__day--weekend' : '',
+                  ]"
                 >
                   {{ day }}
                 </th>
@@ -954,15 +1120,21 @@ watch(darkMode, () => {
                 <td class="habit-grid__sticky habit-grid__name">{{ habit.name }}</td>
                 <td class="habit-grid__pts">{{ habit.points }}</td>
 
-                <td v-for="day in days" :key="`${habit.id}-${day}`" class="habit-grid__cell">
+                <td
+                  v-for="day in days"
+                  :key="`${habit.id}-${day}`"
+                  class="habit-grid__cell"
+                  :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
+                >
                   <button
                     class="habit-grid__check"
                     :class="hasCompletedDay(habit, day) ? 'habit-grid__check--done' : ''"
-                    :disabled="hasCompletedDay(habit, day) || !!pendingCells[keyFor(habit.id, day)]"
-                    @click="completeHabitForDay(habit, day)"
+                    :disabled="isFutureMonth || !!pendingCells[keyFor(habit.id, day)]"
+                    @click="toggleHabitForDay(habit, day)"
                   >
-                    <span v-if="pendingCells[keyFor(habit.id, day)]">…</span>
-                    <span v-else-if="hasCompletedDay(habit, day)">✓</span>
+                    <span v-if="hasCompletedDay(habit, day)">✓</span>
+                    <span v-else-if="pendingCells[keyFor(habit.id, day)]">…</span>
+                    <span v-else-if="isFutureMonth">–</span>
                   </button>
                 </td>
               </tr>
@@ -970,7 +1142,11 @@ watch(darkMode, () => {
               <tr class="habit-grid__totals">
                 <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
                 <td class="habit-grid__pts">—</td>
-                <td v-for="day in days" :key="`tot-${day}`">{{ getDayTotal(day) }}</td>
+                <td
+                  v-for="day in days"
+                  :key="`tot-${day}`"
+                  :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
+                >{{ getDayTotal(day) }}</td>
               </tr>
             </tbody>
           </table>
@@ -1059,6 +1235,7 @@ watch(darkMode, () => {
               <label>
                 Weekly Stickiness %
                 <input v-model="weeklyReview.metrics.weeklyStickiness" type="text" placeholder="e.g. 71.4" @change="saveWeeklyReview">
+                <small class="metric-guide">{{ weeklyStickinessGuide }}</small>
               </label>
               <label>
                 Monthly Points
@@ -1067,6 +1244,7 @@ watch(darkMode, () => {
               <label>
                 Monthly Stickiness %
                 <input v-model="weeklyReview.metrics.monthlyStickiness" type="text" placeholder="e.g. 64.5" @change="saveWeeklyReview">
+                <small class="metric-guide">{{ monthlyStickinessGuide }}</small>
               </label>
             </div>
           </article>

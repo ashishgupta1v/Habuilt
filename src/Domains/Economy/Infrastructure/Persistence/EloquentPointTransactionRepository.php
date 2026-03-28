@@ -44,6 +44,24 @@ final class EloquentPointTransactionRepository implements PointTransactionReposi
             ->all();
     }
 
+    /**
+     * @return list<PointTransaction>
+     */
+    public function findLedgerForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): array
+    {
+        return EloquentPointTransactionModel::query()
+            ->where('user_id', $userId->value())
+            ->whereBetween('occurred_at', [
+                $from->format('Y-m-d H:i:s'),
+                $to->format('Y-m-d H:i:s'),
+            ])
+            ->orderBy('occurred_at', 'desc')
+            ->get()
+            ->map(fn (EloquentPointTransactionModel $row) => $this->toDomain($row))
+            ->values()
+            ->all();
+    }
+
     public function currentBalanceForUser(UserId $userId): PointValue
     {
         $total = (int) EloquentPointTransactionModel::query()
@@ -60,6 +78,24 @@ final class EloquentPointTransactionRepository implements PointTransactionReposi
     {
         return EloquentPointTransactionModel::query()
             ->where('user_id', $userId->value())
+            ->delete();
+    }
+
+    public function clearLedgerForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int
+    {
+        return EloquentPointTransactionModel::query()
+            ->where('user_id', $userId->value())
+            ->whereBetween('occurred_at', [
+                $from->format('Y-m-d H:i:s'),
+                $to->format('Y-m-d H:i:s'),
+            ])
+            ->delete();
+    }
+
+    public function removeByReferenceId(CheckInId $referenceId): int
+    {
+        return EloquentPointTransactionModel::query()
+            ->where('reference_id', $referenceId->value())
             ->delete();
     }
 
