@@ -58,6 +58,13 @@ final class EloquentCheckInRepository implements CheckInRepositoryInterface
         );
     }
 
+    public function deleteById(CheckInId $checkInId): int
+    {
+        return EloquentCheckInModel::query()
+            ->where('id', $checkInId->value())
+            ->delete();
+    }
+
     public function clearForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int
     {
         return EloquentCheckInModel::query()

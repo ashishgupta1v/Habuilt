@@ -19,6 +19,9 @@ use Illuminate\Http\Request;
 
 final readonly class DashboardController
 {
+    private const PAST_MONTH_LIMIT = 12;
+    private const FUTURE_MONTH_LIMIT = 6;
+
     public function __construct(
         private HabitRepositoryInterface $habits,
         private CheckInRepositoryInterface $checkIns,
@@ -34,24 +37,59 @@ final readonly class DashboardController
         $this->ensureDefaultHabits($userId);
 
         $today = new DateTimeImmutable('now');
-        $monthStart = new DateTimeImmutable($today->format('Y-m-01 00:00:00'));
-        $monthEnd = new DateTimeImmutable($today->format('Y-m-t 23:59:59'));
-        $monthDays = (int) $today->format('t');
+        $currentMonthStart = new DateTimeImmutable($today->format('Y-m-01 00:00:00'));
+        $minMonthStart = $currentMonthStart->modify(sprintf('-%d months', self::PAST_MONTH_LIMIT));
+        $maxMonthStart = $currentMonthStart->modify(sprintf('+%d months', self::FUTURE_MONTH_LIMIT));
+
+        $requestedMonth = $request->integer('month');
+        $requestedYear = $request->integer('year');
+
+        $selectedMonthStart = $this->resolveSelectedMonthStart(
+            $requestedYear,
+            $requestedMonth,
+            $currentMonthStart,
+            $minMonthStart,
+            $maxMonthStart,
+        );
+
+        $selectedMonthEnd = $selectedMonthStart->modify('last day of this month')->setTime(23, 59, 59);
+        $monthDays = (int) $selectedMonthStart->format('t');
+        $isCurrentMonth = $selectedMonthStart->format('Y-m') === $currentMonthStart->format('Y-m');
+        $isFutureMonth = $selectedMonthStart > $currentMonthStart;
+
+        $currentDay = $isCurrentMonth
+            ? (int) $today->format('j')
+            : ($isFutureMonth ? 1 : $monthDays);
 
         $habitCards = array_map(
-            fn (Habit $habit): array => $this->mapHabitForDashboard($habit, $monthStart, $monthEnd),
+            fn (Habit $habit): array => $this->mapHabitForDashboard($habit, $selectedMonthStart, $selectedMonthEnd, $currentDay),
             $this->habits->findActiveByUser($userId),
         );
+
+        $previousMonth = $selectedMonthStart->modify('-1 month');
+        $nextMonth = $selectedMonthStart->modify('+1 month');
 
         return Inertia::render('Dashboard', [
             'appName' => (string) config('app.name', 'Warrior Tracker (Habuilt)'),
             'today' => $today->format('Y-m-d'),
-            'month' => (int) $today->format('m'),
-            'year' => (int) $today->format('Y'),
+            'month' => (int) $selectedMonthStart->format('m'),
+            'year' => (int) $selectedMonthStart->format('Y'),
             'monthDays' => $monthDays,
-            'currentDay' => (int) $today->format('j'),
+            'currentDay' => $currentDay,
+            'isCurrentMonth' => $isCurrentMonth,
+            'isFutureMonth' => $isFutureMonth,
+            'canNavigatePrevMonth' => $selectedMonthStart > $minMonthStart,
+            'canNavigateNextMonth' => $selectedMonthStart < $maxMonthStart,
+            'previousMonth' => [
+                'month' => (int) $previousMonth->format('m'),
+                'year' => (int) $previousMonth->format('Y'),
+            ],
+            'nextMonth' => [
+                'month' => (int) $nextMonth->format('m'),
+                'year' => (int) $nextMonth->format('Y'),
+            ],
             'userId' => $userId->value(),
-            'wallet' => $this->walletFor($userId),
+            'wallet' => $this->walletCarryForwardToMonth($userId, $selectedMonthEnd),
             'habits' => $habitCards,
         ]);
     }
@@ -82,10 +120,12 @@ final readonly class DashboardController
         }
     }
 
-    private function walletFor(UserId $userId): int
+    private function walletCarryForwardToMonth(UserId $userId, DateTimeImmutable $selectedMonthEnd): int
     {
+        $ledgerStart = new DateTimeImmutable('2000-01-01 00:00:00');
+
         return array_reduce(
-            $this->pointTransactions->findLedgerForUser($userId),
+            $this->pointTransactions->findLedgerForUserInRange($userId, $ledgerStart, $selectedMonthEnd),
             static fn (int $carry, $transaction): int => $carry + $transaction->amount->value(),
             0,
         );
@@ -98,6 +138,7 @@ final readonly class DashboardController
         Habit $habit,
         DateTimeImmutable $monthStart,
         DateTimeImmutable $monthEnd,
+        int $currentDay,
     ): array {
         $checkIns = $this->checkIns->findForHabitInRange($habit->id, $monthStart, $monthEnd);
 
@@ -108,14 +149,36 @@ final readonly class DashboardController
 
         sort($completedDays);
 
-        $todayDay = (int) (new DateTimeImmutable('now'))->format('j');
-
         return [
             'id' => $habit->id->value(),
             'name' => $habit->name,
             'points' => $habit->pointsPerCheckIn->value(),
-            'completedToday' => in_array($todayDay, $completedDays, true),
+            'completedToday' => in_array($currentDay, $completedDays, true),
             'completedDays' => $completedDays,
         ];
+    }
+
+    private function resolveSelectedMonthStart(
+        int $year,
+        int $month,
+        DateTimeImmutable $currentMonthStart,
+        DateTimeImmutable $minMonthStart,
+        DateTimeImmutable $maxMonthStart,
+    ): DateTimeImmutable {
+        if ($month < 1 || $month > 12 || $year < 2000 || $year > 2100) {
+            return $currentMonthStart;
+        }
+
+        $selected = new DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
+
+        if ($selected < $minMonthStart) {
+            return $minMonthStart;
+        }
+
+        if ($selected > $maxMonthStart) {
+            return $maxMonthStart;
+        }
+
+        return $selected;
     }
 }

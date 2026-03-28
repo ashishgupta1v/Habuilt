@@ -14,6 +14,7 @@ use Habuilt\Domains\Tracking\Events\HabitCompleted;
 use Habuilt\Domains\Tracking\Exceptions\HabitAlreadyCompletedTodayException;
 use Habuilt\Domains\Tracking\Exceptions\HabitArchivedException;
 use Habuilt\Domains\Tracking\Models\CheckIn;
+use Habuilt\Domains\Tracking\ValueObjects\CheckInId;
 use Habuilt\Domains\Tracking\Models\Habit;
 use Habuilt\Domains\Tracking\ValueObjects\HabitId;
 use Habuilt\Shared\Domain\Events\DomainEventDispatcherInterface;
@@ -199,6 +200,39 @@ final class InMemoryCheckInRepository implements CheckInRepositoryInterface
     public function save(CheckIn $checkIn): void
     {
         $this->savedCheckIns[] = $checkIn;
+    }
+
+    public function deleteById(CheckInId $checkInId): int
+    {
+        $removed = 0;
+
+        $this->seeded = array_values(array_filter(
+            $this->seeded,
+            static function (CheckIn $checkIn) use ($checkInId, &$removed): bool {
+                if ($checkIn->id->equals($checkInId)) {
+                    $removed += 1;
+
+                    return false;
+                }
+
+                return true;
+            },
+        ));
+
+        $this->savedCheckIns = array_values(array_filter(
+            $this->savedCheckIns,
+            static function (CheckIn $checkIn) use ($checkInId, &$removed): bool {
+                if ($checkIn->id->equals($checkInId)) {
+                    $removed += 1;
+
+                    return false;
+                }
+
+                return true;
+            },
+        ));
+
+        return $removed;
     }
 
     public function clearForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int
