@@ -1,0 +1,31 @@
+{
+  "_app-!~{003}~.js": {
+    "file": "assets/app-Bn92Yel9.css",
+    "src": "_app-!~{003}~.js"
+  },
+  "_app-BgQo3PyR.js": {
+    "file": "assets/app-BgQo3PyR.js",
+    "name": "app",
+    "css": [
+      "assets/app-Bn92Yel9.css"
+    ]
+  },
+  "index.html": {
+    "file": "assets/preview-DtTO-oFA.js",
+    "name": "preview",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_app-BgQo3PyR.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-01lcJ_4k.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_app-BgQo3PyR.js"
+    ]
+  }
+}
