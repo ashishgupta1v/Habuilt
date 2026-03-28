@@ -18,4 +18,6 @@ interface PointTransactionRepositoryInterface
     public function findLedgerForUser(UserId $userId): array;
 
     public function currentBalanceForUser(UserId $userId): PointValue;
+
+    public function clearLedgerForUser(UserId $userId): int;
 }

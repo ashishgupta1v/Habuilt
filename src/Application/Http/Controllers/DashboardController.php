@@ -53,7 +53,6 @@ final readonly class DashboardController
             'userId' => $userId->value(),
             'wallet' => $this->walletFor($userId),
             'habits' => $habitCards,
-            'legacyReferenceAvailable' => file_exists(base_path('index.html')),
         ]);
     }
 

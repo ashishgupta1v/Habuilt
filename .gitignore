@@ -5,6 +5,7 @@
 .phpunit.result.cache
 
 /public/storage
+/public/build/
 /storage/*.key
 /storage/app/*
 !/storage/app/.gitignore

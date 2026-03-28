@@ -58,6 +58,17 @@ final class EloquentCheckInRepository implements CheckInRepositoryInterface
         );
     }
 
+    public function clearForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int
+    {
+        return EloquentCheckInModel::query()
+            ->where('user_id', $userId->value())
+            ->whereBetween('completed_at', [
+                $from->format('Y-m-d H:i:s'),
+                $to->format('Y-m-d H:i:s'),
+            ])
+            ->delete();
+    }
+
     // ── Private mapper ────────────────────────────────────────────────────────
 
     private function toDomain(EloquentCheckInModel $row): CheckIn

@@ -58,8 +58,6 @@ This layer renders server data and handles UI behavior.
 
 - `resources/js/Pages/Dashboard.vue`
 - `resources/js/Layouts/AppLayout.vue`
-- `resources/js/Components/TopNav.vue`
-- `resources/js/Components/HabitGrid.vue`
 
 ## Folder Guide
 
@@ -193,16 +191,14 @@ That tells Laravel to render the Vue page at `resources/js/Pages/Dashboard.vue` 
 - resolved user context
 - flash success/error messages
 
-That means components like the top navigation can access wallet data without every controller manually repeating it.
+That means the dashboard can access wallet data without every controller manually repeating it.
 
 ### Step 8: Vue renders the dashboard shell
 
 The frontend rendering path is:
 
 1. `AppLayout.vue` creates the shell.
-2. `TopNav.vue` renders the brand, section links, and wallet badge.
-3. `Dashboard.vue` renders the actual dashboard sections.
-4. `HabitGrid.vue` renders the check-in matrix table.
+2. `Dashboard.vue` renders all major sections (hero, analytics, habits, rewards, weekly review).
 
 ### Step 9: `Dashboard.vue` computes dashboard-only view models
 
@@ -241,7 +237,7 @@ This is the most important end-to-end flow in the app.
 
 ### Step 1: The user clicks a day cell
 
-Inside `HabitGrid.vue`, each habit/day intersection is a button.
+Inside `Dashboard.vue`, each habit/day intersection is a button.
 
 If the cell is already complete or currently pending, it is blocked.
 
@@ -365,14 +361,6 @@ This is why the dashboard stays consistent after each completion.
 
 This is the outer shell. It keeps layout concerns separate from page logic.
 
-### `resources/js/Components/TopNav.vue`
-
-This is the header bar. It reads shared Inertia props and shows:
-
-- app brand
-- section anchors
-- wallet points
-
 ### `resources/js/Pages/Dashboard.vue`
 
 This is the main UI orchestrator. It is responsible for:
@@ -382,17 +370,7 @@ This is the main UI orchestrator. It is responsible for:
 - computing KPIs and chart data
 - handling completion requests
 - rendering sections like overview, habits, rewards, and weekly review
-
-### `resources/js/Components/HabitGrid.vue`
-
-This is the reusable habit matrix. It is deliberately simple:
-
-- receives habits and days as props
-- knows which cells are complete or pending
-- emits completion events upward
-- does not own backend logic
-
-That separation makes the component reusable and easy to test mentally.
+- rendering the check-in matrix directly inside the page
 
 ## Backend Responsibility Breakdown
 

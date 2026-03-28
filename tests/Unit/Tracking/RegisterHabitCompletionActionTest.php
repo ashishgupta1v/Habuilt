@@ -200,6 +200,30 @@ final class InMemoryCheckInRepository implements CheckInRepositoryInterface
     {
         $this->savedCheckIns[] = $checkIn;
     }
+
+    public function clearForUserInRange(UserId $userId, DateTimeImmutable $from, DateTimeImmutable $to): int
+    {
+        $all = array_merge($this->seeded, $this->savedCheckIns);
+        $kept = [];
+        $removed = 0;
+
+        foreach ($all as $checkIn) {
+            $matchesUser = $checkIn->userId->equals($userId);
+            $isInRange = $checkIn->completedAt >= $from && $checkIn->completedAt <= $to;
+
+            if ($matchesUser && $isInRange) {
+                $removed += 1;
+                continue;
+            }
+
+            $kept[] = $checkIn;
+        }
+
+        $this->seeded = $kept;
+        $this->savedCheckIns = [];
+
+        return $removed;
+    }
 }
 
 final class FakeDispatcher implements DomainEventDispatcherInterface
