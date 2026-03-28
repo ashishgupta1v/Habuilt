@@ -10,6 +10,14 @@ export default defineConfig({
     }),
     vue(),
   ],
+  build: {
+    rollupOptions: {
+      input: {
+        app: 'resources/js/app.js',
+        preview: 'index.html',
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': '/resources/js',
