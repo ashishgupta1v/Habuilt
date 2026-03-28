@@ -6,7 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 const props = defineProps({
   appName: {
     type: String,
-    default: 'Warrior Tracker',
+    default: 'Habuilt Tracker',
   },
   today: {
     type: String,
@@ -40,10 +40,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  legacyReferenceAvailable: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const page = usePage();
@@ -51,12 +47,31 @@ const page = usePage();
 const localHabits = ref([]);
 const pendingCells = ref({});
 
+const fallbackHabits = [
+  { id: 'fallback-1', name: '3:30 AM Wake Up & Hydrate', points: 3 },
+  { id: 'fallback-2', name: 'MOVERS Protocol (Mental Prep)', points: 2 },
+  { id: 'fallback-3', name: 'Deep Work Marathon (Wealth)', points: 3 },
+  { id: 'fallback-4', name: 'Care Protocol + Juice/Tea', points: 1 },
+  { id: 'fallback-5', name: 'Wife Care (Quality Time)', points: 3 },
+  { id: 'fallback-6', name: 'Job Apply/Interview Schedule', points: 1 },
+  { id: 'fallback-7', name: '20-20-20 Eye Breaks (Health)', points: 1 },
+  { id: 'fallback-8', name: 'Boxing & DHT Rinse (Stress/Hair)', points: 3 },
+  { id: 'fallback-9', name: 'Dinner Stop by 7:00 PM (Cure)', points: 2 },
+  { id: 'fallback-10', name: 'Left-Side Sleep Rule (9:00 PM)', points: 1 },
+  { id: 'fallback-11', name: 'Limit Phone usage to 40 mins', points: 2 },
+  { id: 'fallback-12', name: 'Bhajan, Kirtan, Mantras', points: 1 },
+  { id: 'fallback-13', name: 'Sleep score above 85', points: 2 },
+  { id: 'fallback-14', name: 'Avoid Mind Distractions', points: 2 },
+  { id: 'fallback-15', name: 'Read 1 page of any book', points: 1 },
+];
+
 const darkMode = ref(false);
 const focusDay = ref(props.currentDay);
 const focusTasksByDay = ref({});
 const newFocusTask = ref('');
 const rewardLedger = ref([]);
 const newWeeklyCheck = ref('');
+const walletBalance = ref(0);
 
 const rewards = ref([
   { type: 'Daily', item: '15 mins social media', cost: 6 },
@@ -100,6 +115,9 @@ const weeklyReview = ref(createDefaultWeeklyReview());
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.${monthScope.value}`);
+const monthLabel = computed(
+  () => new Date(props.year, Math.max(0, props.month - 1), 1).toLocaleString('en-US', { month: 'long' }).toUpperCase(),
+);
 
 const mapHabit = (habit) => ({
   id: habit.id,
@@ -114,7 +132,12 @@ const mapHabit = (habit) => ({
 watch(
   () => props.habits,
   (value) => {
-    localHabits.value = value.map(mapHabit);
+    if (Array.isArray(value) && value.length > 0) {
+      localHabits.value = value.map(mapHabit);
+      return;
+    }
+
+    localHabits.value = fallbackHabits.map(mapHabit);
   },
   { immediate: true },
 );
@@ -143,9 +166,6 @@ const flashSuccess = computed(() => page.props.flash?.success ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
 
 const totalHabits = computed(() => localHabits.value.length);
-const completedCountToday = computed(
-  () => localHabits.value.filter((habit) => habit.completedDays.includes(props.currentDay)).length,
-);
 
 const getDayTotal = (day) => localHabits.value.reduce(
   (sum, habit) => sum + (habit.completedDays.includes(day) ? habit.points : 0),
@@ -192,32 +212,59 @@ const personalBest = computed(() => {
 });
 
 const pointsSpent = computed(() => rewardLedger.value.reduce((sum, item) => sum + item.cost, 0));
-const availableWallet = computed(() => Math.max(0, props.wallet - pointsSpent.value));
+const availableWallet = computed(() => Math.max(0, walletBalance.value - pointsSpent.value));
 const pointsToVacation = computed(() => Math.max(500 - availableWallet.value, 0));
 const vacationProgress = computed(() => Math.max(0, Math.min((availableWallet.value / 500) * 100, 100)));
+
+watch(
+  () => props.wallet,
+  (value) => {
+    walletBalance.value = Number.isFinite(value) ? value : 0;
+  },
+  { immediate: true },
+);
 
 const chartData = computed(() => days.value.map((day) => getDayTotal(day)));
 
 const chartWidth = 980;
 const chartHeight = 220;
 const chartPaddingX = 24;
-const chartPaddingY = 16;
+const chartPaddingTop = 14;
+const chartPaddingBottom = 34;
+const chartMaxValue = computed(() => Math.max(25, 1, maxDailyPoints.value, ...chartData.value));
+
+const getChartY = (value) => {
+  const chartTop = chartPaddingTop;
+  const chartBottom = chartHeight - chartPaddingBottom;
+  const drawableHeight = chartBottom - chartTop;
+
+  return chartBottom - ((value / chartMaxValue.value) * drawableHeight);
+};
+
+const chartGridLines = computed(() => {
+  const lines = [];
+
+  for (let value = chartMaxValue.value; value >= 0; value -= 5) {
+    lines.push({ value, y: getChartY(value) });
+  }
+
+  if (lines[lines.length - 1]?.value !== 0) {
+    lines.push({ value: 0, y: getChartY(0) });
+  }
+
+  return lines;
+});
 
 const chartPoints = computed(() => {
   const step = days.value.length > 1
     ? (chartWidth - (chartPaddingX * 2)) / (days.value.length - 1)
     : 0;
 
-  const chartTop = chartPaddingY;
-  const chartBottom = chartHeight - chartPaddingY;
-  const drawableHeight = chartBottom - chartTop;
-  const maxValue = Math.max(1, maxDailyPoints.value, ...chartData.value);
-
   return chartData.value.map((value, index) => ({
     day: days.value[index],
     value,
     x: chartPaddingX + (step * index),
-    y: chartBottom - ((value / maxValue) * drawableHeight),
+    y: getChartY(value),
   }));
 });
 
@@ -226,9 +273,30 @@ const chartLinePath = computed(() => {
     return '';
   }
 
-  return chartPoints.value
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-    .join(' ');
+  if (chartPoints.value.length === 1) {
+    const point = chartPoints.value[0];
+
+    return `M ${point.x} ${point.y}`;
+  }
+
+  let path = `M ${chartPoints.value[0].x} ${chartPoints.value[0].y}`;
+
+  // Smooth the line using cubic Bezier segments for a softer visual curve.
+  for (let index = 0; index < chartPoints.value.length - 1; index += 1) {
+    const p0 = chartPoints.value[index - 1] ?? chartPoints.value[index];
+    const p1 = chartPoints.value[index];
+    const p2 = chartPoints.value[index + 1];
+    const p3 = chartPoints.value[index + 2] ?? p2;
+
+    const cp1x = p1.x + ((p2.x - p0.x) / 6);
+    const cp1y = p1.y + ((p2.y - p0.y) / 6);
+    const cp2x = p2.x - ((p3.x - p1.x) / 6);
+    const cp2y = p2.y - ((p3.y - p1.y) / 6);
+
+    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+
+  return path;
 });
 
 const chartAreaPath = computed(() => {
@@ -238,7 +306,7 @@ const chartAreaPath = computed(() => {
 
   const first = chartPoints.value[0];
   const last = chartPoints.value[chartPoints.value.length - 1];
-  const baseline = chartHeight - chartPaddingY;
+  const baseline = chartHeight - chartPaddingBottom;
 
   return `${chartLinePath.value} L ${last.x} ${baseline} L ${first.x} ${baseline} Z`;
 });
@@ -410,11 +478,11 @@ const weeklySummary = computed(() => createSummary(weeklyDays.value));
 const monthlySummary = computed(() => createSummary(days.value.filter((day) => day <= daysPassed.value)));
 
 const weeklySnapshotLabel = computed(
-  () => `${weeklySummary.value.points} pts • ${weeklySummary.value.completedDays}/${weeklySummary.value.totalDays} days • ${weeklySummary.value.stickiness.toFixed(1)}%`,
+  () => `${weeklySummary.value.points} pts • ${weeklySummary.value.completedDays}/${weeklySummary.value.totalDays} days • ${weeklySummary.value.stickiness.toFixed(1)}% (day complete ≥ ${weeklySummary.value.targetPerDay} pts)`,
 );
 
 const monthlySnapshotLabel = computed(
-  () => `${monthlySummary.value.points} pts • ${monthlySummary.value.completedDays}/${monthlySummary.value.totalDays} days • ${monthlySummary.value.stickiness.toFixed(1)}%`,
+  () => `${monthlySummary.value.points} pts • ${monthlySummary.value.completedDays}/${monthlySummary.value.totalDays} days • ${monthlySummary.value.stickiness.toFixed(1)}% (day complete ≥ ${monthlySummary.value.targetPerDay} pts)`,
 );
 
 const fillWeeklyReviewMetrics = () => {
@@ -483,16 +551,41 @@ const claimReward = (reward) => {
   persistLocalState();
 };
 
+const clearHabitChecklistProgressLocally = () => {
+  localHabits.value = localHabits.value.map((habit) => ({
+    ...habit,
+    completedDays: [],
+    completedToday: false,
+  }));
+  pendingCells.value = {};
+};
+
 const clearLocalProgress = () => {
-  if (!window.confirm('Clear local dashboard data (focus tasks, reward ledger, and weekly review)? Habit check-ins are preserved.')) {
+  if (!window.confirm('Clear all dashboard progress? Habit checklist grid, total point balance, vacation milestone, and Today\' Focus and Reward data will be reset.')) {
     return;
   }
 
-  focusTasksByDay.value = {};
-  rewardLedger.value = [];
-  weeklyReview.value = createDefaultWeeklyReview();
-
-  persistLocalState();
+  router.delete('/habits/check-ins', {
+    data: {
+      month: props.month,
+      year: props.year,
+      source: 'clear-all-progress',
+      user_id: props.userId,
+    },
+    preserveScroll: true,
+    preserveState: true,
+    onSuccess: () => {
+      clearHabitChecklistProgressLocally();
+      focusDay.value = props.currentDay;
+      focusTasksByDay.value = {};
+      newFocusTask.value = '';
+      rewardLedger.value = [];
+      walletBalance.value = 0;
+      weeklyReview.value = createDefaultWeeklyReview();
+      newWeeklyCheck.value = '';
+      persistLocalState();
+    },
+  });
 };
 
 const csvEscape = (value) => {
@@ -668,75 +761,73 @@ watch(darkMode, () => {
 
 <template>
   <AppLayout>
-    <section class="dashboard-wrap dashboard-wrap--wide">
+    <section>
       <section class="card card--hero" id="overview">
         <header class="hero-head">
-          <div>
-            <p class="eyebrow">Habuilt Tracker</p>
-            <h1>{{ appName }}</h1>
-            <p class="meta">{{ year }}-{{ String(month).padStart(2, '0') }} • Today: {{ today }}</p>
-            <p class="hero-sub">Discipline equals freedom — close your day with clear proof.</p>
-          </div>
+          <div class="hero-main">
+            <div class="hero-brand-block">
+              <p class="eyebrow">Habuilt Tracker</p>
+              <p class="hero-sub">{{ monthLabel }} {{ year }} // DISCIPLINE EQUALS FREEDOM</p>
+            </div>
 
-          <div class="hero-actions">
-            <button class="btn btn--secondary" @click="exportCsv">Export Data</button>
-            <button class="btn" @click="darkMode = !darkMode">{{ darkMode ? '☀ Light Mode' : '🌙 Stealth Mode' }}</button>
-          </div>
-        </header>
+            <div class="focus-card focus-card--hero">
+              <div class="focus-head">
+                <strong>TODAY'S FOCUS</strong>
+                <div class="focus-day-select">
+                  <label for="focus-day">Day</label>
+                  <select id="focus-day" v-model.number="focusDay">
+                    <option v-for="day in days" :key="`focus-${day}`" :value="day">{{ day }}</option>
+                  </select>
+                  <span>Score: {{ getDayTotal(focusDay) }}</span>
+                </div>
+              </div>
 
-        <div class="focus-card">
-          <div class="focus-head">
-            <strong>Today's Focus</strong>
-            <div class="focus-day-select">
-              <label for="focus-day">Day</label>
-              <select id="focus-day" v-model.number="focusDay">
-                <option v-for="day in days" :key="`focus-${day}`" :value="day">{{ day }}</option>
-              </select>
-              <span>Score: {{ getDayTotal(focusDay) }}</span>
+              <div v-if="focusTasks.length > 0" class="focus-list">
+                <article v-for="(task, index) in focusTasks" :key="`task-${focusDay}-${index}`" class="focus-item">
+                  <input
+                    :id="`focus-check-${focusDay}-${index}`"
+                    type="checkbox"
+                    :checked="task.done"
+                    @change="toggleFocusTask(index)"
+                  >
+                  <label :for="`focus-check-${focusDay}-${index}`" :class="task.done ? 'is-done' : ''">{{ task.text }}</label>
+                  <button class="focus-delete" @click="deleteFocusTask(index)">✕</button>
+                </article>
+              </div>
+
+              <p v-else class="focus-empty">No tasks yet — add your mission objectives below.</p>
+
+              <div class="focus-input-row">
+                <input
+                  v-model="newFocusTask"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Type a task and press Enter..."
+                  @keydown.enter.prevent="addFocusTask"
+                >
+                <button class="btn" :disabled="newFocusTask.trim() === ''" @click="addFocusTask">+ Add</button>
+              </div>
             </div>
           </div>
 
-          <div v-if="focusTasks.length > 0" class="focus-list">
-            <article v-for="(task, index) in focusTasks" :key="`task-${focusDay}-${index}`" class="focus-item">
-              <input
-                :id="`focus-check-${focusDay}-${index}`"
-                type="checkbox"
-                :checked="task.done"
-                @change="toggleFocusTask(index)"
-              >
-              <label :for="`focus-check-${focusDay}-${index}`" :class="task.done ? 'is-done' : ''">{{ task.text }}</label>
-              <button class="focus-delete" @click="deleteFocusTask(index)">✕</button>
-            </article>
+          <div class="hero-side">
+            <div class="hero-actions">
+              <button class="btn btn--secondary" @click="exportCsv">Export Data</button>
+              <button class="btn" @click="darkMode = !darkMode">{{ darkMode ? '☀ Light Mode' : '🌙 Stealth Mode' }}</button>
+            </div>
+
+            <div class="kpis kpis--compact">
+              <article class="kpi">
+                <p>Earned Today</p>
+                <strong>{{ todayPoints }}</strong>
+              </article>
+              <article class="kpi kpi--wallet">
+                <p>Total Point Balance</p>
+                <strong>{{ availableWallet }}</strong>
+              </article>
+            </div>
           </div>
-
-          <p v-else class="focus-empty">No tasks yet — add your mission objectives below.</p>
-
-          <div class="focus-input-row">
-            <input
-              v-model="newFocusTask"
-              type="text"
-              maxlength="200"
-              placeholder="Type a task and press Enter..."
-              @keydown.enter.prevent="addFocusTask"
-            >
-            <button class="btn" :disabled="newFocusTask.trim() === ''" @click="addFocusTask">+ Add</button>
-          </div>
-        </div>
-
-        <div class="kpis">
-          <article class="kpi">
-            <p>Earned Today</p>
-            <strong>{{ todayPoints }} pts</strong>
-          </article>
-          <article class="kpi">
-            <p>Completed Today</p>
-            <strong>{{ completedCountToday }} / {{ totalHabits }}</strong>
-          </article>
-          <article class="kpi kpi--wallet">
-            <p>Total Point Balance</p>
-            <strong>{{ availableWallet }} pts</strong>
-          </article>
-        </div>
+        </header>
 
         <p v-if="flashSuccess" class="banner banner--success">{{ flashSuccess }}</p>
         <p v-if="flashError" class="banner banner--error">{{ flashError }}</p>
@@ -744,12 +835,43 @@ watch(darkMode, () => {
 
       <section class="card" id="analytics">
         <div class="section-head">
-          <h2>Monthly Performance</h2>
-          <small>Target: {{ Math.max(1, Math.ceil(maxDailyPoints * 0.6)) }}+ points/day</small>
+          <h2 class="section-title">
+            <span class="section-title__icon">📊</span>
+            <span>Monthly Performance</span>
+          </h2>
+          <small>Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ points/day</small>
         </div>
 
         <div class="chart-wrap">
           <svg class="chart" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="analyticsAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.30" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0.03" />
+              </linearGradient>
+              <linearGradient id="analyticsLineGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#0fb981" />
+                <stop offset="100%" stop-color="#12a476" />
+              </linearGradient>
+            </defs>
+            <g class="chart__grid">
+              <line
+                v-for="line in chartGridLines"
+                :key="`grid-${line.value}`"
+                :x1="chartPaddingX"
+                :x2="chartWidth - chartPaddingX"
+                :y1="line.y"
+                :y2="line.y"
+              />
+            </g>
+            <g class="chart__y-labels">
+              <text
+                v-for="line in chartGridLines"
+                :key="`ylabel-${line.value}`"
+                :x="7"
+                :y="line.y + 3"
+              >{{ line.value }}</text>
+            </g>
             <path class="chart__area" :d="chartAreaPath" />
             <path class="chart__line" :d="chartLinePath" />
             <circle
@@ -760,6 +882,14 @@ watch(darkMode, () => {
               :cy="point.y"
               r="3"
             />
+            <g class="chart__x-labels">
+              <text
+                v-for="point in chartPoints"
+                :key="`xlabel-${point.day}`"
+                :x="point.x"
+                :y="chartHeight - 8"
+              >{{ point.day }}</text>
+            </g>
           </svg>
         </div>
 
@@ -778,15 +908,15 @@ watch(darkMode, () => {
 
         <div class="stats-grid">
           <article class="stat-card">
-            <p>Monthly Personal Best</p>
+            <p>MONTHLY PERSONAL BEST</p>
             <strong>{{ personalBest.day ? `Day ${personalBest.day} • ${personalBest.points} pts` : 'No data yet' }}</strong>
           </article>
           <article class="stat-card">
-            <p>Daily Average</p>
+            <p>DAILY AVERAGE</p>
             <strong>{{ dailyAverage.toFixed(1) }} pts/day</strong>
           </article>
           <article class="stat-card">
-            <p>Completion Rate</p>
+            <p>COMPLETION RATE</p>
             <strong>{{ completionRate.toFixed(1) }}%</strong>
           </article>
         </div>
@@ -833,13 +963,12 @@ watch(darkMode, () => {
                   >
                     <span v-if="pendingCells[keyFor(habit.id, day)]">…</span>
                     <span v-else-if="hasCompletedDay(habit, day)">✓</span>
-                    <span v-else>•</span>
                   </button>
                 </td>
               </tr>
 
               <tr class="habit-grid__totals">
-                <td class="habit-grid__sticky">Daily Total Points</td>
+                <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
                 <td class="habit-grid__pts">—</td>
                 <td v-for="day in days" :key="`tot-${day}`">{{ getDayTotal(day) }}</td>
               </tr>
@@ -847,14 +976,11 @@ watch(darkMode, () => {
           </table>
         </div>
 
-        <p v-if="legacyReferenceAvailable" class="legacy-hint">
-          Legacy single-file tracker detected in root index.html; this dashboard now mirrors that experience in Vue + Inertia.
-        </p>
       </section>
 
       <section class="dashboard-columns" id="rewards">
         <article class="card column-card">
-          <h2>💰 Reward Shop</h2>
+          <h2>💰 THE REWARD SHOP</h2>
 
           <div class="rewards-grid">
             <article v-for="reward in rewards" :key="`${reward.type}-${reward.item}`" class="reward-item">
@@ -873,7 +999,7 @@ watch(darkMode, () => {
         </article>
 
         <article class="card column-card">
-          <h2>📜 Point Ledger</h2>
+          <h2>📜 POINT LEDGER</h2>
 
           <div class="ledger-wrap">
             <table class="ledger-table">
@@ -893,14 +1019,14 @@ watch(darkMode, () => {
                   <td class="ledger-table__cost">-{{ entry.cost }} pts</td>
                 </tr>
                 <tr v-if="rewardLedger.length === 0">
-                  <td colspan="4" class="ledger-table__empty">No redemptions yet. Build your bank first.</td>
+                  <td colspan="4" class="ledger-table__empty">No redemptions found. Build your bank first.</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div class="ledger-actions">
-            <button class="btn btn--ghost" @click="clearLocalProgress">Clear Local Progress</button>
+            <button class="btn btn--ghost" @click="clearLocalProgress">Clear All Progress</button>
           </div>
         </article>
       </section>

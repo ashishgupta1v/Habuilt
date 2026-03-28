@@ -56,6 +56,13 @@ final class EloquentPointTransactionRepository implements PointTransactionReposi
         return new PointValue(max(1, $total));
     }
 
+    public function clearLedgerForUser(UserId $userId): int
+    {
+        return EloquentPointTransactionModel::query()
+            ->where('user_id', $userId->value())
+            ->delete();
+    }
+
     // ── Private mapper ────────────────────────────────────────────────────────
 
     private function toDomain(EloquentPointTransactionModel $row): PointTransaction
