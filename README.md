@@ -12,6 +12,79 @@ This README explains the app in a beginner-friendly way, especially the full pat
 - Architecture style: domain-first, action-based, event-driven
 - Styling: custom app stylesheet in `resources/css/app.css`
 
+## Supabase Database Setup
+
+The backend persists through Laravel Eloquent, so Supabase must be configured as the Laravel database connection.
+
+1. In `.env`, set `DB_CONNECTION=pgsql`.
+2. Set either `SUPABASE_DB_URL` (preferred) or `DB_URL` to your Supabase Postgres connection string.
+3. Keep `DB_SSLMODE=require` for Supabase.
+4. Clear cached config after changes:
+
+```bash
+php artisan config:clear
+```
+
+## Deployment Reality Check (Vercel + Laravel)
+
+This repository is currently configured as a static Vercel build:
+
+- `vercel.json` outputs `dist/` and rewrites all routes to `index.html`.
+- `scripts/prepare-vercel-dist.mjs` copies frontend assets only and excludes PHP.
+
+Because of that, Laravel controllers are not executed on Vercel in this setup, so POST/DELETE habit routes will not persist to Supabase through Laravel.
+
+### If you want Laravel to handle all fetch/store (recommended)
+
+Deploy Laravel on a PHP-capable host and connect it to Supabase Postgres.
+
+Good options:
+
+- Laravel Cloud
+- Render
+- Railway
+- Fly.io
+- VPS (Forge + DigitalOcean/AWS/Linode)
+
+Required backend env vars:
+
+- `DB_CONNECTION=pgsql`
+- `SUPABASE_DB_URL=postgresql://...` (preferred) or `DB_URL=postgresql://...`
+- `DB_SSLMODE=require`
+
+Then run:
+
+```bash
+php artisan config:clear
+php artisan migrate --force
+```
+
+### If you must keep frontend on Vercel
+
+You have two architecture choices:
+
+1. Host Laravel elsewhere and use that URL as the app origin for Inertia pages.
+2. Rewrite the app to a pure SPA that talks directly to Supabase via `@supabase/supabase-js` (no Laravel route persistence).
+
+With the current codebase, option 1 is the least risky path.
+
+### Vercel Environment Variables (when hosting any backend/API there)
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_KEY=<base64 key>`
+- `APP_URL=<public backend url>`
+- `DB_CONNECTION=pgsql`
+- `SUPABASE_DB_URL=<supabase postgres url>`
+- `DB_SSLMODE=require`
+
+### Supabase Settings Checklist
+
+- Use the Postgres connection string from Supabase project settings.
+- Keep SSL required (`sslmode=require`).
+- Ensure migrations were executed against the same Supabase database used by production.
+- If using a connection pooler host/port, use that exact host/port in the URL.
+
 ## What the App Does
 
 The current app focuses on one main flow:
