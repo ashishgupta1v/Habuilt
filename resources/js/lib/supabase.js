@@ -30,12 +30,10 @@ export const loadUserMonthlyState = async (userId, monthKey) => {
     .select('state_data')
     .eq('user_id', userId)
     .eq('month_key', monthKey)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code !== 'PGRST116') { // PGRST116 means zero rows returned (not found)
-      console.error('Error fetching state:', error);
-    }
+    console.error('Error fetching state:', error);
     return null;
   }
   return data?.state_data || null;

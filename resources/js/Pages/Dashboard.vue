@@ -202,8 +202,8 @@ const isWeekendDay = (day) => {
   return weekDay === 0 || weekDay === 6;
 };
 
-const flashSuccess = computed(() => page.props.flash?.success ?? null);
-const flashError = computed(() => page.props.flash?.error ?? null);
+const flashSuccess = computed(() => page?.props?.flash?.success ?? null);
+const flashError = computed(() => page?.props?.flash?.error ?? null);
 
 const totalHabits = computed(() => localHabits.value.length);
 
