@@ -1050,6 +1050,29 @@ body.theme-dark .focus-delete {
   color: #9fb2c9;
 }
 
+body.theme-dark .card--hero .btn:hover,
+body.theme-dark .card--hero .btn--calendar:hover,
+body.theme-dark .card--hero .focus-day-select select:hover {
+  border-color: #7b93b1;
+}
+
+body.theme-dark .card--hero .focus-item:hover {
+  border-color: #6f89ab;
+}
+
+body.theme-dark .card--hero .focus-delete:hover {
+  color: #c6d6ea;
+}
+
+body.theme-dark .card--hero button:focus-visible,
+body.theme-dark .card--hero select:focus-visible,
+body.theme-dark .card--hero input[type='checkbox']:focus-visible,
+body.theme-dark .card--hero input[type='text']:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgb(16 185 129 / 0.28);
+}
+
 body.theme-dark .habit-grid__day--weekend {
   background: rgb(16 185 129 / 0.22);
   color: #6ee7b7;
