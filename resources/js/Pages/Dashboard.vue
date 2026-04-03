@@ -102,7 +102,7 @@ const rewardLedger = ref([]);
 const newWeeklyCheck = ref('');
 const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
-const carryForwardSpent = ref(0);
+const redeemedBeforeCurrentMonth = ref(0);
 
 const rewards = ref([
   { type: 'Daily', item: '15 mins social media', cost: 6 },
@@ -212,6 +212,19 @@ const getDayTotal = (day) => localHabits.value.reduce(
   0,
 );
 
+const getServerDayTotal = (day) => {
+  if (!Array.isArray(props.habits) || props.habits.length === 0) {
+    return 0;
+  }
+
+  return props.habits.reduce((sum, habit) => {
+    const completedDays = Array.isArray(habit?.completedDays) ? habit.completedDays : [];
+    const points = Number(habit?.points);
+
+    return sum + (completedDays.includes(day) ? (Number.isFinite(points) ? points : 0) : 0);
+  }, 0);
+};
+
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const maxDailyPoints = computed(() => localHabits.value.reduce((sum, habit) => sum + habit.points, 0));
 const evaluatedDays = computed(() => {
@@ -279,7 +292,26 @@ const monthRedeemed = computed(() => rewardLedger.value.reduce((sum, item) => {
 }, 0));
 
 const monthEarned = computed(() => Math.max(0, monthTotalPoints.value));
-const availableWallet = computed(() => Math.max(0, walletBalance.value - carryForwardSpent.value));
+const serverMonthEarned = computed(() => {
+  if (evaluatedDays.value === 0) {
+    return 0;
+  }
+
+  return days.value
+    .filter((day) => day <= evaluatedDays.value)
+    .reduce((sum, day) => sum + getServerDayTotal(day), 0);
+});
+
+const openingBalance = computed(() => Math.max(
+  0,
+  walletBalance.value - redeemedBeforeCurrentMonth.value - serverMonthEarned.value,
+));
+
+const availableWallet = computed(() => Math.max(
+  0,
+  openingBalance.value + monthEarned.value - monthRedeemed.value,
+));
+
 const activeMilestoneTarget = computed(() => (availableWallet.value >= 500 ? 2000 : 500));
 const activeMilestoneLabel = computed(() => (activeMilestoneTarget.value === 500 ? 'Vacation' : 'International Vacation'));
 const pointsToVacation = computed(() => Math.max(activeMilestoneTarget.value - availableWallet.value, 0));
@@ -297,7 +329,6 @@ const milestoneMessage = computed(() => {
 
   return 'International Vacation unlocked. Time to redeem!';
 });
-const openingBalance = computed(() => Math.max(0, availableWallet.value - monthEarned.value + monthRedeemed.value));
 
 watch(
   () => props.wallet,
@@ -428,7 +459,7 @@ const persistLocalState = async () => {
     saveUserMonthlyState(props.userId, monthScope.value, payload);
   }
 
-  await recalculateCarryForwardSpent();
+  await recalculateRedeemedTotals();
 };
 
 const monthIndexFromScope = (scope) => {
@@ -448,35 +479,39 @@ const monthIndexFromScope = (scope) => {
   return (year * 100) + month;
 };
 
-const recalculateCarryForwardSpent = async () => {
+const recalculateRedeemedTotals = async () => {
   if (typeof window === 'undefined' || !props.userId) {
-    carryForwardSpent.value = 0;
+    redeemedBeforeCurrentMonth.value = 0;
     return;
   }
 
-  let spent = 0;
+  let spentBeforeCurrent = 0;
   const states = await loadAllUserMonthlyStates(props.userId);
 
   states.forEach((row) => {
     const scopeIndex = monthIndexFromScope(row.month_key);
-    if (scopeIndex === null || scopeIndex > selectedMonthIndex.value) {
+    if (scopeIndex === null) {
       return;
     }
 
     try {
       const parsed = row.state_data;
       const entries = Array.isArray(parsed?.rewardLedger) ? parsed.rewardLedger : [];
-
-      spent += entries.reduce((sum, entry) => {
+      const monthSpent = entries.reduce((sum, entry) => {
         const cost = Number(entry?.cost);
         return sum + (Number.isFinite(cost) ? cost : 0);
       }, 0);
+
+      if (scopeIndex < selectedMonthIndex.value) {
+        spentBeforeCurrent += monthSpent;
+      }
+
     } catch {
       // Ignored
     }
   });
 
-  carryForwardSpent.value = Math.max(0, spent);
+  redeemedBeforeCurrentMonth.value = Math.max(0, spentBeforeCurrent);
 };
 
 const normalizeWeeklyReview = (raw) => {
@@ -538,7 +573,7 @@ const loadLocalState = async () => {
 
   if (!parsed) {
     weeklyReview.value = createDefaultWeeklyReview();
-    await recalculateCarryForwardSpent();
+    await recalculateRedeemedTotals();
     return;
   }
 
@@ -565,7 +600,7 @@ const loadLocalState = async () => {
     weeklyReview.value = createDefaultWeeklyReview();
   }
 
-  await recalculateCarryForwardSpent();
+  await recalculateRedeemedTotals();
 };
 
 const updateFocusTasksForDay = (tasks) => {

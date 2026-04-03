@@ -1,5 +1,5 @@
 :root {
-  --font-base: 'Segoe UI', Arial, sans-serif;
+  --font-base: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
   --font-size-md: 13px;
@@ -69,7 +69,7 @@ body.theme-dark {
 .app-shell {
   min-height: 100vh;
   width: 100%;
-  padding: 14px;
+  padding: 10px;
 }
 
 .app-shell__content {
@@ -78,7 +78,7 @@ body.theme-dark {
   margin: 0 auto;
   padding: 0;
   border: 1px solid var(--shell-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   box-shadow: var(--shadow-shell);
   background: var(--shell-bg);
@@ -96,17 +96,20 @@ body.theme-dark {
 }
 
 .card--hero {
-  background: var(--hero-bg);
+  background:
+    radial-gradient(140% 120% at -5% -35%, rgb(56 189 248 / 0.16), transparent 58%),
+    radial-gradient(100% 85% at 102% -30%, rgb(16 185 129 / 0.20), transparent 60%),
+    var(--hero-bg);
   color: var(--hero-text);
   display: grid;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 8px;
+  padding: 13px 15px;
 }
 
 .hero-head {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   align-items: stretch;
 }
 
@@ -114,7 +117,7 @@ body.theme-dark {
   width: 100%;
   min-width: 0;
   display: grid;
-  gap: 12px;
+  gap: 6px;
 }
 
 .hero-brand-block {
@@ -124,20 +127,21 @@ body.theme-dark {
 
 .eyebrow {
   margin: 0;
-  font-size: clamp(30px, 3vw, 37px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: clamp(28px, 2.6vw, 34px);
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  line-height: 0.96;
   text-transform: uppercase;
   font-style: italic;
 }
 
 .hero-sub {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   color: #34d399;
   text-transform: uppercase;
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.14em;
-  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  font-weight: 650;
   overflow-wrap: anywhere;
 }
 
@@ -216,25 +220,25 @@ body.theme-dark {
   width: 100%;
   max-width: none;
   display: grid;
-  gap: 10px;
+  gap: 7px;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 7px;
 }
 
 .btn {
   border: 1px solid var(--hero-border);
   background: #1e293b;
   color: #f8fafc;
-  border-radius: 11px;
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 9px 11px;
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 650;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
@@ -262,7 +266,7 @@ body.theme-dark {
 
 .kpis {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .kpis--compact {
@@ -271,11 +275,11 @@ body.theme-dark {
 
 .kpi {
   border: 1px solid #334155;
-  border-radius: 13px;
+  border-radius: 12px;
   background: #1e293b;
   text-align: center;
-  padding: 10px 14px;
-  min-height: 72px;
+  padding: 9px 12px;
+  min-height: 66px;
   display: grid;
   align-content: center;
 }
@@ -291,33 +295,33 @@ body.theme-dark {
 
 .kpi strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #ffffff;
-  font-size: clamp(28px, 2.4vw, 36px);
-  font-weight: 700;
+  font-size: clamp(24px, 2.1vw, 31px);
+  font-weight: 750;
   line-height: 1;
 }
 
 .balance-math {
   border: 1px solid #334155;
-  border-radius: 12px;
+  border-radius: 11px;
   background: rgb(15 23 42 / 0.55);
-  padding: 10px 12px;
+  padding: 9px 10px;
 }
 
 .balance-math h3 {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: #cbd5e1;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .balance-math__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 10px;
+  gap: 5px 8px;
 }
 
 .balance-math__grid p {
@@ -353,8 +357,8 @@ body.theme-dark {
 .focus-card {
   border: 1px solid var(--hero-border);
   background: rgb(15 23 42 / 0.85);
-  border-radius: 13px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 10px;
 }
 
 .focus-card--hero {
@@ -366,7 +370,7 @@ body.theme-dark {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -380,7 +384,7 @@ body.theme-dark {
 .focus-day-select {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 
@@ -946,6 +950,104 @@ body.theme-dark {
 
 .habit-grid__totals .habit-grid__cell--weekend {
   background: #132235;
+}
+
+body.theme-dark .card--hero {
+  background:
+    radial-gradient(150% 120% at -10% -40%, rgb(56 189 248 / 0.24), transparent 57%),
+    radial-gradient(108% 90% at 108% -34%, rgb(16 185 129 / 0.28), transparent 60%),
+    linear-gradient(165deg, #020617 0%, #030b19 56%, #041224 100%);
+}
+
+body.theme-dark .eyebrow {
+  color: #f8fbff;
+  text-shadow: 0 2px 14px rgb(7 20 42 / 0.45);
+}
+
+body.theme-dark .hero-sub {
+  color: #6ee7b7;
+  text-shadow: 0 0 10px rgb(16 185 129 / 0.2);
+}
+
+body.theme-dark .btn {
+  border-color: #55657d;
+  background: #1a2940;
+  color: #f8fafc;
+}
+
+body.theme-dark .btn:hover {
+  background: #233756;
+}
+
+body.theme-dark .btn--secondary {
+  background: rgb(11 24 41 / 0.82);
+  border-color: #60728c;
+}
+
+body.theme-dark .btn--calendar {
+  border-color: #647a96;
+  background: rgb(9 21 39 / 0.78);
+}
+
+body.theme-dark .kpi {
+  border-color: #425977;
+  background: #15263d;
+}
+
+body.theme-dark .kpi p {
+  color: #b8c6d8;
+}
+
+body.theme-dark .kpi strong {
+  color: #ffffff;
+}
+
+body.theme-dark .balance-math {
+  border-color: #425977;
+  background: rgb(8 19 35 / 0.78);
+}
+
+body.theme-dark .balance-math h3 {
+  color: #dbe7f5;
+}
+
+body.theme-dark .balance-math__grid p {
+  color: #d2deed;
+}
+
+body.theme-dark .balance-math__grid span,
+body.theme-dark .focus-day-select label,
+body.theme-dark .focus-day-select span {
+  color: #a7b9cf;
+}
+
+body.theme-dark .focus-card {
+  border-color: #425977;
+  background: rgb(10 21 37 / 0.9);
+}
+
+body.theme-dark .focus-head strong {
+  color: #86efac;
+}
+
+body.theme-dark .focus-day-select select {
+  border-color: #5d7491;
+  background: #15263d;
+  color: #f8fafc;
+}
+
+body.theme-dark .focus-item {
+  border-color: #4b6382;
+  background: rgb(21 38 61 / 0.82);
+}
+
+body.theme-dark .focus-item label {
+  color: #f8fbff;
+}
+
+body.theme-dark .focus-empty,
+body.theme-dark .focus-delete {
+  color: #9fb2c9;
 }
 
 body.theme-dark .habit-grid__day--weekend {
@@ -1554,7 +1656,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
 
 @media (max-width: 920px) {
   .app-shell__content {
-    margin: 8px auto;
+    margin: 2px auto;
     border-radius: 12px;
   }
 
@@ -1673,7 +1775,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
 
 @media (min-width: 768px) {
   .app-shell {
-    padding: 32px;
+    padding: 18px;
   }
 
   .hero-head {
@@ -1689,9 +1791,9 @@ body.theme-dark #analytics .chart-legend-note__dot {
   }
 
   .hero-side {
-    width: 412px;
-    min-width: 412px;
-    padding-top: 10px;
+    width: 388px;
+    min-width: 388px;
+    padding-top: 0;
   }
 
   .hero-actions {
@@ -1708,11 +1810,11 @@ body.theme-dark #analytics .chart-legend-note__dot {
 /* Pixel-snap pass tuned for the current desktop viewport range (~1646px wide). */
 @media (min-width: 1500px) and (max-width: 1700px) {
   .app-shell {
-    padding: 28px;
+    padding: 18px;
   }
 
   .card--hero {
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
 }
 
