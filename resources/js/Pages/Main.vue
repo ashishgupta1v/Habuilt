@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { supabase } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
+import { LogOut, LayoutDashboard, User } from 'lucide-vue-next';
 
 const activeUser = ref(null);
 const authLoading = ref(true);
@@ -35,6 +36,10 @@ const handleNavigateMonth = (monthOffset) => {
   window.location.search = `?month=${newMonth}&year=${newYear}`;
 };
 
+const handleSignOut = async () => {
+  await supabase.auth.signOut();
+};
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession();
   activeUser.value = session?.user || null;
@@ -47,23 +52,60 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="authLoading" class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="animate-pulse text-gray-500 font-medium">Loading session...</div>
+  <div v-if="authLoading" class="app-loading">
+    <div class="app-spinner">
+      <svg class="spinner-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="spinner-fill" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <div class="loading-text">Loading Habuilt Workspace...</div>
+    </div>
   </div>
+
   <template v-else>
-    <Dashboard 
-      v-if="activeUser" 
-      :userId="activeUser.id"
-      :month="month"
-      :year="year"
-      :monthDays="monthDays"
-      :today="todayDate.toISOString().slice(0, 10)"
-      :currentDay="currentDay"
-      :isCurrentMonth="isCurrentMonth"
-      :isFutureMonth="isFutureMonth"
-      :canNavigatePrevMonth="true"
-      :canNavigateNextMonth="true"
-    />
+    <div v-if="activeUser" class="app-root">
+      
+      <!-- Styled App Navbar -->
+      <nav class="app-nav">
+        <div class="app-nav__container">
+          <div class="app-nav__left">
+            <div class="app-nav__logo-icon">
+              <LayoutDashboard class="icon-brand" />
+            </div>
+            <span class="app-nav__brand-text">Habuilt</span>
+          </div>
+          
+          <div class="app-nav__right">
+            <div class="user-badge">
+              <User class="icon-sm" />
+              <span class="user-badge__text">{{ activeUser.email }}</span>
+            </div>
+            
+            <button @click="handleSignOut" class="btn btn--logout">
+              <LogOut class="icon-sm" />
+              <span class="logout-text">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Dashboard Wrapper -->
+      <main class="app-main-content">
+        <Dashboard 
+          :userId="activeUser.id"
+          :month="month"
+          :year="year"
+          :monthDays="monthDays"
+          :today="todayDate.toISOString().slice(0, 10)"
+          :currentDay="currentDay"
+          :isCurrentMonth="isCurrentMonth"
+          :isFutureMonth="isFutureMonth"
+          :canNavigatePrevMonth="true"
+          :canNavigateNextMonth="true"
+        />
+      </main>
+    </div>
+    
     <Auth v-else />
   </template>
 </template>
