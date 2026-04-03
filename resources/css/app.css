@@ -954,19 +954,19 @@ body.theme-dark {
 
 body.theme-dark .card--hero {
   background:
-    radial-gradient(150% 120% at -10% -40%, rgb(56 189 248 / 0.24), transparent 57%),
-    radial-gradient(108% 90% at 108% -34%, rgb(16 185 129 / 0.28), transparent 60%),
-    linear-gradient(165deg, #020617 0%, #030b19 56%, #041224 100%);
+    radial-gradient(152% 124% at -10% -40%, rgb(56 189 248 / 0.29), transparent 56%),
+    radial-gradient(110% 92% at 108% -34%, rgb(16 185 129 / 0.34), transparent 60%),
+    linear-gradient(165deg, #010511 0%, #030b19 54%, #041427 100%);
 }
 
 body.theme-dark .eyebrow {
-  color: #f8fbff;
-  text-shadow: 0 2px 14px rgb(7 20 42 / 0.45);
+  color: #fcfdff;
+  text-shadow: 0 2px 16px rgb(7 20 42 / 0.52);
 }
 
 body.theme-dark .hero-sub {
-  color: #6ee7b7;
-  text-shadow: 0 0 10px rgb(16 185 129 / 0.2);
+  color: #86efac;
+  text-shadow: 0 0 11px rgb(16 185 129 / 0.24);
 }
 
 body.theme-dark .btn {
@@ -1000,6 +1000,16 @@ body.theme-dark .kpi p {
 
 body.theme-dark .kpi strong {
   color: #ffffff;
+}
+
+body.theme-dark .kpi--wallet {
+  background: linear-gradient(180deg, #0ea870 0%, #0a8f64 100%);
+  border-color: #10b981;
+}
+
+body.theme-dark .kpi--wallet p,
+body.theme-dark .kpi--wallet strong {
+  color: #f0fdf4;
 }
 
 body.theme-dark .balance-math {
@@ -1195,6 +1205,71 @@ body.theme-dark .habit-grid__totals .habit-grid__cell--weekend {
   padding: 0;
   font-size: var(--font-size-sm);
   letter-spacing: 0.04em;
+}
+
+body.theme-dark #rewards {
+  background:
+    radial-gradient(115% 90% at 4% -18%, rgb(16 185 129 / 0.14), transparent 62%),
+    radial-gradient(100% 85% at 100% -14%, rgb(56 189 248 / 0.10), transparent 68%),
+    #0b1220;
+}
+
+body.theme-dark #rewards .column-card h2 {
+  color: #dbeafe;
+}
+
+body.theme-dark #rewards .reward-item {
+  border-color: #314256;
+  background: linear-gradient(180deg, #111d2d 0%, #0f1a2a 100%);
+}
+
+body.theme-dark #rewards .reward-item p {
+  color: #9fb2c8;
+}
+
+body.theme-dark #rewards .reward-item h3 {
+  color: #e2ebf8;
+}
+
+body.theme-dark #rewards .reward-btn {
+  border-color: #10b981;
+  background: linear-gradient(180deg, #14b982 0%, #0ea573 100%);
+  color: #f0fdf4;
+}
+
+body.theme-dark #rewards .reward-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1ac38a 0%, #12ad7b 100%);
+}
+
+body.theme-dark #rewards .reward-btn:disabled {
+  background: #1f2d41;
+  color: #7f94ad;
+}
+
+body.theme-dark #rewards .ledger-wrap {
+  border-color: #314256;
+  background: #0f1a2a;
+}
+
+body.theme-dark #rewards .ledger-table th {
+  background: #18283d;
+  color: #b9cae0;
+}
+
+body.theme-dark #rewards .ledger-table td,
+body.theme-dark #rewards .ledger-table__empty {
+  color: #9fb2c8;
+}
+
+body.theme-dark #rewards .ledger-actions .btn--ghost {
+  color: #b4c4d8;
+}
+
+body.theme-dark #rewards .reward-btn:focus-visible,
+body.theme-dark #rewards .ledger-actions .btn--ghost:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgb(16 185 129 / 0.24);
 }
 
 .column-card {
@@ -1897,21 +1972,24 @@ body.theme-dark #analytics .chart-legend-note__dot {
 }
 
 .app-nav {
-  background-color: rgb(255 255 255 / 0.9);
-  border-bottom: 1px solid var(--shell-border);
+  background-color: rgb(255 255 255 / 0.86);
+  border: 1px solid var(--shell-border);
+  border-radius: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   backdrop-filter: blur(12px);
+  margin: 0 0 10px;
 }
 
 .app-nav__container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 16px;
+  width: 100%;
+  margin: 0;
+  padding: 0 12px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   height: 64px;
 }
 
@@ -1927,13 +2005,15 @@ body.theme-dark #analytics .chart-legend-note__dot {
 
 .app-nav__right {
   gap: 16px;
+  margin-left: auto;
 }
 
 .app-nav__logo-icon {
-  background-color: #4f46e5;
+  background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid #314157;
   padding: 8px;
   border-radius: 8px;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1942,7 +2022,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
 .icon-brand {
   width: 20px;
   height: 20px;
-  color: #ffffff;
+  color: #34d399;
 }
 
 .icon-brand-large {
@@ -1954,7 +2034,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
 .app-nav__brand-text {
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(to right, #4338ca, #6366f1);
+  background: linear-gradient(to right, #0f172a, #334155);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -2017,7 +2097,54 @@ body.theme-dark #analytics .chart-legend-note__dot {
 .app-main-content {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 16px;
+  padding: 10px 16px 0;
+}
+
+body.theme-dark .app-nav {
+  background-color: rgb(11 18 32 / 0.88);
+  border-color: #334155;
+  box-shadow: 0 6px 18px rgb(2 6 23 / 0.35);
+}
+
+body.theme-dark .app-nav__logo-icon {
+  background: linear-gradient(145deg, #0f172a 0%, #13253f 100%);
+  border-color: #3a526f;
+}
+
+body.theme-dark .icon-brand {
+  color: #6ee7b7;
+}
+
+body.theme-dark .app-nav__brand-text {
+  background: linear-gradient(to right, #e2e8f0, #86efac);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+body.theme-dark .user-badge {
+  background-color: #111827;
+  border-color: #374151;
+}
+
+body.theme-dark .user-badge__text,
+body.theme-dark .icon-sm {
+  color: #dbeafe;
+}
+
+body.theme-dark .btn--logout {
+  background-color: #111827;
+  border-color: #374151;
+  color: #dbeafe;
+}
+
+body.theme-dark .btn--logout:hover {
+  background-color: #1f2937;
+  border-color: #4b5563;
+  color: #86efac;
+}
+
+body.theme-dark .btn--logout:focus {
+  box-shadow: 0 0 0 2px #0b1220, 0 0 0 4px #10b981;
 }
 
 /* --- PREMIUM AUTH UI --- */

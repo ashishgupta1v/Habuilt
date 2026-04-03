@@ -78,33 +78,31 @@ onMounted(async () => {
 
   <template v-else>
     <div v-if="activeUser" class="app-root">
-      
-      <!-- Styled App Navbar -->
-      <nav class="app-nav">
-        <div class="app-nav__container">
-          <div class="app-nav__left">
-            <div class="app-nav__logo-icon">
-              <LayoutDashboard class="icon-brand" />
-            </div>
-            <span class="app-nav__brand-text">Habuilt</span>
-          </div>
-          
-          <div class="app-nav__right">
-            <div class="user-badge">
-              <User class="icon-sm" />
-              <span class="user-badge__text">{{ activeUser.email }}</span>
-            </div>
-            
-            <button @click="handleSignOut" class="btn btn--logout">
-              <LogOut class="icon-sm" />
-              <span class="logout-text">Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <!-- Dashboard Wrapper -->
+      <!-- Dashboard + Top Header Wrapper -->
       <main class="app-main-content">
+        <nav class="app-nav">
+          <div class="app-nav__container">
+            <div class="app-nav__left">
+              <div class="app-nav__logo-icon">
+                <LayoutDashboard class="icon-brand" />
+              </div>
+              <span class="app-nav__brand-text">Habuilt</span>
+            </div>
+
+            <div class="app-nav__right">
+              <div class="user-badge">
+                <User class="icon-sm" />
+                <span class="user-badge__text">{{ activeUser.email }}</span>
+              </div>
+
+              <button @click="handleSignOut" class="btn btn--logout">
+                <LogOut class="icon-sm" />
+                <span class="logout-text">Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+
         <Dashboard 
           :userId="activeUser.id"
           :month="month"
