@@ -421,6 +421,7 @@ const persistLocalState = async () => {
     focusTasksByDay: focusTasksByDay.value,
     rewardLedger: rewardLedger.value,
     weeklyReview: weeklyReview.value,
+    localHabits: localHabits.value, // Added so points and completions persist
   };
 
   if (props.userId) {
@@ -548,6 +549,18 @@ const loadLocalState = async () => {
       : {};
     rewardLedger.value = Array.isArray(parsed.rewardLedger) ? parsed.rewardLedger : [];
     weeklyReview.value = normalizeWeeklyReview(parsed.weeklyReview);
+    
+    // Merge persisted completions onto local habits definition
+    if (Array.isArray(parsed.localHabits)) {
+      localHabits.value = localHabits.value.map(current => {
+        const matchingStored = parsed.localHabits.find(h => h.id === current.id);
+        if (matchingStored) {
+          current.completedDays = Array.isArray(matchingStored.completedDays) ? [...matchingStored.completedDays] : [];
+          current.completedToday = !!matchingStored.completedToday;
+        }
+        return current;
+      });
+    }
   } catch {
     weeklyReview.value = createDefaultWeeklyReview();
   }

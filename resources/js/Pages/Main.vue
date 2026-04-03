@@ -28,6 +28,20 @@ const isFutureMonth = computed(() => {
 });
 const currentDay = computed(() => isCurrentMonth.value ? todayDate.getDate() : monthDays.value);
 
+const previousMonth = computed(() => {
+  let m = month.value - 1; 
+  let y = year.value;
+  if(m < 1) { m = 12; y--; }
+  return { month: m, year: y };
+});
+
+const nextMonth = computed(() => {
+  let m = month.value + 1; 
+  let y = year.value;
+  if(m > 12) { m = 1; y++; }
+  return { month: m, year: y };
+});
+
 const handleNavigateMonth = (monthOffset) => {
   let newMonth = month.value + monthOffset;
   let newYear = year.value;
@@ -102,6 +116,8 @@ onMounted(async () => {
           :isFutureMonth="isFutureMonth"
           :canNavigatePrevMonth="true"
           :canNavigateNextMonth="true"
+          :previousMonth="previousMonth"
+          :nextMonth="nextMonth"
         />
       </main>
     </div>
