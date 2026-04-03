@@ -69,7 +69,7 @@ body.theme-dark {
 .app-shell {
   min-height: 100vh;
   width: 100%;
-  padding: 10px;
+  padding: 6px;
 }
 
 .app-shell__content {
@@ -2488,7 +2488,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
   z-index: 50;
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   backdrop-filter: blur(12px);
-  margin: 0 0 10px;
+  margin: 0 0 6px;
 }
 
 .app-nav__container {
@@ -2605,7 +2605,7 @@ body.theme-dark #analytics .chart-legend-note__dot {
 .app-main-content {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 10px 16px 0;
+  padding: 0 16px;
 }
 
 body.theme-dark .app-nav {
@@ -2665,7 +2665,7 @@ body.theme-dark .btn--logout:focus {
 .auth-panel-premium {
   display: none;
   position: relative;
-  background-color: #4f46e5;
+  background-color: var(--hero-bg);
   overflow: hidden;
   align-items: center;
   justify-content: center;
@@ -2689,24 +2689,24 @@ body.theme-dark .btn--logout:focus {
   left: -128px;
   width: 384px;
   height: 384px;
-  background-color: #6366f1;
-  opacity: 0.5;
+  background-color: var(--accent);
+  opacity: 0.15;
 }
 .auth-bg-blob--secondary {
   bottom: 0;
   right: 0;
   width: 480px;
   height: 480px;
-  background-color: #22d3ee;
-  opacity: 0.2;
+  background-color: #38bdf8;
+  opacity: 0.1;
 }
 .auth-bg-blob--tertiary {
   top: 50%;
   left: 25%;
   width: 256px;
   height: 256px;
-  background-color: #d946ef;
-  opacity: 0.3;
+  background-color: var(--accent-strong);
+  opacity: 0.2;
 }
 
 .auth-panel__content-wrapper {
@@ -2740,8 +2740,7 @@ body.theme-dark .btn--logout:focus {
 .text-gradient {
   color: transparent;
   background-clip: text;
-  -webkit-background-clip: text;
-  background-image: linear-gradient(to right, #67e8f9, #6ee7b7);
+  background-image: linear-gradient(to right, #38bdf8, var(--accent));
 }
 
 .auth-panel__description {
@@ -2821,7 +2820,7 @@ body.theme-dark .btn--logout:focus {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background-color: #4f46e5;
+  background-color: var(--hero-panel);
   border-radius: 12px;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
 }
@@ -2869,7 +2868,7 @@ body.theme-dark .btn--logout:focus {
 }
 .btn-oauth:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #4f46e5;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent);
 }
 
 .icon-oauth {
@@ -2988,8 +2987,8 @@ body.theme-dark .btn--logout:focus {
 .auth-input:focus {
   outline: none;
   background-color: #ffffff;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #4f46e5;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent);
 }
 
 .auth-form-submit {
@@ -3007,18 +3006,18 @@ body.theme-dark .btn--logout:focus {
   font-size: 0.875rem;
   font-weight: 700;
   color: #ffffff;
-  background-color: #4f46e5;
+  background-color: var(--accent-strong);
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
 }
 .auth-submit-btn:hover {
-  background-color: #4338ca;
+  background-color: var(--accent);
 }
 .auth-submit-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #4f46e5;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent);
 }
 .auth-submit-btn:disabled {
   opacity: 0.7;
@@ -3053,7 +3052,7 @@ body.theme-dark .btn--logout:focus {
 
 .auth-toggle__btn {
   font-weight: 600;
-  color: #4f46e5;
+  color: var(--accent-strong);
   background: transparent;
   border: none;
   margin-left: 4px;
@@ -3062,7 +3061,7 @@ body.theme-dark .btn--logout:focus {
   font-family: inherit;
 }
 .auth-toggle__btn:hover {
-  color: #6366f1;
+  color: var(--accent);
 }
 .auth-toggle__btn:focus {
   outline: none;

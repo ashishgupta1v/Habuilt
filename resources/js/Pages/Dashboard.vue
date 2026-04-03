@@ -99,6 +99,7 @@ const newWeeklyCheck = ref('');
 const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
 const redeemedBeforeCurrentMonth = ref(0);
+const earnedBeforeCurrentMonth = ref(0);
 
 // — Habit editor —
 const habitsEditing = ref(false);
@@ -297,24 +298,14 @@ const monthRedeemed = computed(() => rewardLedger.value.reduce((sum, item) => {
 }, 0));
 
 const monthEarned = computed(() => Math.max(0, monthTotalPoints.value));
-const serverMonthEarned = computed(() => {
-  if (evaluatedDays.value === 0) {
-    return 0;
-  }
-
-  return days.value
-    .filter((day) => day <= evaluatedDays.value)
-    .reduce((sum, day) => sum + getServerDayTotal(day), 0);
-});
-
 const openingBalance = computed(() => Math.max(
   0,
-  walletBalance.value - redeemedBeforeCurrentMonth.value - serverMonthEarned.value,
+  earnedBeforeCurrentMonth.value - redeemedBeforeCurrentMonth.value
 ));
 
 const availableWallet = computed(() => Math.max(
   0,
-  openingBalance.value + monthEarned.value - monthRedeemed.value,
+  openingBalance.value + monthEarned.value - monthRedeemed.value
 ));
 
 const activeMilestoneTarget = computed(() => (availableWallet.value >= 500 ? 2000 : 500));
@@ -465,7 +456,7 @@ const persistLocalState = async () => {
     saveUserMonthlyState(props.userId, monthScope.value, payload);
   }
 
-  await recalculateRedeemedTotals();
+  await recalculateGlobalTotals();
 };
 
 const monthIndexFromScope = (scope) => {
@@ -485,13 +476,15 @@ const monthIndexFromScope = (scope) => {
   return (year * 100) + month;
 };
 
-const recalculateRedeemedTotals = async () => {
+const recalculateGlobalTotals = async () => {
   if (typeof window === 'undefined' || !props.userId) {
     redeemedBeforeCurrentMonth.value = 0;
+    earnedBeforeCurrentMonth.value = 0;
     return;
   }
 
   let spentBeforeCurrent = 0;
+  let earnedBeforeCurrent = 0;
   const states = await loadAllUserMonthlyStates(props.userId);
 
   states.forEach((row) => {
@@ -502,14 +495,27 @@ const recalculateRedeemedTotals = async () => {
 
     try {
       const parsed = row.state_data;
+      
+      // Points spent
       const entries = Array.isArray(parsed?.rewardLedger) ? parsed.rewardLedger : [];
       const monthSpent = entries.reduce((sum, entry) => {
         const cost = Number(entry?.cost);
         return sum + (Number.isFinite(cost) ? cost : 0);
       }, 0);
 
+      // Points earned
+      let monthEarnedIter = 0;
+      if (Array.isArray(parsed?.localHabits)) {
+        parsed.localHabits.forEach(habit => {
+          if (Array.isArray(habit.completedDays) && habit.points) {
+             monthEarnedIter += habit.completedDays.length * habit.points;
+          }
+        });
+      }
+
       if (scopeIndex < selectedMonthIndex.value) {
         spentBeforeCurrent += monthSpent;
+        earnedBeforeCurrent += monthEarnedIter;
       }
 
     } catch {
@@ -518,6 +524,7 @@ const recalculateRedeemedTotals = async () => {
   });
 
   redeemedBeforeCurrentMonth.value = Math.max(0, spentBeforeCurrent);
+  earnedBeforeCurrentMonth.value = Math.max(0, earnedBeforeCurrent);
 };
 
 const normalizeWeeklyReview = (raw) => {
