@@ -254,8 +254,14 @@ body.theme-dark {
 }
 
 .btn--secondary {
-  background: rgb(255 255 255 / 0.09);
-  border-color: #475569;
+  background: rgb(16 185 129 / 0.12);
+  border-color: rgb(5 150 105 / 0.35);
+  color: #065f46;
+}
+
+.btn--secondary:hover {
+  background: rgb(16 185 129 / 0.2);
+  border-color: rgb(5 150 105 / 0.48);
 }
 
 .btn--ghost {
@@ -682,6 +688,18 @@ body.theme-dark {
   color: #089f76;
 }
 
+body.theme-dark #analytics .stat-card p {
+  color: #9fb2c9;
+}
+
+body.theme-dark #analytics .stat-card strong {
+  color: #e5edf7;
+}
+
+body.theme-dark #analytics .stat-card:last-child strong {
+  color: #6ee7b7;
+}
+
 .chart-wrap {
   border: 1px solid var(--card-border);
   border-radius: 12px;
@@ -840,22 +858,23 @@ body.theme-dark {
 }
 
 .habit-grid-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   max-width: 100%;
 }
 
 .habit-grid {
   border-collapse: collapse;
   width: 100%;
-  min-width: 1080px;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .habit-grid th,
 .habit-grid td {
   border: 1px solid var(--card-border);
-  padding: 7px 3px;
+  padding: 4px 2px;
   text-align: center;
-  font-size: var(--font-size-sm);
+  font-size: 10px;
 }
 
 .habit-grid thead th {
@@ -876,30 +895,34 @@ body.theme-dark {
   z-index: 2;
   background: var(--card-bg);
   text-align: left;
-  min-width: 220px;
-  max-width: 220px;
-  padding: 8px 10px;
-  font-size: var(--font-size-sm);
+  width: 170px;
+  min-width: 170px;
+  max-width: 170px;
+  padding: 6px 8px;
+  font-size: 11px;
   line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
   border-right-width: 2px;
 }
 
 .habit-grid__name {
   font-weight: 600;
-  font-size: var(--font-size-md);
+  font-size: 11px;
 }
 
 .habit-grid__pts {
   color: var(--text-muted);
   font-weight: 800;
   background: var(--muted-bg);
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
 }
 
 .habit-grid__day {
-  min-width: 32px;
+  width: calc((100% - 206px) / 31);
+  min-width: 0;
   font-weight: 700;
   color: var(--text-muted);
 }
@@ -919,14 +942,15 @@ body.theme-dark {
 }
 
 .habit-grid__check {
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   border: 1px solid var(--card-border);
   background: var(--muted-bg);
   color: var(--text-muted);
   font-weight: 700;
+  font-size: 10px;
   line-height: 1;
   cursor: pointer;
 }
