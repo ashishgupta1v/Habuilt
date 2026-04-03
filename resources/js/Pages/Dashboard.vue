@@ -102,7 +102,13 @@ const rewardLedger = ref([]);
 const newWeeklyCheck = ref('');
 const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
-const carryForwardSpent = ref(0);
+const redeemedBeforeCurrentMonth = ref(0);
+
+// — Habit editor —
+const habitsEditing = ref(false);
+const habitsDraft = ref([]);
+const habitSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+const hasCustomHabits = ref(false);
 
 const rewards = ref([
   { type: 'Daily', item: '15 mins social media', cost: 6 },
@@ -206,11 +212,27 @@ const flashSuccess = computed(() => page?.props?.flash?.success ?? null);
 const flashError = computed(() => page?.props?.flash?.error ?? null);
 
 const totalHabits = computed(() => localHabits.value.length);
+const draftHasErrors = computed(
+  () => habitsDraft.value.length === 0 || habitsDraft.value.some((h) => !h.name.trim()),
+);
 
 const getDayTotal = (day) => localHabits.value.reduce(
   (sum, habit) => sum + (habit.completedDays.includes(day) ? habit.points : 0),
   0,
 );
+
+const getServerDayTotal = (day) => {
+  if (!Array.isArray(props.habits) || props.habits.length === 0) {
+    return 0;
+  }
+
+  return props.habits.reduce((sum, habit) => {
+    const completedDays = Array.isArray(habit?.completedDays) ? habit.completedDays : [];
+    const points = Number(habit?.points);
+
+    return sum + (completedDays.includes(day) ? (Number.isFinite(points) ? points : 0) : 0);
+  }, 0);
+};
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const maxDailyPoints = computed(() => localHabits.value.reduce((sum, habit) => sum + habit.points, 0));
@@ -279,7 +301,26 @@ const monthRedeemed = computed(() => rewardLedger.value.reduce((sum, item) => {
 }, 0));
 
 const monthEarned = computed(() => Math.max(0, monthTotalPoints.value));
-const availableWallet = computed(() => Math.max(0, walletBalance.value - carryForwardSpent.value));
+const serverMonthEarned = computed(() => {
+  if (evaluatedDays.value === 0) {
+    return 0;
+  }
+
+  return days.value
+    .filter((day) => day <= evaluatedDays.value)
+    .reduce((sum, day) => sum + getServerDayTotal(day), 0);
+});
+
+const openingBalance = computed(() => Math.max(
+  0,
+  walletBalance.value - redeemedBeforeCurrentMonth.value - serverMonthEarned.value,
+));
+
+const availableWallet = computed(() => Math.max(
+  0,
+  openingBalance.value + monthEarned.value - monthRedeemed.value,
+));
+
 const activeMilestoneTarget = computed(() => (availableWallet.value >= 500 ? 2000 : 500));
 const activeMilestoneLabel = computed(() => (activeMilestoneTarget.value === 500 ? 'Vacation' : 'International Vacation'));
 const pointsToVacation = computed(() => Math.max(activeMilestoneTarget.value - availableWallet.value, 0));
@@ -297,7 +338,6 @@ const milestoneMessage = computed(() => {
 
   return 'International Vacation unlocked. Time to redeem!';
 });
-const openingBalance = computed(() => Math.max(0, availableWallet.value - monthEarned.value + monthRedeemed.value));
 
 watch(
   () => props.wallet,
@@ -421,13 +461,15 @@ const persistLocalState = async () => {
     focusTasksByDay: focusTasksByDay.value,
     rewardLedger: rewardLedger.value,
     weeklyReview: weeklyReview.value,
+    localHabits: localHabits.value,
+    hasCustomHabits: hasCustomHabits.value,
   };
 
   if (props.userId) {
     saveUserMonthlyState(props.userId, monthScope.value, payload);
   }
 
-  await recalculateCarryForwardSpent();
+  await recalculateRedeemedTotals();
 };
 
 const monthIndexFromScope = (scope) => {
@@ -447,35 +489,39 @@ const monthIndexFromScope = (scope) => {
   return (year * 100) + month;
 };
 
-const recalculateCarryForwardSpent = async () => {
+const recalculateRedeemedTotals = async () => {
   if (typeof window === 'undefined' || !props.userId) {
-    carryForwardSpent.value = 0;
+    redeemedBeforeCurrentMonth.value = 0;
     return;
   }
 
-  let spent = 0;
+  let spentBeforeCurrent = 0;
   const states = await loadAllUserMonthlyStates(props.userId);
 
   states.forEach((row) => {
     const scopeIndex = monthIndexFromScope(row.month_key);
-    if (scopeIndex === null || scopeIndex > selectedMonthIndex.value) {
+    if (scopeIndex === null) {
       return;
     }
 
     try {
       const parsed = row.state_data;
       const entries = Array.isArray(parsed?.rewardLedger) ? parsed.rewardLedger : [];
-
-      spent += entries.reduce((sum, entry) => {
+      const monthSpent = entries.reduce((sum, entry) => {
         const cost = Number(entry?.cost);
         return sum + (Number.isFinite(cost) ? cost : 0);
       }, 0);
+
+      if (scopeIndex < selectedMonthIndex.value) {
+        spentBeforeCurrent += monthSpent;
+      }
+
     } catch {
       // Ignored
     }
   });
 
-  carryForwardSpent.value = Math.max(0, spent);
+  redeemedBeforeCurrentMonth.value = Math.max(0, spentBeforeCurrent);
 };
 
 const normalizeWeeklyReview = (raw) => {
@@ -537,7 +583,7 @@ const loadLocalState = async () => {
 
   if (!parsed) {
     weeklyReview.value = createDefaultWeeklyReview();
-    await recalculateCarryForwardSpent();
+    await recalculateRedeemedTotals();
     return;
   }
 
@@ -548,11 +594,38 @@ const loadLocalState = async () => {
       : {};
     rewardLedger.value = Array.isArray(parsed.rewardLedger) ? parsed.rewardLedger : [];
     weeklyReview.value = normalizeWeeklyReview(parsed.weeklyReview);
+    
+    // Restore custom habit definitions or merge completions onto defaults
+    if (Array.isArray(parsed.localHabits)) {
+      if (parsed.hasCustomHabits) {
+        // Full restore: custom names, points, AND completion data
+        localHabits.value = parsed.localHabits.map((h) => ({
+          id: String(h.id || `custom-${Date.now()}-${Math.random()}`),
+          name: String(h.name || ''),
+          points: Math.max(1, Math.min(100, Number(h.points) || 1)),
+          completedDays: Array.isArray(h.completedDays) ? [...h.completedDays] : [],
+          completedToday: !!h.completedToday,
+        }));
+        hasCustomHabits.value = true;
+      } else {
+        // Legacy path: merge only completion state onto defaults
+        localHabits.value = localHabits.value.map((current) => {
+          const matchingStored = parsed.localHabits.find((h) => h.id === current.id);
+          if (matchingStored) {
+            current.completedDays = Array.isArray(matchingStored.completedDays)
+              ? [...matchingStored.completedDays]
+              : [];
+            current.completedToday = !!matchingStored.completedToday;
+          }
+          return current;
+        });
+      }
+    }
   } catch {
     weeklyReview.value = createDefaultWeeklyReview();
   }
 
-  await recalculateCarryForwardSpent();
+  await recalculateRedeemedTotals();
 };
 
 const updateFocusTasksForDay = (tasks) => {
@@ -719,6 +792,66 @@ const clearHabitChecklistProgressLocally = () => {
   }));
   pendingCells.value = {};
 };
+
+// ─── Habit Editor Functions ───────────────────────────────────────────────────
+
+const startEditingHabits = () => {
+  habitsDraft.value = localHabits.value.map((h) => ({
+    id: h.id,
+    name: h.name,
+    points: h.points,
+    completedDays: [...h.completedDays],
+    completedToday: h.completedToday,
+  }));
+  habitsEditing.value = true;
+  habitSaveStatus.value = 'idle';
+};
+
+const cancelEditingHabits = () => {
+  habitsEditing.value = false;
+  habitsDraft.value = [];
+  habitSaveStatus.value = 'idle';
+};
+
+const addDraftHabit = () => {
+  habitsDraft.value.push({
+    id: `custom-${Date.now()}-${habitsDraft.value.length}`,
+    name: '',
+    points: 1,
+    completedDays: [],
+    completedToday: false,
+  });
+};
+
+const removeDraftHabit = (index) => {
+  habitsDraft.value.splice(index, 1);
+};
+
+const saveEditedHabits = async () => {
+  if (draftHasErrors.value) return;
+
+  habitSaveStatus.value = 'saving';
+
+  localHabits.value = habitsDraft.value.map((h) => ({
+    id: h.id,
+    name: h.name.trim(),
+    points: Math.max(1, Math.min(100, Number(h.points) || 1)),
+    completedDays: [...h.completedDays],
+    completedToday: h.completedToday,
+  }));
+
+  hasCustomHabits.value = true;
+  await persistLocalState();
+
+  habitSaveStatus.value = 'saved';
+  habitsEditing.value = false;
+
+  setTimeout(() => {
+    habitSaveStatus.value = 'idle';
+  }, 2500);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const clearLocalProgress = async () => {
   if (!window.confirm('Clear all dashboard progress? Habit checklist grid, total point balance, vacation milestone, and Today\' Focus and Reward data will be reset.')) {
@@ -1009,70 +1142,130 @@ watch(darkMode, () => {
 
       <section class="card" id="habits">
         <div class="section-head">
-          <h2>Habit Checklist</h2>
-          <small>Day-based completion matrix</small>
+          <div>
+            <h2>Habit Checklist</h2>
+            <small>Core Habit (Leading Indicator) — day-based completion matrix</small>
+          </div>
+          <button v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits">✏ Edit Habits</button>
         </div>
 
-        <div v-if="localHabits.length === 0" class="empty-state">
-          No habits found yet. Refresh once seeding is complete.
+        <!-- ── Habits Editor Panel ──────────────────────────────────── -->
+        <div v-if="habitsEditing" class="habits-editor">
+          <p class="habits-editor__hint">
+            Edit habit names and assign point values. Changes are saved to your account and applied immediately.
+          </p>
+
+          <div class="habits-editor__list">
+            <div
+              v-for="(habit, index) in habitsDraft"
+              :key="habit.id"
+              class="habits-editor__row"
+            >
+              <span class="habits-editor__num">{{ index + 1 }}</span>
+              <input
+                v-model="habit.name"
+                type="text"
+                maxlength="80"
+                placeholder="Habit name…"
+                class="habits-editor__name"
+                :class="{ 'habits-editor__name--error': !habit.name.trim() }"
+              >
+              <label class="habits-editor__pts-label">
+                <span>pts</span>
+                <input
+                  v-model.number="habit.points"
+                  type="number"
+                  min="1"
+                  max="100"
+                  class="habits-editor__pts"
+                >
+              </label>
+              <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Remove habit">✕</button>
+            </div>
+          </div>
+
+          <button class="btn btn--secondary habits-editor__add" @click="addDraftHabit">+ Add Habit</button>
+
+          <div class="habits-editor__actions">
+            <button
+              class="btn"
+              :disabled="draftHasErrors || habitSaveStatus === 'saving'"
+              @click="saveEditedHabits"
+            >
+              <span v-if="habitSaveStatus === 'saving'">Saving…</span>
+              <span v-else-if="habitSaveStatus === 'saved'">✓ Saved</span>
+              <span v-else>Save Habits</span>
+            </button>
+            <button class="btn btn--ghost" @click="cancelEditingHabits">Cancel</button>
+            <span v-if="draftHasErrors && habitsDraft.length > 0" class="habits-editor__warn">
+              All habits need a name before saving.
+            </span>
+          </div>
         </div>
 
-        <div v-else class="habit-grid-wrap">
-          <table class="habit-grid">
-            <thead>
-              <tr>
-                <th class="habit-grid__sticky">Core Habit (Leading Indicator)</th>
-                <th class="habit-grid__pts">Pts</th>
-                <th
-                  v-for="day in days"
-                  :key="`head-${day}`"
-                  class="habit-grid__day"
-                  :class="[
-                    props.isCurrentMonth && day === props.currentDay ? 'habit-grid__day--current' : '',
-                    isWeekendDay(day) ? 'habit-grid__day--weekend' : '',
-                  ]"
-                >
-                  {{ day }}
-                </th>
-              </tr>
-            </thead>
+        <!-- ── Normal Grid View ──────────────────────────────────────── -->
+        <template v-else>
+          <div v-if="localHabits.length === 0" class="empty-state">
+            No habits found yet. Refresh once seeding is complete.
+          </div>
 
-            <tbody>
-              <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
-                <td class="habit-grid__sticky habit-grid__name">{{ habit.name }}</td>
-                <td class="habit-grid__pts">{{ habit.points }}</td>
-
-                <td
-                  v-for="day in days"
-                  :key="`${habit.id}-${day}`"
-                  class="habit-grid__cell"
-                  :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
-                >
-                  <button
-                    class="habit-grid__check"
-                    :class="hasCompletedDay(habit, day) ? 'habit-grid__check--done' : ''"
-                    :disabled="isFutureMonth || !!pendingCells[keyFor(habit.id, day)]"
-                    @click="toggleHabitForDay(habit, day)"
+          <div v-else class="habit-grid-wrap">
+            <table class="habit-grid">
+              <thead>
+                <tr>
+                  <th class="habit-grid__sticky">Core Habit (Leading Indicator)</th>
+                  <th class="habit-grid__pts">Pts</th>
+                  <th
+                    v-for="day in days"
+                    :key="`head-${day}`"
+                    class="habit-grid__day"
+                    :class="[
+                      props.isCurrentMonth && day === props.currentDay ? 'habit-grid__day--current' : '',
+                      isWeekendDay(day) ? 'habit-grid__day--weekend' : '',
+                    ]"
                   >
-                    <span v-if="hasCompletedDay(habit, day)">✓</span>
-                    <span v-else-if="pendingCells[keyFor(habit.id, day)]">…</span>
-                    <span v-else-if="isFutureMonth">–</span>
-                  </button>
-                </td>
-              </tr>
+                    {{ day }}
+                  </th>
+                </tr>
+              </thead>
 
-              <tr class="habit-grid__totals">
-                <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
-                <td class="habit-grid__pts">—</td>
-                <td
-                  v-for="day in days"
-                  :key="`tot-${day}`"
-                  :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
-                >{{ getDayTotal(day) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              <tbody>
+                <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
+                  <td class="habit-grid__sticky habit-grid__name">{{ habit.name }}</td>
+                  <td class="habit-grid__pts">{{ habit.points }}</td>
+
+                  <td
+                    v-for="day in days"
+                    :key="`${habit.id}-${day}`"
+                    class="habit-grid__cell"
+                    :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
+                  >
+                    <button
+                      class="habit-grid__check"
+                      :class="hasCompletedDay(habit, day) ? 'habit-grid__check--done' : ''"
+                      :disabled="isFutureMonth || !!pendingCells[keyFor(habit.id, day)]"
+                      @click="toggleHabitForDay(habit, day)"
+                    >
+                      <span v-if="hasCompletedDay(habit, day)">✓</span>
+                      <span v-else-if="pendingCells[keyFor(habit.id, day)]">…</span>
+                      <span v-else-if="isFutureMonth">–</span>
+                    </button>
+                  </td>
+                </tr>
+
+                <tr class="habit-grid__totals">
+                  <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
+                  <td class="habit-grid__pts">—</td>
+                  <td
+                    v-for="day in days"
+                    :key="`tot-${day}`"
+                    :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
+                  >{{ getDayTotal(day) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
 
       </section>
 
