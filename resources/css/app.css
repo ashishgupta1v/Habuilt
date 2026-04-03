@@ -921,7 +921,7 @@ body.theme-dark #analytics .stat-card:last-child strong {
 }
 
 .habit-grid__day {
-  width: calc((100% - 206px) / 31);
+  width: auto;
   min-width: 0;
   font-weight: 700;
   color: var(--text-muted);
@@ -1106,6 +1106,102 @@ body.theme-dark #analytics .stat-card:last-child strong {
   font-weight: 600;
 }
 
+@media (max-width: 1200px) {
+  .habit-grid__sticky {
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    font-size: 10px;
+    padding: 6px;
+  }
+
+  .habit-grid__pts {
+    width: 30px;
+    min-width: 30px;
+    max-width: 30px;
+  }
+
+  .habit-grid th,
+  .habit-grid td {
+    font-size: 9px;
+    padding: 3px 1px;
+  }
+
+  .habit-grid__check {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 768px) {
+  .habit-grid-wrap {
+    overflow-x: hidden;
+  }
+
+  .habit-grid__sticky {
+    width: 132px;
+    min-width: 132px;
+    max-width: 132px;
+    font-size: 9px;
+    line-height: 1.25;
+    padding: 5px;
+  }
+
+  .habit-grid__pts {
+    width: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    font-size: 9px;
+  }
+
+  .habit-grid th,
+  .habit-grid td {
+    font-size: 8px;
+    padding: 2px 1px;
+  }
+
+  .habit-grid__check {
+    width: 14px;
+    height: 14px;
+    font-size: 8px;
+    border-radius: 3px;
+  }
+
+  .habits-editor__row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .habits-editor__num {
+    min-width: 16px;
+  }
+
+  .habits-editor__name {
+    flex-basis: calc(100% - 26px);
+  }
+
+  .habits-editor__pts-label {
+    margin-left: 22px;
+  }
+
+  .habits-editor__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .habits-editor__actions .btn,
+  .habits-editor__add {
+    width: 100%;
+  }
+
+  .section-head {
+    align-items: flex-start;
+  }
+}
+
 /* Dark-mode overrides for habits editor */
 
 body.theme-dark .habits-editor__row {
@@ -1280,7 +1376,7 @@ body.theme-dark .card--hero input[type='text']:focus-visible {
 
 body.theme-dark .habit-grid__day--weekend {
   background: rgb(16 185 129 / 0.22);
-  color: #6ee7b7;
+  color: #10b981;
 }
 
 body.theme-dark .habit-grid__cell--weekend {
@@ -2063,6 +2159,223 @@ body.theme-dark #analytics .chart-legend-note__dot {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Narrow-phone pass (≤ 375 px) — bigger touch targets, no horizontal scroll ── */
+@media (max-width: 375px) {
+  .app-shell {
+    padding: 6px;
+  }
+
+  .card,
+  .card--hero {
+    padding: 12px 10px;
+  }
+
+  /* Hero section */
+  .eyebrow {
+    font-size: 26px;
+  }
+
+  .hero-sub {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Nav buttons — minimum 44 px tap height */
+  .btn,
+  .btn--calendar,
+  .btn--secondary,
+  .btn--ghost {
+    min-height: 44px;
+    padding: 11px 14px;
+    font-size: 12px;
+  }
+
+  .hero-actions {
+    gap: 6px;
+  }
+
+  /* KPI cards */
+  .kpi {
+    min-height: 58px;
+  }
+
+  .kpi strong {
+    font-size: 26px;
+  }
+
+  /* Focus task list — bigger checkbox + delete target */
+  .focus-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .focus-item input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .focus-delete {
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .focus-input-row input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  /* Habit grid — ultra-compact columns, still no scroll */
+  .habit-grid__sticky {
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+    font-size: 8.5px;
+    padding: 4px;
+  }
+
+  .habit-grid__pts {
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    font-size: 8px;
+  }
+
+  .habit-grid th,
+  .habit-grid td {
+    font-size: 7.5px;
+    padding: 2px 0;
+  }
+
+  .habit-grid__check {
+    width: 13px;
+    height: 13px;
+    font-size: 7px;
+    border-radius: 2px;
+  }
+
+  /* Habits editor — stack everything for easy thumb usage */
+  .habits-editor__row {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .habits-editor__name,
+  .habits-editor__pts {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .habits-editor__pts-label {
+    margin-left: 0;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .habits-editor__pts {
+    width: 80px;
+    min-height: 44px;
+  }
+
+  .habits-editor__delete {
+    min-height: 44px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .habits-editor__add {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  /* Section headers */
+  .section-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .section-head h2 {
+    font-size: 17px;
+  }
+
+  /* Stats grid — single column, large values */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat-card strong {
+    font-size: 20px;
+  }
+
+  /* Reward shop — single column, full-width redeem button */
+  .rewards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .reward-btn {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  /* Ledger — allow horizontal scroll inside wrapper only */
+  .ledger-wrap {
+    overflow-x: auto;
+  }
+
+  /* Weekly review — single column */
+  .review-grid,
+  .reflection-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .review-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .check-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .check-item input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .check-item button {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .check-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .check-add-row .btn {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .reflection-grid textarea {
+    min-height: 80px;
+    font-size: 14px;
   }
 }
 
