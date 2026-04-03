@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { getSupabaseClient } from '@/lib/supabaseClient';
+import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
 
 const props = defineProps({
   appName: {
@@ -66,10 +66,6 @@ const props = defineProps({
     default: () => [],
   },
   staticPreview: {
-    type: Boolean,
-    default: false,
-  },
-  supabaseEnabled: {
     type: Boolean,
     default: false,
   },
@@ -152,7 +148,6 @@ const weeklyReview = ref(createDefaultWeeklyReview());
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.${monthScope.value}`);
 const localStatePrefix = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.`);
-const staticHabitsKey = computed(() => `habuilt.static.habits.${props.userId || 'guest'}.${monthScope.value}`);
 const monthLabel = computed(
   () => new Date(props.year, Math.max(0, props.month - 1), 1).toLocaleString('en-US', { month: 'long' }).toUpperCase(),
 );
@@ -161,187 +156,12 @@ const selectedMonthIndex = computed(() => (props.year * 100) + props.month);
 const mapHabit = (habit) => ({
   id: habit.id,
   name: habit.name,
-  points: habit.points ?? habit.points_per_check_in ?? 1,
+  points: habit.points,
   completedToday: !!habit.completedToday,
   completedDays: Array.isArray(habit.completedDays)
     ? [...habit.completedDays]
     : (habit.completedToday ? [props.currentDay] : []),
 });
-
-const toUlid = () => {
-  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-
-  let random = '';
-  for (let index = 0; index < 16; index += 1) {
-    random += alphabet[bytes[index] & 31];
-  }
-
-  const time = Date.now().toString(32).toUpperCase().replace(/[^0-9A-V]/g, '').padStart(10, '0').slice(-10);
-
-  return `${time}${random}`.slice(0, 26);
-};
-
-const monthStartIso = () => `${props.year}-${String(props.month).padStart(2, '0')}-01 00:00:00`;
-const monthEndIso = () => `${props.year}-${String(props.month).padStart(2, '0')}-${String(props.monthDays).padStart(2, '0')} 23:59:59`;
-
-const persistStaticHabits = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(staticHabitsKey.value, JSON.stringify(
-    localHabits.value.map((habit) => ({
-      id: habit.id,
-      name: habit.name,
-      points: habit.points,
-      completedDays: habit.completedDays,
-    })),
-  ));
-};
-
-const loadStaticHabitsFromStorage = () => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  const raw = window.localStorage.getItem(staticHabitsKey.value);
-
-  if (!raw) {
-    return false;
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return false;
-    }
-
-    localHabits.value = parsed.map(mapHabit);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const loadStaticHabitsFromSupabase = async () => {
-  const client = getSupabaseClient();
-
-  if (!props.staticPreview || !props.supabaseEnabled || !client) {
-    return false;
-  }
-
-  const { data: habitsRows, error: habitsError } = await client
-    .from('habits')
-    .select('id, name, points_per_check_in, is_archived, user_id')
-    .eq('user_id', props.userId)
-    .eq('is_archived', false)
-    .order('created_at', { ascending: true });
-
-  if (habitsError) {
-    return false;
-  }
-
-  let habits = habitsRows ?? [];
-
-  if (habits.length === 0) {
-    const now = new Date().toISOString();
-    const seedRows = fallbackHabits.map((habit) => ({
-      id: toUlid(),
-      user_id: props.userId,
-      name: habit.name,
-      points_per_check_in: habit.points,
-      is_archived: false,
-      created_at: now,
-      updated_at: now,
-    }));
-
-    const { data: inserted, error: insertError } = await client
-      .from('habits')
-      .insert(seedRows)
-      .select('id, name, points_per_check_in, is_archived, user_id');
-
-    if (insertError) {
-      return false;
-    }
-
-    habits = inserted ?? [];
-  }
-
-  const habitIds = habits.map((habit) => habit.id);
-  const completedByHabit = {};
-
-  if (habitIds.length > 0) {
-    const { data: checkIns, error: checkInError } = await client
-      .from('check_ins')
-      .select('habit_id, completed_at')
-      .eq('user_id', props.userId)
-      .in('habit_id', habitIds)
-      .gte('completed_at', monthStartIso())
-      .lte('completed_at', monthEndIso());
-
-    if (checkInError) {
-      return false;
-    }
-
-    (checkIns ?? []).forEach((row) => {
-      const day = Number.parseInt(String(row.completed_at).slice(8, 10), 10);
-
-      if (!Number.isInteger(day) || day < 1 || day > props.monthDays) {
-        return;
-      }
-
-      if (!completedByHabit[row.habit_id]) {
-        completedByHabit[row.habit_id] = [];
-      }
-
-      completedByHabit[row.habit_id].push(day);
-    });
-  }
-
-  localHabits.value = habits.map((habit) => ({
-    id: habit.id,
-    name: habit.name,
-    points: habit.points_per_check_in ?? 1,
-    completedToday: (completedByHabit[habit.id] ?? []).includes(props.currentDay),
-    completedDays: [...new Set(completedByHabit[habit.id] ?? [])].sort((a, b) => a - b),
-  }));
-
-  persistStaticHabits();
-  return true;
-};
-
-const syncHabitToggleToSupabase = async (habit, day, completed) => {
-  const client = getSupabaseClient();
-
-  if (!props.staticPreview || !props.supabaseEnabled || !client) {
-    return;
-  }
-
-  const completedAt = `${props.year}-${String(props.month).padStart(2, '0')}-${String(day).padStart(2, '0')} 12:00:00`;
-
-  if (completed) {
-    await client.from('check_ins').insert({
-      id: toUlid(),
-      habit_id: habit.id,
-      user_id: props.userId,
-      completed_at: completedAt,
-      created_at: new Date().toISOString(),
-    });
-
-    return;
-  }
-
-  await client
-    .from('check_ins')
-    .delete()
-    .eq('user_id', props.userId)
-    .eq('habit_id', habit.id)
-    .gte('completed_at', `${props.year}-${String(props.month).padStart(2, '0')}-${String(day).padStart(2, '0')} 00:00:00`)
-    .lte('completed_at', `${props.year}-${String(props.month).padStart(2, '0')}-${String(day).padStart(2, '0')} 23:59:59`);
-};
 
 watch(
   () => props.habits,
@@ -591,19 +411,23 @@ const focusTasks = computed(() => {
   return raw;
 });
 
-const persistLocalState = () => {
+const persistLocalState = async () => {
   if (typeof window === 'undefined') {
     return;
   }
 
-  window.localStorage.setItem(localStateKey.value, JSON.stringify({
+  const payload = {
     darkMode: darkMode.value,
     focusTasksByDay: focusTasksByDay.value,
     rewardLedger: rewardLedger.value,
     weeklyReview: weeklyReview.value,
-  }));
+  };
 
-  recalculateCarryForwardSpent();
+  if (props.userId) {
+    saveUserMonthlyState(props.userId, monthScope.value, payload);
+  }
+
+  await recalculateCarryForwardSpent();
 };
 
 const monthIndexFromScope = (scope) => {
@@ -623,48 +447,33 @@ const monthIndexFromScope = (scope) => {
   return (year * 100) + month;
 };
 
-const recalculateCarryForwardSpent = () => {
-  if (typeof window === 'undefined') {
+const recalculateCarryForwardSpent = async () => {
+  if (typeof window === 'undefined' || !props.userId) {
     carryForwardSpent.value = 0;
     return;
   }
 
-  const prefix = localStatePrefix.value;
   let spent = 0;
+  const states = await loadAllUserMonthlyStates(props.userId);
 
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index);
-
-    if (!key || !key.startsWith(prefix)) {
-      continue;
-    }
-
-    const scope = key.slice(prefix.length);
-    const scopeIndex = monthIndexFromScope(scope);
-
+  states.forEach((row) => {
+    const scopeIndex = monthIndexFromScope(row.month_key);
     if (scopeIndex === null || scopeIndex > selectedMonthIndex.value) {
-      continue;
+      return;
     }
 
     try {
-      const raw = window.localStorage.getItem(key);
-
-      if (!raw) {
-        continue;
-      }
-
-      const parsed = JSON.parse(raw);
+      const parsed = row.state_data;
       const entries = Array.isArray(parsed?.rewardLedger) ? parsed.rewardLedger : [];
 
       spent += entries.reduce((sum, entry) => {
         const cost = Number(entry?.cost);
-
         return sum + (Number.isFinite(cost) ? cost : 0);
       }, 0);
     } catch {
-      continue;
+      // Ignored
     }
-  }
+  });
 
   carryForwardSpent.value = Math.max(0, spent);
 };
@@ -719,21 +528,20 @@ const applyThemeClass = () => {
   document.body.classList.toggle('theme-dark', darkMode.value);
 };
 
-const loadLocalState = () => {
-  if (typeof window === 'undefined') {
+const loadLocalState = async () => {
+  if (typeof window === 'undefined' || !props.userId) {
     return;
   }
 
-  const raw = window.localStorage.getItem(localStateKey.value);
+  const parsed = await loadUserMonthlyState(props.userId, monthScope.value);
 
-  if (!raw) {
+  if (!parsed) {
     weeklyReview.value = createDefaultWeeklyReview();
-    recalculateCarryForwardSpent();
+    await recalculateCarryForwardSpent();
     return;
   }
 
   try {
-    const parsed = JSON.parse(raw);
     darkMode.value = !!parsed.darkMode;
     focusTasksByDay.value = parsed.focusTasksByDay && typeof parsed.focusTasksByDay === 'object'
       ? parsed.focusTasksByDay
@@ -744,7 +552,7 @@ const loadLocalState = () => {
     weeklyReview.value = createDefaultWeeklyReview();
   }
 
-  recalculateCarryForwardSpent();
+  await recalculateCarryForwardSpent();
 };
 
 const updateFocusTasksForDay = (tasks) => {
@@ -912,21 +720,11 @@ const clearHabitChecklistProgressLocally = () => {
   pendingCells.value = {};
 };
 
-const clearLocalProgress = () => {
+const clearLocalProgress = async () => {
   if (!window.confirm('Clear all dashboard progress? Habit checklist grid, total point balance, vacation milestone, and Today\' Focus and Reward data will be reset.')) {
     return;
   }
 
-  const previousState = {
-    focusDay: focusDay.value,
-    focusTasksByDay: { ...focusTasksByDay.value },
-    newFocusTask: newFocusTask.value,
-    rewardLedger: [...rewardLedger.value],
-    weeklyReview: normalizeWeeklyReview(weeklyReview.value),
-    newWeeklyCheck: newWeeklyCheck.value,
-  };
-
-  // Optimistically clear visible progress (including Point Ledger) right away.
   clearHabitChecklistProgressLocally();
   focusDay.value = props.currentDay;
   focusTasksByDay.value = {};
@@ -934,64 +732,16 @@ const clearLocalProgress = () => {
   rewardLedger.value = [];
   weeklyReview.value = createDefaultWeeklyReview();
   newWeeklyCheck.value = '';
-  persistLocalState();
-
-  if (props.staticPreview) {
-    return;
-  }
-
-  router.delete('/habits/check-ins', {
-    data: {
-      month: props.month,
-      year: props.year,
-      source: 'clear-all-progress',
-      user_id: props.userId,
-    },
-    preserveScroll: true,
-    preserveState: true,
-    onError: () => {
-      // Restore previous local state if backend clear fails.
-      focusDay.value = previousState.focusDay;
-      focusTasksByDay.value = previousState.focusTasksByDay;
-      newFocusTask.value = previousState.newFocusTask;
-      rewardLedger.value = previousState.rewardLedger;
-      weeklyReview.value = previousState.weeklyReview;
-      newWeeklyCheck.value = previousState.newWeeklyCheck;
-      persistLocalState();
-    },
-  });
+  await persistLocalState();
 };
 
 const goToMonth = (target) => {
-  if (props.staticPreview) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('month', String(target.month));
-    url.searchParams.set('year', String(target.year));
-    window.location.assign(url.toString());
-    return;
-  }
-
   if (!target || isNavigatingMonth.value) {
     return;
   }
 
   isNavigatingMonth.value = true;
-
-  router.get(
-    '/',
-    {
-      month: target.month,
-      year: target.year,
-    },
-    {
-      preserveScroll: true,
-      preserveState: false,
-      replace: true,
-      onFinish: () => {
-        isNavigatingMonth.value = false;
-      },
-    },
-  );
+  window.location.search = `?month=${target.month}&year=${target.year}`;
 };
 
 const goToPreviousMonth = () => {
@@ -1024,7 +774,7 @@ const setHabitDayCompletion = (habit, day, completed) => {
   habit.completedToday = habit.completedDays.includes(props.currentDay);
 };
 
-const toggleHabitForDay = (habit, day) => {
+const toggleHabitForDay = async (habit, day) => {
   if (props.isFutureMonth) {
     return;
   }
@@ -1035,68 +785,20 @@ const toggleHabitForDay = (habit, day) => {
     return;
   }
 
-  const wasCompleted = hasCompletedDay(habit, day);
-  const nextCompleted = !wasCompleted;
-  setHabitDayCompletion(habit, day, nextCompleted);
-
-  if (props.staticPreview) {
-    persistStaticHabits();
-    syncHabitToggleToSupabase(habit, day, nextCompleted).catch(() => {
-      setHabitDayCompletion(habit, day, wasCompleted);
-      persistStaticHabits();
-    });
-    return;
-  }
-
   pendingCells.value[pendingKey] = true;
   pendingCells.value = { ...pendingCells.value };
 
-  const payload = {
-    habit_id: habit.id,
-    day,
-    month: props.month,
-    year: props.year,
-    source: 'habit-grid',
-    user_id: props.userId,
-  };
-
-  const requestOptions = {
-    preserveScroll: true,
-    preserveState: true,
-    onError: () => {
-      setHabitDayCompletion(habit, day, wasCompleted);
-    },
-    onFinish: () => {
-      delete pendingCells.value[pendingKey];
-      pendingCells.value = { ...pendingCells.value };
-    },
-  };
-
-  if (wasCompleted) {
-    router.delete(`/habits/${habit.id}/check-ins`, {
-      data: payload,
-      ...requestOptions,
-    });
-    return;
+  try {
+    const wasCompleted = hasCompletedDay(habit, day);
+    setHabitDayCompletion(habit, day, !wasCompleted);
+    await persistLocalState();
+  } finally {
+    delete pendingCells.value[pendingKey];
+    pendingCells.value = { ...pendingCells.value };
   }
-
-  router.post(`/habits/${habit.id}/check-ins`, payload, requestOptions);
 };
 
 onMounted(() => {
-  if (props.staticPreview) {
-    const loadedFromStorage = loadStaticHabitsFromStorage();
-
-    if (!loadedFromStorage) {
-      localHabits.value = fallbackHabits.map(mapHabit);
-      persistStaticHabits();
-    }
-
-    loadStaticHabitsFromSupabase().catch(() => {
-      // Keep local-storage mode if Supabase env or RLS is not configured.
-    });
-  }
-
   loadLocalState();
   applyThemeClass();
 });

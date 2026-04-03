@@ -68,23 +68,6 @@ You have two architecture choices:
 
 With the current codebase, option 1 is the least risky path.
 
-This repository now also supports a static-mode fallback for Vercel:
-
-- Month navigation works using `?month=MM&year=YYYY` query params.
-- Habit checkboxes persist per user/month in browser storage.
-- If Supabase client env vars are provided, habits and check-ins are fetched/stored directly from Supabase.
-
-Required Vercel env vars for this static-mode sync:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_HABUILT_DEMO_USER_ID` (26-char ULID used as `user_id`)
-
-Supabase RLS note for static mode:
-
-- Your anon key must have policies allowing select/insert/delete for that `user_id` on `habits` and `check_ins`.
-- Without matching RLS policies, the app will fall back to local browser storage only.
-
 ### Vercel Environment Variables (when hosting any backend/API there)
 
 - `APP_ENV=production`
