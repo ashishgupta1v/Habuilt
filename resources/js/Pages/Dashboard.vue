@@ -77,21 +77,17 @@ const localHabits = ref([]);
 const pendingCells = ref({});
 
 const fallbackHabits = [
-  { id: 'fallback-1', name: '3:30 AM Wake Up & Hydrate', points: 3 },
-  { id: 'fallback-2', name: 'MOVERS Protocol (Mental Prep)', points: 2 },
-  { id: 'fallback-3', name: 'Deep Work Marathon (Wealth)', points: 3 },
+  { id: 'fallback-1', name: '4:00 AM Wake Up & Hydrate', points: 3 },
+  { id: 'fallback-2', name: 'Exercise (HIIT)', points: 2 },
+  { id: 'fallback-3', name: 'Deep Work Marathon', points: 3 },
   { id: 'fallback-4', name: 'Care Protocol + Juice/Tea', points: 1 },
-  { id: 'fallback-5', name: 'Wife Care (Quality Time)', points: 3 },
-  { id: 'fallback-6', name: 'Job Apply/Interview Schedule', points: 1 },
-  { id: 'fallback-7', name: '20-20-20 Eye Breaks (Health)', points: 1 },
-  { id: 'fallback-8', name: 'Boxing & DHT Rinse (Stress/Hair)', points: 3 },
-  { id: 'fallback-9', name: 'Dinner Stop by 7:00 PM (Cure)', points: 2 },
-  { id: 'fallback-10', name: 'Left-Side Sleep Rule (9:00 PM)', points: 1 },
-  { id: 'fallback-11', name: 'Limit Phone usage to 40 mins', points: 2 },
-  { id: 'fallback-12', name: 'Bhajan, Kirtan, Mantras', points: 1 },
-  { id: 'fallback-13', name: 'Sleep score above 85', points: 2 },
-  { id: 'fallback-14', name: 'Avoid Mind Distractions', points: 2 },
-  { id: 'fallback-15', name: 'Read 1 page of any book', points: 1 },
+  { id: 'fallback-5', name: 'Office Work', points: 1 },
+  { id: 'fallback-6', name: '20-20-20 Eye Breaks (Health)', points: 1 },
+  { id: 'fallback-7', name: 'Exercise & DHT Rinse (Stress/Hair)', points: 3 },
+  { id: 'fallback-8', name: 'Dinner Stop by 7:00 PM (Cure)', points: 2 },
+  { id: 'fallback-9', name: 'Limit Phone usage', points: 2 },
+  { id: 'fallback-10', name: 'Read 1 page of any book', points: 1 },
+  { id: 'fallback-11', name: 'Left-Side Sleep Rule (9:00 PM)', points: 1 },
 ];
 
 const darkMode = ref(false);
