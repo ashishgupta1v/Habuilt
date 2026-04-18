@@ -1637,6 +1637,97 @@ body.theme-dark #rewards .ledger-actions .btn--ghost:focus-visible {
   cursor: not-allowed;
 }
 
+.rewards-editor,
+.ledger-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.rewards-editor__list {
+  display: grid;
+  gap: 8px;
+}
+
+.rewards-editor__row {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.28fr) minmax(200px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--muted-bg);
+  padding: 8px;
+}
+
+.rewards-editor__type,
+.rewards-editor__item,
+.rewards-editor__cost,
+.ledger-editor__input,
+.ledger-editor__cost {
+  width: 100%;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: var(--font-size-sm);
+}
+
+.rewards-editor__cost-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rewards-editor__cost,
+.ledger-editor__cost {
+  width: 92px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.ledger-editor__actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+body.theme-dark .rewards-editor__row {
+  background: #0f1a2a;
+  border-color: #314256;
+}
+
+body.theme-dark .rewards-editor__type,
+body.theme-dark .rewards-editor__item,
+body.theme-dark .rewards-editor__cost,
+body.theme-dark .ledger-editor__input,
+body.theme-dark .ledger-editor__cost {
+  background: #111827;
+  border-color: #374151;
+  color: #dbeafe;
+}
+
+@media (max-width: 920px) {
+  .rewards-editor__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .rewards-editor__cost,
+  .ledger-editor__cost {
+    width: 100%;
+    text-align: left;
+  }
+
+  .ledger-editor__actions .btn,
+  .rewards-editor__add {
+    width: 100%;
+  }
+}
+
 .ledger-wrap {
   border: 1px solid var(--card-border);
   border-radius: 12px;
