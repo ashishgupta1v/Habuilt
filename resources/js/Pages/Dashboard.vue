@@ -116,13 +116,12 @@ const ledgerDraft = ref([]);
 const ledgerSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
 
 const defaultRewards = [
-  { type: 'Daily', item: '15 mins social media', cost: 6 },
-  { type: 'Weekly', item: '2 Hour Podcast/Movie', cost: 8 },
+  { type: 'Daily', item: '1 Hour+ social media', cost: 8 },
   { type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
   { type: 'Weekly', item: 'Cheat Meal', cost: 15 },
   { type: 'Weekly', item: 'Social Meetup/Night Out/Movie', cost: 20 },
   { type: 'Month', item: 'New Tech/Clothing', cost: 30 },
-  { type: 'Month', item: 'Purchase 1 Useful Subscription', cost: 40 },
+  { type: 'Month', item: 'Purchase 1 Useful Subscription/Plan', cost: 40 },
   { type: 'Quarter', item: 'Major Purchase', cost: 100 },
   { type: 'Half-Yr', item: 'Vacation', cost: 500 },
   { type: 'Yearly', item: 'International Vacation', cost: 2000 },
