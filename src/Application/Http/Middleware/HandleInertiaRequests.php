@@ -68,10 +68,15 @@ final class HandleInertiaRequests extends Middleware
 
     private function walletFor(UserId $userId): int
     {
-        return array_reduce(
-            $this->pointTransactions->findLedgerForUser($userId),
-            static fn (int $carry, $transaction): int => $carry + $transaction->amount->value(),
-            0,
-        );
+        try {
+            return array_reduce(
+                $this->pointTransactions->findLedgerForUser($userId),
+                static fn (int $carry, $transaction): int => $carry + $transaction->amount->value(),
+                0,
+            );
+        } catch (\Throwable) {
+            // Local/dev fallback when DB is not available.
+            return 0;
+        }
     }
 }

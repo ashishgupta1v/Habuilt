@@ -107,7 +107,15 @@ const habitsDraft = ref([]);
 const habitSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
 const hasCustomHabits = ref(false);
 
-const rewards = ref([
+const rewardsEditing = ref(false);
+const rewardsDraft = ref([]);
+const rewardSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+
+const ledgerEditing = ref(false);
+const ledgerDraft = ref([]);
+const ledgerSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+
+const defaultRewards = [
   { type: 'Daily', item: '15 mins social media', cost: 6 },
   { type: 'Weekly', item: '2 Hour Podcast/Movie', cost: 8 },
   { type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
@@ -118,7 +126,9 @@ const rewards = ref([
   { type: 'Quarter', item: 'Major Purchase', cost: 100 },
   { type: 'Half-Yr', item: 'Vacation', cost: 500 },
   { type: 'Yearly', item: 'International Vacation', cost: 2000 },
-]);
+];
+
+const rewards = ref(defaultRewards.map((reward) => ({ ...reward })));
 
 const createDefaultWeeklyReview = () => ({
   reviewDate: '',
@@ -212,6 +222,32 @@ const totalHabits = computed(() => localHabits.value.length);
 const draftHasErrors = computed(
   () => habitsDraft.value.length === 0 || habitsDraft.value.some((h) => !h.name.trim()),
 );
+const rewardDraftHasErrors = computed(
+  () => rewardsDraft.value.length === 0
+    || rewardsDraft.value.some((reward) => !reward.type.trim() || !reward.item.trim() || Number(reward.cost) < 1),
+);
+const ledgerDraftHasErrors = computed(
+  () => ledgerDraft.value.some((entry) => !entry.item.trim() || !entry.description.trim() || Number(entry.cost) < 0),
+);
+
+const normalizeReward = (reward, index = 0) => ({
+  type: String(reward?.type || 'Custom').trim() || 'Custom',
+  item: String(reward?.item || `Reward ${index + 1}`).trim() || `Reward ${index + 1}`,
+  cost: Math.max(1, Math.min(10000, Number(reward?.cost) || 1)),
+});
+
+const normalizeLedgerEntry = (entry, index = 0) => {
+  const fallbackDate = new Date().toLocaleString();
+  const normalizedTimestamp = Number(entry?.timestamp);
+
+  return {
+    item: String(entry?.item || `Reward ${index + 1}`).trim() || `Reward ${index + 1}`,
+    description: String(entry?.description || '').trim() || String(entry?.item || `Reward ${index + 1}`),
+    cost: Math.max(0, Math.min(10000, Number(entry?.cost) || 0)),
+    date: String(entry?.date || fallbackDate),
+    timestamp: Number.isFinite(normalizedTimestamp) ? normalizedTimestamp : Date.now() + index,
+  };
+};
 
 const getDayTotal = (day) => localHabits.value.reduce(
   (sum, habit) => sum + (habit.completedDays.includes(day) ? habit.points : 0),
@@ -446,6 +482,7 @@ const persistLocalState = async () => {
   const payload = {
     darkMode: darkMode.value,
     focusTasksByDay: focusTasksByDay.value,
+    rewardsCatalog: rewards.value,
     rewardLedger: rewardLedger.value,
     weeklyReview: weeklyReview.value,
     localHabits: localHabits.value,
@@ -586,7 +623,8 @@ const loadLocalState = async () => {
 
   if (!parsed) {
     weeklyReview.value = createDefaultWeeklyReview();
-    await recalculateRedeemedTotals();
+    rewards.value = defaultRewards.map((reward) => ({ ...reward }));
+    await recalculateGlobalTotals();
     return;
   }
 
@@ -595,7 +633,12 @@ const loadLocalState = async () => {
     focusTasksByDay.value = parsed.focusTasksByDay && typeof parsed.focusTasksByDay === 'object'
       ? parsed.focusTasksByDay
       : {};
-    rewardLedger.value = Array.isArray(parsed.rewardLedger) ? parsed.rewardLedger : [];
+    rewards.value = Array.isArray(parsed.rewardsCatalog)
+      ? parsed.rewardsCatalog.map((reward, index) => normalizeReward(reward, index))
+      : defaultRewards.map((reward) => ({ ...reward }));
+    rewardLedger.value = Array.isArray(parsed.rewardLedger)
+      ? parsed.rewardLedger.map((entry, index) => normalizeLedgerEntry(entry, index))
+      : [];
     weeklyReview.value = normalizeWeeklyReview(parsed.weeklyReview);
     
     // Restore custom habit definitions or merge completions onto defaults
@@ -628,7 +671,7 @@ const loadLocalState = async () => {
     weeklyReview.value = createDefaultWeeklyReview();
   }
 
-  await recalculateRedeemedTotals();
+  await recalculateGlobalTotals();
 };
 
 const updateFocusTasksForDay = (tasks) => {
@@ -764,7 +807,9 @@ const removeWeeklyCheck = (index) => {
 };
 
 const claimReward = (reward) => {
-  if (availableWallet.value < reward.cost) {
+  const rewardCost = Math.max(1, Number(reward?.cost) || 0);
+
+  if (availableWallet.value < rewardCost) {
     return;
   }
 
@@ -779,12 +824,96 @@ const claimReward = (reward) => {
   rewardLedger.value.unshift({
     item: reward.item,
     description,
-    cost: reward.cost,
+    cost: rewardCost,
     date: new Date().toLocaleString(),
     timestamp: Date.now(),
   });
 
   persistLocalState();
+};
+
+const startEditingRewards = () => {
+  rewardsDraft.value = rewards.value.map((reward) => ({ ...normalizeReward(reward) }));
+  rewardsEditing.value = true;
+  rewardSaveStatus.value = 'idle';
+};
+
+const cancelEditingRewards = () => {
+  rewardsEditing.value = false;
+  rewardsDraft.value = [];
+  rewardSaveStatus.value = 'idle';
+};
+
+const addDraftReward = () => {
+  rewardsDraft.value.push({
+    type: 'Custom',
+    item: '',
+    cost: 1,
+  });
+};
+
+const removeDraftReward = (index) => {
+  rewardsDraft.value.splice(index, 1);
+};
+
+const saveEditedRewards = async () => {
+  if (rewardDraftHasErrors.value) {
+    return;
+  }
+
+  rewardSaveStatus.value = 'saving';
+  rewards.value = rewardsDraft.value.map((reward, index) => normalizeReward(reward, index));
+  await persistLocalState();
+
+  rewardSaveStatus.value = 'saved';
+  rewardsEditing.value = false;
+
+  setTimeout(() => {
+    rewardSaveStatus.value = 'idle';
+  }, 2500);
+};
+
+const startEditingLedger = () => {
+  ledgerDraft.value = rewardLedger.value.map((entry, index) => ({ ...normalizeLedgerEntry(entry, index) }));
+  ledgerEditing.value = true;
+  ledgerSaveStatus.value = 'idle';
+};
+
+const cancelEditingLedger = () => {
+  ledgerEditing.value = false;
+  ledgerDraft.value = [];
+  ledgerSaveStatus.value = 'idle';
+};
+
+const addDraftLedgerEntry = () => {
+  ledgerDraft.value.unshift({
+    item: 'Custom Reward',
+    description: '',
+    cost: 0,
+    date: new Date().toLocaleString(),
+    timestamp: Date.now(),
+  });
+};
+
+const removeDraftLedgerEntry = (index) => {
+  ledgerDraft.value.splice(index, 1);
+};
+
+const saveEditedLedger = async () => {
+  if (ledgerDraftHasErrors.value) {
+    return;
+  }
+
+  ledgerSaveStatus.value = 'saving';
+  rewardLedger.value = ledgerDraft.value.map((entry, index) => normalizeLedgerEntry(entry, index));
+  await persistLocalState();
+
+  ledgerSaveStatus.value = 'saved';
+  ledgerEditing.value = false;
+
+  setTimeout(() => {
+    ledgerSaveStatus.value = 'idle';
+  }, 2500);
 };
 
 const clearHabitChecklistProgressLocally = () => {
@@ -1274,9 +1403,39 @@ watch(darkMode, () => {
 
       <section class="dashboard-columns" id="rewards">
         <article class="card column-card">
-          <h2>💰 THE REWARD SHOP</h2>
+          <div class="section-head">
+            <h2>💰 THE REWARD SHOP</h2>
+            <button v-if="!rewardsEditing" class="btn btn--secondary" @click="startEditingRewards">✏ Edit Rewards</button>
+          </div>
 
-          <div class="rewards-grid">
+          <div v-if="rewardsEditing" class="rewards-editor">
+            <p class="habits-editor__hint">Edit reward type, title and redeem points. Save to apply for this month.</p>
+
+            <div class="rewards-editor__list">
+              <div v-for="(reward, index) in rewardsDraft" :key="`reward-draft-${index}`" class="rewards-editor__row">
+                <input v-model="reward.type" type="text" maxlength="24" placeholder="Type (Daily/Weekly...)" class="rewards-editor__type">
+                <input v-model="reward.item" type="text" maxlength="100" placeholder="Reward name" class="rewards-editor__item">
+                <label class="rewards-editor__cost-label">
+                  <span>Pts</span>
+                  <input v-model.number="reward.cost" type="number" min="1" max="10000" class="rewards-editor__cost">
+                </label>
+                <button class="habits-editor__delete" @click="removeDraftReward(index)">✕</button>
+              </div>
+            </div>
+
+            <button class="btn btn--secondary rewards-editor__add" @click="addDraftReward">+ Add Reward</button>
+
+            <div class="habits-editor__actions">
+              <button class="btn" :disabled="rewardDraftHasErrors || rewardSaveStatus === 'saving'" @click="saveEditedRewards">
+                <span v-if="rewardSaveStatus === 'saving'">Saving…</span>
+                <span v-else-if="rewardSaveStatus === 'saved'">✓ Saved</span>
+                <span v-else>Save Rewards</span>
+              </button>
+              <button class="btn btn--ghost" @click="cancelEditingRewards">Cancel</button>
+            </div>
+          </div>
+
+          <div v-else class="rewards-grid">
             <article v-for="reward in rewards" :key="`${reward.type}-${reward.item}`" class="reward-item">
               <p>{{ reward.type }}</p>
               <h3>{{ reward.item }}</h3>
@@ -1293,9 +1452,53 @@ watch(darkMode, () => {
         </article>
 
         <article class="card column-card">
-          <h2>📜 POINT LEDGER</h2>
+          <div class="section-head">
+            <h2>📜 POINT LEDGER</h2>
+            <button v-if="!ledgerEditing" class="btn btn--secondary" @click="startEditingLedger">✏ Edit Ledger</button>
+          </div>
 
-          <div class="ledger-wrap">
+          <div v-if="ledgerEditing" class="ledger-editor">
+            <div class="ledger-editor__actions">
+              <button class="btn btn--secondary" @click="addDraftLedgerEntry">+ Add Entry</button>
+            </div>
+
+            <div class="ledger-wrap">
+              <table class="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Reward Item</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Redeem Cost</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(entry, index) in ledgerDraft" :key="`ledger-draft-${entry.timestamp}-${index}`">
+                    <td><input v-model="entry.item" type="text" maxlength="80" class="ledger-editor__input"></td>
+                    <td><input v-model="entry.description" type="text" maxlength="120" class="ledger-editor__input"></td>
+                    <td><input v-model="entry.date" type="text" maxlength="40" class="ledger-editor__input"></td>
+                    <td><input v-model.number="entry.cost" type="number" min="0" max="10000" class="ledger-editor__cost"></td>
+                    <td><button class="habits-editor__delete" @click="removeDraftLedgerEntry(index)">✕</button></td>
+                  </tr>
+                  <tr v-if="ledgerDraft.length === 0">
+                    <td colspan="5" class="ledger-table__empty">No redemptions found. Add one manually or redeem from Reward Shop.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="habits-editor__actions">
+              <button class="btn" :disabled="ledgerDraftHasErrors || ledgerSaveStatus === 'saving'" @click="saveEditedLedger">
+                <span v-if="ledgerSaveStatus === 'saving'">Saving…</span>
+                <span v-else-if="ledgerSaveStatus === 'saved'">✓ Saved</span>
+                <span v-else>Save Ledger</span>
+              </button>
+              <button class="btn btn--ghost" @click="cancelEditingLedger">Cancel</button>
+            </div>
+          </div>
+
+          <div v-else class="ledger-wrap">
             <table class="ledger-table">
               <thead>
                 <tr>
