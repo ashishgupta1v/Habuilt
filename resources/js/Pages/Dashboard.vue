@@ -106,6 +106,7 @@ const habitsEditing = ref(false);
 const habitsDraft = ref([]);
 const habitSaveStatus = ref('idle'); // 'idle' | 'saving' | 'saved' | 'error'
 const hasCustomHabits = ref(false);
+const habitSwipeStart = ref({});
 
 const rewardsEditing = ref(false);
 const rewardsDraft = ref([]);
@@ -958,6 +959,53 @@ const removeDraftHabit = (index) => {
   habitsDraft.value.splice(index, 1);
 };
 
+const moveDraftHabit = (fromIndex, toIndex) => {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= habitsDraft.value.length || toIndex >= habitsDraft.value.length) {
+    return;
+  }
+
+  const [movedHabit] = habitsDraft.value.splice(fromIndex, 1);
+  habitsDraft.value.splice(toIndex, 0, movedHabit);
+};
+
+const onHabitSwipeStart = (index, event) => {
+  const touch = event?.changedTouches?.[0];
+  if (!touch) {
+    return;
+  }
+
+  habitSwipeStart.value[index] = {
+    x: touch.clientX,
+    y: touch.clientY,
+  };
+};
+
+const onHabitSwipeEnd = (index, event) => {
+  const start = habitSwipeStart.value[index];
+  const touch = event?.changedTouches?.[0];
+
+  delete habitSwipeStart.value[index];
+
+  if (!start || !touch) {
+    return;
+  }
+
+  const deltaX = touch.clientX - start.x;
+  const deltaY = touch.clientY - start.y;
+  const verticalThreshold = 30;
+
+  if (Math.abs(deltaY) < verticalThreshold || Math.abs(deltaY) < Math.abs(deltaX)) {
+    return;
+  }
+
+  if (deltaY < 0) {
+    moveDraftHabit(index, Math.max(0, index - 1));
+    return;
+  }
+
+  moveDraftHabit(index, Math.min(habitsDraft.value.length - 1, index + 1));
+};
+
 const saveEditedHabits = async () => {
   if (draftHasErrors.value) return;
 
@@ -1283,7 +1331,8 @@ watch(darkMode, () => {
         <!-- ── Habits Editor Panel ──────────────────────────────────── -->
         <div v-if="habitsEditing" class="habits-editor">
           <p class="habits-editor__hint">
-            Edit habit names and assign point values. Changes are saved to your account and applied immediately.
+            Edit habit names and assign point values. Swipe a row up/down (or use arrows) to reorder by priority.
+            Changes are saved to your account and applied immediately.
           </p>
 
           <div class="habits-editor__list">
@@ -1291,8 +1340,26 @@ watch(darkMode, () => {
               v-for="(habit, index) in habitsDraft"
               :key="habit.id"
               class="habits-editor__row"
+              @touchstart.passive="onHabitSwipeStart(index, $event)"
+              @touchend.passive="onHabitSwipeEnd(index, $event)"
             >
               <span class="habits-editor__num">{{ index + 1 }}</span>
+              <div class="habits-editor__move" aria-label="Reorder habit">
+                <button
+                  class="habits-editor__move-btn"
+                  :disabled="index === 0"
+                  @click="moveDraftHabit(index, index - 1)"
+                  title="Move up"
+                  type="button"
+                >↑</button>
+                <button
+                  class="habits-editor__move-btn"
+                  :disabled="index === habitsDraft.length - 1"
+                  @click="moveDraftHabit(index, index + 1)"
+                  title="Move down"
+                  type="button"
+                >↓</button>
+              </div>
               <input
                 v-model="habit.name"
                 type="text"
