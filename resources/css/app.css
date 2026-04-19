@@ -874,7 +874,7 @@ body.theme-dark #analytics .stat-card:last-child strong {
   border: 1px solid var(--card-border);
   padding: 4px 2px;
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .habit-grid thead th {
@@ -942,9 +942,9 @@ body.theme-dark #analytics .stat-card:last-child strong {
 }
 
 .habit-grid__check {
-  width: 18px;
-  height: 18px;
-  padding: 0;
+  width: 24px;
+  height: 24px;
+  padding: 10px;
   border-radius: 4px;
   border: 1px solid var(--card-border);
   background: var(--muted-bg);
