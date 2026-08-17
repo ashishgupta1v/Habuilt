@@ -39,7 +39,13 @@ import {
   Heart,
   Briefcase,
   Trophy,
-  CheckSquare
+  CheckSquare,
+  Settings,
+  ChevronUp,
+  Shield,
+  Crown,
+  Gauge,
+  Play,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -177,10 +183,67 @@ const jyotiHabits = [
   { id: 'j-18', name: '★ Shaarvi Monthly Report (29th)',                   points: 2 },
 ];
 
+// ── Progressive Habits System: Tier Definitions ──
+// Each habit can progress through 4 tiers. These are the default tier descriptions.
+const defaultTierLabels = ['Floor', 'Foundation', 'Standard', 'Mastery'];
+
+const ashishTierDescriptions = {
+  'a-1':  ['Wake by 06:30', 'Wake by 06:00', 'Wake by 05:30 + hydrate', '05:00 + hydrate + 5min breathwork'],
+  'a-2':  ['30 min build work', '1h build work', '1h45 deep block', '1h45 deep + ship daily'],
+  'a-3':  ['10 min movement', '20 min exercise', '30 min boxing', '30 min boxing + stretching'],
+  'a-4':  ['10 min with Shaarvi', '15 min turn-taking', '20 min structured play', '30 min milestone activity'],
+  'a-5':  ['Basic hygiene', 'Groom + shower', 'Cold finish shower', 'Full cold shower + skincare'],
+  'a-6':  ['Show up, basics done', 'Meet expectations', 'High intensity work', 'Top performer output'],
+  'a-7':  ['1 outbound touch', '3 outbound touches', '5 outbound touches', '5 personalized + follow-ups'],
+  'a-8':  ['1 eye break/day', '3 breaks/day', '20-20-20 rule all day', '+ posture checks hourly'],
+  'a-9':  ['Note 1 pipeline idea', '15 min pipeline', '30 min stealth block', '30 min + weekly review'],
+  'a-10': ['Stop by 20:00', 'Stop by 19:30', '18:30 hard stop', '18:30 + phone in drawer'],
+  'a-11': ['Eat together', '+ 10 min walk', 'Full walk + dinner', '+ no phones at table'],
+  'a-12': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Full routine + story time'],
+  'a-13': ['15 min admin', '30 min pipeline', '1h15 deep block 2', '+ weekly pipeline review'],
+  'a-14': ['In bed by 23:30', 'In bed by 23:00', 'Sleep by 22:30', '22:30 + sleep tracking'],
+  'a-15': ['Protein 1 meal', '2 meals protein', 'Every meal + iron', '+ meal prep Sundays'],
+  'a-16': ['Take 1 supplement', 'B12 + D3', 'Full stack daily', 'Full stack + track levels'],
+  'a-17': ['Skip harmful products', 'Basic scalp care', 'Full scalp rinse protocol', '+ stress management'],
+  'a-18': ['Reduce screen 30min', '1h phone-free', '2h phone-free near baby', 'Zero screens near Shaarvi'],
+  'a-19': ['1 post/week', '2 posts/week', '2 posts + engagement', '3 posts + community'],
+  'a-20': ['1h Saturday build', '2h Saturday build', '4h marathon', '4h + ship something'],
+  'a-21': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
+  'a-22': ['Track spending', 'Log income/expense', '10% transfer + log', '+ investment review'],
+};
+
+const jyotiTierDescriptions = {
+  'j-1':  ['Sleep 6h minimum', 'Sleep 7h, wake by 08:30', 'Protected 05-08 sleep', '8h + sleep quality tracking'],
+  'j-2':  ['30 min focused work', '1h deep work', '2h deep block', '2h deep + output tracking'],
+  'j-3':  ['5 min stretching', '10 min walk', '20 min walk + recovery', '20 min + pelvic floor work'],
+  'j-4':  ['15 min with Shaarvi', '30 min care block', 'Feed + floor play + naming', '+ milestone tracking'],
+  'j-5':  ['15 min light tasks', '30 min light work', '1h light work block', '1h + skill application'],
+  'j-6':  ['Present at 18:30', 'Floor play 15min', 'Full floor play session', '+ developmental activity'],
+  'j-7':  ['Eat together', '+ 10 min walk', 'Full walk + dinner', '+ no phones at table'],
+  'j-8':  ['Respond to feeds', 'Manage 1 night feed', 'Full night watch', '+ sleep log tracking'],
+  'j-9':  ['Protein 1 meal', '2 meals protein', 'Every meal + iron', '+ meal prep Sundays'],
+  'j-10': ['Take 1 supplement', 'B12 + D3', 'Full nursing stack', '+ track levels quarterly'],
+  'j-11': ['Reduce screen 30min', '1h phone-free', '2h phone-free', 'Zero screens near Shaarvi'],
+  'j-12': ['1.5L water', '2L water', '3L + no tea after meals', '3L + herbal tea only'],
+  'j-13': ['Read 10 min/day', '30 min skill practice', 'Track progress + learn', '+ portfolio/showcase'],
+  'j-14': ['Review accounts monthly', 'Send 1 invoice/month', 'Full invoices + accounts', '+ entity tax planning'],
+  'j-15': ['1h Saturday block', '2h Saturday block', '3h deep afternoon', '3h + ship output'],
+  'j-16': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
+  'j-17': ['Prep 2 meals', 'Prep 3-4 meals', '2h batch cooking', '2h + week meal plan'],
+  'j-18': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
+};
+
+// ── Progressive Phases ──
+const defaultPhases = [
+  { id: 'assets',   name: 'Assets & Foundations', weeks: [1, 6],   description: 'Build core routines, establish Floor habits' },
+  { id: 'pipeline', name: 'Pipeline & Growth',    weeks: [7, 14],  description: 'Graduate to Standard tier, build momentum' },
+  { id: 'mastery',  name: 'Rate, Volume & Exit',  weeks: [15, 26], description: 'Hit Mastery tier, compound gains' },
+];
+
 // Select preset based on logged-in user email
 const isJyoti = computed(() => {
-  const email = (props.userEmail || '').toLowerCase();
-  return email.includes('jyoti') || email.includes('jyotigupta');
+  const email = (props.userEmail || '').toLowerCase().trim();
+  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
 });
 
 const fallbackHabits = computed(() => isJyoti.value ? jyotiHabits : ashishHabits);
@@ -197,6 +260,19 @@ const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
 const redeemedBeforeCurrentMonth = ref(0);
 const earnedBeforeCurrentMonth = ref(0);
+
+// ── Progressive System State ──
+const progressiveSettings = ref({
+  startDate: '',          // YYYY-MM-DD when the 26-week program begins
+  currentPhaseId: 'assets',
+  dayType: 'full',        // 'full' | 'half' | 'floor'  — declared each morning
+  tierLabels: [...defaultTierLabels],
+  phases: defaultPhases.map(p => ({ ...p, weeks: [...p.weeks] })),
+  habitTiers: {},         // habitId -> currentTier (1-4)
+  pointMultipliers: { full: 1.0, half: 0.6, floor: 0.3 },
+});
+const progressivePanelOpen = ref(false);
+const tierDetailHabitId = ref(null);    // which habit's tier detail is expanded
 
 // — Habit editor —
 const habitsEditing = ref(false);
@@ -396,6 +472,221 @@ const mobileGoToday = () => {
   mobileSelectedDay.value = props.currentDay;
 };
 
+// ── Progressive System Computed Helpers ──
+const getTierDescriptions = (habitId) => {
+  const descs = isJyoti.value ? jyotiTierDescriptions : ashishTierDescriptions;
+  return descs[habitId] || ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'];
+};
+
+const getHabitTier = (habitId) => {
+  return progressiveSettings.value.habitTiers[habitId] || 1;
+};
+
+const setHabitTier = (habitId, tier) => {
+  const clamped = Math.max(1, Math.min(4, tier));
+  progressiveSettings.value.habitTiers = {
+    ...progressiveSettings.value.habitTiers,
+    [habitId]: clamped,
+  };
+  persistLocalState();
+};
+
+const graduateHabit = (habitId) => {
+  const current = getHabitTier(habitId);
+  if (current < 4) setHabitTier(habitId, current + 1);
+};
+
+const demoteHabit = (habitId) => {
+  const current = getHabitTier(habitId);
+  if (current > 1) setHabitTier(habitId, current - 1);
+};
+
+const toggleTierDetail = (habitId) => {
+  tierDetailHabitId.value = tierDetailHabitId.value === habitId ? null : habitId;
+};
+
+const currentDayType = computed(() => progressiveSettings.value.dayType || 'full');
+
+const setDayType = (type) => {
+  progressiveSettings.value.dayType = type;
+  persistLocalState();
+};
+
+const dayTypeLabel = computed(() => {
+  switch (currentDayType.value) {
+    case 'full': return 'Full Day';
+    case 'half': return 'Half Day';
+    case 'floor': return 'Floor Day';
+    default: return 'Full Day';
+  }
+});
+
+const dayTypeMultiplier = computed(() => {
+  const m = progressiveSettings.value.pointMultipliers || { full: 1.0, half: 0.6, floor: 0.3 };
+  return m[currentDayType.value] || 1.0;
+});
+
+const adjustedDailyTarget = computed(() => {
+  return Math.round(maxDailyPoints.value * dayTypeMultiplier.value);
+});
+
+const programStartDate = computed(() => {
+  const d = progressiveSettings.value.startDate;
+  if (!d) return null;
+  const parsed = new Date(d + 'T00:00:00');
+  return isNaN(parsed.getTime()) ? null : parsed;
+});
+
+const currentProgramWeek = computed(() => {
+  if (!programStartDate.value) return 0;
+  const now = new Date();
+  const diff = now.getTime() - programStartDate.value.getTime();
+  return Math.max(1, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
+});
+
+const currentPhase = computed(() => {
+  const week = currentProgramWeek.value;
+  if (week <= 0) return null;
+  const phases = progressiveSettings.value.phases || defaultPhases;
+  for (const phase of phases) {
+    if (week >= phase.weeks[0] && week <= phase.weeks[1]) return phase;
+  }
+  // Past week 26 — still in last phase
+  return phases[phases.length - 1] || null;
+});
+
+const phaseProgressPercent = computed(() => {
+  const week = currentProgramWeek.value;
+  if (week <= 0 || !currentPhase.value) return 0;
+  const [start, end] = currentPhase.value.weeks;
+  const total = end - start + 1;
+  const elapsed = Math.min(week - start + 1, total);
+  return Math.round((elapsed / total) * 100);
+});
+
+const avgTierLevel = computed(() => {
+  const habits = localHabits.value;
+  if (habits.length === 0) return 1;
+  const sum = habits.reduce((s, h) => s + getHabitTier(h.id), 0);
+  return (sum / habits.length).toFixed(1);
+});
+
+const tierDistribution = computed(() => {
+  const dist = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const h of localHabits.value) {
+    dist[getHabitTier(h.id)]++;
+  }
+  return dist;
+});
+
+const tierColorClass = (tier) => {
+  switch (tier) {
+    case 1: return 'tier--floor';
+    case 2: return 'tier--foundation';
+    case 3: return 'tier--standard';
+    case 4: return 'tier--mastery';
+    default: return 'tier--floor';
+  }
+};
+
+const startProgram = () => {
+  const today = new Date();
+  progressiveSettings.value.startDate = today.toISOString().slice(0, 10);
+  // Reset all tiers to 1
+  const tiers = {};
+  for (const h of localHabits.value) {
+    tiers[h.id] = 1;
+  }
+  progressiveSettings.value.habitTiers = tiers;
+  progressiveSettings.value.dayType = 'full';
+  persistLocalState();
+};
+
+const toggleProgressivePanel = () => {
+  progressivePanelOpen.value = !progressivePanelOpen.value;
+};
+
+// ── Auto-Tier-Graduation Suggestions ──
+// Calculates current streak for each habit and suggests graduation at 14+ days
+const GRADUATION_STREAK_THRESHOLD = 14;
+
+const getHabitStreak = (habit) => {
+  if (!habit || !Array.isArray(habit.completedDays) || habit.completedDays.length === 0) return 0;
+  const sorted = [...habit.completedDays].sort((a, b) => b - a);
+  // Count consecutive days backward from the latest completed day
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === sorted[i - 1] - 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+};
+
+const graduationSuggestions = computed(() => {
+  const suggestions = [];
+  for (const habit of localHabits.value) {
+    const tier = getHabitTier(habit.id);
+    if (tier >= 4) continue; // Already at max tier
+    const streak = getHabitStreak(habit);
+    if (streak >= GRADUATION_STREAK_THRESHOLD) {
+      const tierLabels = progressiveSettings.value.tierLabels || defaultTierLabels;
+      const nextTierDesc = getTierDescriptions(habit.id)[tier]; // tier is 1-based, array is 0-based, so tier = next tier's index
+      suggestions.push({
+        habitId: habit.id,
+        habitName: habit.name,
+        currentTier: tier,
+        nextTier: tier + 1,
+        streak,
+        currentLabel: tierLabels[tier - 1],
+        nextLabel: tierLabels[tier],
+        nextDescription: nextTierDesc,
+      });
+    }
+  }
+  return suggestions;
+});
+
+const dismissGraduationSuggestion = (habitId) => {
+  // Graduating the habit clears the suggestion naturally
+  graduateHabit(habitId);
+};
+
+// ── Day-Type Auto-Suggest ──
+// Checks previous day's sleep habit to suggest today's day type
+const sleepHabitId = computed(() => isJyoti.value ? 'j-1' : 'a-14');
+
+const suggestedDayType = computed(() => {
+  // Find sleep habit
+  const sleepHabit = localHabits.value.find(h => h.id === sleepHabitId.value);
+  if (!sleepHabit) return null;
+
+  const yesterday = props.currentDay - 1;
+  if (yesterday < 1) return null; // First day of month — no data
+
+  const sleptWell = sleepHabit.completedDays.includes(yesterday);
+
+  // Also check overall completion rate for yesterday
+  const yesterdayTotal = localHabits.value.reduce(
+    (sum, h) => sum + (h.completedDays.includes(yesterday) ? h.points : 0), 0
+  );
+  const maxPts = localHabits.value.reduce((s, h) => s + h.points, 0);
+  const yesterdayPct = maxPts > 0 ? (yesterdayTotal / maxPts) * 100 : 0;
+
+  if (sleptWell && yesterdayPct >= 60) return { type: 'full', reason: 'Good sleep + strong yesterday' };
+  if (sleptWell) return { type: 'full', reason: 'Sleep target met last night' };
+  if (!sleptWell && yesterdayPct >= 40) return { type: 'half', reason: 'Missed sleep — pace yourself' };
+  return { type: 'floor', reason: 'Poor sleep — protect essentials only' };
+});
+
+const applySuggestedDayType = () => {
+  if (suggestedDayType.value) {
+    setDayType(suggestedDayType.value.type);
+  }
+};
+
 // ── Mobile Category Filters & Classification ──
 const activeMobileCategory = ref('all');
 const hoveredChartPoint = ref(null);
@@ -549,15 +840,29 @@ watch(
   { immediate: true },
 );
 
+const targetDailyPoints = computed(() => Math.max(25, Math.ceil(maxDailyPoints.value * 0.6)));
+
+const daysOnTargetCount = computed(() => {
+  if (evaluatedDays.value === 0) return 0;
+  let count = 0;
+  for (let day = 1; day <= evaluatedDays.value; day += 1) {
+    if (getDayTotal(day) >= targetDailyPoints.value) {
+      count += 1;
+    }
+  }
+  return count;
+});
+
 const chartData = computed(() => days.value.map((day) => getDayTotal(day)));
 
-const chartWidth = 980;
-const chartHeight = 256;
-const chartPaddingX = 50;
-const chartPaddingTop = 18;
-const chartPaddingBottom = 56;
+const chartWidth = 1000;
+const chartHeight = 220;
+const chartPaddingX = 14;
+const chartPaddingTop = 16;
+const chartPaddingBottom = 16;
+
 const chartMaxValue = computed(() => {
-  const rawMax = Math.max(1, maxDailyPoints.value, ...chartData.value);
+  const rawMax = Math.max(1, maxDailyPoints.value, targetDailyPoints.value, ...chartData.value);
 
   return Math.max(25, Math.ceil(rawMax / 5) * 5);
 });
@@ -572,8 +877,9 @@ const getChartY = (value) => {
 
 const chartGridLines = computed(() => {
   const lines = [];
+  const step = chartMaxValue.value <= 35 ? 5 : 10;
 
-  for (let value = chartMaxValue.value; value >= 0; value -= 5) {
+  for (let value = chartMaxValue.value; value >= 0; value -= step) {
     lines.push({ value, y: getChartY(value) });
   }
 
@@ -666,6 +972,7 @@ const persistLocalState = async () => {
     weeklyReview: weeklyReview.value,
     localHabits: localHabits.value,
     hasCustomHabits: hasCustomHabits.value,
+    progressiveSettings: progressiveSettings.value,
   };
 
   if (props.userId) {
@@ -820,6 +1127,26 @@ const loadLocalState = async () => {
       : [];
     weeklyReview.value = normalizeWeeklyReview(parsed.weeklyReview);
     
+    // Restore progressive settings
+    if (parsed.progressiveSettings && typeof parsed.progressiveSettings === 'object') {
+      const ps = parsed.progressiveSettings;
+      progressiveSettings.value = {
+        startDate: ps.startDate || '',
+        currentPhaseId: ps.currentPhaseId || 'assets',
+        dayType: ps.dayType || 'full',
+        tierLabels: Array.isArray(ps.tierLabels) && ps.tierLabels.length === 4
+          ? [...ps.tierLabels]
+          : [...defaultTierLabels],
+        phases: Array.isArray(ps.phases) && ps.phases.length > 0
+          ? ps.phases.map(p => ({ ...p, weeks: Array.isArray(p.weeks) ? [...p.weeks] : [1, 6] }))
+          : defaultPhases.map(p => ({ ...p, weeks: [...p.weeks] })),
+        habitTiers: (ps.habitTiers && typeof ps.habitTiers === 'object') ? { ...ps.habitTiers } : {},
+        pointMultipliers: (ps.pointMultipliers && typeof ps.pointMultipliers === 'object')
+          ? { ...ps.pointMultipliers }
+          : { full: 1.0, half: 0.6, floor: 0.3 },
+      };
+    }
+
     // Restore custom habit definitions or merge completions onto defaults
     if (Array.isArray(parsed.localHabits)) {
       if (parsed.hasCustomHabits) {
@@ -1311,18 +1638,39 @@ watch(darkMode, () => {
     <section :class="{ 'month-nav-loading': isNavigatingMonth }">
       <!-- ── TOP HERO & OVERVIEW ── -->
       <section class="card card--hero" id="overview">
+        <!-- ── Command Bar: Month Nav + Theme ── -->
+        <div class="hero-command-bar">
+          <div class="hero-command-bar__left">
+            <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : 'hero-track-pill--ashish'">
+              <Sparkles class="icon-xs" />
+              <span>{{ isJyoti ? "Jyoti's System" : "Ashish's System" }}</span>
+            </span>
+            <span class="hero-version-tag">PRO</span>
+          </div>
+          <div class="hero-command-bar__right">
+            <button class="hero-nav-btn" :disabled="!canNavigatePrevMonth || isNavigatingMonth" @click="goToPreviousMonth" title="Previous Month">
+              <ChevronLeft class="icon-sm" />
+            </button>
+            <div class="hero-month-chip">
+              <Calendar class="icon-xs" />
+              <span>{{ monthLabel.slice(0, 3) }} '{{ String(year).slice(-2) }}</span>
+            </div>
+            <button class="hero-nav-btn" :disabled="!canNavigateNextMonth || isNavigatingMonth" @click="goToNextMonth" title="Next Month">
+              <ChevronRight class="icon-sm" />
+            </button>
+            <button class="hero-nav-btn hero-nav-btn--theme" @click="darkMode = !darkMode" :title="darkMode ? 'Light Mode' : 'Dark Mode'" aria-label="Toggle Theme">
+              <Sun v-if="darkMode" class="icon-sm icon-sun" />
+              <Moon v-else class="icon-sm icon-moon" />
+            </button>
+          </div>
+        </div>
+
         <header class="hero-head">
+          <!-- ── LEFT: Brand + Focus ── -->
           <div class="hero-main">
             <div class="hero-brand-block">
-              <div class="hero-brand-meta">
-                <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : 'hero-track-pill--ashish'">
-                  <Sparkles class="icon-xs" />
-                  <span>{{ isJyoti ? "Jyoti's System (18 Habits)" : "Ashish's System (22 Habits)" }}</span>
-                </span>
-                <span class="hero-version-tag">PRO TRACKER</span>
-              </div>
-              <h1 class="eyebrow">Habuilt Tracker</h1>
-              <p class="hero-sub">{{ monthLabel }} {{ year }} // DISCIPLINE EQUALS FREEDOM</p>
+              <h1 class="eyebrow">Habuilt<span class="eyebrow__accent">.</span></h1>
+              <p class="hero-sub">{{ monthLabel }} {{ year }} <span class="hero-sub__divider">//</span> DISCIPLINE EQUALS FREEDOM</p>
             </div>
 
             <!-- ── TODAY'S FOCUS CARD ── -->
@@ -1414,88 +1762,105 @@ watch(darkMode, () => {
             </div>
           </div>
 
-          <!-- ── HERO SIDE PANEL ── -->
+          <!-- ── RIGHT: KPI Glass Cards + Balance ── -->
           <div class="hero-side">
-            <div class="hero-actions">
-              <button
-                class="btn btn--calendar"
-                :disabled="!canNavigatePrevMonth || isNavigatingMonth"
-                @click="goToPreviousMonth"
-                title="Previous Month"
-              >
-                <ChevronLeft class="icon-sm" />
-                <span>Prev</span>
-              </button>
-              <div class="calendar-current-chip">
-                <Calendar class="icon-xs" />
-                <span>{{ monthLabel.slice(0, 3) }} '{{ String(year).slice(-2) }}</span>
+            <!-- KPI: Today's Score with radial ring -->
+            <article class="glass-kpi glass-kpi--flame">
+              <div class="glass-kpi__ring-wrap">
+                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiFlameGrad)" stroke-width="4" stroke-linecap="round"
+                    :stroke-dasharray="`${Math.min(100, maxDailyPoints > 0 ? (todayPoints / maxDailyPoints) * 175.93 : 0)} 175.93`"
+                    transform="rotate(-90 32 32)" />
+                  <defs>
+                    <linearGradient id="kpiFlameGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#fbbf24" />
+                      <stop offset="100%" stop-color="#f59e0b" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="glass-kpi__ring-center">
+                  <Flame class="glass-kpi__ring-icon glass-kpi__ring-icon--flame" />
+                </div>
               </div>
-              <button
-                class="btn btn--calendar"
-                :disabled="!canNavigateNextMonth || isNavigatingMonth"
-                @click="goToNextMonth"
-                title="Next Month"
-              >
-                <span>Next</span>
-                <ChevronRight class="icon-sm" />
-              </button>
-              <button
-                class="btn btn--theme-toggle"
-                @click="darkMode = !darkMode"
-                :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-                aria-label="Toggle Theme"
-              >
-                <Sun v-if="darkMode" class="icon-sm icon-sun" />
-                <Moon v-else class="icon-sm icon-moon" />
-              </button>
-            </div>
-
-            <div class="kpis kpis--compact">
-              <article class="kpi kpi--today">
-                <div class="kpi-icon-wrap kpi-icon-wrap--flame">
-                  <Flame class="kpi-icon" />
-                </div>
-                <div class="kpi-content">
-                  <p>Earned Today</p>
-                  <strong>{{ todayPoints }} <small>pts</small></strong>
-                  <span class="kpi-subtag">Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ pts</span>
-                </div>
-              </article>
-              <article class="kpi kpi--wallet">
-                <div class="kpi-icon-wrap kpi-icon-wrap--award">
-                  <Award class="kpi-icon" />
-                </div>
-                <div class="kpi-content">
-                  <p>Total Balance</p>
-                  <strong>{{ availableWallet }} <small>pts</small></strong>
-                  <span class="kpi-subtag">{{ activeMilestoneLabel }} ({{ vacationProgress.toFixed(0) }}%)</span>
-                </div>
-              </article>
-            </div>
-
-            <article class="balance-math">
-              <div class="balance-math__head">
-                <h3>Monthly Balance Math</h3>
-              </div>
-              <div class="balance-math__grid">
-                <div class="balance-math__cell">
-                  <span>Opening</span>
-                  <strong>{{ openingBalance }}</strong>
-                </div>
-                <div class="balance-math__cell balance-math__cell--earned">
-                  <span>+ Earned</span>
-                  <strong>{{ monthEarned }}</strong>
-                </div>
-                <div class="balance-math__cell balance-math__cell--redeemed">
-                  <span>- Redeemed</span>
-                  <strong>{{ monthRedeemed }}</strong>
-                </div>
-                <div class="balance-math__cell balance-math__cell--closing">
-                  <span>= Closing</span>
-                  <strong>{{ availableWallet }}</strong>
-                </div>
+              <div class="glass-kpi__body">
+                <span class="glass-kpi__label">Earned Today</span>
+                <strong class="glass-kpi__value">{{ todayPoints }}<small>pts</small></strong>
+                <span class="glass-kpi__sub">of {{ maxDailyPoints }} possible</span>
               </div>
             </article>
+
+            <!-- KPI: Wallet Balance with milestone ring -->
+            <article class="glass-kpi glass-kpi--emerald">
+              <div class="glass-kpi__ring-wrap">
+                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiEmeraldGrad)" stroke-width="4" stroke-linecap="round"
+                    :stroke-dasharray="`${Math.min(175.93, (vacationProgress / 100) * 175.93)} 175.93`"
+                    transform="rotate(-90 32 32)" />
+                  <defs>
+                    <linearGradient id="kpiEmeraldGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#34d399" />
+                      <stop offset="100%" stop-color="#059669" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="glass-kpi__ring-center">
+                  <Award class="glass-kpi__ring-icon glass-kpi__ring-icon--emerald" />
+                </div>
+              </div>
+              <div class="glass-kpi__body">
+                <span class="glass-kpi__label">Total Balance</span>
+                <strong class="glass-kpi__value">{{ availableWallet }}<small>pts</small></strong>
+                <span class="glass-kpi__sub">{{ activeMilestoneLabel }} {{ vacationProgress.toFixed(0) }}%</span>
+              </div>
+            </article>
+
+            <!-- KPI: Completion Rate with ring -->
+            <article class="glass-kpi glass-kpi--sky">
+              <div class="glass-kpi__ring-wrap">
+                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiSkyGrad)" stroke-width="4" stroke-linecap="round"
+                    :stroke-dasharray="`${Math.min(175.93, (completionRate / 100) * 175.93)} 175.93`"
+                    transform="rotate(-90 32 32)" />
+                  <defs>
+                    <linearGradient id="kpiSkyGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#38bdf8" />
+                      <stop offset="100%" stop-color="#0284c7" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="glass-kpi__ring-center">
+                  <TrendingUp class="glass-kpi__ring-icon glass-kpi__ring-icon--sky" />
+                </div>
+              </div>
+              <div class="glass-kpi__body">
+                <span class="glass-kpi__label">Completion Rate</span>
+                <strong class="glass-kpi__value">{{ completionRate.toFixed(1) }}<small>%</small></strong>
+                <span class="glass-kpi__sub">Avg {{ dailyAverage.toFixed(1) }} pts/day</span>
+              </div>
+            </article>
+
+            <!-- Balance Row -->
+            <div class="hero-balance-row">
+              <div class="hero-balance-cell">
+                <span>Opening</span>
+                <strong>{{ openingBalance }}</strong>
+              </div>
+              <div class="hero-balance-cell hero-balance-cell--earned">
+                <span>+ Earned</span>
+                <strong>{{ monthEarned }}</strong>
+              </div>
+              <div class="hero-balance-cell hero-balance-cell--spent">
+                <span>- Redeemed</span>
+                <strong>{{ monthRedeemed }}</strong>
+              </div>
+              <div class="hero-balance-cell hero-balance-cell--total">
+                <span>= Balance</span>
+                <strong>{{ availableWallet }}</strong>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -1509,133 +1874,567 @@ watch(darkMode, () => {
         </p>
       </section>
 
+      <!-- ══════════════════════════════════════════════════════════════ -->
       <!-- ── SECTION: MONTHLY PERFORMANCE ANALYTICS ── -->
-      <section class="card" id="analytics">
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <section class="card card--analytics" id="analytics">
         <div class="section-head">
-          <h2 class="section-title">
-            <span class="section-title__icon">
-              <BarChart3 class="icon-md" />
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span class="section-title__icon section-title__icon--analytics">
+                <BarChart3 class="icon-md" />
+              </span>
+              <span>Performance Analytics</span>
+            </h2>
+            <small>Interactive daily performance trends & milestone tracking</small>
+          </div>
+          <div class="analytics-badges">
+            <span class="section-badge section-badge--month">
+              <Calendar class="icon-xs" />
+              <span>{{ monthLabel }} {{ year }}</span>
             </span>
-            <span>Monthly Performance Analytics</span>
-          </h2>
-          <small class="section-badge">Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ pts/day</small>
+            <span class="section-badge section-badge--target">
+              <Target class="icon-xs" />
+              <span>Target: {{ targetDailyPoints }}+ pts/day</span>
+            </span>
+          </div>
         </div>
 
-        <div class="chart-wrap">
-          <svg class="chart" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="analyticsAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#10b981" stop-opacity="0.32" />
-                <stop offset="100%" stop-color="#10b981" stop-opacity="0.02" />
-              </linearGradient>
-              <linearGradient id="analyticsLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#34d399" />
-                <stop offset="50%" stop-color="#10b981" />
-                <stop offset="100%" stop-color="#059669" />
-              </linearGradient>
-            </defs>
-            <g class="chart__grid">
-              <line
-                v-for="line in chartGridLines"
-                :key="`grid-${line.value}`"
-                :x1="chartPaddingX"
-                :x2="chartWidth - chartPaddingX"
-                :y1="line.y"
-                :y2="line.y"
-              />
-            </g>
-            <g class="chart__y-labels">
-              <text
+        <!-- ── HYBRID HTML + SVG CHART ── -->
+        <div class="analytics-chart-container">
+          <!-- Main Chart Row: HTML Y-Axis + SVG Plot Canvas -->
+          <div class="analytics-chart-main">
+            <!-- Crisp HTML Y-Axis (Fixed, unscaled typography) -->
+            <div class="analytics-y-axis" aria-hidden="true">
+              <span
                 v-for="line in chartGridLines"
                 :key="`ylabel-${line.value}`"
-                class="chart__y-label"
-                :x="chartPaddingX - 8"
-                :y="line.y"
-              >{{ line.value }}</text>
-            </g>
-            <path class="chart__area" :d="chartAreaPath" />
-            <path class="chart__line" :d="chartLinePath" />
-            <circle
-              v-for="point in chartPoints"
-              :key="`pt-${point.day}`"
-              class="chart__dot"
-              :class="{ 'chart__dot--hovered': hoveredChartPoint?.day === point.day }"
-              :cx="point.x"
-              :cy="point.y"
-              :r="hoveredChartPoint?.day === point.day ? 5.5 : 3.5"
-              @mouseenter="hoveredChartPoint = point"
-              @mouseleave="hoveredChartPoint = null"
-              @touchstart.passive="hoveredChartPoint = point"
-            />
-            <g class="chart__x-labels">
-              <text
-                v-for="point in chartPoints"
-                :key="`xlabel-${point.day}`"
-                :class="['chart__x-label', { 'chart__x-label--weekend': point.isWeekend, 'chart__x-label--today': props.isCurrentMonth && point.day === props.currentDay }]"
-                :x="point.x"
-                :y="chartHeight - 20"
-              >{{ point.day }}</text>
-            </g>
-          </svg>
+                class="analytics-y-axis__label"
+                :style="{ top: `${(line.y / chartHeight) * 100}%` }"
+              >
+                {{ line.value }}
+              </span>
+            </div>
 
-          <!-- Interactive hover point tooltip -->
-          <div v-if="hoveredChartPoint" class="chart-point-tooltip">
-            <span class="chart-tooltip__day">Day {{ hoveredChartPoint.day }}</span>
-            <span class="chart-tooltip__pts">{{ hoveredChartPoint.value }} pts</span>
-            <span class="chart-tooltip__status" :class="hoveredChartPoint.value >= Math.max(25, Math.ceil(maxDailyPoints * 0.6)) ? 'chart-tooltip__status--met' : ''">
-              {{ hoveredChartPoint.value >= Math.max(25, Math.ceil(maxDailyPoints * 0.6)) ? '✓ Target Hit' : 'Below Target' }}
+            <!-- SVG Visual Plot Area -->
+            <div class="analytics-canvas-box">
+              <svg class="analytics-svg" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="analyticsAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.35" />
+                    <stop offset="70%" stop-color="#10b981" stop-opacity="0.08" />
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="0.00" />
+                  </linearGradient>
+                  <linearGradient id="analyticsLineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#34d399" />
+                    <stop offset="50%" stop-color="#10b981" />
+                    <stop offset="100%" stop-color="#059669" />
+                  </linearGradient>
+                </defs>
+
+                <!-- Grid lines -->
+                <g class="analytics-svg__grid">
+                  <line
+                    v-for="line in chartGridLines"
+                    :key="`grid-${line.value}`"
+                    :x1="chartPaddingX"
+                    :x2="chartWidth - chartPaddingX"
+                    :y1="line.y"
+                    :y2="line.y"
+                    vector-effect="non-scaling-stroke"
+                  />
+                </g>
+
+                <!-- Target threshold line (vector-effect ensures consistent 1.5px stroke) -->
+                <line
+                  class="analytics-svg__target-line"
+                  :x1="chartPaddingX"
+                  :x2="chartWidth - chartPaddingX"
+                  :y1="getChartY(targetDailyPoints)"
+                  :y2="getChartY(targetDailyPoints)"
+                  vector-effect="non-scaling-stroke"
+                />
+
+                <!-- Area & Line paths -->
+                <path class="analytics-svg__area" :d="chartAreaPath" />
+                <path class="analytics-svg__line" :d="chartLinePath" vector-effect="non-scaling-stroke" />
+
+                <!-- Data point circles -->
+                <circle
+                  v-for="point in chartPoints"
+                  :key="`pt-${point.day}`"
+                  class="analytics-svg__dot"
+                  :class="{
+                    'analytics-svg__dot--hovered': hoveredChartPoint?.day === point.day,
+                    'analytics-svg__dot--above': point.value >= targetDailyPoints,
+                    'analytics-svg__dot--below': point.value > 0 && point.value < targetDailyPoints,
+                    'analytics-svg__dot--today': props.isCurrentMonth && point.day === props.currentDay
+                  }"
+                  :cx="point.x"
+                  :cy="point.y"
+                  :r="hoveredChartPoint?.day === point.day ? 6.5 : (props.isCurrentMonth && point.day === props.currentDay ? 5 : 3.5)"
+                  vector-effect="non-scaling-stroke"
+                  @mouseenter="hoveredChartPoint = point"
+                  @mouseleave="hoveredChartPoint = null"
+                  @touchstart.passive="hoveredChartPoint = point"
+                />
+              </svg>
+
+              <!-- Target Floating Flag (Crisp HTML, no SVG distortion) -->
+              <div class="analytics-target-flag" :style="{ top: `${(getChartY(targetDailyPoints) / chartHeight) * 100}%` }">
+                <span class="analytics-target-flag__text">TARGET {{ targetDailyPoints }} PTS</span>
+              </div>
+
+              <!-- Interactive Floating Glass Tooltip -->
+              <div
+                v-if="hoveredChartPoint"
+                class="analytics-tooltip"
+                :class="hoveredChartPoint.value >= targetDailyPoints ? 'analytics-tooltip--met' : 'analytics-tooltip--below'"
+                :style="{
+                  left: `clamp(12px, ${(hoveredChartPoint.x / chartWidth) * 100}%, calc(100% - 150px))`
+                }"
+              >
+                <div class="analytics-tooltip__header">
+                  <span class="analytics-tooltip__day">Day {{ hoveredChartPoint.day }}</span>
+                  <span class="analytics-tooltip__badge" :class="hoveredChartPoint.value >= targetDailyPoints ? 'analytics-tooltip__badge--met' : ''">
+                    {{ hoveredChartPoint.value >= targetDailyPoints ? '✓ Target Hit' : 'Below Target' }}
+                  </span>
+                </div>
+                <div class="analytics-tooltip__body">
+                  <strong class="analytics-tooltip__points">{{ hoveredChartPoint.value }}</strong>
+                  <span class="analytics-tooltip__unit">pts</span>
+                  <span v-if="hoveredChartPoint.isWeekend" class="analytics-tooltip__weekend-tag">Weekend</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HTML X-Axis (Days 1..31) (Crisp typography, no font stretching) -->
+          <div class="analytics-x-axis">
+            <div class="analytics-x-axis__pad"></div>
+            <div class="analytics-x-axis__track">
+              <span
+                v-for="point in chartPoints"
+                :key="`x-day-${point.day}`"
+                class="analytics-x-axis__tick"
+                :class="{
+                  'analytics-x-axis__tick--weekend': point.isWeekend,
+                  'analytics-x-axis__tick--today': props.isCurrentMonth && point.day === props.currentDay,
+                  'analytics-x-axis__tick--active': hoveredChartPoint?.day === point.day
+                }"
+                :style="{ left: `${(point.x / chartWidth) * 100}%` }"
+                @mouseenter="hoveredChartPoint = point"
+                @mouseleave="hoveredChartPoint = null"
+              >
+                {{ point.day }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart Legend Bar -->
+        <div class="chart-legend-bar">
+          <div class="chart-legend-items">
+            <p class="chart-legend-note">
+              <span class="chart-legend-dot chart-legend-dot--weekend">●</span>
+              <span>Weekend (Sat/Sun)</span>
+            </p>
+            <p class="chart-legend-note">
+              <span class="chart-legend-dot chart-legend-dot--target">- -</span>
+              <span>Daily Target ({{ targetDailyPoints }} pts)</span>
+            </p>
+            <p class="chart-legend-note">
+              <span class="chart-legend-dot chart-legend-dot--today">●</span>
+              <span>Today</span>
+            </p>
+          </div>
+          <span class="chart-legend-summary">
+            {{ daysOnTargetCount }} of {{ evaluatedDays }} days on target ({{ evaluatedDays > 0 ? Math.round((daysOnTargetCount / evaluatedDays) * 100) : 0 }}%)
+          </span>
+        </div>
+
+        <!-- 4-Card Premium Glass Metrics Grid -->
+        <div class="analytics-metrics-grid">
+          <!-- Card 1: Monthly Personal Best -->
+          <article class="metric-glass-card metric-glass-card--gold">
+            <div class="metric-glass-card__header">
+              <div class="metric-glass-card__icon-wrap metric-glass-card__icon-wrap--gold">
+                <Trophy class="metric-glass-card__icon" />
+              </div>
+              <span class="metric-glass-card__tag metric-glass-card__tag--gold">RECORD</span>
+            </div>
+            <div class="metric-glass-card__content">
+              <span class="metric-glass-card__label">Monthly Best</span>
+              <strong class="metric-glass-card__value">
+                {{ personalBest.day ? `${personalBest.points}` : '0' }}
+                <small>pts</small>
+              </strong>
+              <p class="metric-glass-card__desc">
+                {{ personalBest.day ? `Achieved on Day ${personalBest.day}` : 'No points yet this month' }}
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 2: Daily Average -->
+          <article class="metric-glass-card metric-glass-card--sky">
+            <div class="metric-glass-card__header">
+              <div class="metric-glass-card__icon-wrap metric-glass-card__icon-wrap--sky">
+                <TrendingUp class="metric-glass-card__icon" />
+              </div>
+              <span
+                class="metric-glass-card__tag"
+                :class="dailyAverage >= targetDailyPoints ? 'metric-glass-card__tag--emerald' : 'metric-glass-card__tag--sky'"
+              >
+                {{ dailyAverage >= targetDailyPoints ? 'ON TRACK' : 'BUILDING' }}
+              </span>
+            </div>
+            <div class="metric-glass-card__content">
+              <span class="metric-glass-card__label">Daily Average</span>
+              <strong class="metric-glass-card__value">
+                {{ dailyAverage.toFixed(1) }}
+                <small>pts/day</small>
+              </strong>
+              <p class="metric-glass-card__desc">
+                Target: {{ targetDailyPoints }} pts/day
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 3: Consistency / Completion Rate -->
+          <article class="metric-glass-card metric-glass-card--emerald">
+            <div class="metric-glass-card__header">
+              <div class="metric-glass-card__icon-wrap metric-glass-card__icon-wrap--emerald">
+                <CheckCircle2 class="metric-glass-card__icon" />
+              </div>
+              <span class="metric-glass-card__tag metric-glass-card__tag--emerald">
+                {{ daysOnTargetCount }}/{{ evaluatedDays }} ON TARGET
+              </span>
+            </div>
+            <div class="metric-glass-card__content">
+              <span class="metric-glass-card__label">Consistency Rate</span>
+              <strong class="metric-glass-card__value">
+                {{ completionRate.toFixed(1) }}
+                <small>%</small>
+              </strong>
+              <p class="metric-glass-card__desc">
+                {{ daysOnTargetCount }} days met target goal
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 4: Total Points Earned -->
+          <article class="metric-glass-card metric-glass-card--violet">
+            <div class="metric-glass-card__header">
+              <div class="metric-glass-card__icon-wrap metric-glass-card__icon-wrap--violet">
+                <Zap class="metric-glass-card__icon" />
+              </div>
+              <span class="metric-glass-card__tag metric-glass-card__tag--violet">MONTH TOTAL</span>
+            </div>
+            <div class="metric-glass-card__content">
+              <span class="metric-glass-card__label">Total Volume</span>
+              <strong class="metric-glass-card__value">
+                {{ monthTotalPoints }}
+                <small>pts</small>
+              </strong>
+              <p class="metric-glass-card__desc">
+                {{ evaluatedDays }} days tracked in {{ monthLabel }}
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <!-- Milestone Progress Card -->
+        <div class="milestone-block">
+          <div class="milestone-block__head">
+            <div class="milestone-block__title">
+              <div class="milestone-icon-wrap">
+                <Sparkles class="icon-sm icon-sparkle" />
+              </div>
+              <div class="milestone-info">
+                <strong>{{ activeMilestoneLabel }} Milestone</strong>
+                <span>{{ activeMilestoneTarget }} pts required for unlock</span>
+              </div>
+            </div>
+            <div class="milestone-block__meta">
+              <span class="milestone-block__target">{{ availableWallet }} / {{ activeMilestoneTarget }} pts</span>
+              <strong class="milestone-block__pct">{{ vacationProgress.toFixed(1) }}%</strong>
+            </div>
+          </div>
+          <div class="milestone-track">
+            <div class="milestone-fill" :style="`width: ${Math.min(100, vacationProgress)}%`">
+              <span v-if="vacationProgress > 12" class="milestone-fill__label">{{ availableWallet }} pts</span>
+            </div>
+          </div>
+          <div class="milestone-footer">
+            <p class="milestone-note">{{ milestoneMessage }}</p>
+            <span class="milestone-badge" :class="vacationProgress >= 100 ? 'milestone-badge--unlocked' : ''">
+              {{ vacationProgress >= 100 ? '🎉 Unlocked' : `${pointsToVacation} pts left` }}
             </span>
           </div>
         </div>
+      </section>
 
-        <div class="chart-legend-bar">
-          <p class="chart-legend-note">
-            <span class="chart-legend-note__dot" aria-hidden="true">●</span>
-            Weekend labels highlighted in emerald (Sat/Sun)
-          </p>
+      <!-- ── SECTION: PROGRESSIVE SYSTEM BAR ── -->
+      <section class="card progressive-bar" id="progressive">
+        <div class="progressive-bar__header">
+          <div class="progressive-bar__title-group">
+            <h2 class="section-title">
+              <span class="section-title__icon"><TrendingUp class="icon-md" /></span>
+              <span>Progressive System</span>
+            </h2>
+            <span class="progressive-bar__subtitle">Atomic 1% Daily Improvement</span>
+          </div>
+          <div class="progressive-bar__actions">
+            <button class="btn btn--secondary btn--sm" @click="toggleProgressivePanel" :title="progressivePanelOpen ? 'Close Settings' : 'Open Settings'">
+              <Settings class="icon-sm" />
+              <span>{{ progressivePanelOpen ? 'Close' : 'Settings' }}</span>
+            </button>
+          </div>
         </div>
 
-        <div class="progress-block">
-          <div class="progress-head">
-            <div class="progress-head__title">
-              <Sparkles class="icon-sm icon-sparkle" />
-              <span>{{ activeMilestoneLabel }} Milestone</span>
-              <span class="progress-target-tag">{{ activeMilestoneTarget }} pts required</span>
+        <!-- Day Type Selector + Quick Stats -->
+        <div class="progressive-bar__row">
+          <!-- Day Type -->
+          <div class="day-type-selector">
+            <span class="day-type-selector__label">Today's Tier:</span>
+            <div class="day-type-selector__options">
+              <button
+                class="day-type-btn"
+                :class="{ 'day-type-btn--active': currentDayType === 'full', 'day-type-btn--full': true }"
+                @click="setDayType('full')"
+              >
+                <Flame class="icon-xs" /> Full
+              </button>
+              <button
+                class="day-type-btn"
+                :class="{ 'day-type-btn--active': currentDayType === 'half', 'day-type-btn--half': true }"
+                @click="setDayType('half')"
+              >
+                <Gauge class="icon-xs" /> Half
+              </button>
+              <button
+                class="day-type-btn"
+                :class="{ 'day-type-btn--active': currentDayType === 'floor', 'day-type-btn--floor': true }"
+                @click="setDayType('floor')"
+              >
+                <Shield class="icon-xs" /> Floor
+              </button>
             </div>
-            <strong class="progress-pct">{{ vacationProgress.toFixed(1) }}%</strong>
+            <span class="day-type-selector__target">Target: {{ adjustedDailyTarget }} pts</span>
+            <!-- Auto-suggest based on sleep -->
+            <button
+              v-if="suggestedDayType && suggestedDayType.type !== currentDayType"
+              class="day-type-suggest"
+              @click="applySuggestedDayType"
+              :title="suggestedDayType.reason"
+            >
+              <Sparkles class="icon-xs" />
+              <span>Suggested: <strong>{{ suggestedDayType.type === 'full' ? 'Full' : suggestedDayType.type === 'half' ? 'Half' : 'Floor' }}</strong></span>
+              <small>{{ suggestedDayType.reason }}</small>
+            </button>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill" :style="`width: ${Math.min(100, vacationProgress)}%`" />
+
+          <!-- Phase Tracker -->
+          <div class="phase-tracker" v-if="programStartDate">
+            <div class="phase-tracker__info">
+              <span class="phase-tracker__week">Week {{ currentProgramWeek }}/26</span>
+              <span class="phase-tracker__name" v-if="currentPhase">{{ currentPhase.name }}</span>
+            </div>
+            <div class="phase-tracker__bar">
+              <div class="phase-tracker__fill" :style="{ width: phaseProgressPercent + '%' }"></div>
+            </div>
           </div>
-          <p class="progress-note">
-            {{ milestoneMessage }}
-          </p>
+          <div class="phase-tracker phase-tracker--setup" v-else>
+            <button class="btn btn--primary-action btn--sm" @click="startProgram">
+              <Play class="icon-xs" /> Start 26-Week Program
+            </button>
+          </div>
+
+          <!-- Tier Stats -->
+          <div class="tier-stats">
+            <span class="tier-stats__avg">Avg Tier: <strong>{{ avgTierLevel }}</strong></span>
+            <div class="tier-stats__dist">
+              <span class="tier-dot tier--floor" :title="tierDistribution[1] + ' habits at Floor'">T1: {{ tierDistribution[1] }}</span>
+              <span class="tier-dot tier--foundation" :title="tierDistribution[2] + ' habits at Foundation'">T2: {{ tierDistribution[2] }}</span>
+              <span class="tier-dot tier--standard" :title="tierDistribution[3] + ' habits at Standard'">T3: {{ tierDistribution[3] }}</span>
+              <span class="tier-dot tier--mastery" :title="tierDistribution[4] + ' habits at Mastery'">T4: {{ tierDistribution[4] }}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="stats-grid">
-          <article class="stat-card">
-            <div class="stat-card__head">
-              <Trophy class="stat-icon stat-icon--gold" />
-              <p>MONTHLY PERSONAL BEST</p>
+        <!-- ── Progressive Settings Panel ── -->
+        <div v-if="progressivePanelOpen" class="progressive-settings">
+          <div class="progressive-settings__section">
+            <h3 class="progressive-settings__heading">Program Start Date</h3>
+            <div class="progressive-settings__field">
+              <input
+                type="date"
+                :value="progressiveSettings.startDate"
+                @change="progressiveSettings.startDate = $event.target.value; persistLocalState()"
+                class="progressive-settings__input"
+              >
+              <span v-if="programStartDate" class="progressive-settings__helper">
+                Week {{ currentProgramWeek }} of 26
+              </span>
             </div>
-            <strong>{{ personalBest.day ? `Day ${personalBest.day} • ${personalBest.points} pts` : 'No data yet' }}</strong>
-          </article>
-          <article class="stat-card">
-            <div class="stat-card__head">
-              <TrendingUp class="stat-icon stat-icon--blue" />
-              <p>DAILY AVERAGE</p>
+          </div>
+
+          <div class="progressive-settings__section">
+            <h3 class="progressive-settings__heading">Tier Labels</h3>
+            <div class="progressive-settings__tier-labels">
+              <div v-for="(label, idx) in progressiveSettings.tierLabels" :key="'tl-' + idx" class="progressive-settings__tier-label-row">
+                <span class="progressive-settings__tier-num" :class="tierColorClass(idx + 1)">T{{ idx + 1 }}</span>
+                <input
+                  type="text"
+                  :value="label"
+                  @input="progressiveSettings.tierLabels[idx] = $event.target.value"
+                  @change="persistLocalState()"
+                  maxlength="20"
+                  class="progressive-settings__input progressive-settings__input--sm"
+                >
+              </div>
             </div>
-            <strong>{{ dailyAverage.toFixed(1) }} <small>pts/day</small></strong>
-          </article>
-          <article class="stat-card">
-            <div class="stat-card__head">
-              <CheckCircle2 class="stat-icon stat-icon--emerald" />
-              <p>COMPLETION RATE</p>
+          </div>
+
+          <div class="progressive-settings__section">
+            <h3 class="progressive-settings__heading">Point Multipliers</h3>
+            <div class="progressive-settings__multipliers">
+              <label class="progressive-settings__mult-row">
+                <span>Full Day</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="2"
+                  :value="progressiveSettings.pointMultipliers.full"
+                  @change="progressiveSettings.pointMultipliers.full = Number($event.target.value) || 1.0; persistLocalState()"
+                  class="progressive-settings__input progressive-settings__input--xs"
+                >
+              </label>
+              <label class="progressive-settings__mult-row">
+                <span>Half Day</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="2"
+                  :value="progressiveSettings.pointMultipliers.half"
+                  @change="progressiveSettings.pointMultipliers.half = Number($event.target.value) || 0.6; persistLocalState()"
+                  class="progressive-settings__input progressive-settings__input--xs"
+                >
+              </label>
+              <label class="progressive-settings__mult-row">
+                <span>Floor Day</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="2"
+                  :value="progressiveSettings.pointMultipliers.floor"
+                  @change="progressiveSettings.pointMultipliers.floor = Number($event.target.value) || 0.3; persistLocalState()"
+                  class="progressive-settings__input progressive-settings__input--xs"
+                >
+              </label>
             </div>
-            <strong>{{ completionRate.toFixed(1) }}%</strong>
-          </article>
+          </div>
+
+          <div class="progressive-settings__section">
+            <h3 class="progressive-settings__heading">Phases</h3>
+            <div class="progressive-settings__phases">
+              <div v-for="(phase, idx) in progressiveSettings.phases" :key="'ph-' + idx" class="progressive-settings__phase-row">
+                <input
+                  type="text"
+                  v-model="phase.name"
+                  @change="persistLocalState()"
+                  maxlength="40"
+                  class="progressive-settings__input"
+                  placeholder="Phase name"
+                >
+                <label class="progressive-settings__week-range">
+                  W<input
+                    type="number"
+                    min="1"
+                    max="52"
+                    v-model.number="phase.weeks[0]"
+                    @change="persistLocalState()"
+                    class="progressive-settings__input progressive-settings__input--xs"
+                  >–<input
+                    type="number"
+                    min="1"
+                    max="52"
+                    v-model.number="phase.weeks[1]"
+                    @change="persistLocalState()"
+                    class="progressive-settings__input progressive-settings__input--xs"
+                  >
+                </label>
+                <button class="habits-editor__delete" @click="progressiveSettings.phases.splice(idx, 1); persistLocalState()" v-if="progressiveSettings.phases.length > 1">
+                  <Trash2 class="icon-sm" />
+                </button>
+              </div>
+              <button class="btn btn--secondary btn--sm" @click="progressiveSettings.phases.push({ id: 'custom-' + Date.now(), name: '', weeks: [1, 6], description: '' }); persistLocalState()">
+                <Plus class="icon-xs" /> Add Phase
+              </button>
+            </div>
+          </div>
+
+          <div class="progressive-settings__section">
+            <h3 class="progressive-settings__heading">Habit Tiers — Graduation Control</h3>
+            <p class="progressive-settings__hint">Set each habit's current tier. Graduate one habit per week (1% rule).</p>
+            <div class="progressive-settings__habit-tiers">
+              <div v-for="habit in localHabits" :key="'ht-' + habit.id" class="progressive-settings__habit-tier-row">
+                <span class="progressive-settings__habit-name">{{ habit.name }}</span>
+                <div class="progressive-settings__tier-controls">
+                  <button
+                    class="tier-ctrl-btn"
+                    :disabled="getHabitTier(habit.id) <= 1"
+                    @click="demoteHabit(habit.id)"
+                    title="Demote tier"
+                  >
+                    <ArrowDown class="icon-xs" />
+                  </button>
+                  <span class="tier-badge" :class="tierColorClass(getHabitTier(habit.id))">
+                    T{{ getHabitTier(habit.id) }}
+                    <small>{{ progressiveSettings.tierLabels[getHabitTier(habit.id) - 1] }}</small>
+                  </span>
+                  <button
+                    class="tier-ctrl-btn"
+                    :disabled="getHabitTier(habit.id) >= 4"
+                    @click="graduateHabit(habit.id)"
+                    title="Graduate tier"
+                  >
+                    <ArrowUp class="icon-xs" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
+      <!-- ── GRADUATION SUGGESTIONS ── -->
+      <div v-if="graduationSuggestions.length > 0" class="graduation-banner">
+        <div class="graduation-banner__header">
+          <Award class="icon-md graduation-banner__icon" />
+          <span class="graduation-banner__title">Ready to Level Up</span>
+          <span class="graduation-banner__count">{{ graduationSuggestions.length }} habit{{ graduationSuggestions.length > 1 ? 's' : '' }}</span>
+        </div>
+        <div class="graduation-banner__list">
+          <div v-for="sug in graduationSuggestions" :key="'grad-' + sug.habitId" class="graduation-card">
+            <div class="graduation-card__info">
+              <span class="graduation-card__name">{{ sug.habitName }}</span>
+              <span class="graduation-card__streak">
+                <Flame class="icon-xs" /> {{ sug.streak }}-day streak at T{{ sug.currentTier }}
+              </span>
+              <span class="graduation-card__next">
+                Next: <strong>T{{ sug.nextTier }} {{ sug.nextLabel }}</strong> — {{ sug.nextDescription }}
+              </span>
+            </div>
+            <button class="btn btn--primary-action btn--sm graduation-card__btn" @click="dismissGraduationSuggestion(sug.habitId)">
+              <ChevronUp class="icon-xs" /> Graduate
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- ── SECTION: HABIT CHECKLIST ── -->
       <section class="card" id="habits">
@@ -1709,6 +2508,9 @@ watch(darkMode, () => {
                   class="habits-editor__pts"
                 >
               </label>
+              <span class="habits-editor__tier-badge" :class="tierColorClass(getHabitTier(habit.id))" :title="'Current tier: T' + getHabitTier(habit.id)">
+                T{{ getHabitTier(habit.id) }}
+              </span>
               <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Remove habit">
                 <Trash2 class="icon-sm" />
               </button>
@@ -1885,9 +2687,21 @@ watch(darkMode, () => {
                   </div>
                   <div class="mobile-daily__card-body">
                     <span class="mobile-daily__card-name">{{ habit.name }}</span>
-                    <span class="mobile-daily__card-category">
-                      {{ getCategoryLabel(getHabitCategory(habit)) }}
+                    <span class="mobile-daily__card-meta">
+                      <span class="mobile-daily__card-category">{{ getCategoryLabel(getHabitCategory(habit)) }}</span>
+                      <span class="tier-badge tier-badge--inline" :class="tierColorClass(getHabitTier(habit.id))" @click.stop="toggleTierDetail(habit.id)">
+                        T{{ getHabitTier(habit.id) }}
+                      </span>
                     </span>
+                    <!-- Tier Detail Expand -->
+                    <div v-if="tierDetailHabitId === habit.id" class="tier-detail-expand" @click.stop>
+                      <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': getHabitTier(habit.id) === t }">
+                        <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
+                        <span class="tier-detail-desc">{{ getTierDescriptions(habit.id)[t - 1] }}</span>
+                        <button v-if="getHabitTier(habit.id) !== t" class="tier-detail-set" @click.stop="setHabitTier(habit.id, t)">Set</button>
+                        <Check v-else class="icon-xs tier-detail-active" />
+                      </div>
+                    </div>
                   </div>
                   <span class="mobile-daily__card-pts">
                     +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
@@ -1921,6 +2735,9 @@ watch(darkMode, () => {
                   <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
                     <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★') }">
                       <span class="habit-grid__name-text">{{ habit.name }}</span>
+                      <span class="tier-badge tier-badge--grid" :class="tierColorClass(getHabitTier(habit.id))" :title="getTierDescriptions(habit.id)[getHabitTier(habit.id) - 1]">
+                        T{{ getHabitTier(habit.id) }}
+                      </span>
                     </td>
                     <td class="habit-grid__pts">{{ habit.points }}</td>
 

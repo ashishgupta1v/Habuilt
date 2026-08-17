@@ -43,8 +43,8 @@ const nextMonth = computed(() => {
 });
 
 const isUserJyoti = computed(() => {
-  const email = (activeUser.value?.email || '').toLowerCase();
-  return email.includes('jyoti') || email.includes('jyotigupta');
+  const email = (activeUser.value?.email || '').toLowerCase().trim();
+  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
 });
 
 const userInitial = computed(() => {
