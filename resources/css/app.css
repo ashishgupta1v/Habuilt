@@ -1245,6 +1245,334 @@ body.theme-dark #analytics .stat-card:last-child strong {
   }
 }
 
+/* ── Mobile View Toggle + Daily Checklist ───────────────────────── */
+
+.mobile-view-toggle {
+  display: none; /* hidden on desktop */
+}
+
+.mobile-daily {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 640px) {
+  .mobile-view-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    background: var(--muted-bg);
+    border-radius: 10px;
+    padding: 3px;
+  }
+
+  .mobile-view-toggle__btn {
+    flex: 1;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mobile-view-toggle__btn--active {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .mobile-daily {
+    display: block;
+  }
+
+  .mobile-daily--hidden {
+    display: none;
+  }
+
+  .habit-grid-wrap--mobile-hidden {
+    display: none;
+  }
+
+  /* ── Day Navigator ── */
+  .mobile-daily__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-daily__nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  .mobile-daily__nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .mobile-daily__nav-center {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .mobile-daily__nav-label {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .mobile-daily__nav-label--today {
+    color: var(--accent-strong);
+  }
+
+  .mobile-daily__today-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--accent-strong);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+
+  .mobile-daily__today-link {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ── Progress Bar ── */
+  .mobile-daily__progress {
+    margin-bottom: 16px;
+  }
+
+  .mobile-daily__progress-bar {
+    height: 8px;
+    background: var(--muted-bg);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .mobile-daily__progress-fill {
+    height: 100%;
+    background: var(--accent-strong);
+    border-radius: 100px;
+    transition: width 0.3s ease;
+    min-width: 0;
+  }
+
+  .mobile-daily__progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .mobile-daily__progress-stats strong {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  /* ── Habit Cards ── */
+  .mobile-daily__list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobile-daily__card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 14px;
+    border: 1.5px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: rgba(16, 185, 129, 0.12);
+    min-height: 54px;
+  }
+
+  .mobile-daily__card:active:not(:disabled) {
+    transform: scale(0.985);
+    background: var(--muted-bg);
+  }
+
+  .mobile-daily__card:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .mobile-daily__card--done {
+    border-color: var(--accent-strong);
+    background: rgb(16 185 129 / 0.06);
+  }
+
+  .mobile-daily__card--shared {
+    border-left: 3px solid #6366f1;
+  }
+
+  .mobile-daily__card--shared.mobile-daily__card--done {
+    border-left-color: var(--accent-strong);
+  }
+
+  /* Checkmark circle */
+  .mobile-daily__card-check {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-daily__circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--card-border);
+    background: var(--muted-bg);
+  }
+
+  .mobile-daily__checkmark {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-daily__spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--muted-bg);
+    color: var(--text-muted);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 1s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Body + Points */
+  .mobile-daily__card-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-daily__card-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-primary);
+    display: block;
+    word-break: break-word;
+  }
+
+  .mobile-daily__card--done .mobile-daily__card-name {
+    color: var(--accent-strong);
+  }
+
+  .mobile-daily__card-pts {
+    flex: none;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+
+  .mobile-daily__card-pts small {
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 1px;
+  }
+
+  .mobile-daily__card--done .mobile-daily__card-pts {
+    color: var(--accent-strong);
+  }
+}
+
+/* ── Dark mode: mobile daily view ── */
+body.theme-dark .mobile-view-toggle {
+  background: #0f1a2a;
+}
+
+body.theme-dark .mobile-view-toggle__btn--active {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.theme-dark .mobile-daily__nav-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.theme-dark .mobile-daily__card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.theme-dark .mobile-daily__card--done {
+  background: rgb(16 185 129 / 0.08);
+  border-color: var(--accent-strong);
+}
+
+body.theme-dark .mobile-daily__circle {
+  border-color: #475569;
+  background: #0f172a;
+}
+
+body.theme-dark .mobile-daily__progress-bar {
+  background: #0f172a;
+}
+
 /* Dark-mode overrides for habits editor */
 
 body.theme-dark .habits-editor__row {

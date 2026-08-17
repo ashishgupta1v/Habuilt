@@ -103,8 +103,9 @@ onMounted(async () => {
           </div>
         </nav>
 
-        <Dashboard 
+        <Dashboard
           :userId="activeUser.id"
+          :userEmail="activeUser.email"
           :month="month"
           :year="year"
           :monthDays="monthDays"
