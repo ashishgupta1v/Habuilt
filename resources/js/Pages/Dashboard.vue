@@ -1051,6 +1051,7 @@ const targetDailyPoints = computed(() => {
 });
 
 const heroStatsExpanded = ref(false);
+const mobileHeroExpanded = ref(false);
 
 const timeGreeting = computed(() => {
   const hour = new Date().getHours();
@@ -2483,9 +2484,36 @@ const shareProgress = async () => {
 
 <template>
   <AppLayout>
-    <section :class="{ 'month-nav-loading': isNavigatingMonth }">
+    <section class="dashboard-flow" :class="{ 'month-nav-loading': isNavigatingMonth, 'show-all-sections': mobileHeroExpanded }">
+
+      <!-- ══ MOBILE COMPACT BAR (shown only on mobile, above everything) ══ -->
+      <div class="mobile-compact-bar">
+        <div class="mcb-row">
+          <span class="mcb-greeting">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
+          <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+          <span class="mcb-streak"><Flame class="icon-xs" /> {{ systemStreak.current }}d</span>
+          <span class="mcb-wallet"><Award class="icon-xs" /> {{ availableWallet }}pts</span>
+        </div>
+        <div class="mcb-row mcb-row--progress">
+          <div class="mcb-day-pills">
+            <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'full' }" @click="setDayType('full')">Full</button>
+            <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'half' }" @click="setDayType('half')">Half</button>
+            <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'floor' }" @click="setDayType('floor')">Floor</button>
+          </div>
+          <div class="mcb-progress-track">
+            <div class="mcb-progress-fill" :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"></div>
+          </div>
+          <span class="mcb-progress-label">{{ todayCompletedCount }}/{{ totalHabits }}</span>
+        </div>
+        <button class="mcb-expand-btn" @click="mobileHeroExpanded = !mobileHeroExpanded">
+          {{ mobileHeroExpanded ? 'Hide Dashboard' : 'Show Dashboard' }}
+          <ChevronUp v-if="mobileHeroExpanded" class="icon-xs" />
+          <ChevronDown v-else class="icon-xs" />
+        </button>
+      </div>
+
       <!-- ── TOP HERO & OVERVIEW ── -->
-      <section class="card card--hero" id="overview">
+      <section class="card card--hero" :class="{ 'mobile-hero-collapsed': !mobileHeroExpanded }" id="overview">
         <!-- ── Command Bar: Month Nav + Track + Level Pill + Theme ── -->
         <div class="hero-command-bar">
           <div class="hero-command-bar__left">

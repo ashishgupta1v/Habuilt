@@ -5267,6 +5267,237 @@ body.theme-dark .habit-note-input textarea {
   color: #e2e8f0;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   MOBILE-FIRST COMPACT LAYOUT — checklist-first, hero collapsed
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Mobile compact bar — hidden on desktop */
+.mobile-compact-bar { display: none; }
+
+/* Dashboard flow — flex column for CSS order to work */
+.dashboard-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  /* ── Mobile Compact Bar ── */
+  .mobile-compact-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px 8px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(16, 185, 129, 0.04));
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    order: -20;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  body.theme-dark .mobile-compact-bar {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.06));
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+  .mcb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mcb-greeting {
+    font: 700 0.85rem/1.2 system-ui, sans-serif;
+    color: var(--text-primary, #1e293b);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mcb-grade {
+    font-size: 0.65rem !important;
+    padding: 1px 6px !important;
+  }
+  .mcb-streak, .mcb-wallet {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font: 700 0.7rem/1.2 system-ui, sans-serif;
+    padding: 2px 7px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .mcb-streak {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+  }
+  .mcb-wallet {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+  }
+  body.theme-dark .mcb-streak { color: #fbbf24; background: rgba(245, 158, 11, 0.15); }
+  body.theme-dark .mcb-wallet { color: #34d399; background: rgba(16, 185, 129, 0.15); }
+
+  .mcb-row--progress {
+    gap: 6px;
+  }
+  .mcb-day-pills {
+    display: flex;
+    gap: 2px;
+  }
+  .mcb-pill {
+    padding: 2px 8px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 6px;
+    background: transparent;
+    font: 600 0.65rem/1.2 system-ui, sans-serif;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mcb-pill--active {
+    background: #6366f1;
+    color: #fff;
+    border-color: #6366f1;
+  }
+  .mcb-progress-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  body.theme-dark .mcb-progress-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .mcb-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .mcb-progress-label {
+    font: 700 0.7rem/1.2 system-ui, sans-serif;
+    color: #10b981;
+    white-space: nowrap;
+  }
+  .mcb-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    font: 600 0.7rem/1.2 system-ui, sans-serif;
+    color: #6366f1;
+    cursor: pointer;
+    opacity: 0.8;
+  }
+  .mcb-expand-btn:hover { opacity: 1; }
+
+  /* ── Reorder sections on mobile ── */
+  #habits { order: -10; }
+  #overview { order: 0; }
+  #analytics { order: 1; }
+  .card--quote { order: 2; }
+  #enhanced-stats { order: 3; }
+  #progressive { order: 4; }
+  #rewards { order: 5; }
+
+  /* ── Collapse hero when mobile-hero-collapsed ── */
+  .mobile-hero-collapsed {
+    display: none !important;
+  }
+
+  /* ── Collapse analytics/enhanced/progressive on mobile by default ── */
+  #analytics,
+  #enhanced-stats,
+  #progressive,
+  .card--quote {
+    display: none;
+  }
+  .dashboard-flow.show-all-sections #analytics,
+  .dashboard-flow.show-all-sections #enhanced-stats,
+  .dashboard-flow.show-all-sections #progressive,
+  .dashboard-flow.show-all-sections .card--quote {
+    display: block;
+  }
+
+  /* ── Tighten habit section on mobile ── */
+  #habits .section-head {
+    padding-bottom: 6px;
+  }
+  #habits .section-title {
+    font-size: 0.95rem;
+  }
+  #habits .section-title-wrap small {
+    display: none;
+  }
+
+  /* ── Tighter day navigator ── */
+  .mobile-daily__nav {
+    padding: 6px 0;
+  }
+  .mobile-daily__nav-label {
+    font-size: 0.82rem;
+  }
+
+  /* ── Tighter category chips ── */
+  .mobile-cat-chips {
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .mobile-cat-chip {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+  }
+
+  /* ── Tighter timeline headers ── */
+  .timeline-slot-header {
+    padding: 6px 10px 3px;
+    margin-top: 2px;
+  }
+  .timeline-slot-label {
+    font-size: 0.72rem;
+  }
+  .timeline-slot-time {
+    font-size: 0.62rem;
+  }
+
+  /* ── Tighter habit cards ── */
+  .mobile-daily__card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .mobile-daily__card-name {
+    font-size: 0.78rem;
+  }
+  .mobile-daily__card-meta {
+    gap: 4px;
+  }
+  .mobile-daily__card-pts {
+    font-size: 0.72rem;
+  }
+  .mobile-daily__card-pts small {
+    font-size: 0.6rem;
+  }
+
+  /* ── Tighter travel mode bar ── */
+  .travel-mode-bar {
+    padding: 0 0 4px;
+  }
+  .travel-mode-toggle {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* ── Tighter progress bar ── */
+  .mobile-daily__progress {
+    padding: 4px 0;
+  }
+}
+
 /* ── Confetti ── */
 .confetti-overlay {
   position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden;
