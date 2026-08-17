@@ -42,10 +42,25 @@ import {
   CheckSquare,
   Settings,
   ChevronUp,
+  ChevronDown,
   Shield,
   Crown,
   Gauge,
   Play,
+  Eye,
+  EyeOff,
+  Download,
+  Upload,
+  MessageSquare,
+  Smile,
+  Battery,
+  Activity,
+  Share2,
+  Users,
+  BookOpen,
+  Hash,
+  Sparkle,
+  Bell,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -273,6 +288,58 @@ const progressiveSettings = ref({
 });
 const progressivePanelOpen = ref(false);
 const tierDetailHabitId = ref(null);    // which habit's tier detail is expanded
+
+// ── TIER 1-4 ENHANCED STATE ──
+const analyticsOpen = ref(false);       // analytics panel toggle
+const focusModeOn = ref(false);         // Tier 3: focus mode
+const habitNotesOpen = ref(null);       // Tier 3: which habit's note is open (habitId-day key)
+const partnerViewOpen = ref(false);     // Tier 4: partner dashboard toggle
+const partnerData = ref(null);          // Tier 4: partner's loaded state
+const partnerLoading = ref(false);
+
+// Tier 2: Mood & Energy (persisted per day in enhancedState)
+const enhancedState = ref({
+  moodEnergy: {},       // { [day]: { mood: 1-5, energy: 1-5 } }
+  habitNotes: {},       // { ['habitId:day']: 'note text' }
+  achievements: {},     // { [id]: { unlocked: true, date: 'YYYY-MM-DD' } }
+  notificationsEnabled: false,
+  quoteSeenDate: '',
+});
+
+// Tier 2: Motivational quotes
+const motivationalQuotes = [
+  { text: 'We are what we repeatedly do. Excellence is not an act, but a habit.', author: 'Aristotle' },
+  { text: 'Small daily improvements over time lead to stunning results.', author: 'Robin Sharma' },
+  { text: 'Success is the sum of small efforts, repeated day in and day out.', author: 'Robert Collier' },
+  { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+  { text: 'Motivation is what gets you started. Habit is what keeps you going.', author: 'Jim Ryun' },
+  { text: 'You do not rise to the level of your goals. You fall to the level of your systems.', author: 'James Clear' },
+  { text: 'Every action you take is a vote for the type of person you wish to become.', author: 'James Clear' },
+  { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+  { text: 'Discipline is choosing between what you want now and what you want most.', author: 'Abraham Lincoln' },
+  { text: 'A journey of a thousand miles begins with a single step.', author: 'Lao Tzu' },
+  { text: 'It does not matter how slowly you go as long as you do not stop.', author: 'Confucius' },
+  { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
+  { text: 'Consistency is the hallmark of the unimaginative.', author: 'Oscar Wilde' },
+  { text: 'What you get by achieving your goals is not as important as what you become.', author: 'Zig Ziglar' },
+  { text: 'First forget inspiration. Habit is more dependable.', author: 'Octavia Butler' },
+  { text: 'Champions keep playing until they get it right.', author: 'Billie Jean King' },
+  { text: 'Habits are the compound interest of self-improvement.', author: 'James Clear' },
+  { text: 'Be patient with yourself. Self-growth is tender; it is holy ground.', author: 'Stephen Covey' },
+  { text: 'Make each day your masterpiece.', author: 'John Wooden' },
+  { text: 'The man who moves a mountain begins by carrying away small stones.', author: 'Confucius' },
+  { text: 'One percent better every day. That is the Habuilt way.', author: 'Habuilt' },
+  { text: 'Your net worth to the world is usually determined by what remains after your bad habits are subtracted from your good ones.', author: 'Benjamin Franklin' },
+  { text: 'Sow a thought, reap an action; sow an action, reap a habit; sow a habit, reap a character; sow a character, reap a destiny.', author: 'Stephen Covey' },
+  { text: 'We first make our habits, and then our habits make us.', author: 'John Dryden' },
+  { text: 'The chains of habit are too weak to be felt until they are too strong to be broken.', author: 'Samuel Johnson' },
+  { text: 'People do not decide their futures, they decide their habits, and their habits decide their futures.', author: 'F. M. Alexander' },
+  { text: 'If you are going to achieve excellence in big things, you develop the habit in little matters.', author: 'Colin Powell' },
+  { text: 'Drop by drop is the water pot filled. Likewise, the wise one, gathering it little by little, fills oneself with good.', author: 'Buddha' },
+  { text: 'The difference between who you are and who you want to be is what you do.', author: 'Bill Phillips' },
+  { text: 'Your future is created by what you do today, not tomorrow.', author: 'Robert Kiyosaki' },
+  { text: 'Strength does not come from what you can do. It comes from overcoming the things you once thought you could not.', author: 'Rikki Rogers' },
+];
 
 // — Habit editor —
 const habitsEditing = ref(false);
@@ -840,7 +907,99 @@ watch(
   { immediate: true },
 );
 
-const targetDailyPoints = computed(() => Math.max(25, Math.ceil(maxDailyPoints.value * 0.6)));
+const targetDailyPoints = computed(() => {
+  return Math.round(Math.max(25, Math.ceil(maxDailyPoints.value * 0.6)) * dayTypeMultiplier.value);
+});
+
+const heroStatsExpanded = ref(false);
+
+const timeGreeting = computed(() => {
+  const hour = new Date().getHours();
+  const name = isJyoti.value ? 'Jyoti' : 'Ashish';
+  let salute = 'Good evening';
+  let quote = 'Finish the day strong with relentless execution.';
+  if (hour >= 5 && hour < 12) {
+    salute = 'Good morning';
+    quote = 'Win the morning, win the entire day.';
+  } else if (hour >= 12 && hour < 17) {
+    salute = 'Good afternoon';
+    quote = 'Maintain peak focus and daily momentum.';
+  } else if (hour >= 17 && hour < 22) {
+    salute = 'Good evening';
+    quote = 'Execute your evening protocol with discipline.';
+  } else {
+    salute = 'Night protocol';
+    quote = 'Prioritize deep recovery and restorative sleep.';
+  }
+  return { salute, name, quote };
+});
+
+const systemStreak = computed(() => {
+  if (evaluatedDays.value === 0) return { current: 0, best: 0 };
+  let current = 0;
+  const startDay = props.currentDay;
+  for (let d = startDay; d >= 1; d--) {
+    if (getDayTotal(d) > 0) {
+      current++;
+    } else if (d === startDay && getDayTotal(d) === 0) {
+      continue;
+    } else {
+      break;
+    }
+  }
+  let best = 0;
+  let temp = 0;
+  for (let d = 1; d <= evaluatedDays.value; d++) {
+    if (getDayTotal(d) > 0) {
+      temp++;
+      if (temp > best) best = temp;
+    } else {
+      temp = 0;
+    }
+  }
+  return { current, best: Math.max(best, current) };
+});
+
+const performanceGrade = computed(() => {
+  const rate = completionRate.value;
+  if (rate >= 90) return { grade: 'A+', label: 'Elite Execution', class: 'grade--a-plus' };
+  if (rate >= 80) return { grade: 'A', label: 'Strong Consistency', class: 'grade--a' };
+  if (rate >= 70) return { grade: 'B+', label: 'Good Momentum', class: 'grade--b-plus' };
+  if (rate >= 60) return { grade: 'B', label: 'Solid Foundation', class: 'grade--b' };
+  if (rate >= 50) return { grade: 'C+', label: 'Building Rhythm', class: 'grade--c-plus' };
+  if (rate >= 35) return { grade: 'C', label: 'Needs Focus', class: 'grade--c' };
+  return { grade: 'D', label: 'Re-align Baseline', class: 'grade--d' };
+});
+
+const miniHeatmapDays = computed(() => {
+  const target = targetDailyPoints.value;
+  const list = [];
+  const today = props.currentDay;
+  const start = Math.max(1, today - 6);
+  const end = Math.min(props.monthDays, start + 6);
+  for (let d = start; d <= end; d++) {
+    const pts = getDayTotal(d);
+    const maxPts = maxDailyPoints.value;
+    const pct = maxPts > 0 ? Math.min(100, Math.round((pts / maxPts) * 100)) : 0;
+    const isToday = props.isCurrentMonth && d === props.currentDay;
+    const isFuture = props.isFutureMonth || (props.isCurrentMonth && d > props.currentDay);
+    const isMet = pts >= target;
+    list.push({ day: d, points: pts, pct, isToday, isFuture, isMet });
+  }
+  return list;
+});
+
+const getGithubLevel = (pct, points) => {
+  if (points === 0 || pct === 0) return 'gh-l0';
+  if (pct >= 90) return 'gh-l4';
+  if (pct >= 65) return 'gh-l3';
+  if (pct >= 35) return 'gh-l2';
+  return 'gh-l1';
+};
+
+const todayCompletedCount = computed(() => {
+  return localHabits.value.filter((h) => (h.completedDays || []).includes(props.currentDay)).length;
+});
 
 const daysOnTargetCount = computed(() => {
   if (evaluatedDays.value === 0) return 0;
@@ -973,6 +1132,7 @@ const persistLocalState = async () => {
     localHabits: localHabits.value,
     hasCustomHabits: hasCustomHabits.value,
     progressiveSettings: progressiveSettings.value,
+    enhancedState: enhancedState.value,
   };
 
   if (props.userId) {
@@ -1144,6 +1304,18 @@ const loadLocalState = async () => {
         pointMultipliers: (ps.pointMultipliers && typeof ps.pointMultipliers === 'object')
           ? { ...ps.pointMultipliers }
           : { full: 1.0, half: 0.6, floor: 0.3 },
+      };
+    }
+
+    // Restore enhanced state (Tiers 1-4)
+    if (parsed.enhancedState && typeof parsed.enhancedState === 'object') {
+      const es = parsed.enhancedState;
+      enhancedState.value = {
+        moodEnergy: (es.moodEnergy && typeof es.moodEnergy === 'object') ? { ...es.moodEnergy } : {},
+        habitNotes: (es.habitNotes && typeof es.habitNotes === 'object') ? { ...es.habitNotes } : {},
+        achievements: (es.achievements && typeof es.achievements === 'object') ? { ...es.achievements } : {},
+        notificationsEnabled: !!es.notificationsEnabled,
+        quoteSeenDate: es.quoteSeenDate || '',
       };
     }
 
@@ -1616,9 +1788,11 @@ const toggleHabitForDay = async (habit, day) => {
   }
 };
 
-onMounted(() => {
-  loadLocalState();
+onMounted(async () => {
+  await loadLocalState();
   applyThemeClass();
+  // Re-schedule notifications if previously enabled
+  if (enhancedState.value.notificationsEnabled) scheduleReminders();
 });
 
 onBeforeUnmount(() => {
@@ -1631,6 +1805,517 @@ watch(darkMode, () => {
   applyThemeClass();
   persistLocalState();
 });
+
+const bestCurrentStreak = computed(() => {
+  if (!localHabits.value.length) return { name: '—', days: 0 };
+  let best = { name: '—', days: 0 };
+  for (const h of localHabits.value) {
+    const s = getHabitStreak(h);
+    if (s > best.days) best = { name: h.name, days: s };
+  }
+  return best;
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TIER 1: ANALYTICS & STICKINESS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Daily Quote — deterministic pick based on date
+const todayQuote = computed(() => {
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return motivationalQuotes[dayOfYear % motivationalQuotes.length];
+});
+
+// Heatmap data — completion percentage per day
+const heatmapData = computed(() => {
+  const data = [];
+  const maxPts = maxDailyPoints.value || 1;
+  for (let d = 1; d <= props.monthDays; d++) {
+    const pts = getDayTotal(d);
+    const pct = Math.round((pts / maxPts) * 100);
+    const isFuture = props.isCurrentMonth ? d > props.currentDay : props.isFutureMonth;
+    data.push({ day: d, points: pts, pct, isFuture });
+  }
+  return data;
+});
+
+// Heatmap intensity class
+const heatmapIntensity = (pct) => {
+  if (pct >= 90) return 'heatmap--l4';
+  if (pct >= 65) return 'heatmap--l3';
+  if (pct >= 40) return 'heatmap--l2';
+  if (pct > 0) return 'heatmap--l1';
+  return 'heatmap--l0';
+};
+
+// Streak stats per habit
+const habitStreaks = computed(() => {
+  return localHabits.value.map(h => {
+    const current = getHabitStreak(h);
+    // Longest streak calculation
+    const sorted = [...(h.completedDays || [])].sort((a, b) => a - b);
+    let longest = 0, run = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      if (i === 0 || sorted[i] === sorted[i - 1] + 1) { run++; } else { run = 1; }
+      if (run > longest) longest = run;
+    }
+    return { id: h.id, name: h.name, current, longest, total: (h.completedDays || []).length };
+  });
+});
+
+// Consistency score (0-100) — weighted formula
+const consistencyScore = computed(() => {
+  if (evaluatedDays.value === 0) return 0;
+  const rate = completionRate.value / 100;                           // 0-1
+  const avgStreak = habitStreaks.value.reduce((s, h) => s + h.current, 0) / Math.max(1, habitStreaks.value.length);
+  const streakFactor = Math.min(1, avgStreak / 14);                  // 14-day = 1.0
+  const tierFactor = (Number(avgTierLevel.value) - 1) / 3;          // 0-1
+  const dayOnTarget = evaluatedDays.value > 0 ? daysOnTargetCount.value / evaluatedDays.value : 0;
+  return Math.round((rate * 40) + (dayOnTarget * 25) + (streakFactor * 20) + (tierFactor * 15));
+});
+
+const consistencyGrade = computed(() => {
+  const s = consistencyScore.value;
+  if (s >= 90) return { letter: 'A+', color: 'var(--grade-a)' };
+  if (s >= 80) return { letter: 'A', color: 'var(--grade-a)' };
+  if (s >= 70) return { letter: 'B+', color: 'var(--grade-b)' };
+  if (s >= 60) return { letter: 'B', color: 'var(--grade-b)' };
+  if (s >= 50) return { letter: 'C', color: 'var(--grade-c)' };
+  if (s >= 40) return { letter: 'D', color: 'var(--grade-d)' };
+  return { letter: 'F', color: 'var(--grade-f)' };
+});
+
+// Category-wise breakdown
+const categoryBreakdown = computed(() => {
+  const cats = {};
+  for (const h of localHabits.value) {
+    const cat = getHabitCategory(h);
+    if (!cats[cat]) cats[cat] = { total: 0, completed: 0, label: getCategoryLabel(cat) };
+    cats[cat].total += evaluatedDays.value;
+    cats[cat].completed += (h.completedDays || []).filter(d => d <= evaluatedDays.value).length;
+  }
+  return Object.entries(cats).map(([key, v]) => ({
+    key,
+    label: v.label,
+    pct: v.total > 0 ? Math.round((v.completed / v.total) * 100) : 0,
+  })).sort((a, b) => b.pct - a.pct);
+});
+
+// Local push notification setup
+const enableNotifications = async () => {
+  if (!('Notification' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    enhancedState.value.notificationsEnabled = true;
+    persistLocalState();
+    scheduleReminders();
+  }
+};
+
+const scheduleReminders = () => {
+  if (!enhancedState.value.notificationsEnabled) return;
+  // Morning reminder at next 6 AM
+  const now = new Date();
+  const morning = new Date(now);
+  morning.setHours(6, 0, 0, 0);
+  if (morning <= now) morning.setDate(morning.getDate() + 1);
+  const msToMorning = morning - now;
+
+  setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      new Notification('Habuilt — Good Morning!', {
+        body: 'Time to set your day type and start tracking.',
+        icon: '/icons/icon-192x192.png',
+      });
+    }
+  }, msToMorning);
+
+  // Evening reminder at 8 PM
+  const evening = new Date(now);
+  evening.setHours(20, 0, 0, 0);
+  if (evening <= now) evening.setDate(evening.getDate() + 1);
+  const msToEvening = evening - now;
+
+  setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      const pct = Math.round(completionRate.value);
+      new Notification('Habuilt — Evening Check', {
+        body: `You're at ${pct}% today. Don't break the streak!`,
+        icon: '/icons/icon-192x192.png',
+      });
+    }
+  }, msToEvening);
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TIER 2: GAMIFICATION & MOTIVATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+// XP System — points earned weighted by tier + day type
+const totalXP = computed(() => {
+  let xp = 0;
+  for (const h of localHabits.value) {
+    const tier = getHabitTier(h.id);
+    const tierMultiplier = 1 + ((tier - 1) * 0.25); // T1=1x, T2=1.25x, T3=1.5x, T4=1.75x
+    const completions = (h.completedDays || []).filter(d => d <= evaluatedDays.value).length;
+    xp += Math.round(h.points * tierMultiplier * completions);
+  }
+  return xp;
+});
+
+// Leveling: each level requires progressively more XP
+const levelData = computed(() => {
+  const xp = totalXP.value;
+  // Level formula: XP needed = 50 * level^1.5
+  let level = 1;
+  let xpForNext = 50;
+  let xpAccum = 0;
+  while (xpAccum + xpForNext <= xp) {
+    xpAccum += xpForNext;
+    level++;
+    xpForNext = Math.round(50 * Math.pow(level, 1.5));
+  }
+  const xpInLevel = xp - xpAccum;
+  const pct = Math.round((xpInLevel / xpForNext) * 100);
+  return { level, xp, xpInLevel, xpForNext, pct };
+});
+
+const levelTitle = computed(() => {
+  const l = levelData.value.level;
+  if (l >= 50) return 'Legend';
+  if (l >= 40) return 'Grand Master';
+  if (l >= 30) return 'Master';
+  if (l >= 20) return 'Expert';
+  if (l >= 15) return 'Veteran';
+  if (l >= 10) return 'Warrior';
+  if (l >= 7) return 'Apprentice';
+  if (l >= 4) return 'Initiate';
+  return 'Beginner';
+});
+
+// Achievement badges
+const achievementDefs = [
+  { id: 'first-day', name: 'First Step', desc: 'Complete your first habit', icon: 'Play' },
+  { id: 'streak-7', name: 'Weekly Warrior', desc: '7-day streak on any habit', icon: 'Flame' },
+  { id: 'streak-14', name: 'Fortnight Force', desc: '14-day streak on any habit', icon: 'Flame' },
+  { id: 'streak-30', name: 'Monthly Machine', desc: '30-day streak on any habit', icon: 'Crown' },
+  { id: 'perfect-day', name: 'Perfect Day', desc: '100% completion in a day', icon: 'Star' },
+  { id: 'perfect-week', name: 'Perfect Week', desc: '7 consecutive 100% days', icon: 'Trophy' },
+  { id: 'tier-2', name: 'Foundation Built', desc: 'Graduate a habit to Foundation', icon: 'Shield' },
+  { id: 'tier-3', name: 'Standard Bearer', desc: 'Graduate a habit to Standard', icon: 'Shield' },
+  { id: 'tier-4', name: 'Mastery Achieved', desc: 'Graduate a habit to Mastery', icon: 'Crown' },
+  { id: 'all-tier-2', name: 'All Foundations', desc: 'All habits at Foundation+', icon: 'Award' },
+  { id: 'level-5', name: 'Level 5', desc: 'Reach Level 5', icon: 'Zap' },
+  { id: 'level-10', name: 'Double Digits', desc: 'Reach Level 10', icon: 'Zap' },
+  { id: 'level-20', name: 'Expert Status', desc: 'Reach Level 20', icon: 'Trophy' },
+  { id: 'score-80', name: 'A-Player', desc: 'Consistency score 80+', icon: 'Target' },
+  { id: 'score-95', name: 'Near-Perfect', desc: 'Consistency score 95+', icon: 'Crown' },
+  { id: 'xp-500', name: 'Half K', desc: 'Earn 500 total XP', icon: 'Star' },
+  { id: 'xp-1000', name: 'Thousand Club', desc: 'Earn 1000 total XP', icon: 'Award' },
+  { id: 'xp-5000', name: 'XP Legend', desc: 'Earn 5000 total XP', icon: 'Crown' },
+];
+
+const unlockedAchievements = computed(() => {
+  const unlocked = new Set(Object.keys(enhancedState.value.achievements || {}));
+  const newUnlocks = [];
+
+  // Check each achievement
+  const check = (id, condition) => {
+    if (!unlocked.has(id) && condition) newUnlocks.push(id);
+    return unlocked.has(id) || condition;
+  };
+
+  const anyCompleted = localHabits.value.some(h => (h.completedDays || []).length > 0);
+  check('first-day', anyCompleted);
+
+  const maxStreak = Math.max(0, ...habitStreaks.value.map(h => h.longest));
+  check('streak-7', maxStreak >= 7);
+  check('streak-14', maxStreak >= 14);
+  check('streak-30', maxStreak >= 30);
+
+  // Perfect day check
+  const hasPerfectDay = (() => {
+    for (let d = 1; d <= evaluatedDays.value; d++) {
+      if (getDayTotal(d) >= maxDailyPoints.value) return true;
+    }
+    return false;
+  })();
+  check('perfect-day', hasPerfectDay);
+
+  // Perfect week
+  const hasPerfectWeek = (() => {
+    for (let d = 1; d <= evaluatedDays.value - 6; d++) {
+      let all = true;
+      for (let i = 0; i < 7; i++) {
+        if (getDayTotal(d + i) < maxDailyPoints.value) { all = false; break; }
+      }
+      if (all) return true;
+    }
+    return false;
+  })();
+  check('perfect-week', hasPerfectWeek);
+
+  // Tier achievements
+  const tiers = localHabits.value.map(h => getHabitTier(h.id));
+  check('tier-2', tiers.some(t => t >= 2));
+  check('tier-3', tiers.some(t => t >= 3));
+  check('tier-4', tiers.some(t => t >= 4));
+  check('all-tier-2', tiers.length > 0 && tiers.every(t => t >= 2));
+
+  // Level achievements
+  check('level-5', levelData.value.level >= 5);
+  check('level-10', levelData.value.level >= 10);
+  check('level-20', levelData.value.level >= 20);
+
+  // Score achievements
+  check('score-80', consistencyScore.value >= 80);
+  check('score-95', consistencyScore.value >= 95);
+
+  // XP achievements
+  check('xp-500', totalXP.value >= 500);
+  check('xp-1000', totalXP.value >= 1000);
+  check('xp-5000', totalXP.value >= 5000);
+
+  // Persist newly unlocked
+  if (newUnlocks.length > 0) {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const id of newUnlocks) {
+      enhancedState.value.achievements[id] = { unlocked: true, date: today };
+    }
+    persistLocalState();
+  }
+
+  return achievementDefs.map(def => ({
+    ...def,
+    unlocked: unlocked.has(def.id) || newUnlocks.includes(def.id),
+    date: enhancedState.value.achievements?.[def.id]?.date || '',
+  }));
+});
+
+const unlockedCount = computed(() => unlockedAchievements.value.filter(a => a.unlocked).length);
+
+// Mood & energy helpers
+const getMoodEnergy = (day) => enhancedState.value.moodEnergy?.[day] || { mood: 0, energy: 0 };
+
+const setMood = (day, mood) => {
+  if (!enhancedState.value.moodEnergy) enhancedState.value.moodEnergy = {};
+  const current = enhancedState.value.moodEnergy[day] || { mood: 0, energy: 0 };
+  enhancedState.value.moodEnergy[day] = { ...current, mood };
+  persistLocalState();
+};
+
+const setEnergy = (day, energy) => {
+  if (!enhancedState.value.moodEnergy) enhancedState.value.moodEnergy = {};
+  const current = enhancedState.value.moodEnergy[day] || { mood: 0, energy: 0 };
+  enhancedState.value.moodEnergy[day] = { ...current, energy };
+  persistLocalState();
+};
+
+const moodLabels = ['', 'Awful', 'Low', 'Okay', 'Good', 'Great'];
+const energyLabels = ['', 'Drained', 'Low', 'Moderate', 'High', 'Charged'];
+
+// Confetti trigger
+const showConfetti = ref(false);
+const triggerConfetti = () => {
+  showConfetti.value = true;
+  setTimeout(() => { showConfetti.value = false; }, 3000);
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TIER 3: SMART FEATURES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Focus mode — show only incomplete habits for today
+const focusFilteredHabits = computed(() => {
+  if (!focusModeOn.value) return filteredMobileHabits.value;
+  return filteredMobileHabits.value.filter(h => !h.completedDays.includes(mobileDay.value));
+});
+
+// Habit notes
+const getHabitNote = (habitId, day) => {
+  return enhancedState.value.habitNotes?.[`${habitId}:${day}`] || '';
+};
+
+const setHabitNote = (habitId, day, note) => {
+  if (!enhancedState.value.habitNotes) enhancedState.value.habitNotes = {};
+  enhancedState.value.habitNotes[`${habitId}:${day}`] = note;
+  persistLocalState();
+};
+
+const toggleHabitNote = (habitId, day) => {
+  const key = `${habitId}:${day}`;
+  habitNotesOpen.value = habitNotesOpen.value === key ? null : key;
+};
+
+// Smart suggestions — data-driven weekly tips
+const smartSuggestions = computed(() => {
+  const suggestions = [];
+  if (evaluatedDays.value < 3) return suggestions;
+
+  // Find weakest habit (lowest completion rate)
+  const habitRates = localHabits.value.map(h => {
+    const completed = (h.completedDays || []).filter(d => d <= evaluatedDays.value).length;
+    return { id: h.id, name: h.name, rate: evaluatedDays.value > 0 ? completed / evaluatedDays.value : 0 };
+  }).sort((a, b) => a.rate - b.rate);
+
+  if (habitRates.length > 0 && habitRates[0].rate < 0.5) {
+    suggestions.push({
+      type: 'focus',
+      text: `"${habitRates[0].name}" needs attention — only ${Math.round(habitRates[0].rate * 100)}% completion this month.`,
+    });
+  }
+
+  // Find strongest habit for praise
+  const best = habitRates[habitRates.length - 1];
+  if (best && best.rate >= 0.8) {
+    suggestions.push({
+      type: 'praise',
+      text: `"${best.name}" is your strongest habit at ${Math.round(best.rate * 100)}%. Consider graduating its tier.`,
+    });
+  }
+
+  // Streak warning
+  const atRisk = habitStreaks.value.filter(h => h.current >= 5 && h.current < 14);
+  if (atRisk.length > 0) {
+    suggestions.push({
+      type: 'streak',
+      text: `${atRisk.length} habit${atRisk.length > 1 ? 's' : ''} building strong streaks (5-13 days). Keep going to hit graduation!`,
+    });
+  }
+
+  // Mood-habit correlation hint
+  const moodData = enhancedState.value.moodEnergy || {};
+  const goodMoodDays = Object.entries(moodData).filter(([, v]) => v.mood >= 4).map(([d]) => Number(d));
+  if (goodMoodDays.length >= 3) {
+    const goodDayAvgPts = goodMoodDays.reduce((s, d) => s + getDayTotal(d), 0) / goodMoodDays.length;
+    const overallAvg = dailyAverage.value;
+    if (goodDayAvgPts > overallAvg * 1.15) {
+      suggestions.push({
+        type: 'insight',
+        text: `On high-mood days, you score ${Math.round(goodDayAvgPts)} pts vs ${Math.round(overallAvg)} avg. Mood matters!`,
+      });
+    }
+  }
+
+  // Consistency suggestion
+  if (consistencyScore.value < 60 && evaluatedDays.value > 7) {
+    suggestions.push({
+      type: 'tip',
+      text: 'Consistency score is below 60. Try focusing on fewer habits first — depth beats breadth.',
+    });
+  }
+
+  return suggestions.slice(0, 3); // Max 3 suggestions
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TIER 4: SOCIAL & EXPORT
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Partner data loading
+const partnerEmail = computed(() => isJyoti.value ? 'ashishgupta1v@gmail.com' : 'goyaljyoti007@gmail.com');
+const partnerName = computed(() => isJyoti.value ? 'Ashish' : 'Jyoti');
+
+const loadPartnerData = async () => {
+  partnerViewOpen.value = !partnerViewOpen.value;
+  // Partner view toggles open/close. Actual partner data loading
+  // would require cross-user Supabase lookup which is planned for v2.
+  partnerData.value = null;
+};
+
+// JSON Backup/Restore
+const exportBackup = () => {
+  const backup = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    userEmail: props.userEmail,
+    month: props.month,
+    year: props.year,
+    localHabits: localHabits.value,
+    hasCustomHabits: hasCustomHabits.value,
+    progressiveSettings: progressiveSettings.value,
+    enhancedState: enhancedState.value,
+    rewards: rewards.value,
+    rewardLedger: rewardLedger.value,
+    weeklyReview: weeklyReview.value,
+    focusTasksByDay: focusTasksByDay.value,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `habuilt-backup-${props.year}-${String(props.month).padStart(2, '0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const importBackup = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.version || !data.localHabits) {
+        alert('Invalid backup file.');
+        return;
+      }
+      if (!window.confirm(`Restore backup from ${data.exportDate}? This will overwrite current data.`)) return;
+
+      // Restore data
+      if (Array.isArray(data.localHabits)) {
+        localHabits.value = data.localHabits.map(h => ({
+          id: h.id, name: h.name, points: h.points || 1,
+          completedDays: Array.isArray(h.completedDays) ? [...h.completedDays] : [],
+          completedToday: !!h.completedToday,
+        }));
+        hasCustomHabits.value = !!data.hasCustomHabits;
+      }
+      if (data.progressiveSettings) {
+        progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
+      }
+      if (data.enhancedState) {
+        enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
+      }
+      if (data.rewards) rewards.value = data.rewards;
+      if (data.rewardLedger) rewardLedger.value = data.rewardLedger;
+      if (data.weeklyReview) weeklyReview.value = normalizeWeeklyReview(data.weeklyReview);
+      if (data.focusTasksByDay) focusTasksByDay.value = data.focusTasksByDay;
+
+      await persistLocalState();
+      alert('Backup restored successfully!');
+    } catch {
+      alert('Failed to read backup file.');
+    }
+  };
+  input.click();
+};
+
+// Share progress card — generate shareable text
+const shareProgress = async () => {
+  const text = [
+    `🏗 Habuilt — ${monthLabel.value} ${props.year}`,
+    `📊 Score: ${consistencyScore.value}/100 (${consistencyGrade.value.letter})`,
+    `🔥 Completion: ${completionRate.value.toFixed(1)}%`,
+    `⭐ Level ${levelData.value.level} ${levelTitle.value}`,
+    `🏆 ${unlockedCount.value}/${achievementDefs.length} badges unlocked`,
+    `💪 ${totalXP.value} XP earned`,
+    ``,
+    `1% better every day. habuilt.com`,
+  ].join('\n');
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'My Habuilt Progress', text });
+    } catch { /* user cancelled */ }
+  } else {
+    await navigator.clipboard?.writeText(text);
+    alert('Progress copied to clipboard!');
+  }
+};
 </script>
 
 <template>
@@ -1638,7 +2323,7 @@ watch(darkMode, () => {
     <section :class="{ 'month-nav-loading': isNavigatingMonth }">
       <!-- ── TOP HERO & OVERVIEW ── -->
       <section class="card card--hero" id="overview">
-        <!-- ── Command Bar: Month Nav + Theme ── -->
+        <!-- ── Command Bar: Month Nav + Track + Level Pill + Theme ── -->
         <div class="hero-command-bar">
           <div class="hero-command-bar__left">
             <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : 'hero-track-pill--ashish'">
@@ -1646,6 +2331,12 @@ watch(darkMode, () => {
               <span>{{ isJyoti ? "Jyoti's System" : "Ashish's System" }}</span>
             </span>
             <span class="hero-version-tag">PRO</span>
+            <!-- Level / XP Pill -->
+            <div class="hero-level-chip" :title="`${levelData.xpInLevel} / ${levelData.xpForNext} XP to next level`">
+              <Zap class="icon-xs icon-zap" />
+              <span class="hero-level-chip__text">Lv. {{ levelData.level }} {{ levelTitle }}</span>
+              <span class="hero-level-chip__xp">{{ totalXP }} XP</span>
+            </div>
           </div>
           <div class="hero-command-bar__right">
             <button class="hero-nav-btn" :disabled="!canNavigatePrevMonth || isNavigatingMonth" @click="goToPreviousMonth" title="Previous Month">
@@ -1665,20 +2356,74 @@ watch(darkMode, () => {
           </div>
         </div>
 
-        <header class="hero-head">
-          <!-- ── LEFT: Brand + Focus ── -->
-          <div class="hero-main">
-            <div class="hero-brand-block">
-              <h1 class="eyebrow">Habuilt<span class="eyebrow__accent">.</span></h1>
-              <p class="hero-sub">{{ monthLabel }} {{ year }} <span class="hero-sub__divider">//</span> DISCIPLINE EQUALS FREEDOM</p>
+        <!-- ── GREETING & DAY-TYPE STRIP ── -->
+        <div class="hero-greeting-bar">
+          <div class="hero-greeting-text">
+            <div class="hero-greeting-title">
+              <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
+              <span class="hero-greeting-wave">👋</span>
+              <span class="grade-badge" :class="performanceGrade.class" :title="`Current Grade: ${performanceGrade.grade} (${performanceGrade.label})`">
+                {{ performanceGrade.grade }}
+              </span>
             </div>
+            <p class="hero-greeting-quote">
+              <span class="hero-greeting-quote__brand">Habuilt.</span> {{ timeGreeting.quote }}
+            </p>
+          </div>
 
+          <!-- Interactive Day-Type Toggle -->
+          <div class="hero-day-type-box">
+            <div class="hero-day-type-label">
+              <span>Day Protocol</span>
+              <span class="hero-day-type-target">Target: {{ targetDailyPoints }} pts</span>
+            </div>
+            <div class="day-type-pills">
+              <button
+                type="button"
+                class="day-type-pill"
+                :class="{ 'day-type-pill--active': currentDayType === 'full' }"
+                @click="setDayType('full')"
+                title="Full Protocol: 100% target"
+              >
+                <Zap class="icon-xs" />
+                <span>Full (100%)</span>
+              </button>
+              <button
+                type="button"
+                class="day-type-pill"
+                :class="{ 'day-type-pill--active': currentDayType === 'half' }"
+                @click="setDayType('half')"
+                title="Half Protocol: 60% target"
+              >
+                <Clock class="icon-xs" />
+                <span>Half (60%)</span>
+              </button>
+              <button
+                type="button"
+                class="day-type-pill"
+                :class="{ 'day-type-pill--active': currentDayType === 'floor' }"
+                @click="setDayType('floor')"
+                title="Floor Protocol: 30% target (protect baseline)"
+              >
+                <Shield class="icon-xs" />
+                <span>Floor (30%)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <header class="hero-head">
+          <!-- ── LEFT: Focus Tasks + Mini Heatmap Ribbon ── -->
+          <div class="hero-main">
             <!-- ── TODAY'S FOCUS CARD ── -->
             <div class="focus-card focus-card--hero">
               <div class="focus-head">
                 <div class="focus-title-group">
                   <Target class="icon-focus" />
                   <strong>TODAY'S FOCUS</strong>
+                  <span class="focus-today-progress-pill">
+                    {{ todayCompletedCount }}/{{ totalHabits }} habits
+                  </span>
                 </div>
                 <div class="focus-day-select">
                   <label for="focus-day">Day</label>
@@ -1698,6 +2443,16 @@ watch(darkMode, () => {
                     <Flame class="icon-xs" />
                     <span>{{ getDayTotal(focusDay) }} pts</span>
                   </span>
+                </div>
+              </div>
+
+              <!-- Quick Progress Track -->
+              <div class="focus-quick-progress">
+                <div class="focus-quick-progress-track">
+                  <div
+                    class="focus-quick-progress-fill"
+                    :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"
+                  ></div>
                 </div>
               </div>
 
@@ -1738,7 +2493,7 @@ watch(darkMode, () => {
 
               <p v-else class="focus-empty">
                 <Target class="icon-empty-focus" />
-                <span>No tasks yet — add your daily high-priority objectives below.</span>
+                <span>No daily objectives set yet — add your key priorities below.</span>
               </p>
 
               <div class="focus-input-row">
@@ -1760,104 +2515,184 @@ watch(darkMode, () => {
                 </button>
               </div>
             </div>
+
+            <!-- ── 7-DAY GITHUB-STYLE MINI HEATMAP ── -->
+            <div class="gh-mini-heatmap">
+              <div class="gh-mini-heatmap__head">
+                <div class="gh-mini-heatmap__title">
+                  <Activity class="icon-xs" />
+                  <span>7-Day Rhythm</span>
+                </div>
+                <div class="gh-mini-heatmap__legend">
+                  <span class="gh-legend-txt">Less</span>
+                  <span class="gh-sq gh-l0"></span>
+                  <span class="gh-sq gh-l1"></span>
+                  <span class="gh-sq gh-l2"></span>
+                  <span class="gh-sq gh-l3"></span>
+                  <span class="gh-sq gh-l4"></span>
+                  <span class="gh-legend-txt">More</span>
+                </div>
+              </div>
+              <div class="gh-mini-heatmap__track">
+                <div
+                  v-for="item in miniHeatmapDays"
+                  :key="`mhm-${item.day}`"
+                  class="gh-day-node"
+                  :class="{ 'gh-day-node--today': item.isToday }"
+                  :title="`Day ${item.day}: ${item.points} pts (${item.pct}%) ${item.isMet ? '• Target Met' : ''}`"
+                >
+                  <span class="gh-day-lbl">D{{ item.day }}</span>
+                  <div
+                    class="gh-sq"
+                    :class="[
+                      item.isFuture ? 'gh-future' : getGithubLevel(item.pct, item.points),
+                      { 'gh-sq--met': item.isMet, 'gh-sq--today': item.isToday }
+                    ]"
+                  ></div>
+                  <span class="gh-day-val">{{ item.isFuture ? '—' : item.points }}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- ── RIGHT: KPI Glass Cards + Balance ── -->
+          <!-- ── RIGHT: 2x2 Glass KPI Cards + Expandable Breakdown ── -->
           <div class="hero-side">
-            <!-- KPI: Today's Score with radial ring -->
-            <article class="glass-kpi glass-kpi--flame">
-              <div class="glass-kpi__ring-wrap">
-                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiFlameGrad)" stroke-width="4" stroke-linecap="round"
-                    :stroke-dasharray="`${Math.min(100, maxDailyPoints > 0 ? (todayPoints / maxDailyPoints) * 175.93 : 0)} 175.93`"
-                    transform="rotate(-90 32 32)" />
-                  <defs>
-                    <linearGradient id="kpiFlameGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-color="#fbbf24" />
-                      <stop offset="100%" stop-color="#f59e0b" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div class="glass-kpi__ring-center">
-                  <Flame class="glass-kpi__ring-icon glass-kpi__ring-icon--flame" />
+            <div class="hero-kpi-grid">
+              <!-- KPI 1: Today's Score -->
+              <article class="glass-kpi glass-kpi--flame">
+                <div class="glass-kpi__ring-wrap">
+                  <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="url(#heroFlameGrad)" stroke-width="4" stroke-linecap="round"
+                      :stroke-dasharray="`${Math.min(100, maxDailyPoints > 0 ? (todayPoints / maxDailyPoints) * 175.93 : 0)} 175.93`"
+                      transform="rotate(-90 32 32)" />
+                    <defs>
+                      <linearGradient id="heroFlameGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#fbbf24" />
+                        <stop offset="100%" stop-color="#f59e0b" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="glass-kpi__ring-center">
+                    <Flame class="glass-kpi__ring-icon glass-kpi__ring-icon--flame" />
+                  </div>
                 </div>
-              </div>
-              <div class="glass-kpi__body">
-                <span class="glass-kpi__label">Earned Today</span>
-                <strong class="glass-kpi__value">{{ todayPoints }}<small>pts</small></strong>
-                <span class="glass-kpi__sub">of {{ maxDailyPoints }} possible</span>
-              </div>
-            </article>
-
-            <!-- KPI: Wallet Balance with milestone ring -->
-            <article class="glass-kpi glass-kpi--emerald">
-              <div class="glass-kpi__ring-wrap">
-                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiEmeraldGrad)" stroke-width="4" stroke-linecap="round"
-                    :stroke-dasharray="`${Math.min(175.93, (vacationProgress / 100) * 175.93)} 175.93`"
-                    transform="rotate(-90 32 32)" />
-                  <defs>
-                    <linearGradient id="kpiEmeraldGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-color="#34d399" />
-                      <stop offset="100%" stop-color="#059669" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div class="glass-kpi__ring-center">
-                  <Award class="glass-kpi__ring-icon glass-kpi__ring-icon--emerald" />
+                <div class="glass-kpi__body">
+                  <span class="glass-kpi__label">Today's Points</span>
+                  <strong class="glass-kpi__value">{{ todayPoints }}<small>pts</small></strong>
+                  <span class="glass-kpi__sub">of {{ maxDailyPoints }} possible</span>
                 </div>
-              </div>
-              <div class="glass-kpi__body">
-                <span class="glass-kpi__label">Total Balance</span>
-                <strong class="glass-kpi__value">{{ availableWallet }}<small>pts</small></strong>
-                <span class="glass-kpi__sub">{{ activeMilestoneLabel }} {{ vacationProgress.toFixed(0) }}%</span>
-              </div>
-            </article>
+              </article>
 
-            <!-- KPI: Completion Rate with ring -->
-            <article class="glass-kpi glass-kpi--sky">
-              <div class="glass-kpi__ring-wrap">
-                <svg class="glass-kpi__ring" viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
-                  <circle cx="32" cy="32" r="28" fill="none" stroke="url(#kpiSkyGrad)" stroke-width="4" stroke-linecap="round"
-                    :stroke-dasharray="`${Math.min(175.93, (completionRate / 100) * 175.93)} 175.93`"
-                    transform="rotate(-90 32 32)" />
-                  <defs>
-                    <linearGradient id="kpiSkyGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-color="#38bdf8" />
-                      <stop offset="100%" stop-color="#0284c7" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div class="glass-kpi__ring-center">
-                  <TrendingUp class="glass-kpi__ring-icon glass-kpi__ring-icon--sky" />
+              <!-- KPI 2: Streak & Grade -->
+              <article class="glass-kpi glass-kpi--amber">
+                <div class="glass-kpi__ring-wrap">
+                  <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="url(#heroAmberGrad)" stroke-width="4" stroke-linecap="round"
+                      :stroke-dasharray="`${Math.min(175.93, (systemStreak.current / 30) * 175.93)} 175.93`"
+                      transform="rotate(-90 32 32)" />
+                    <defs>
+                      <linearGradient id="heroAmberGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#f59e0b" />
+                        <stop offset="100%" stop-color="#d97706" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="glass-kpi__ring-center">
+                    <Trophy class="glass-kpi__ring-icon glass-kpi__ring-icon--amber" />
+                  </div>
                 </div>
-              </div>
-              <div class="glass-kpi__body">
-                <span class="glass-kpi__label">Completion Rate</span>
-                <strong class="glass-kpi__value">{{ completionRate.toFixed(1) }}<small>%</small></strong>
-                <span class="glass-kpi__sub">Avg {{ dailyAverage.toFixed(1) }} pts/day</span>
-              </div>
-            </article>
+                <div class="glass-kpi__body">
+                  <span class="glass-kpi__label">System Streak</span>
+                  <strong class="glass-kpi__value">{{ systemStreak.current }}<small>days</small></strong>
+                  <span class="glass-kpi__sub">Best: {{ systemStreak.best }}d • Grade {{ performanceGrade.grade }}</span>
+                </div>
+              </article>
 
-            <!-- Balance Row -->
-            <div class="hero-balance-row">
+              <!-- KPI 3: Wallet & Vacation Milestone -->
+              <article class="glass-kpi glass-kpi--emerald">
+                <div class="glass-kpi__ring-wrap">
+                  <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="url(#heroEmeraldGrad)" stroke-width="4" stroke-linecap="round"
+                      :stroke-dasharray="`${Math.min(175.93, (vacationProgress / 100) * 175.93)} 175.93`"
+                      transform="rotate(-90 32 32)" />
+                    <defs>
+                      <linearGradient id="heroEmeraldGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#34d399" />
+                        <stop offset="100%" stop-color="#059669" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="glass-kpi__ring-center">
+                    <Award class="glass-kpi__ring-icon glass-kpi__ring-icon--emerald" />
+                  </div>
+                </div>
+                <div class="glass-kpi__body">
+                  <span class="glass-kpi__label">Reward Wallet</span>
+                  <strong class="glass-kpi__value">{{ availableWallet }}<small>pts</small></strong>
+                  <span class="glass-kpi__sub">{{ activeMilestoneLabel }} {{ vacationProgress.toFixed(0) }}%</span>
+                </div>
+              </article>
+
+              <!-- KPI 4: XP Level & Rank -->
+              <article class="glass-kpi glass-kpi--sky">
+                <div class="glass-kpi__ring-wrap">
+                  <svg class="glass-kpi__ring" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="url(#heroSkyGrad)" stroke-width="4" stroke-linecap="round"
+                      :stroke-dasharray="`${Math.min(175.93, (levelData.pct / 100) * 175.93)} 175.93`"
+                      transform="rotate(-90 32 32)" />
+                    <defs>
+                      <linearGradient id="heroSkyGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#38bdf8" />
+                        <stop offset="100%" stop-color="#0284c7" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="glass-kpi__ring-center">
+                    <Zap class="glass-kpi__ring-icon glass-kpi__ring-icon--sky" />
+                  </div>
+                </div>
+                <div class="glass-kpi__body">
+                  <span class="glass-kpi__label">XP Rank</span>
+                  <strong class="glass-kpi__value">Lv. {{ levelData.level }}<small>{{ levelTitle }}</small></strong>
+                  <span class="glass-kpi__sub">{{ totalXP }} XP • {{ completionRate.toFixed(1) }}% Rate</span>
+                </div>
+              </article>
+            </div>
+
+            <!-- Expandable Stats Action Button -->
+            <button
+              type="button"
+              class="hero-expand-toggle-btn"
+              @click="heroStatsExpanded = !heroStatsExpanded"
+            >
+              <div class="hero-expand-toggle-btn__left">
+                <DollarSign class="icon-xs" />
+                <span>Financial Ledger & Point Math Breakdown</span>
+              </div>
+              <ChevronUp v-if="heroStatsExpanded" class="icon-xs" />
+              <ChevronDown v-else class="icon-xs" />
+            </button>
+
+            <!-- Expandable Balance Row -->
+            <div v-if="heroStatsExpanded" class="hero-balance-row">
               <div class="hero-balance-cell">
-                <span>Opening</span>
+                <span>Opening Balance</span>
                 <strong>{{ openingBalance }}</strong>
               </div>
               <div class="hero-balance-cell hero-balance-cell--earned">
-                <span>+ Earned</span>
+                <span>+ Earned (Month)</span>
                 <strong>{{ monthEarned }}</strong>
               </div>
               <div class="hero-balance-cell hero-balance-cell--spent">
-                <span>- Redeemed</span>
+                <span>- Redeemed (Ledger)</span>
                 <strong>{{ monthRedeemed }}</strong>
               </div>
               <div class="hero-balance-cell hero-balance-cell--total">
-                <span>= Balance</span>
+                <span>= Net Available Balance</span>
                 <strong>{{ availableWallet }}</strong>
               </div>
             </div>
@@ -2020,7 +2855,8 @@ watch(darkMode, () => {
                 :class="{
                   'analytics-x-axis__tick--weekend': point.isWeekend,
                   'analytics-x-axis__tick--today': props.isCurrentMonth && point.day === props.currentDay,
-                  'analytics-x-axis__tick--active': hoveredChartPoint?.day === point.day
+                  'analytics-x-axis__tick--active': hoveredChartPoint?.day === point.day,
+                  'analytics-x-axis__tick--key': point.day === 1 || point.day % 5 === 0 || point.day === props.monthDays || (props.isCurrentMonth && point.day === props.currentDay)
                 }"
                 :style="{ left: `${(point.x / chartWidth) * 100}%` }"
                 @mouseenter="hoveredChartPoint = point"
@@ -2170,6 +3006,197 @@ watch(darkMode, () => {
             <span class="milestone-badge" :class="vacationProgress >= 100 ? 'milestone-badge--unlocked' : ''">
               {{ vacationProgress >= 100 ? '🎉 Unlocked' : `${pointsToVacation} pts left` }}
             </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- ── SECTION: DAILY QUOTE ── -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <section class="card card--quote" v-if="todayQuote">
+        <div class="daily-quote">
+          <BookOpen class="daily-quote__icon" />
+          <blockquote class="daily-quote__text">"{{ todayQuote.text }}"</blockquote>
+          <cite class="daily-quote__author">— {{ todayQuote.author }}</cite>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- ── SECTION: ENHANCED DASHBOARD (XP, Score, Badges, Heatmap) ── -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <section class="card card--enhanced" id="enhanced-stats">
+        <div class="section-head">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span class="section-title__icon section-title__icon--enhanced"><Activity class="icon-md" /></span>
+              <span>Dashboard</span>
+            </h2>
+            <small>Level, score, streaks & achievements</small>
+          </div>
+          <div class="enhanced-actions">
+            <button class="btn btn--secondary btn--sm" @click="focusModeOn = !focusModeOn" :class="{ 'btn--active': focusModeOn }">
+              <component :is="focusModeOn ? EyeOff : Eye" class="icon-sm" />
+              <span>{{ focusModeOn ? 'Focus ON' : 'Focus' }}</span>
+            </button>
+            <button class="btn btn--secondary btn--sm" @click="enableNotifications" v-if="!enhancedState.notificationsEnabled">
+              <Bell class="icon-sm" /><span>Reminders</span>
+            </button>
+            <button class="btn btn--secondary btn--sm" @click="exportBackup" title="Export backup">
+              <Download class="icon-sm" /><span class="hide-mobile">Backup</span>
+            </button>
+            <button class="btn btn--secondary btn--sm" @click="importBackup" title="Import backup">
+              <Upload class="icon-sm" /><span class="hide-mobile">Restore</span>
+            </button>
+            <button class="btn btn--secondary btn--sm" @click="shareProgress" title="Share progress">
+              <Share2 class="icon-sm" /><span class="hide-mobile">Share</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- XP / Level / Score Row -->
+        <div class="enhanced-stat-row">
+          <!-- Level Card -->
+          <div class="stat-card stat-card--level">
+            <div class="stat-card__label">Level {{ levelData.level }}</div>
+            <div class="stat-card__title">{{ levelTitle }}</div>
+            <div class="xp-bar">
+              <div class="xp-bar__fill" :style="{ width: levelData.pct + '%' }"></div>
+            </div>
+            <div class="xp-bar__label">{{ levelData.xpInLevel }} / {{ levelData.xpForNext }} XP</div>
+          </div>
+
+          <!-- Total XP -->
+          <div class="stat-card stat-card--xp">
+            <div class="stat-card__label">Total XP</div>
+            <div class="stat-card__value">{{ totalXP.toLocaleString() }}</div>
+            <Sparkle class="stat-card__deco" />
+          </div>
+
+          <!-- Consistency Score -->
+          <div class="stat-card stat-card--score">
+            <div class="stat-card__label">Consistency</div>
+            <div class="stat-card__grade" :style="{ color: consistencyGrade.color }">{{ consistencyGrade.letter }}</div>
+            <div class="stat-card__value stat-card__value--sm">{{ consistencyScore }}/100</div>
+          </div>
+
+          <!-- Badges Count -->
+          <div class="stat-card stat-card--badges" @click="analyticsOpen = !analyticsOpen">
+            <div class="stat-card__label">Badges</div>
+            <div class="stat-card__value">{{ unlockedCount }}/{{ achievementDefs.length }}</div>
+            <div class="stat-card__hint">{{ analyticsOpen ? 'Hide' : 'View all' }}</div>
+          </div>
+        </div>
+
+        <!-- Mood & Energy for Today (current month only) -->
+        <div class="mood-energy-row" v-if="isCurrentMonth">
+          <div class="mood-section">
+            <span class="mood-label"><Smile class="icon-xs" /> Mood</span>
+            <div class="mood-pills">
+              <button v-for="i in 5" :key="'mood-' + i"
+                class="mood-pill" :class="{ 'mood-pill--active': getMoodEnergy(currentDay).mood === i }"
+                @click="setMood(currentDay, i)"
+                :title="moodLabels[i]">
+                {{ ['', '😫', '😕', '😐', '😊', '😄'][i] }}
+              </button>
+            </div>
+            <span class="mood-text" v-if="getMoodEnergy(currentDay).mood">{{ moodLabels[getMoodEnergy(currentDay).mood] }}</span>
+          </div>
+          <div class="mood-section">
+            <span class="mood-label"><Battery class="icon-xs" /> Energy</span>
+            <div class="mood-pills">
+              <button v-for="i in 5" :key="'energy-' + i"
+                class="mood-pill" :class="{ 'mood-pill--active': getMoodEnergy(currentDay).energy === i }"
+                @click="setEnergy(currentDay, i)"
+                :title="energyLabels[i]">
+                {{ ['', '🪫', '🔋', '⚡', '💪', '🔥'][i] }}
+              </button>
+            </div>
+            <span class="mood-text" v-if="getMoodEnergy(currentDay).energy">{{ energyLabels[getMoodEnergy(currentDay).energy] }}</span>
+          </div>
+        </div>
+
+        <!-- Smart Suggestions -->
+        <div class="smart-suggestions" v-if="smartSuggestions.length > 0">
+          <div class="smart-suggestions__title"><Sparkle class="icon-xs" /> Smart Insights</div>
+          <div class="suggestion-card" v-for="(s, idx) in smartSuggestions" :key="idx" :class="'suggestion-card--' + s.type">
+            <span>{{ s.text }}</span>
+          </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="category-breakdown" v-if="categoryBreakdown.length > 0">
+          <div class="category-breakdown__title">Category Performance</div>
+          <div class="category-bar-list">
+            <div class="category-bar-item" v-for="cat in categoryBreakdown" :key="cat.key">
+              <span class="category-bar-item__label">{{ cat.label }}</span>
+              <div class="category-bar-item__bar">
+                <div class="category-bar-item__fill" :style="{ width: cat.pct + '%' }"></div>
+              </div>
+              <span class="category-bar-item__pct">{{ cat.pct }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── GITHUB-STYLE MONTHLY CONTRIBUTION HEATMAP ── -->
+        <div class="heatmap-section gh-heatmap-section">
+          <div class="gh-heatmap-header">
+            <div class="gh-heatmap-title">
+              <Activity class="icon-xs" />
+              <span>Monthly Habit Activity</span>
+              <span class="gh-heatmap-meta">{{ daysOnTargetCount }}/{{ evaluatedDays }} days on target ({{ completionRate.toFixed(0) }}%)</span>
+            </div>
+            <div class="gh-heatmap-legend">
+              <span>Less</span>
+              <span class="gh-sq gh-l0"></span>
+              <span class="gh-sq gh-l1"></span>
+              <span class="gh-sq gh-l2"></span>
+              <span class="gh-sq gh-l3"></span>
+              <span class="gh-sq gh-l4"></span>
+              <span>More</span>
+            </div>
+          </div>
+          <div class="gh-matrix-wrap">
+            <div class="gh-matrix-grid">
+              <div
+                v-for="cell in heatmapData"
+                :key="`gh-m-${cell.day}`"
+                class="gh-matrix-cell"
+                :class="[
+                  cell.isFuture ? 'gh-future' : getGithubLevel(cell.pct, cell.points),
+                  { 'gh-matrix-cell--today': props.isCurrentMonth && cell.day === props.currentDay }
+                ]"
+                :title="`Day ${cell.day}: ${cell.points} pts (${cell.pct}%)`"
+              >
+                <span class="gh-matrix-cell__num">{{ cell.day }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Achievement Badges (collapsible) -->
+        <div class="achievements-section" v-if="analyticsOpen">
+          <div class="achievements-grid">
+            <div v-for="a in unlockedAchievements" :key="a.id"
+              class="achievement-badge" :class="{ 'achievement-badge--locked': !a.unlocked }">
+              <div class="achievement-badge__icon">{{ a.unlocked ? '🏅' : '🔒' }}</div>
+              <div class="achievement-badge__name">{{ a.name }}</div>
+              <div class="achievement-badge__desc">{{ a.desc }}</div>
+              <div class="achievement-badge__date" v-if="a.unlocked && a.date">{{ a.date }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streak Leaderboard -->
+        <div class="streak-board">
+          <div class="streak-board__title">Top Streaks</div>
+          <div class="streak-list">
+            <div class="streak-item" v-for="h in habitStreaks.slice().sort((a, b) => b.current - a.current).slice(0, 5)" :key="h.id">
+              <span class="streak-item__name">{{ h.name }}</span>
+              <span class="streak-item__stats">
+                <span class="streak-item__current" :class="{ 'streak-item__current--hot': h.current >= 7 }">🔥 {{ h.current }}d</span>
+                <span class="streak-item__best">Best: {{ h.longest }}d</span>
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -2666,47 +3693,62 @@ watch(darkMode, () => {
 
               <!-- Habit Cards -->
               <div class="mobile-daily__list">
-                <button
-                  v-for="habit in filteredMobileHabits"
-                  :key="'m-' + habit.id"
-                  class="mobile-daily__card"
-                  :class="{
-                    'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
-                    'mobile-daily__card--shared': habit.name.startsWith('★'),
-                    [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
-                  }"
-                  :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
-                  @click="toggleHabitForDay(habit, mobileDay)"
-                >
-                  <div class="mobile-daily__card-check">
-                    <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
-                    <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
-                      <Check class="icon-check-mobile" />
-                    </span>
-                    <span v-else class="mobile-daily__circle"></span>
-                  </div>
-                  <div class="mobile-daily__card-body">
-                    <span class="mobile-daily__card-name">{{ habit.name }}</span>
-                    <span class="mobile-daily__card-meta">
-                      <span class="mobile-daily__card-category">{{ getCategoryLabel(getHabitCategory(habit)) }}</span>
-                      <span class="tier-badge tier-badge--inline" :class="tierColorClass(getHabitTier(habit.id))" @click.stop="toggleTierDetail(habit.id)">
-                        T{{ getHabitTier(habit.id) }}
+                <template v-for="habit in focusFilteredHabits" :key="'m-' + habit.id">
+                  <button
+                    class="mobile-daily__card"
+                    :class="{
+                      'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
+                      'mobile-daily__card--shared': habit.name.startsWith('★'),
+                      [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
+                    }"
+                    :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
+                    @click="toggleHabitForDay(habit, mobileDay)"
+                  >
+                    <div class="mobile-daily__card-check">
+                      <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
+                      <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
+                        <Check class="icon-check-mobile" />
                       </span>
-                    </span>
-                    <!-- Tier Detail Expand -->
-                    <div v-if="tierDetailHabitId === habit.id" class="tier-detail-expand" @click.stop>
-                      <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': getHabitTier(habit.id) === t }">
-                        <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
-                        <span class="tier-detail-desc">{{ getTierDescriptions(habit.id)[t - 1] }}</span>
-                        <button v-if="getHabitTier(habit.id) !== t" class="tier-detail-set" @click.stop="setHabitTier(habit.id, t)">Set</button>
-                        <Check v-else class="icon-xs tier-detail-active" />
+                      <span v-else class="mobile-daily__circle"></span>
+                    </div>
+                    <div class="mobile-daily__card-body">
+                      <span class="mobile-daily__card-name">{{ habit.name }}</span>
+                      <span class="mobile-daily__card-meta">
+                        <span class="mobile-daily__card-category">{{ getCategoryLabel(getHabitCategory(habit)) }}</span>
+                        <span class="tier-badge tier-badge--inline" :class="tierColorClass(getHabitTier(habit.id))" @click.stop="toggleTierDetail(habit.id)">
+                          T{{ getHabitTier(habit.id) }}
+                        </span>
+                      </span>
+                      <!-- Tier Detail Expand -->
+                      <div v-if="tierDetailHabitId === habit.id" class="tier-detail-expand" @click.stop>
+                        <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': getHabitTier(habit.id) === t }">
+                          <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
+                          <span class="tier-detail-desc">{{ getTierDescriptions(habit.id)[t - 1] }}</span>
+                          <button v-if="getHabitTier(habit.id) !== t" class="tier-detail-set" @click.stop="setHabitTier(habit.id, t)">Set</button>
+                          <Check v-else class="icon-xs tier-detail-active" />
+                        </div>
                       </div>
                     </div>
+                    <span class="mobile-daily__card-pts">
+                      +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
+                    </span>
+                    <!-- Habit Note Toggle -->
+                    <button class="habit-note-btn" @click.stop="toggleHabitNote(habit.id, mobileDay)"
+                      :class="{ 'habit-note-btn--has': getHabitNote(habit.id, mobileDay) }"
+                      title="Add note">
+                      <MessageSquare class="icon-xs" />
+                    </button>
+                  </button>
+                  <!-- Habit Note Input -->
+                  <div v-if="habitNotesOpen === habit.id + ':' + mobileDay" class="habit-note-input" @click.stop>
+                    <textarea
+                      :value="getHabitNote(habit.id, mobileDay)"
+                      @input="setHabitNote(habit.id, mobileDay, $event.target.value)"
+                      rows="2"
+                      placeholder="Quick note about this habit today..."
+                    ></textarea>
                   </div>
-                  <span class="mobile-daily__card-pts">
-                    +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
-                  </span>
-                </button>
+                </template>
               </div>
             </div>
 
@@ -3096,6 +4138,17 @@ watch(darkMode, () => {
           </label>
         </div>
       </section>
+      <!-- Confetti Overlay -->
+      <div class="confetti-overlay" v-if="showConfetti">
+        <div v-for="i in 40" :key="'confetti-' + i"
+          class="confetti-piece"
+          :style="{
+            left: Math.random() * 100 + '%',
+            animationDelay: Math.random() * 0.5 + 's',
+            backgroundColor: ['#f59e0b', '#10b981', '#6366f1', '#ef4444', '#ec4899', '#06b6d4'][i % 6],
+          }">
+        </div>
+      </div>
     </section>
   </AppLayout>
 </template>
