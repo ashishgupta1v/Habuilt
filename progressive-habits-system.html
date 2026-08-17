@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1322">
+<title>Progressive Habits System · Ashish & Jyoti · 1% Daily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --midnight:#0E1322;--night:#1B2338;--ivory:#F4F2EC;--surface:#FFFFFF;--surface-2:#FAF8F3;
+  --ink:#171C24;--ink-2:#4E5865;--ink-3:#8A93A0;--hair:rgba(23,28,36,.10);--hair-2:rgba(23,28,36,.055);
+  --ashish:#0E6B67;--jyoti:#8E3B5F;--shaarvi:#B5811F;--together:#3F4F6B;--signal:#B23A2E;--growth:#2D8C4E;
+  --ashish-t:rgba(14,107,103,.09);--jyoti-t:rgba(142,59,95,.09);--shaarvi-t:rgba(181,129,31,.11);
+  --together-t:rgba(63,79,107,.08);--signal-t:rgba(178,58,46,.075);--growth-t:rgba(45,140,78,.09);
+  --r-s:8px;--r-m:14px;--r-l:20px;
+  --sh-1:0 1px 2px rgba(14,19,34,.05),0 4px 14px rgba(14,19,34,.045);
+  --sh-2:0 2px 4px rgba(14,19,34,.06),0 12px 32px rgba(14,19,34,.08);
+  --pad:20px;--maxw:860px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:rgba(14,107,103,.12)}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--ivory);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:16px;line-height:1.68;letter-spacing:-.003em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+img,svg{max-width:100%;display:block}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+.serif{font-family:Fraunces,Georgia,serif;font-optical-sizing:auto}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+p{margin:0 0 1em}p:last-child{margin-bottom:0}
+strong{font-weight:600;color:var(--ink)}
+a{color:var(--ashish);text-decoration:none}
+hr.rule{border:0;border-top:1px solid var(--hair);margin:44px 0 0}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;color:#EEF0F5;background:radial-gradient(130% 90% at 12% -10%,#2B3557 0%,#1A2237 40%,#0E1322 78%);padding:calc(48px + env(safe-area-inset-top)) 0 40px}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:62%;pointer-events:none;background:linear-gradient(to top,rgba(45,140,78,.22),rgba(45,140,78,.05) 45%,transparent 100%)}
+.hero .wrap{position:relative;z-index:2}
+.hero .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(238,240,245,.5)}
+.hero h1{font-family:Fraunces,Georgia,serif;font-weight:350;font-size:clamp(30px,9vw,52px);line-height:1.04;letter-spacing:-.025em;margin:14px 0 16px}
+.hero h1 em{font-style:italic;color:#6EE7A0;font-weight:400}
+.hero .sub{font-size:16.5px;color:rgba(238,240,245,.76);max-width:48ch;margin:0 0 28px}
+.herofacts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.11);border-radius:var(--r-m);overflow:hidden;border:1px solid rgba(255,255,255,.11)}
+.herofacts div{background:rgba(14,19,34,.42);padding:14px 16px;backdrop-filter:blur(4px)}
+.herofacts b{display:block;font-family:Fraunces,serif;font-weight:400;font-size:23px;letter-spacing:-.02em;line-height:1.1}
+.herofacts small{display:block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:rgba(238,240,245,.5);margin-top:5px;line-height:1.4}
+@media(min-width:600px){.herofacts{grid-template-columns:repeat(4,1fr)}}
+
+/* SECTIONS */
+.part{padding:42px 0 6px}
+.part-head{margin-bottom:20px}
+.part-num{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:8px}
+.part-head h2{font-family:Fraunces,Georgia,serif;font-weight:350;font-size:clamp(25px,7vw,38px);line-height:1.06;letter-spacing:-.024em;margin:0}
+.lede{font-size:17px;line-height:1.6;color:var(--ink-2);margin:0 0 24px}
+h3{font-family:Fraunces,Georgia,serif;font-weight:400;font-size:20px;line-height:1.25;letter-spacing:-.015em;margin:32px 0 12px}
+h4{font-size:15px;font-weight:700;margin:0 0 8px;letter-spacing:-.01em}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--r-m);padding:20px;box-shadow:var(--sh-1);margin:0 0 14px}
+.stack{display:grid;gap:14px}
+@media(min-width:660px){.stack.two{grid-template-columns:1fr 1fr}}
+.card .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:9px}
+.acc{border-left:4px solid var(--hair);padding-left:18px}
+.acc.a{border-left-color:var(--ashish)}.acc.j{border-left-color:var(--jyoti)}
+.acc.s{border-left-color:var(--shaarvi)}.acc.f{border-left-color:var(--together)}
+.acc.g{border-left-color:var(--growth)}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:100px;white-space:nowrap}
+.t-a{background:var(--ashish-t);color:var(--ashish)}.t-j{background:var(--jyoti-t);color:var(--jyoti)}
+.t-s{background:var(--shaarvi-t);color:var(--shaarvi)}.t-f{background:var(--together-t);color:var(--together)}
+.t-g{background:var(--growth-t);color:var(--growth)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:1px;flex:none}
+.d-a{background:var(--ashish)}.d-j{background:var(--jyoti)}.d-s{background:var(--shaarvi)}.d-f{background:var(--together)}
+
+/* NOTE */
+.note{border-radius:var(--r-m);padding:18px 20px;margin:0 0 20px;background:var(--growth-t);border:1px solid rgba(45,140,78,.16)}
+.note .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--growth);display:block;margin-bottom:8px}
+.note.a{background:var(--ashish-t);border-color:rgba(14,107,103,.16)}.note.a .eyebrow{color:var(--ashish)}
+.note.j{background:var(--jyoti-t);border-color:rgba(142,59,95,.16)}.note.j .eyebrow{color:var(--jyoti)}
+.note.f{background:var(--together-t);border-color:rgba(63,79,107,.15)}.note.f .eyebrow{color:var(--together)}
+
+/* ROWS */
+.rows{display:grid;gap:10px;margin:0 0 20px}
+.rc{background:var(--surface);border-radius:var(--r-m);padding:16px 18px;box-shadow:var(--sh-1)}
+.rc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.rc-top h4{margin:0}
+.rc p{font-size:14.5px;color:var(--ink-2);margin:0}
+
+/* HABIT ROWS */
+.habit-row{background:var(--surface);border-radius:var(--r-m);padding:16px 18px;box-shadow:var(--sh-1);display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+.habit-row .h-name{font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+.habit-row .h-desc{font-size:13px;color:var(--ink-2);margin-top:4px}
+.habit-row .h-prog{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.prog-dot{width:22px;height:22px;border-radius:50%;font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--hair)}
+.prog-dot.active{background:var(--growth);color:#fff;border-color:var(--growth)}
+.prog-dot.current{background:var(--growth-t);color:var(--growth);border-color:var(--growth);box-shadow:0 0 0 2px rgba(45,140,78,.2)}
+.h-pts{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--growth);background:var(--growth-t);padding:4px 10px;border-radius:100px;white-space:nowrap}
+.h-time{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.06em;margin-top:3px}
+
+/* PHASE BAR */
+.phase-bar{display:flex;gap:4px;margin-bottom:14px}
+.phase-bar div{height:12px;border-radius:100px}
+.phase-bar .p1{flex:6;background:var(--ashish);opacity:.85}
+.phase-bar .p2{flex:8;background:var(--jyoti);opacity:.85}
+.phase-bar .p3{flex:12;background:var(--growth);opacity:.9}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin:0 0 20px;flex-wrap:wrap}
+.tab{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:var(--surface);border:1.5px solid var(--hair);padding:8px 16px;border-radius:100px;cursor:pointer;transition:all .15s}
+.tab:hover{border-color:var(--ink-3)}
+.tab.active{background:var(--ink);color:var(--ivory);border-color:var(--ink)}
+.tab.t-ashish.active{background:var(--ashish);border-color:var(--ashish)}
+.tab.t-jyoti.active{background:var(--jyoti);border-color:var(--jyoti)}
+.tab.t-both.active{background:var(--together);border-color:var(--together)}
+.tab.t-shaarvi.active{background:var(--shaarvi);border-color:var(--shaarvi)}
+
+/* TIMELINE GRID */
+.tl-grid{display:grid;gap:8px}
+@media(min-width:660px){.tl-grid.cols-4{grid-template-columns:repeat(4,1fr)}}
+.tl-card{background:var(--surface);border-radius:var(--r-m);padding:16px;box-shadow:var(--sh-1);border-top:3px solid var(--hair)}
+.tl-card.phase-1{border-top-color:var(--ashish)}
+.tl-card.phase-2{border-top-color:var(--jyoti)}
+.tl-card.phase-3{border-top-color:var(--growth)}
+.tl-card .week{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:4px}
+.tl-card h4{margin:0 0 6px}
+.tl-card p{font-size:13.5px;color:var(--ink-2);margin:0}
+
+/* SYNC STRIPE */
+.sync{background:var(--together-t);border:1px solid rgba(63,79,107,.15);border-radius:var(--r-m);padding:14px 18px;margin:10px 0;display:flex;gap:14px;align-items:center}
+.sync .dot-pair{display:flex;gap:4px}
+.sync p{font-size:14px;color:var(--ink-2);margin:0}
+
+/* COMPOUND TABLE */
+.compound{background:var(--surface);border-radius:var(--r-m);box-shadow:var(--sh-1);overflow:hidden;margin:0 0 20px}
+.compound-head{padding:13px 18px;background:var(--midnight);color:#EEF0F5;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.compound-head b{font-size:15px;font-weight:600}
+.compound-head small{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(238,240,245,.55)}
+.compound-body{padding:18px}
+.compound-row{display:grid;grid-template-columns:40px 1fr 80px 70px;gap:12px;padding:10px 0;border-bottom:1px solid var(--hair-2);font-size:14px;align-items:center}
+.compound-row:last-child{border-bottom:0}
+.compound-row .day{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--ink-3)}
+.compound-row .val{font-family:Fraunces,serif;font-weight:400;font-size:18px;letter-spacing:-.02em;color:var(--growth);text-align:right}
+.compound-row .pct{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right}
+
+/* FOOTER */
+footer{background:var(--midnight);color:rgba(238,240,245,.72);margin-top:52px;padding:44px 0 calc(52px + env(safe-area-inset-bottom))}
+footer .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(238,240,245,.4);display:block;margin-bottom:12px}
+footer strong{color:#EEF0F5}
+footer p{font-size:14px;max-width:62ch}
+
+/* PRINT */
+@media print{body{background:#fff;font-size:10pt}.hero{background:#fff!important;color:#000;padding:0 0 18pt}.hero::after{display:none}.hero h1{font-size:26pt}.hero h1 em{color:#000}.compound-head,footer{background:#f0f0f0!important;color:#000!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+<div class="wrap">
+  <div class="eyebrow">Progressive Habits System · Atomic 1% Daily · Habuilt Integration</div>
+  <h1>Improve 1% every day.<br><em>Compound everything.</em></h1>
+  <p class="sub">Two tracks — Ashish and Jyoti — running off one rhythm, synced at twelve alignment points daily. Every habit starts at its floor and scales 1% weekly across 26 weeks. Tracked in Habuilt.</p>
+  <div class="herofacts">
+    <div><b>37.78×</b><small>1.01^365<br>annual compound</small></div>
+    <div><b>26</b><small>weeks<br>17 Aug → 14 Feb</small></div>
+    <div><b>12</b><small>sync points<br>daily alignment</small></div>
+    <div><b>4</b><small>phases<br>floor → mastery</small></div>
+  </div>
+</div>
+</header>
+
+<main class="wrap">
+
+<!-- ════════ THE 1% PRINCIPLE ════════ -->
+<section class="part" id="principle">
+<div class="part-head">
+  <span class="part-num">The Principle</span>
+  <h2>Why 1% daily changes everything</h2>
+</div>
+<p class="lede">James Clear's core insight: habits that improve 1% daily compound to 37× over a year. But the mechanism isn't magic — it's <strong>progressive overload applied to behaviour</strong>. Every habit below has four tiers. You start at Tier 1 (the floor) and graduate when you can do it without thinking.</p>
+
+<div class="compound">
+  <div class="compound-head"><b>The compound curve</b><small>1.01^n</small></div>
+  <div class="compound-body">
+    <div class="compound-row"><span class="day">Day 1</span><span>Starting point</span><span class="val">1.00</span><span class="pct">—</span></div>
+    <div class="compound-row"><span class="day">Day 7</span><span>Week 1</span><span class="val">1.07</span><span class="pct">+7%</span></div>
+    <div class="compound-row"><span class="day">Day 30</span><span>Month 1</span><span class="val">1.35</span><span class="pct">+35%</span></div>
+    <div class="compound-row"><span class="day">Day 60</span><span>Month 2</span><span class="val">1.82</span><span class="pct">+82%</span></div>
+    <div class="compound-row"><span class="day">Day 90</span><span>Month 3</span><span class="val">2.45</span><span class="pct">+145%</span></div>
+    <div class="compound-row"><span class="day">Day 120</span><span>Month 4</span><span class="val">3.30</span><span class="pct">+230%</span></div>
+    <div class="compound-row"><span class="day">Day 182</span><span>26 weeks</span><span class="val">6.13</span><span class="pct">+513%</span></div>
+    <div class="compound-row"><span class="day">Day 365</span><span>1 year</span><span class="val">37.78</span><span class="pct">+3,678%</span></div>
+  </div>
+</div>
+
+<div class="note">
+  <span class="eyebrow">The four-tier system</span>
+  <p><strong>Tier 1 · Floor</strong> — The minimum viable version. You can do this on your worst day, exhausted, with a sick baby. <em>Never miss Tier 1 twice.</em></p>
+  <p><strong>Tier 2 · Foundation</strong> — The 80% version. Weeks 1–6. You're building the groove.</p>
+  <p><strong>Tier 3 · Standard</strong> — The full habit as designed. Weeks 7–14. This is what the household plan describes.</p>
+  <p><strong>Tier 4 · Mastery</strong> — The optimised version. Weeks 15–26. You've earned the right to push.</p>
+</div>
+</section>
+
+<hr class="rule">
+
+<!-- ════════ ASHISH'S TRACK ════════ -->
+<section class="part" id="ashish">
+<div class="part-head">
+  <span class="part-num">Ashish's Track</span>
+  <h2>22 habits, four tiers each</h2>
+</div>
+<p class="lede">Everything from the household plan, the health protocols, the income targets, and Shaarvi's blocks — mapped to progressive tiers. Points align with Habuilt's scoring system.</p>
+
+<h3>Morning System · 05:00–08:30</h3>
+<div class="rows">
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">1. Wake-Up & Hydrate</div>
+    <div class="h-desc">Glass of water, 5 min breathing, then straight to Deep Block 1.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 05:30 wake · T2: 05:15 · T3: 05:00 · T4: 04:45 (travel days)</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">2. Deep Block 1 — Build & Ship</div>
+    <div class="h-desc">No email, no Slack, no phone. Case studies, client deliverables, prototypes, applications.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 30 min · T2: 1h · T3: 1h30 · T4: 1h45</div>
+  </div>
+  <span class="h-pts">4 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">3. Boxing — The Daily 30</div>
+    <div class="h-desc">Warm-up → rounds → conditioning → stretch. Rinse scalp after (DHT). Cold shower finish.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 10 min stretch · T2: 15 min rounds · T3: 30 min full · T4: 30 min + 5k Sat</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc s">
+  <div>
+    <div class="h-name">4. Shaarvi Morning Watch — Turn-Taking #1</div>
+    <div class="h-desc">Abhyanga malish, tummy time, karāgre shloka while opening her palms. 07:15–08:00.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 15 min turn-taking · T2: 30 min + tummy time · T3: 45 min full · T4: 45 min + outdoor naming</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">5. Groom & Dress Well</div>
+    <div class="h-desc">Cold finish shower. Camera-ready for foreign clients. Hair care after workout.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Clean up · T2: Cold finish · T3: Full protocol + warm tint · T4: + rosemary oil evening</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+</div>
+
+<h3>Work System · 08:45–18:30</h3>
+<div class="rows">
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">6. Job Performance — Full Intensity</div>
+    <div class="h-desc">Protect employer's time. Nothing on employer hardware for personal work. Ever.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Show up, clear queue · T2: High intensity, zero overlap · T3: Visibility + relationship-building · T4: Strategic positioning for exit</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">7. Daily Outbound Touches</div>
+    <div class="h-desc">Agencies, founders, temple committees. Logged with name and date or it didn't happen.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 2/day (Floor) · T2: 3/day · T3: 5/day (25/wk target) · T4: 5/day + 2 warm follow-ups</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">8. 20-20-20 Eye Breaks + Posture</div>
+    <div class="h-desc">Every 20 min: 20 sec at 20 ft. Shoulder/back stretches. 3L water. Warm display tint after 18:00.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 2 breaks/day · T2: Every hour · T3: Every 30 min + stretches · T4: Full protocol + standing desk intervals</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">9. Stealth Block — 30 min</div>
+    <div class="h-desc">Personal device only. Agency partners, founder touches, LinkedIn replies. During job light hours.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 10 min phone check · T2: 20 min targeted · T3: 30 min structured · T4: 30 min + CRM update</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Evening System · 18:30–22:30</h3>
+<div class="rows">
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">10. 18:30 Hard Stop — Laptop Closed</div>
+    <div class="h-desc">Both parents on floor with Shaarvi. Turn-taking #2. Phones in another room.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Stop by 19:00 · T2: Stop by 18:45 · T3: 18:30 sharp · T4: 18:30 + phones in another room by 18:25</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">11. Family Walk + Dinner Together</div>
+    <div class="h-desc">20 min slow walk, all three. Then dinner: paneer/soya curry, salad, no tea after.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Dinner together · T2: 10 min walk + dinner · T3: 20 min walk + protein dinner · T4: + outdoor naming with Shaarvi</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc s">
+  <div>
+    <div class="h-name">12. Shaarvi Bedtime Routine — Ashish Owns It</div>
+    <div class="h-desc">Dim lights → board book → sandhya diya → dīpa shloka → feed → dark room → Sarve bhavantu sukhinaḥ. Same order nightly.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Diya + shloka · T2: + board book · T3: Full sequence every night · T4: + Gayatri at midday owned</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">13. Deep Block 2 — Pipeline & Admin</div>
+    <div class="h-desc">Applications, proposals, outbound, invoices. First thing cancelled on Half Day. Never on Friday.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 15 min pipeline scan · T2: 30 min · T3: 1h · T4: 1h15 structured</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">14. Sleep by 22:30 — 7h Floor</div>
+    <div class="h-desc">Cool dark room. Journal racing thoughts, don't solve them. Under 6h → next day is Floor.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: In bed by 23:00 · T2: Lights out 22:45 · T3: 22:30 hard · T4: 22:30 + sleep tracking</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+</div>
+
+<h3>Nutrition & Health System · All Day</h3>
+<div class="rows">
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">15. Protein at Every Meal + Iron Protocol</div>
+    <div class="h-desc">Dal/paneer/rajma/chana/tofu/curd. Ghee + lemon/amla with dal. No tea after meals. Nuts at 17:00.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Protein at 2 meals · T2: Protein at all 3 · T3: + iron pairing + no tea · T4: + tracked macros</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">16. Supplements — Daily Stack</div>
+    <div class="h-desc">B12, algal omega-3, weekly D3, magnesium glycinate at night.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: B12 only · T2: B12 + D3 · T3: Full stack · T4: Full stack + timing optimised</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">17. Hair & Stress Protocol</div>
+    <div class="h-desc">Scalp rinse after workout, rosemary oil evening, warm oil massage Saturday, wash Sunday.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Scalp rinse post-workout · T2: + rosemary oil 3x/wk · T3: + Sat oil massage · T4: Full weekly cycle</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">18. Limit Phone / No Screens for Shaarvi</div>
+    <div class="h-desc">Phone face-down at meals. Zero screens in Shaarvi's presence. Phone in another room 18:30–20:30.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Face-down at meals · T2: + no background TV · T3: + phone out of room 18:30–20:30 · T4: Screen time under 45 min personal</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Weekly Rituals · Reported Sunday</h3>
+<div class="rows">
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">19. Build-in-Public Posts (2/week)</div>
+    <div class="h-desc">Batched Sunday from car recordings. 60-second build recordings. X and LinkedIn.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 1 post/week · T2: 2 posts/week · T3: 2 posts + engagement · T4: 2 posts + 1 case study thread</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">20. Saturday Build Marathon (4h)</div>
+    <div class="h-desc">Longest uninterrupted block. One thing: case study, package page, prototype, deliverable. Never email.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 1h focused · T2: 2h focused · T3: 3h focused · T4: 4h deep marathon</div>
+  </div>
+  <span class="h-pts">4 pts</span>
+</div>
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">21. Sunday Board Meeting (45 min)</div>
+    <div class="h-desc">Same 6 questions, written. Numbers → Tier count → Sleep → One thing to stop → 3 OBTs → Money.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 20 min check-in · T2: 30 min structured · T3: 45 min full agenda · T4: 45 min + monthly trend review</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc a">
+  <div>
+    <div class="h-name">22. 10% Tax to Tax Account + Money Log</div>
+    <div class="h-desc">Every payment → 10% to tax account same day. Cash in/out/reserve logged Sunday.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Log income · T2: + tax transfer · T3: + reserve tracking · T4: Full financial dashboard weekly</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<div class="note a">
+  <span class="eyebrow">Ashish's daily max</span>
+  <p><strong>Full Day: 41 points possible.</strong> Target: 32+ (78%). Half Day: 28 points possible, target 22+. Floor Day: 15 points — 5 outbound + Shaarvi time + log entry + sleep.</p>
+</div>
+
+<hr class="rule">
+</section>
+
+<!-- ════════ JYOTI'S TRACK ════════ -->
+<section class="part" id="jyoti">
+<div class="part-head">
+  <span class="part-num">Jyoti's Track</span>
+  <h2>18 habits, four tiers each</h2>
+</div>
+<p class="lede">Built around the protected sleep block (05:00–08:00), the night watch, her focused work blocks, Shaarvi's daytime care, and her own health recovery. Points match Habuilt.</p>
+
+<h3>Morning System · 08:00–11:00</h3>
+<div class="rows">
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">1. Protected Sleep — 05:00 to 08:00</div>
+    <div class="h-desc">Non-negotiable recovery after night watch. Ashish does not wake her. This repays the broken nights.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Sleep to 07:30 · T2: Sleep to 08:00 · T3: Full 3h protected · T4: + earplugs/mask for quality</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">2. Block A — Deep Work (2h)</div>
+    <div class="h-desc">Her deepest work, during Shaarvi's morning nap with help present. 08:45–10:45.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 30 min focused · T2: 1h focused · T3: 1h30 focused · T4: 2h deep work</div>
+  </div>
+  <span class="h-pts">4 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">3. 20-Min Walk + Postpartum Check</div>
+    <div class="h-desc">Daily walk. Pelvic floor/core work if indicated. B12 + TSH tested. This is the 4-month window.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 10 min walk · T2: 15 min + stretches · T3: 20 min brisk · T4: 20 min + pelvic floor exercises</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Midday System · 10:45–15:00</h3>
+<div class="rows">
+
+<div class="habit-row acc s">
+  <div>
+    <div class="h-name">4. Shaarvi Care — Feed, Floor Play, Outdoor Naming</div>
+    <div class="h-desc">Feed on cue, floor play on firm mat, carry outdoors naming what she looks at. Novelty in ordinary settings.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Responsive feeding · T2: + 10 min floor play · T3: + outdoor naming walk · T4: + tummy time tracking 30–60 min/day</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">5. Block B — Light Work (1h)</div>
+    <div class="h-desc">Afternoon nap window. Admin, client comms, applications — the lighter half.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 15 min admin · T2: 30 min · T3: 45 min · T4: 1h structured</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Evening & Night System · 18:30–05:00</h3>
+<div class="rows">
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">6. 18:30 Hard Stop — Floor Play with Shaarvi</div>
+    <div class="h-desc">Both parents on floor. Turn-taking #2. Peekaboo. Phones in another room.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">Same as Ashish — shared sync point</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">7. Family Walk + Dinner Together</div>
+    <div class="h-desc">Where the two of you actually talk. Protein-heavy dinner.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">Same as Ashish — shared sync point</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">8. Night Watch — Feeds & Settling</div>
+    <div class="h-desc">Respond to every cry fast and warmly. Repaid by protected morning sleep and Saturday afternoon.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Responsive · T2: + wind-down routine · T3: + sleep environment optimised · T4: + gradual night-weaning prep (when paed-approved)</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Nutrition & Health · All Day</h3>
+<div class="rows">
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">9. Protein at Every Meal + Iron Protocol</div>
+    <div class="h-desc">Same as Ashish — dal/paneer/rajma/curd. Ghee + lemon/amla. No tea after meals.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Protein at 2 meals · T2: At all 3 · T3: + iron pairing · T4: + tracked macros</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">10. Nursing Supplements — B12 + DHA + D3</div>
+    <div class="h-desc">B12 per test result, algal DHA, vitamin D, iron if indicated. Shaarvi's status IS Jyoti's status.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: B12 daily · T2: + D3 · T3: + algal DHA · T4: Full stack + iron if indicated</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">11. Limit Phone / Zero Screens Near Shaarvi</div>
+    <div class="h-desc">Every minute of screen displaces a minute of turn-taking. Phone face-down at meals.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">Same tiers as Ashish — synced rule</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">12. 3L Water + No Tea After Meals</div>
+    <div class="h-desc">Hydration for nursing. Tea blocks iron — both for Jyoti and through milk for Shaarvi.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 2L · T2: 2.5L · T3: 3L · T4: 3L + no tea within 1h of meals</div>
+  </div>
+  <span class="h-pts">1 pt</span>
+</div>
+</div>
+
+<h3>Career Track · Progressive</h3>
+<div class="rows">
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">13. Track Progress — Skill Building</div>
+    <div class="h-desc">Whichever track chosen: delivery lead, own profession, or learnable skill. Measurable weekly progress.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Define track · T2: First deliverable · T3: First ₹ earned · T4: ₹60K+/month</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">14. Own Entity — Invoices & Accounts</div>
+    <div class="h-desc">Not a line inside Ashish's business. Separate current account, GST, her invoices.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Open account · T2: GST registered · T3: First invoice sent · T4: Monthly invoicing routine</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<h3>Weekly Rituals</h3>
+<div class="rows">
+
+<div class="habit-row acc j">
+  <div>
+    <div class="h-name">15. Saturday Afternoon Block — 3h, Hers</div>
+    <div class="h-desc">16:00–19:00. Leave the house if she wants. Ashish on full Shaarvi duty. Non-negotiable.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 1h protected · T2: 2h · T3: 3h full · T4: 3h + out of house</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">16. Sunday Board Meeting</div>
+    <div class="h-desc">Same meeting as Ashish. Her numbers, her track progress, her sleep reported.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">Shared sync point — same tiers as Ashish</div>
+  </div>
+  <span class="h-pts">3 pts</span>
+</div>
+
+<div class="habit-row acc f">
+  <div>
+    <div class="h-name">17. Sunday Batch Cooking (2h, both)</div>
+    <div class="h-desc">Dal, sabzi bases, soaked nuts/seeds portioned, chilla batter. Not a chore — infrastructure.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: 30 min prep · T2: 1h basics · T3: 1h30 full prep · T4: 2h full batch + portioned freezer</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+
+<div class="habit-row acc s">
+  <div>
+    <div class="h-name">18. Shaarvi Monthly Report (29th)</div>
+    <div class="h-desc">Growth, milestones, supplements, turn-taking, mood, the "us" section. 10 minutes, every month.</div>
+    <div class="h-prog">
+      <span class="prog-dot current">T1</span>
+      <span class="prog-dot">T2</span>
+      <span class="prog-dot">T3</span>
+      <span class="prog-dot">T4</span>
+    </div>
+    <div class="h-time">T1: Quick notes · T2: Half the template · T3: Full template · T4: Full + photo + paed questions</div>
+  </div>
+  <span class="h-pts">2 pts</span>
+</div>
+</div>
+
+<div class="note j">
+  <span class="eyebrow">Jyoti's daily max</span>
+  <p><strong>Full Day: 34 points possible.</strong> Target: 27+ (79%). Half Day: 24 points possible, target 19+. Floor Day: 12 points — Shaarvi care + night watch + sleep + supplements.</p>
+</div>
+
+<hr class="rule">
+</section>
+
+<!-- ════════ SYNC POINTS ════════ -->
+<section class="part" id="sync">
+<div class="part-head">
+  <span class="part-num">Alignment Map</span>
+  <h2>12 daily sync points</h2>
+</div>
+<p class="lede">Where Ashish and Jyoti's tracks meet. These are the load-bearing joints — if one person's habit slips here, both tracks feel it.</p>
+
+<div class="rows">
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-s"></i></div><p><strong>05:00–08:00</strong> — Ashish wakes, works, exercises, owns Shaarvi. Jyoti sleeps. <em>If Ashish sleeps in, Jyoti's recovery block breaks.</em></p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i><i class="dot d-s"></i></div><p><strong>08:00</strong> — Breakfast together, phones face-down. Tier declared out loud. The day's contract.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-j"></i><i class="dot d-s"></i></div><p><strong>08:45</strong> — Jyoti's Block A starts. Help or grandparent must be present. <em>No help = no block = week fails.</em></p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i><i class="dot d-s"></i></div><p><strong>13:00</strong> — Lunch together. 20-20-20 eye break. Iron-paired meal.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i><i class="dot d-s"></i></div><p><strong>18:30</strong> — Hard stop. Both on floor with Shaarvi. Phones gone. <em>The single most important sync.</em></p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i></div><p><strong>19:15</strong> — Family walk. Where the marriage lives. Then dinner together.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-s"></i></div><p><strong>20:30</strong> — Ashish owns bedtime. Book → diya → shloka → dark room. Same order, always.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-j"></i><i class="dot d-s"></i></div><p><strong>21:00+</strong> — Jyoti holds night watch. Ashish sleeps. Non-negotiable 7h floor.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i></div><p><strong>Friday 18:30</strong> — Date night. Zero code. The marriage is the load-bearing wall.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-s"></i></div><p><strong>Saturday 16:00–19:00</strong> — Ashish on full solo Shaarvi duty. Jyoti's marathon. Cancelling hers while keeping his ends the plan.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i></div><p><strong>Sunday 09:00</strong> — Board meeting. 45 min. 6 questions. The engine of the system.</p></div>
+  <div class="sync"><div class="dot-pair"><i class="dot d-a"></i><i class="dot d-j"></i></div><p><strong>Sunday 12:00</strong> — Batch cooking together. Week's infrastructure. A week without prepped food is a week of Floor Days.</p></div>
+</div>
+</section>
+
+<hr class="rule">
+
+<!-- ════════ PROGRESSIVE TIMELINE ════════ -->
+<section class="part" id="timeline">
+<div class="part-head">
+  <span class="part-num">Progressive Timeline</span>
+  <h2>26 weeks, four phases</h2>
+</div>
+<p class="lede">Start at the floor. Graduate each habit when it's automatic. By week 26, you're running the full system without thinking — that's what atomic habits means.</p>
+
+<div class="phase-bar"><div class="p1"></div><div class="p2"></div><div class="p3"></div></div>
+
+<div class="tl-grid cols-4">
+  <div class="tl-card phase-1">
+    <span class="week">Weeks 1–2 · Floor</span>
+    <h4>Tier 1 Everything</h4>
+    <p>Every habit at its minimum. Wake 05:30. Deep Block 30 min. 10 min stretch. 2 touches/day. The only goal: don't miss two days in a row. Build the streaks.</p>
+  </div>
+  <div class="tl-card phase-1">
+    <span class="week">Weeks 3–6 · Foundation</span>
+    <h4>Tier 2 Core Habits</h4>
+    <p>Morning system → Tier 2. Wake 05:15. Deep Block 1h. Boxing 15 min. 3 touches/day. Evening and nutrition stay Tier 1. Graduate habits one at a time, not all at once.</p>
+  </div>
+  <div class="tl-card phase-2">
+    <span class="week">Weeks 7–14 · Standard</span>
+    <h4>Tier 3 Full System</h4>
+    <p>This is the household plan as written. 05:00 wake. 1h30 deep block. 30 min boxing. 5 touches/day. Full evening routine. All nutrition protocols. First contracts landing.</p>
+  </div>
+  <div class="tl-card phase-3">
+    <span class="week">Weeks 15–26 · Mastery</span>
+    <h4>Tier 4 Optimised</h4>
+    <p>Everything automatic. 04:45 travel days. 1h45 deep block. 30 min + 5K. 5 touches + warm follow-ups. Financial dashboard. ₹9L/month run-rate territory.</p>
+  </div>
+</div>
+
+<h3>Income targets aligned to phases</h3>
+<div class="rows">
+  <div class="rc acc g"><div class="rc-top"><h4>Phase 1 · Weeks 1–6</h4><span class="tag t-g">₹0–1L/mo</span></div><p>Assets built. Applications submitted. First 8 testimonials. GST + LUT live. Jyoti's track chosen. <strong>No income pressure yet.</strong></p></div>
+  <div class="rc acc g"><div class="rc-top"><h4>Phase 2 · Weeks 7–14</h4><span class="tag t-g">₹1–4L/mo</span></div><p>First international retainer ≥$40/hr. Jyoti earning ≥₹60K. Combined ≥₹4L. Pipeline: 5 live conversations.</p></div>
+  <div class="rc acc g"><div class="rc-top"><h4>Phase 3 · Weeks 15–26</h4><span class="tag t-g">₹4–9L/mo</span></div><p>Combined ≥₹9L for 2 consecutive months. Second retainer above first's rate. 6 months reserve. Exit decision evaluated.</p></div>
+</div>
+
+<h3>Shaarvi's milestones aligned to phases</h3>
+<div class="rows">
+  <div class="rc acc s"><div class="rc-top"><h4>Week 2 · 29 Aug</h4><span class="tag t-s">Nishkramaṇa</span></div><p>First formal outing. Keep it short, early. Does not move for any client.</p></div>
+  <div class="rc acc s"><div class="rc-top"><h4>Week 10 · Late Oct</h4><span class="tag t-s">6-month vaccines</span></div><p>Growth check. Iron becomes the priority from here.</p></div>
+  <div class="rc acc s"><div class="rc-top"><h4>Week 10 · 29 Oct</h4><span class="tag t-s">Annaprāśana</span></div><p>First solids. Kheer. Annapūrṇe shloka begins. Iron-focused feeding starts.</p></div>
+  <div class="rc acc s"><div class="rc-top"><h4>Monthly · 29th</h4><span class="tag t-s">Shaarvi's Report</span></div><p>Growth, milestones, supplements, turn-taking, mood. The "us" section isn't filler.</p></div>
+</div>
+</section>
+
+<hr class="rule">
+
+<!-- ════════ HABUILT INTEGRATION ════════ -->
+<section class="part" id="habuilt">
+<div class="part-head">
+  <span class="part-num">Habuilt Integration</span>
+  <h2>Track it all at habuilt.com</h2>
+</div>
+<p class="lede">The Habuilt app now carries preset habits for both Ashish and Jyoti. Log in → your habits are pre-loaded → check off daily → watch the compound curve. Weekly review built in.</p>
+
+<div class="note">
+  <span class="eyebrow">How to use</span>
+  <p><strong>Ashish's account</strong> loads 22 habits (41 pts/day max). <strong>Jyoti's account</strong> loads 18 habits (34 pts/day max). Both see shared habits marked with ★. The weekly review (already in Habuilt) maps to the Sunday board meeting agenda. Rewards are calibrated to the points economy.</p>
+  <p>The habit editor in Habuilt lets you adjust tiers as you graduate — rename "30 min Deep Block" to "1h Deep Block" when you move from Tier 1 to Tier 2. <strong>One graduation per week maximum.</strong> The 1% is literal — don't jump tiers.</p>
+</div>
+
+<h3>The compound math in Habuilt</h3>
+<div class="rows">
+  <div class="rc"><div class="rc-top"><h4>Stickiness %</h4></div><p>Already tracked in Habuilt. This IS your compound rate. 80% stickiness = you're hitting the 1% curve. Below 70% for two weeks = simplify, don't push harder.</p></div>
+  <div class="rc"><div class="rc-top"><h4>Weekly Points</h4></div><p>Ashish target: 224/week (32/day × 7). Jyoti target: 189/week (27/day × 7). Adjusted for Half/Floor days automatically.</p></div>
+  <div class="rc"><div class="rc-top"><h4>Monthly Trend</h4></div><p>The real metric. Month-over-month points should climb ~30% as you graduate tiers. Flat = stuck. Dropping = burnout signal.</p></div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="wrap">
+  <span class="eyebrow">Progressive Habits System · August 2026</span>
+  <p>Built from <strong>The Household Plan (Rev 3)</strong> and <strong>Shaarvi's Growth Companion</strong>, mapped to progressive tiers using atomic habits methodology. Tracked in <strong>Habuilt</strong> at habuilt.com.</p>
+  <p style="font-size:12.5px;color:rgba(238,240,245,.5);margin-top:18px">This is a system document, not medical or financial advice. The B12 test, supplements, and postpartum checks should be confirmed with your doctor. Tax structure should be confirmed with your CA. The only thing that's certain: 1.01^365 = 37.78.</p>
+</div>
+</footer>
+
+</body>
+</html>

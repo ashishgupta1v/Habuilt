@@ -17,6 +17,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  userEmail: {
+    type: String,
+    default: '',
+  },
   wallet: {
     type: Number,
     default: 0,
@@ -76,21 +80,76 @@ const page = usePage();
 const localHabits = ref([]);
 const pendingCells = ref({});
 
-const fallbackHabits = [
-  { id: 'fallback-1', name: '4:00 AM Wake Up & Hydrate', points: 3 },
-  { id: 'fallback-2', name: 'Exercise (HIIT)', points: 2 },
-  { id: 'fallback-3', name: 'Deep Work Marathon', points: 3 },
-  { id: 'fallback-4', name: 'Care Protocol + Juice/Tea', points: 1 },
-  { id: 'fallback-5', name: 'Office Work', points: 1 },
-  { id: 'fallback-6', name: '20-20-20 Eye Breaks (Health)', points: 1 },
-  { id: 'fallback-7', name: 'Exercise & DHT Rinse (Stress/Hair)', points: 3 },
-  { id: 'fallback-8', name: 'Dinner Stop by 7:00 PM (Cure)', points: 2 },
-  { id: 'fallback-9', name: 'Limit Phone usage', points: 2 },
-  { id: 'fallback-10', name: 'Read 1 page of any book', points: 1 },
-  { id: 'fallback-11', name: 'Left-Side Sleep Rule (9:00 PM)', points: 1 },
+// ── Progressive Habits: Ashish's Track (22 habits, 41 pts/day max) ──
+const ashishHabits = [
+  // Morning System 05:00–08:30
+  { id: 'a-1',  name: '05:00 Wake-Up & Hydrate',                         points: 3 },
+  { id: 'a-2',  name: 'Deep Block 1 — Build & Ship (1h45)',              points: 4 },
+  { id: 'a-3',  name: 'Boxing — The Daily 30',                           points: 3 },
+  { id: 'a-4',  name: '★ Shaarvi Morning Watch — Turn-Taking #1',        points: 3 },
+  { id: 'a-5',  name: 'Groom & Cold Finish Shower',                      points: 1 },
+  // Work System 08:45–18:30
+  { id: 'a-6',  name: 'Job Performance — Full Intensity',                 points: 2 },
+  { id: 'a-7',  name: 'Daily Outbound Touches (5/day)',                   points: 3 },
+  { id: 'a-8',  name: '20-20-20 Eye Breaks + Posture',                   points: 1 },
+  { id: 'a-9',  name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
+  // Evening System 18:30–22:30
+  { id: 'a-10', name: '★ 18:30 Hard Stop — Laptop Closed',               points: 2 },
+  { id: 'a-11', name: '★ Family Walk + Dinner Together',                  points: 2 },
+  { id: 'a-12', name: '★ Shaarvi Bedtime Routine (Ashish Owns)',          points: 3 },
+  { id: 'a-13', name: 'Deep Block 2 — Pipeline & Admin (1h15)',           points: 2 },
+  { id: 'a-14', name: 'Sleep by 22:30 — 7h Floor',                       points: 3 },
+  // Nutrition & Health
+  { id: 'a-15', name: 'Protein Every Meal + Iron Protocol',               points: 2 },
+  { id: 'a-16', name: 'Supplements — B12, Omega-3, D3, Mg',              points: 1 },
+  { id: 'a-17', name: 'Hair & Stress Protocol (Scalp Rinse)',             points: 1 },
+  { id: 'a-18', name: 'Limit Phone / Zero Screens Near Shaarvi',          points: 2 },
+  // Weekly Rituals (tracked daily, reported Sunday)
+  { id: 'a-19', name: 'Build-in-Public Posts (2/week)',                    points: 2 },
+  { id: 'a-20', name: 'Saturday Build Marathon (4h)',                      points: 4 },
+  { id: 'a-21', name: '★ Sunday Board Meeting (45 min)',                   points: 3 },
+  { id: 'a-22', name: '10% Tax Transfer + Money Log',                     points: 2 },
 ];
 
+// ── Progressive Habits: Jyoti's Track (18 habits, 34 pts/day max) ──
+const jyotiHabits = [
+  // Morning System 08:00–11:00
+  { id: 'j-1',  name: 'Protected Sleep — 05:00 to 08:00',                points: 3 },
+  { id: 'j-2',  name: 'Block A — Deep Work (2h)',                        points: 4 },
+  { id: 'j-3',  name: '20-Min Walk + Postpartum Recovery',               points: 2 },
+  // Midday System 10:45–15:00
+  { id: 'j-4',  name: '★ Shaarvi Care — Feed, Floor Play, Naming',       points: 3 },
+  { id: 'j-5',  name: 'Block B — Light Work (1h)',                       points: 2 },
+  // Evening & Night
+  { id: 'j-6',  name: '★ 18:30 Hard Stop — Floor Play with Shaarvi',     points: 2 },
+  { id: 'j-7',  name: '★ Family Walk + Dinner Together',                  points: 2 },
+  { id: 'j-8',  name: 'Night Watch — Feeds & Settling',                   points: 2 },
+  // Nutrition & Health
+  { id: 'j-9',  name: 'Protein Every Meal + Iron Protocol',               points: 2 },
+  { id: 'j-10', name: 'Nursing Supplements — B12, DHA, D3',              points: 1 },
+  { id: 'j-11', name: 'Limit Phone / Zero Screens Near Shaarvi',          points: 2 },
+  { id: 'j-12', name: '3L Water + No Tea After Meals',                    points: 1 },
+  // Career Track
+  { id: 'j-13', name: 'Track Progress — Skill Building',                  points: 3 },
+  { id: 'j-14', name: 'Own Entity — Invoices & Accounts',                 points: 2 },
+  // Weekly Rituals
+  { id: 'j-15', name: 'Saturday Afternoon Block — 3h (Hers)',             points: 3 },
+  { id: 'j-16', name: '★ Sunday Board Meeting (45 min)',                   points: 3 },
+  { id: 'j-17', name: '★ Sunday Batch Cooking (2h, Both)',                 points: 2 },
+  { id: 'j-18', name: '★ Shaarvi Monthly Report (29th)',                   points: 2 },
+];
+
+// Select preset based on logged-in user email
+const isJyoti = computed(() => {
+  const email = (props.userEmail || '').toLowerCase();
+  return email.includes('jyoti') || email.includes('jyotigupta');
+});
+
+const fallbackHabits = computed(() => isJyoti.value ? jyotiHabits : ashishHabits);
+
 const darkMode = ref(false);
+const mobileViewMode = ref('daily'); // 'daily' | 'grid'
+const mobileSelectedDay = ref(props.currentDay);
 const focusDay = ref(props.currentDay);
 const focusTasksByDay = ref({});
 const newFocusTask = ref('');
@@ -140,10 +199,11 @@ const createDefaultWeeklyReview = () => ({
   },
   checks: [
     { text: 'I reviewed missed days and found one clear trigger.', done: false },
-    { text: 'My rewards were motivating enough to drive consistency.', done: false },
-    { text: 'I kept a minimum version of hard habits on busy days.', done: false },
-    { text: 'I removed at least one friction point for next week.', done: false },
-    { text: 'Sleep, reflux, and stress stayed manageable this week.', done: false },
+    { text: 'I declared tier (Full/Half/Floor) at breakfast every day.', done: false },
+    { text: 'Shaarvi blocks never shrank — they happened first.', done: false },
+    { text: '18:30 hard stop held — phones out of room.', done: false },
+    { text: 'Sleep stayed above 7h floor (or next day was Floor tier).', done: false },
+    { text: 'I graduated max one habit this week (1% rule).', done: false },
   ],
   reflections: {
     wins: '',
@@ -184,7 +244,7 @@ watch(
       return;
     }
 
-    localHabits.value = fallbackHabits.map(mapHabit);
+    localHabits.value = fallbackHabits.value.map(mapHabit);
   },
   { immediate: true },
 );
@@ -269,6 +329,34 @@ const getServerDayTotal = (day) => {
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const maxDailyPoints = computed(() => localHabits.value.reduce((sum, habit) => sum + habit.points, 0));
+
+// ── Mobile daily view helpers ──
+const mobileDay = computed(() => Math.max(1, Math.min(mobileSelectedDay.value, props.monthDays)));
+const mobileDayPoints = computed(() => getDayTotal(mobileDay.value));
+const mobileDayCompleted = computed(() =>
+  localHabits.value.filter((h) => h.completedDays.includes(mobileDay.value)).length
+);
+const mobileDayLabel = computed(() => {
+  const d = new Date(props.year, props.month - 1, mobileDay.value);
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+});
+const mobileDayIsToday = computed(() =>
+  props.isCurrentMonth && mobileDay.value === props.currentDay
+);
+const mobileDayIsFuture = computed(() => {
+  if (props.isFutureMonth) return true;
+  if (!props.isCurrentMonth) return false;
+  return mobileDay.value > props.currentDay;
+});
+const mobilePrevDay = () => {
+  if (mobileSelectedDay.value > 1) mobileSelectedDay.value--;
+};
+const mobileNextDay = () => {
+  if (mobileSelectedDay.value < props.monthDays) mobileSelectedDay.value++;
+};
+const mobileGoToday = () => {
+  mobileSelectedDay.value = props.currentDay;
+};
 const evaluatedDays = computed(() => {
   if (props.isFutureMonth) {
     return 0;
@@ -1407,7 +1495,78 @@ watch(darkMode, () => {
             No habits found yet. Refresh once seeding is complete.
           </div>
 
-          <div v-else class="habit-grid-wrap">
+          <template v-else>
+            <!-- ── View toggle (visible on mobile) ── -->
+            <div class="mobile-view-toggle">
+              <button
+                class="mobile-view-toggle__btn"
+                :class="{ 'mobile-view-toggle__btn--active': mobileViewMode === 'daily' }"
+                @click="mobileViewMode = 'daily'"
+              >Today</button>
+              <button
+                class="mobile-view-toggle__btn"
+                :class="{ 'mobile-view-toggle__btn--active': mobileViewMode === 'grid' }"
+                @click="mobileViewMode = 'grid'"
+              >Month Grid</button>
+            </div>
+
+            <!-- ── Mobile Daily Checklist ── -->
+            <div class="mobile-daily" :class="{ 'mobile-daily--hidden': mobileViewMode !== 'daily' }">
+              <!-- Day Navigator -->
+              <div class="mobile-daily__nav">
+                <button class="mobile-daily__nav-btn" :disabled="mobileDay <= 1" @click="mobilePrevDay">‹</button>
+                <div class="mobile-daily__nav-center">
+                  <button v-if="!mobileDayIsToday" class="mobile-daily__today-link" @click="mobileGoToday">Go to today</button>
+                  <span class="mobile-daily__nav-label" :class="{ 'mobile-daily__nav-label--today': mobileDayIsToday }">
+                    {{ mobileDayLabel }}
+                    <span v-if="mobileDayIsToday" class="mobile-daily__today-badge">TODAY</span>
+                  </span>
+                </div>
+                <button class="mobile-daily__nav-btn" :disabled="mobileDay >= props.monthDays || mobileDayIsFuture" @click="mobileNextDay">›</button>
+              </div>
+
+              <!-- Progress Summary -->
+              <div class="mobile-daily__progress">
+                <div class="mobile-daily__progress-bar">
+                  <div
+                    class="mobile-daily__progress-fill"
+                    :style="{ width: totalHabits > 0 ? (mobileDayCompleted / totalHabits * 100) + '%' : '0%' }"
+                  ></div>
+                </div>
+                <div class="mobile-daily__progress-stats">
+                  <span><strong>{{ mobileDayCompleted }}</strong>/{{ totalHabits }} habits</span>
+                  <span><strong>{{ mobileDayPoints }}</strong>/{{ maxDailyPoints }} pts</span>
+                </div>
+              </div>
+
+              <!-- Habit Cards -->
+              <div class="mobile-daily__list">
+                <button
+                  v-for="habit in localHabits"
+                  :key="'m-' + habit.id"
+                  class="mobile-daily__card"
+                  :class="{
+                    'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
+                    'mobile-daily__card--shared': habit.name.startsWith('★'),
+                  }"
+                  :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
+                  @click="toggleHabitForDay(habit, mobileDay)"
+                >
+                  <div class="mobile-daily__card-check">
+                    <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
+                    <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">✓</span>
+                    <span v-else class="mobile-daily__circle"></span>
+                  </div>
+                  <div class="mobile-daily__card-body">
+                    <span class="mobile-daily__card-name">{{ habit.name }}</span>
+                  </div>
+                  <span class="mobile-daily__card-pts">{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── Desktop Month Grid (hidden on mobile when daily view active) ── -->
+            <div class="habit-grid-wrap" :class="{ 'habit-grid-wrap--mobile-hidden': mobileViewMode === 'daily' }">
             <table class="habit-grid">
               <thead>
                 <tr>
@@ -1463,6 +1622,7 @@ watch(darkMode, () => {
               </tbody>
             </table>
           </div>
+          </template>
         </template>
 
       </section>
