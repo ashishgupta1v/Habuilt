@@ -153,7 +153,7 @@ const ashishHabits = [
   { id: 'a-5',  name: '07:00 Ship Something — Commit & Push',            points: 1 },
   { id: 'a-6',  name: '07:15 Boxing Training — 30 Min',                  points: 2 },
   { id: 'a-7',  name: '07:45 Post-Workout Stretch (5 min)',              points: 1 },
-  { id: 'a-8',  name: '07:55 ★ Shaarvi Morning Play — Turn-Taking',     points: 3 },
+  { id: 'a-8',  name: '07:40 ★ Shaarvi Watch — Abhyanga + Turn-Taking (45 min)', points: 3 },
   { id: 'a-9',  name: '08:20 Cold Finish Shower',                        points: 1 },
   { id: 'a-10', name: '08:30 Groom + Skincare',                          points: 1 },
   // ── WORK 08:45–18:30 (8 micro-steps) ──
@@ -168,11 +168,11 @@ const ashishHabits = [
   // ── EVENING 18:30–22:30 (9 micro-steps) ──
   { id: 'a-19', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2 },
   { id: 'a-20', name: '18:35 Phone in Drawer',                           points: 1 },
-  { id: 'a-21', name: '★ 18:45 Family Walk (15 min)',                    points: 1 },
-  { id: 'a-22', name: '★ 19:00 Dinner Together — No Phones',             points: 1 },
-  { id: 'a-23', name: '★ 19:30 Shaarvi Bedtime — Story + Routine',      points: 3 },
-  { id: 'a-24', name: '20:00 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
-  { id: 'a-25', name: '21:15 Review & Plan Tomorrow',                    points: 1 },
+  { id: 'a-21', name: '★ 19:15 Family Walk (20 min)',                    points: 1 },
+  { id: 'a-22', name: '★ 19:35 Dinner Together — No Phones',             points: 1 },
+  { id: 'a-23', name: '★ 20:30 Shaarvi Bedtime — Diya + Story + Routine', points: 3 },
+  { id: 'a-24', name: '21:15 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
+  { id: 'a-25', name: '22:15 Review & Plan Tomorrow',                    points: 1 },
   { id: 'a-26', name: '22:00 Wind-Down — No Screens',                    points: 1 },
   { id: 'a-27', name: '22:30 Lights Out — 7h Sleep Floor',               points: 2 },
   // ── HEALTH & DAILY (9 micro-steps) ──
@@ -192,6 +192,15 @@ const ashishHabits = [
   { id: 'a-40', name: '★ Sunday Board Meeting (45 min)',                  points: 3 },
   { id: 'a-41', name: '10% Tax Transfer',                                points: 1 },
   { id: 'a-42', name: 'Money Log — Income & Expense',                    points: 1 },
+  // ── PLAN ALIGNMENT: additional habits from household plan ──
+  { id: 'a-43', name: '★ 18:35 Shaarvi Floor Play — Turn-Taking #2 (40 min)', points: 3 },
+  { id: 'a-44', name: '★ Friday Date Night — No Deep Block 2',          points: 2 },
+  { id: 'a-45', name: 'Discovery Calls — 2/Week',                       points: 2 },
+  { id: 'a-46', name: 'Testimonials — Request 2/Week',                  points: 1 },
+  { id: 'a-47', name: 'Spoken Practice — Record Explanation (2/Week)',   points: 1 },
+  { id: 'a-48', name: 'Saturday Admin — Invoices, Pipeline, Prep (45 min)', points: 2 },
+  { id: 'a-49', name: 'Sunday Batch Block — Record & Schedule Posts (2h)', points: 2 },
+  { id: 'a-50', name: '★ Sunday Batch Cooking — Both (2h)',              points: 2 },
 ];
 
 // ── Progressive Habits: Jyoti's Track — Micro-Detail (34 activities, time-sequenced) ──
@@ -250,7 +259,7 @@ const ashishTierDescriptions = {
   'a-5':  ['Note what to ship', 'Stage a commit', 'Push code / content', 'Ship + announce'],
   'a-6':  ['10 min movement', '20 min exercise', '30 min boxing', '30 min + sparring drills'],
   'a-7':  ['Quick stretch', '3 min stretch', '5 min full stretch', '5 min + foam roll'],
-  'a-8':  ['10 min with Shaarvi', '15 min turn-taking', '20 min structured', '20 min + milestone'],
+  'a-8':  ['10 min play', '20 min turn-taking', '30 min abhyanga + play', '45 min abhyanga + turn-taking + shloka'],
   'a-9':  ['Warm shower', 'Cool rinse finish', 'Cold finish 30s', 'Full cold shower'],
   'a-10': ['Basic hygiene', 'Groom clean', 'Groom + skincare', 'Full skincare routine'],
   'a-11': ['Show up, basics done', 'Meet expectations', 'High intensity', 'Top performer output'],
@@ -263,9 +272,9 @@ const ashishTierDescriptions = {
   'a-18': ['Skim notes', 'Quick review', 'Written review', 'Review + next actions'],
   'a-19': ['Stop by 20:00', 'Stop by 19:30', '18:30 hard stop', '18:30 non-negotiable'],
   'a-20': ['Phone on silent', 'Phone face-down', 'Phone in drawer', 'Phone off + drawer'],
-  'a-21': ['5 min walk', '10 min walk', '15 min family walk', '15 min + no phones'],
+  'a-21': ['5 min walk', '10 min walk', '20 min family walk', '20 min + no phones'],
   'a-22': ['Eat together', 'Eat + talk', 'Dinner no phones', 'Dinner + gratitude share'],
-  'a-23': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Routine + story time'],
+  'a-23': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Diya + story + shloka + settle'],
   'a-24': ['15 min admin', '30 min pipeline', '1h15 deep block', '1h15 + follow-ups sent'],
   'a-25': ['Glance at calendar', 'List 3 priorities', 'Full plan + prep', 'Plan + pre-work done'],
   'a-26': ['Reduce screens 30m', 'No screens 9:30pm', 'No screens 10pm', '10pm + reading only'],
@@ -285,6 +294,14 @@ const ashishTierDescriptions = {
   'a-40': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
   'a-41': ['Note amount', 'Calculate 10%', 'Transfer 10%', 'Transfer + auto-invest'],
   'a-42': ['Glance at bank', 'Log 1 entry', 'Full income/expense log', '+ budget review'],
+  'a-43': ['10 min floor play', '20 min floor play', '40 min turn-taking #2', '40 min + developmental focus'],
+  'a-44': ['No work after 20:00 Fri', 'No work after 19:00 Fri', 'No code after 18:30 Fri', 'Date night planned'],
+  'a-45': ['Note 1 prospect', '1 call/week', '2 calls/week', '2 calls + follow-ups booked'],
+  'a-46': ['Identify 1 past client', 'Draft 1 request', '2 requests sent', '2 sent + follow-ups'],
+  'a-47': ['Think through topic', 'Outline verbally', '1 recording/week', '2 recordings + posted'],
+  'a-48': ['Check invoices', 'Update pipeline', 'Full 45-min admin session', '+ week prep done'],
+  'a-49': ['Draft 1 post', 'Record 1 post', '2h batch session', '2h + scheduled for week'],
+  'a-50': ['Help with 1 dish', 'Prep 2 items', '2h full batch cook', '2h + variety + freezer stock'],
 };
 
 const jyotiTierDescriptions = {
@@ -324,44 +341,80 @@ const jyotiTierDescriptions = {
   'j-34': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
 };
 
-// ── Ashish Travel Mode (Chandigarh) — lighter set, 14 habits ──
+// ── Ashish Travel Mode (Chandigarh) — Micro-Detail (31 activities, time-sequenced) ──
+// Schedule: leave 06:30, 3h drive, office 09:30-13:00, return 13:00-16:00, home 16:00
 const ashishTravelHabits = [
-  // Morning (lighter — no boxing gym access)
-  { id: 'at-1',  name: '06:00 Wake-Up & Hydrate',                        points: 2 },
-  { id: 'at-2',  name: 'Deep Block — Build & Ship (1h)',                  points: 3 },
-  { id: 'at-3',  name: '30-Min Walk / Bodyweight Movement',               points: 2 },
-  { id: 'at-4',  name: '★ Shaarvi Video Call / Play (15 min)',             points: 3 },
-  // Work
-  { id: 'at-5',  name: 'Job Performance — Remote Intensity',              points: 2 },
-  { id: 'at-6',  name: 'Daily Outbound Touches (3/day)',                   points: 2 },
-  { id: 'at-7',  name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
-  // Evening
-  { id: 'at-8',  name: '19:00 Hard Stop — Family Time',                   points: 2 },
-  { id: 'at-9',  name: 'Family Walk + Dinner Together',                   points: 2 },
-  { id: 'at-10', name: 'Sleep by 23:00 — 7h Floor',                       points: 2 },
-  // Health & Essentials
-  { id: 'at-11', name: 'Protein Every Meal + Supplements',                points: 2 },
-  { id: 'at-12', name: 'Limit Phone — No Doom Scrolling',                 points: 1 },
-  // Weekly (still tracked)
-  { id: 'at-13', name: 'Build-in-Public Post (1/week)',                    points: 2 },
-  { id: 'at-14', name: '★ Sunday Board Meeting Call (30 min)',             points: 3 },
+  // ── PRE-DEPARTURE 05:00–06:30 (6 micro-steps) ──
+  { id: 'at-1',  name: '05:00 Alarm — Out of Bed',                        points: 1 },
+  { id: 'at-2',  name: '05:05 Hydrate — 500ml Water + Lemon',             points: 1 },
+  { id: 'at-3',  name: '05:10 Breathwork (5 min)',                         points: 1 },
+  { id: 'at-4',  name: '05:15 Deep Block 1 — Build & Ship (1h)',          points: 3 },
+  { id: 'at-5',  name: '06:15 ★ Shaarvi Morning — Turn-Taking (15 min)',  points: 3 },
+  { id: 'at-6',  name: '06:30 Leave for Chandigarh',                      points: 1 },
+  // ── OUTBOUND DRIVE 06:30–09:30 (2 micro-steps) ──
+  { id: 'at-7',  name: 'Outbound Drive — Audio Learning / Spoken Practice', points: 2 },
+  { id: 'at-8',  name: 'Record Spoken Explanation (5 min)',                 points: 1 },
+  // ── OFFICE 09:30–13:00 (4 micro-steps) ──
+  { id: 'at-9',  name: '09:30 Office — In-Person Intensity',              points: 2 },
+  { id: 'at-10', name: 'Outbound Touches — 5 Personalized',               points: 2 },
+  { id: 'at-11', name: '20-20-20 Eye Breaks + Posture',                   points: 1 },
+  { id: 'at-12', name: 'Coffee Chats — Relationships & Visibility',       points: 1 },
+  // ── RETURN DRIVE 13:00–16:00 (2 micro-steps) ──
+  { id: 'at-13', name: '13:00 Return Drive — Client Calls / Pipeline',    points: 2 },
+  { id: 'at-14', name: 'Follow-Ups on Previous Touches',                  points: 1 },
+  // ── EVENING 16:00–21:30 (9 micro-steps) ──
+  { id: 'at-15', name: '16:00 Home — Shower + Decompress',                points: 1 },
+  { id: 'at-16', name: '★ 16:30 Shaarvi Play — Turn-Taking #2 (30 min)', points: 3 },
+  { id: 'at-17', name: '17:00 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
+  { id: 'at-18', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2 },
+  { id: 'at-19', name: '18:35 Phone in Drawer',                           points: 1 },
+  { id: 'at-20', name: '★ 18:45 Family Walk (20 min)',                    points: 1 },
+  { id: 'at-21', name: '★ 19:15 Dinner Together — No Phones',             points: 1 },
+  { id: 'at-22', name: '★ 20:30 Shaarvi Bedtime — Diya + Story',         points: 3 },
+  { id: 'at-23', name: '21:30 Lights Out — Recovery Sleep',               points: 2 },
+  // ── HEALTH & DAILY (8 micro-steps) ──
+  { id: 'at-24', name: 'Breakfast — Protein + Iron (before leaving)',     points: 1 },
+  { id: 'at-25', name: 'Lunch — Protein + Iron (at office)',              points: 1 },
+  { id: 'at-26', name: 'Dinner — Protein + Iron',                         points: 1 },
+  { id: 'at-27', name: 'Supplements — B12, Omega-3, D3, Mg',             points: 1 },
+  { id: 'at-28', name: '3L Water Intake',                                 points: 1 },
+  { id: 'at-29', name: 'Scalp Rinse + Hair Protocol',                     points: 1 },
+  { id: 'at-30', name: 'Zero Screens Near Shaarvi',                       points: 2 },
+  { id: 'at-31', name: 'Track Sleep Duration',                            points: 1 },
 ];
 
 const ashishTravelTierDescriptions = {
-  'at-1':  ['Wake by 07:00', 'Wake by 06:30', 'Wake by 06:00 + hydrate', '06:00 + breathwork'],
-  'at-2':  ['30 min build', '45 min build', '1h deep block', '1h deep + ship'],
-  'at-3':  ['10 min stretch', '15 min walk', '30 min walk/bodyweight', '30 min + yoga'],
-  'at-4':  ['Quick video call', '10 min call', '15 min video play', '15 min + milestone check'],
-  'at-5':  ['Show up, basics', 'Meet expectations', 'High intensity remote', 'Top output'],
-  'at-6':  ['1 touch', '2 touches', '3 touches', '3 personalized + follow-ups'],
-  'at-7':  ['Note 1 idea', '15 min pipeline', '30 min stealth', '30 min + review'],
-  'at-8':  ['Stop by 20:00', 'Stop by 19:30', '19:00 hard stop', '19:00 + phone away'],
-  'at-9':  ['Eat together', '+ short walk', 'Full walk + dinner', '+ no phones'],
-  'at-10': ['Bed by midnight', 'Bed by 23:30', 'Sleep by 23:00', '23:00 + wind-down'],
-  'at-11': ['Protein 1 meal', '2 meals', 'Every meal + supps', '+ track macros'],
-  'at-12': ['Reduce 30 min', '1h phone-free', '2h phone-free', 'Minimal scrolling'],
-  'at-13': ['1 post/week', '1 post + engage', '1 quality post', '1 post + community'],
-  'at-14': ['Quick sync', '20 min review', '30 min board call', '+ action items'],
+  'at-1':  ['Wake by 06:00', 'Wake by 05:30', 'Wake by 05:00', '05:00 sharp every day'],
+  'at-2':  ['Glass of water', '300ml water', '500ml + lemon', '500ml + lemon + electrolytes'],
+  'at-3':  ['1 min deep breaths', '3 min breathwork', '5 min meditation', '5 min + intention set'],
+  'at-4':  ['20 min build work', '30 min build work', '1h deep block', '1h + ship daily'],
+  'at-5':  ['5 min with Shaarvi', '10 min turn-taking', '15 min structured play', '15 min + shloka'],
+  'at-6':  ['Leave on time', 'Leave by 06:40', 'Leave by 06:30', '06:30 sharp + bag prepped night before'],
+  'at-7':  ['Music / podcast', 'Technical audio', 'Spoken practice aloud', 'Practice + record clip'],
+  'at-8':  ['Think through topic', 'Outline verbally', 'Record 3-min clip', 'Record 5-min + post notes'],
+  'at-9':  ['Show up, basics', 'Meet expectations', 'High intensity in-person', 'Top output + visibility'],
+  'at-10': ['1 outbound touch', '3 touches', '5 personalized', '5 + tailored follow-ups'],
+  'at-11': ['1 eye break', '3 breaks', 'Every 20 min', 'Every 20 min + standing'],
+  'at-12': ['Quick hello', '1 meaningful chat', '2 relationship chats', 'Strategic networking'],
+  'at-13': ['Listen to audio', 'Review pipeline notes', 'Client calls scheduled', 'Calls + follow-up notes'],
+  'at-14': ['Check for replies', 'Reply to 1', 'Reply all pending', 'Reply + re-engage cold'],
+  'at-15': ['Quick change', 'Shower + change', 'Full shower + decompress', '+ scalp rinse'],
+  'at-16': ['10 min play', '15 min play', '30 min turn-taking', '30 min + milestone check'],
+  'at-17': ['15 min admin', '30 min pipeline', '1h15 deep block', '1h15 + follow-ups sent'],
+  'at-18': ['Stop by 19:30', 'Stop by 19:00', '18:30 hard stop', '18:30 non-negotiable'],
+  'at-19': ['Phone on silent', 'Phone face-down', 'Phone in drawer', 'Phone off + drawer'],
+  'at-20': ['5 min walk', '10 min walk', '20 min family walk', '20 min + no phones'],
+  'at-21': ['Eat together', 'Eat + talk', 'Dinner no phones', 'Dinner + gratitude share'],
+  'at-22': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Diya + story + shloka'],
+  'at-23': ['Bed by 23:00', 'Bed by 22:00', 'Sleep by 21:30', '21:30 + wind-down ritual'],
+  'at-24': ['Eat breakfast', 'Add protein', 'Protein + iron source', '+ meal prep'],
+  'at-25': ['Eat lunch', 'Add protein', 'Protein + iron source', '+ balanced macros'],
+  'at-26': ['Eat dinner', 'Add protein', 'Protein + iron source', '+ portion control'],
+  'at-27': ['Take 1 supplement', 'B12 + D3', 'Full stack daily', 'Full stack + track levels'],
+  'at-28': ['1L water', '2L water', '3L water', '3L + electrolytes'],
+  'at-29': ['Skip harmful products', 'Basic scalp wash', 'Full rinse protocol', '+ DHT blocker'],
+  'at-30': ['Reduce screen 30m', '1h phone-free', '2h phone-free', 'Zero screens near Shaarvi'],
+  'at-31': ['Note sleep time', 'Log hours', 'Track duration + quality', '+ sleep score'],
 };
 
 // ── Progressive Phases ──
@@ -906,19 +959,18 @@ const getHabitTimeSlot = (habit) => {
   const id = habit.id || '';
   const name = habit.name.toLowerCase();
 
-  // Ashish regular habits by ID (micro-detail: a-1..a-42)
+  // Ashish regular habits by ID (micro-detail: a-1..a-50)
   if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10'].includes(id)) return 'morning';
   if (['a-11','a-12','a-13','a-14','a-15','a-16','a-17','a-18'].includes(id)) return 'work';
-  if (['a-19','a-20','a-21','a-22','a-23','a-24','a-25','a-26','a-27'].includes(id)) return 'evening';
+  if (['a-19','a-20','a-21','a-22','a-23','a-24','a-25','a-26','a-27','a-43'].includes(id)) return 'evening';
   if (['a-28','a-29','a-30','a-31','a-32','a-33','a-34','a-35','a-36'].includes(id)) return 'anytime';
-  if (['a-37','a-38','a-39','a-40','a-41','a-42'].includes(id)) return 'weekly';
+  if (['a-37','a-38','a-39','a-40','a-41','a-42','a-44','a-45','a-46','a-47','a-48','a-49','a-50'].includes(id)) return 'weekly';
 
-  // Ashish travel habits
-  if (id === 'at-1' || id === 'at-2' || id === 'at-3' || id === 'at-4') return 'morning';
-  if (id === 'at-5' || id === 'at-6' || id === 'at-7') return 'work';
-  if (id === 'at-8' || id === 'at-9' || id === 'at-10') return 'evening';
-  if (id === 'at-11' || id === 'at-12') return 'anytime';
-  if (id === 'at-13' || id === 'at-14') return 'weekly';
+  // Ashish travel habits (micro-detail: at-1..at-31)
+  if (['at-1','at-2','at-3','at-4','at-5','at-6'].includes(id)) return 'morning';
+  if (['at-7','at-8','at-9','at-10','at-11','at-12','at-13','at-14'].includes(id)) return 'work';
+  if (['at-15','at-16','at-17','at-18','at-19','at-20','at-21','at-22','at-23'].includes(id)) return 'evening';
+  if (['at-24','at-25','at-26','at-27','at-28','at-29','at-30','at-31'].includes(id)) return 'anytime';
 
   // Jyoti habits by ID (micro-detail: j-1..j-34)
   if (['j-1','j-2','j-3','j-4','j-5','j-6','j-7','j-8'].includes(id)) return 'morning';
