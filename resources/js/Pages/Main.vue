@@ -42,6 +42,16 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
+const isUserJyoti = computed(() => {
+  const email = (activeUser.value?.email || '').toLowerCase();
+  return email.includes('jyoti') || email.includes('jyotigupta');
+});
+
+const userInitial = computed(() => {
+  if (!activeUser.value?.email) return 'U';
+  return activeUser.value.email.charAt(0).toUpperCase();
+});
+
 const handleNavigateMonth = (monthOffset) => {
   let newMonth = month.value + monthOffset;
   let newYear = year.value;
@@ -86,16 +96,24 @@ onMounted(async () => {
               <div class="app-nav__logo-icon">
                 <LayoutDashboard class="icon-brand" />
               </div>
-              <span class="app-nav__brand-text">Habuilt</span>
+              <div class="app-nav__brand-info">
+                <span class="app-nav__brand-text">Habuilt</span>
+                <span class="app-nav__brand-tag">PRO</span>
+              </div>
             </div>
 
             <div class="app-nav__right">
-              <div class="user-badge">
-                <User class="icon-sm" />
+              <div class="user-badge" :title="activeUser.email">
+                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : 'user-avatar--ashish'">
+                  {{ userInitial }}
+                </div>
                 <span class="user-badge__text">{{ activeUser.email }}</span>
+                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : 'user-track-pill--ashish'">
+                  {{ isUserJyoti ? 'Jyoti Track' : 'Ashish Track' }}
+                </span>
               </div>
 
-              <button @click="handleSignOut" class="btn btn--logout">
+              <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
                 <LogOut class="icon-sm" />
                 <span class="logout-text">Sign Out</span>
               </button>

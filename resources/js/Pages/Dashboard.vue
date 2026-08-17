@@ -3,6 +3,44 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
+import {
+  BarChart3,
+  Gift,
+  FileText,
+  Compass,
+  Edit3,
+  Trash2,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon,
+  Check,
+  ArrowUp,
+  ArrowDown,
+  Flame,
+  Award,
+  TrendingUp,
+  Target,
+  Sparkles,
+  Zap,
+  Calendar,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Filter,
+  Layers,
+  Star,
+  RefreshCw,
+  Sliders,
+  DollarSign,
+  AlertCircle,
+  X,
+  Heart,
+  Briefcase,
+  Trophy,
+  CheckSquare
+} from 'lucide-vue-next';
 
 const props = defineProps({
   appName: {
@@ -357,6 +395,59 @@ const mobileNextDay = () => {
 const mobileGoToday = () => {
   mobileSelectedDay.value = props.currentDay;
 };
+
+// ── Mobile Category Filters & Classification ──
+const activeMobileCategory = ref('all');
+const hoveredChartPoint = ref(null);
+
+const getHabitCategory = (habit) => {
+  if (!habit || !habit.name) return 'other';
+  if (habit.name.startsWith('★')) return 'shared';
+  const name = habit.name.toLowerCase();
+  if (name.includes('wake') || name.includes('morning') || name.includes('sleep —') || name.includes('block 1') || name.includes('block a') || name.includes('groom') || name.includes('boxing')) return 'morning';
+  if (name.includes('job') || name.includes('work') || name.includes('outbound') || name.includes('eye break') || name.includes('stealth') || name.includes('block b') || name.includes('career') || name.includes('skill') || name.includes('entity') || name.includes('marathon') || name.includes('pipeline')) return 'work';
+  if (name.includes('sleep by') || name.includes('night') || name.includes('dinner') || name.includes('walk') || name.includes('evening') || name.includes('hard stop') || name.includes('bedtime') || name.includes('block 2')) return 'evening';
+  if (name.includes('protein') || name.includes('supplement') || name.includes('water') || name.includes('hair') || name.includes('screen') || name.includes('phone') || name.includes('recovery')) return 'health';
+  return 'other';
+};
+
+const getCategoryLabel = (category) => {
+  switch (category) {
+    case 'morning': return 'Morning';
+    case 'work': return 'Work';
+    case 'evening': return 'Evening';
+    case 'health': return 'Health';
+    case 'shared': return 'Shared ★';
+    default: return 'Habit';
+  }
+};
+
+const filteredMobileHabits = computed(() => {
+  if (activeMobileCategory.value === 'all') return localHabits.value;
+  return localHabits.value.filter((h) => getHabitCategory(h) === activeMobileCategory.value);
+});
+
+const mobileCategoryCounts = computed(() => {
+  const counts = { all: localHabits.value.length, morning: 0, work: 0, evening: 0, health: 0, shared: 0 };
+  for (const h of localHabits.value) {
+    const cat = getHabitCategory(h);
+    if (counts[cat] !== undefined) counts[cat]++;
+  }
+  return counts;
+});
+
+const mobileCategoryCompleted = computed(() => {
+  const comp = { all: 0, morning: 0, work: 0, evening: 0, health: 0, shared: 0 };
+  for (const h of localHabits.value) {
+    if (hasCompletedDay(h, mobileDay.value)) {
+      comp.all++;
+      const cat = getHabitCategory(h);
+      if (comp[cat] !== undefined) comp[cat]++;
+    }
+  }
+  return comp;
+});
+
 const evaluatedDays = computed(() => {
   if (props.isFutureMonth) {
     return 0;
@@ -1218,119 +1309,229 @@ watch(darkMode, () => {
 <template>
   <AppLayout>
     <section :class="{ 'month-nav-loading': isNavigatingMonth }">
+      <!-- ── TOP HERO & OVERVIEW ── -->
       <section class="card card--hero" id="overview">
         <header class="hero-head">
           <div class="hero-main">
             <div class="hero-brand-block">
-              <p class="eyebrow">Habuilt Tracker</p>
+              <div class="hero-brand-meta">
+                <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : 'hero-track-pill--ashish'">
+                  <Sparkles class="icon-xs" />
+                  <span>{{ isJyoti ? "Jyoti's System (18 Habits)" : "Ashish's System (22 Habits)" }}</span>
+                </span>
+                <span class="hero-version-tag">PRO TRACKER</span>
+              </div>
+              <h1 class="eyebrow">Habuilt Tracker</h1>
               <p class="hero-sub">{{ monthLabel }} {{ year }} // DISCIPLINE EQUALS FREEDOM</p>
             </div>
 
+            <!-- ── TODAY'S FOCUS CARD ── -->
             <div class="focus-card focus-card--hero">
               <div class="focus-head">
-                <strong>TODAY'S FOCUS</strong>
+                <div class="focus-title-group">
+                  <Target class="icon-focus" />
+                  <strong>TODAY'S FOCUS</strong>
+                </div>
                 <div class="focus-day-select">
                   <label for="focus-day">Day</label>
                   <select id="focus-day" v-model.number="focusDay">
                     <option v-for="day in days" :key="`focus-${day}`" :value="day">{{ day }}</option>
                   </select>
-                  <span>Score: {{ getDayTotal(focusDay) }}</span>
+                  <button
+                    v-if="focusDay !== props.currentDay && isCurrentMonth"
+                    class="focus-jump-today"
+                    type="button"
+                    @click="focusDay = props.currentDay"
+                    title="Jump to today"
+                  >
+                    Today
+                  </button>
+                  <span class="focus-score-badge">
+                    <Flame class="icon-xs" />
+                    <span>{{ getDayTotal(focusDay) }} pts</span>
+                  </span>
                 </div>
               </div>
 
               <div v-if="focusTasks.length > 0" class="focus-list">
-                <article v-for="(task, index) in focusTasks" :key="`task-${focusDay}-${index}`" class="focus-item">
-                  <input
-                    :id="`focus-check-${focusDay}-${index}`"
-                    type="checkbox"
-                    :checked="task.done"
-                    @change="toggleFocusTask(index)"
+                <article
+                  v-for="(task, index) in focusTasks"
+                  :key="`task-${focusDay}-${index}`"
+                  class="focus-item"
+                  :class="{ 'focus-item--done': task.done }"
+                >
+                  <button
+                    type="button"
+                    class="focus-checkbox"
+                    :class="{ 'focus-checkbox--checked': task.done }"
+                    @click="toggleFocusTask(index)"
+                    :aria-label="task.done ? 'Mark task incomplete' : 'Mark task complete'"
                   >
-                  <label :for="`focus-check-${focusDay}-${index}`" :class="task.done ? 'is-done' : ''">{{ task.text }}</label>
-                  <button class="focus-delete" @click="deleteFocusTask(index)">✕</button>
+                    <Check v-if="task.done" class="icon-check-focus" />
+                  </button>
+                  <label
+                    :for="`focus-check-${focusDay}-${index}`"
+                    class="focus-item__text"
+                    :class="{ 'is-done': task.done }"
+                    @click="toggleFocusTask(index)"
+                  >
+                    {{ task.text }}
+                  </label>
+                  <button
+                    class="focus-delete"
+                    type="button"
+                    @click="deleteFocusTask(index)"
+                    title="Delete task"
+                  >
+                    <Trash2 class="icon-xs" />
+                  </button>
                 </article>
               </div>
 
-              <p v-else class="focus-empty">No tasks yet — add your mission objectives below.</p>
+              <p v-else class="focus-empty">
+                <Target class="icon-empty-focus" />
+                <span>No tasks yet — add your daily high-priority objectives below.</span>
+              </p>
 
               <div class="focus-input-row">
                 <input
                   v-model="newFocusTask"
                   type="text"
                   maxlength="200"
-                  placeholder="Type a task and press Enter..."
+                  placeholder="Type an objective and press Enter..."
                   @keydown.enter.prevent="addFocusTask"
                 >
-                <button class="btn" :disabled="newFocusTask.trim() === ''" @click="addFocusTask">+ Add</button>
+                <button
+                  class="btn btn--add-focus"
+                  :disabled="newFocusTask.trim() === ''"
+                  @click="addFocusTask"
+                  type="button"
+                >
+                  <Plus class="icon-sm" />
+                  <span>Add</span>
+                </button>
               </div>
             </div>
           </div>
 
+          <!-- ── HERO SIDE PANEL ── -->
           <div class="hero-side">
             <div class="hero-actions">
               <button
                 class="btn btn--calendar"
                 :disabled="!canNavigatePrevMonth || isNavigatingMonth"
                 @click="goToPreviousMonth"
+                title="Previous Month"
               >
-                ← Prev Month
+                <ChevronLeft class="icon-sm" />
+                <span>Prev</span>
               </button>
+              <div class="calendar-current-chip">
+                <Calendar class="icon-xs" />
+                <span>{{ monthLabel.slice(0, 3) }} '{{ String(year).slice(-2) }}</span>
+              </div>
               <button
                 class="btn btn--calendar"
                 :disabled="!canNavigateNextMonth || isNavigatingMonth"
                 @click="goToNextMonth"
+                title="Next Month"
               >
-                Next Month →
+                <span>Next</span>
+                <ChevronRight class="icon-sm" />
               </button>
-              <button class="btn" @click="darkMode = !darkMode">{{ darkMode ? '☀' : '🌙' }}</button>
+              <button
+                class="btn btn--theme-toggle"
+                @click="darkMode = !darkMode"
+                :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                aria-label="Toggle Theme"
+              >
+                <Sun v-if="darkMode" class="icon-sm icon-sun" />
+                <Moon v-else class="icon-sm icon-moon" />
+              </button>
             </div>
 
             <div class="kpis kpis--compact">
-              <article class="kpi">
-                <p>Earned Today</p>
-                <strong>{{ todayPoints }}</strong>
+              <article class="kpi kpi--today">
+                <div class="kpi-icon-wrap kpi-icon-wrap--flame">
+                  <Flame class="kpi-icon" />
+                </div>
+                <div class="kpi-content">
+                  <p>Earned Today</p>
+                  <strong>{{ todayPoints }} <small>pts</small></strong>
+                  <span class="kpi-subtag">Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ pts</span>
+                </div>
               </article>
               <article class="kpi kpi--wallet">
-                <p>Total Point Balance</p>
-                <strong>{{ availableWallet }}</strong>
+                <div class="kpi-icon-wrap kpi-icon-wrap--award">
+                  <Award class="kpi-icon" />
+                </div>
+                <div class="kpi-content">
+                  <p>Total Balance</p>
+                  <strong>{{ availableWallet }} <small>pts</small></strong>
+                  <span class="kpi-subtag">{{ activeMilestoneLabel }} ({{ vacationProgress.toFixed(0) }}%)</span>
+                </div>
               </article>
             </div>
 
             <article class="balance-math">
-              <h3>Carry-Forward Balance Math</h3>
+              <div class="balance-math__head">
+                <h3>Monthly Balance Math</h3>
+              </div>
               <div class="balance-math__grid">
-                <p><span>Opening Balance</span><strong>{{ openingBalance }}</strong></p>
-                <p><span>Month Earned</span><strong>{{ monthEarned }}</strong></p>
-                <p><span>Month Redeemed</span><strong>{{ monthRedeemed }}</strong></p>
-                <p><span>Closing Balance</span><strong>{{ availableWallet }}</strong></p>
+                <div class="balance-math__cell">
+                  <span>Opening</span>
+                  <strong>{{ openingBalance }}</strong>
+                </div>
+                <div class="balance-math__cell balance-math__cell--earned">
+                  <span>+ Earned</span>
+                  <strong>{{ monthEarned }}</strong>
+                </div>
+                <div class="balance-math__cell balance-math__cell--redeemed">
+                  <span>- Redeemed</span>
+                  <strong>{{ monthRedeemed }}</strong>
+                </div>
+                <div class="balance-math__cell balance-math__cell--closing">
+                  <span>= Closing</span>
+                  <strong>{{ availableWallet }}</strong>
+                </div>
               </div>
             </article>
           </div>
         </header>
 
-        <p v-if="flashSuccess" class="banner banner--success">{{ flashSuccess }}</p>
-        <p v-if="flashError" class="banner banner--error">{{ flashError }}</p>
+        <p v-if="flashSuccess" class="banner banner--success">
+          <CheckCircle2 class="icon-sm" />
+          <span>{{ flashSuccess }}</span>
+        </p>
+        <p v-if="flashError" class="banner banner--error">
+          <AlertCircle class="icon-sm" />
+          <span>{{ flashError }}</span>
+        </p>
       </section>
 
+      <!-- ── SECTION: MONTHLY PERFORMANCE ANALYTICS ── -->
       <section class="card" id="analytics">
         <div class="section-head">
           <h2 class="section-title">
-            <span class="section-title__icon">📊</span>
-            <span>Monthly Performance</span>
+            <span class="section-title__icon">
+              <BarChart3 class="icon-md" />
+            </span>
+            <span>Monthly Performance Analytics</span>
           </h2>
-          <small>Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ points/day</small>
+          <small class="section-badge">Target: {{ Math.max(25, Math.ceil(maxDailyPoints * 0.6)) }}+ pts/day</small>
         </div>
 
         <div class="chart-wrap">
           <svg class="chart" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
             <defs>
               <linearGradient id="analyticsAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#10b981" stop-opacity="0.30" />
-                <stop offset="100%" stop-color="#10b981" stop-opacity="0.03" />
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.32" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0.02" />
               </linearGradient>
               <linearGradient id="analyticsLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#0fb981" />
-                <stop offset="100%" stop-color="#12a476" />
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="50%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#059669" />
               </linearGradient>
             </defs>
             <g class="chart__grid">
@@ -1358,33 +1559,53 @@ watch(darkMode, () => {
               v-for="point in chartPoints"
               :key="`pt-${point.day}`"
               class="chart__dot"
+              :class="{ 'chart__dot--hovered': hoveredChartPoint?.day === point.day }"
               :cx="point.x"
               :cy="point.y"
-              r="3"
+              :r="hoveredChartPoint?.day === point.day ? 5.5 : 3.5"
+              @mouseenter="hoveredChartPoint = point"
+              @mouseleave="hoveredChartPoint = null"
+              @touchstart.passive="hoveredChartPoint = point"
             />
             <g class="chart__x-labels">
               <text
                 v-for="point in chartPoints"
                 :key="`xlabel-${point.day}`"
-                :class="['chart__x-label', { 'chart__x-label--weekend': point.isWeekend }]"
+                :class="['chart__x-label', { 'chart__x-label--weekend': point.isWeekend, 'chart__x-label--today': props.isCurrentMonth && point.day === props.currentDay }]"
                 :x="point.x"
                 :y="chartHeight - 20"
               >{{ point.day }}</text>
             </g>
           </svg>
+
+          <!-- Interactive hover point tooltip -->
+          <div v-if="hoveredChartPoint" class="chart-point-tooltip">
+            <span class="chart-tooltip__day">Day {{ hoveredChartPoint.day }}</span>
+            <span class="chart-tooltip__pts">{{ hoveredChartPoint.value }} pts</span>
+            <span class="chart-tooltip__status" :class="hoveredChartPoint.value >= Math.max(25, Math.ceil(maxDailyPoints * 0.6)) ? 'chart-tooltip__status--met' : ''">
+              {{ hoveredChartPoint.value >= Math.max(25, Math.ceil(maxDailyPoints * 0.6)) ? '✓ Target Hit' : 'Below Target' }}
+            </span>
+          </div>
         </div>
-        <p class="chart-legend-note">
-          <span class="chart-legend-note__dot" aria-hidden="true">●</span>
-          Weekend labels highlighted (Sat/Sun)
-        </p>
+
+        <div class="chart-legend-bar">
+          <p class="chart-legend-note">
+            <span class="chart-legend-note__dot" aria-hidden="true">●</span>
+            Weekend labels highlighted in emerald (Sat/Sun)
+          </p>
+        </div>
 
         <div class="progress-block">
           <div class="progress-head">
-            <p>{{ activeMilestoneLabel }} Milestone ({{ activeMilestoneTarget }} pts)</p>
-            <strong>{{ vacationProgress.toFixed(1) }}%</strong>
+            <div class="progress-head__title">
+              <Sparkles class="icon-sm icon-sparkle" />
+              <span>{{ activeMilestoneLabel }} Milestone</span>
+              <span class="progress-target-tag">{{ activeMilestoneTarget }} pts required</span>
+            </div>
+            <strong class="progress-pct">{{ vacationProgress.toFixed(1) }}%</strong>
           </div>
           <div class="progress-track">
-            <div class="progress-fill" :style="`width: ${vacationProgress}%`" />
+            <div class="progress-fill" :style="`width: ${Math.min(100, vacationProgress)}%`" />
           </div>
           <p class="progress-note">
             {{ milestoneMessage }}
@@ -1393,34 +1614,52 @@ watch(darkMode, () => {
 
         <div class="stats-grid">
           <article class="stat-card">
-            <p>MONTHLY PERSONAL BEST</p>
+            <div class="stat-card__head">
+              <Trophy class="stat-icon stat-icon--gold" />
+              <p>MONTHLY PERSONAL BEST</p>
+            </div>
             <strong>{{ personalBest.day ? `Day ${personalBest.day} • ${personalBest.points} pts` : 'No data yet' }}</strong>
           </article>
           <article class="stat-card">
-            <p>DAILY AVERAGE</p>
-            <strong>{{ dailyAverage.toFixed(1) }} pts/day</strong>
+            <div class="stat-card__head">
+              <TrendingUp class="stat-icon stat-icon--blue" />
+              <p>DAILY AVERAGE</p>
+            </div>
+            <strong>{{ dailyAverage.toFixed(1) }} <small>pts/day</small></strong>
           </article>
           <article class="stat-card">
-            <p>COMPLETION RATE</p>
+            <div class="stat-card__head">
+              <CheckCircle2 class="stat-icon stat-icon--emerald" />
+              <p>COMPLETION RATE</p>
+            </div>
             <strong>{{ completionRate.toFixed(1) }}%</strong>
           </article>
         </div>
       </section>
 
+      <!-- ── SECTION: HABIT CHECKLIST ── -->
       <section class="card" id="habits">
         <div class="section-head">
-          <div>
-            <h2>Habit Checklist</h2>
-            <small>Core Habit (Leading Indicator) — day-based completion matrix</small>
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span class="section-title__icon">
+                <CheckSquare class="icon-md" />
+              </span>
+              <span>Habit Checklist</span>
+            </h2>
+            <small>Core Leading Indicators — day-based completion matrix</small>
           </div>
-          <button v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits">✏ Edit Habits</button>
+          <button v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits" title="Customize Habits">
+            <Edit3 class="icon-sm" />
+            <span>Edit Habits</span>
+          </button>
         </div>
 
         <!-- ── Habits Editor Panel ──────────────────────────────────── -->
         <div v-if="habitsEditing" class="habits-editor">
           <p class="habits-editor__hint">
-            Edit habit names and assign point values. Swipe a row up/down (or use arrows) to reorder by priority.
-            Changes are saved to your account and applied immediately.
+            Edit habit names and assign point values. Use arrow buttons to reorder by priority.
+            Changes are saved securely to your account.
           </p>
 
           <div class="habits-editor__list">
@@ -1439,14 +1678,18 @@ watch(darkMode, () => {
                   @click="moveDraftHabit(index, index - 1)"
                   title="Move up"
                   type="button"
-                >↑</button>
+                >
+                  <ArrowUp class="icon-xs" />
+                </button>
                 <button
                   class="habits-editor__move-btn"
                   :disabled="index === habitsDraft.length - 1"
                   @click="moveDraftHabit(index, index + 1)"
                   title="Move down"
                   type="button"
-                >↓</button>
+                >
+                  <ArrowDown class="icon-xs" />
+                </button>
               </div>
               <input
                 v-model="habit.name"
@@ -1466,20 +1709,27 @@ watch(darkMode, () => {
                   class="habits-editor__pts"
                 >
               </label>
-              <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Remove habit">✕</button>
+              <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Remove habit">
+                <Trash2 class="icon-sm" />
+              </button>
             </div>
           </div>
 
-          <button class="btn btn--secondary habits-editor__add" @click="addDraftHabit">+ Add Habit</button>
+          <button class="btn btn--secondary habits-editor__add" @click="addDraftHabit">
+            <Plus class="icon-sm" />
+            <span>Add Habit</span>
+          </button>
 
           <div class="habits-editor__actions">
             <button
-              class="btn"
+              class="btn btn--primary-action"
               :disabled="draftHasErrors || habitSaveStatus === 'saving'"
               @click="saveEditedHabits"
             >
               <span v-if="habitSaveStatus === 'saving'">Saving…</span>
-              <span v-else-if="habitSaveStatus === 'saved'">✓ Saved</span>
+              <span v-else-if="habitSaveStatus === 'saved'" class="btn-inner-saved">
+                <Check class="icon-sm" /> Saved
+              </span>
               <span v-else>Save Habits</span>
             </button>
             <button class="btn btn--ghost" @click="cancelEditingHabits">Cancel</button>
@@ -1502,27 +1752,100 @@ watch(darkMode, () => {
                 class="mobile-view-toggle__btn"
                 :class="{ 'mobile-view-toggle__btn--active': mobileViewMode === 'daily' }"
                 @click="mobileViewMode = 'daily'"
-              >Today</button>
+              >
+                <CheckSquare class="icon-xs" />
+                <span>Today's Checklist</span>
+              </button>
               <button
                 class="mobile-view-toggle__btn"
                 :class="{ 'mobile-view-toggle__btn--active': mobileViewMode === 'grid' }"
                 @click="mobileViewMode = 'grid'"
-              >Month Grid</button>
+              >
+                <Layers class="icon-xs" />
+                <span>Month Grid</span>
+              </button>
             </div>
 
             <!-- ── Mobile Daily Checklist ── -->
             <div class="mobile-daily" :class="{ 'mobile-daily--hidden': mobileViewMode !== 'daily' }">
               <!-- Day Navigator -->
               <div class="mobile-daily__nav">
-                <button class="mobile-daily__nav-btn" :disabled="mobileDay <= 1" @click="mobilePrevDay">‹</button>
+                <button
+                  class="mobile-daily__nav-btn"
+                  :disabled="mobileDay <= 1"
+                  @click="mobilePrevDay"
+                  aria-label="Previous Day"
+                >
+                  <ChevronLeft class="icon-md" />
+                </button>
                 <div class="mobile-daily__nav-center">
-                  <button v-if="!mobileDayIsToday" class="mobile-daily__today-link" @click="mobileGoToday">Go to today</button>
+                  <button v-if="!mobileDayIsToday" class="mobile-daily__today-link" @click="mobileGoToday">
+                    Jump to today
+                  </button>
                   <span class="mobile-daily__nav-label" :class="{ 'mobile-daily__nav-label--today': mobileDayIsToday }">
                     {{ mobileDayLabel }}
                     <span v-if="mobileDayIsToday" class="mobile-daily__today-badge">TODAY</span>
                   </span>
                 </div>
-                <button class="mobile-daily__nav-btn" :disabled="mobileDay >= props.monthDays || mobileDayIsFuture" @click="mobileNextDay">›</button>
+                <button
+                  class="mobile-daily__nav-btn"
+                  :disabled="mobileDay >= props.monthDays || mobileDayIsFuture"
+                  @click="mobileNextDay"
+                  aria-label="Next Day"
+                >
+                  <ChevronRight class="icon-md" />
+                </button>
+              </div>
+
+              <!-- Category Filter Chips -->
+              <div class="mobile-cat-chips">
+                <button
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'all' }"
+                  @click="activeMobileCategory = 'all'"
+                >
+                  All ({{ mobileCategoryCompleted.all }}/{{ mobileCategoryCounts.all }})
+                </button>
+                <button
+                  v-if="mobileCategoryCounts.morning > 0"
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'morning' }"
+                  @click="activeMobileCategory = 'morning'"
+                >
+                  🌅 Morning ({{ mobileCategoryCompleted.morning }}/{{ mobileCategoryCounts.morning }})
+                </button>
+                <button
+                  v-if="mobileCategoryCounts.work > 0"
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'work' }"
+                  @click="activeMobileCategory = 'work'"
+                >
+                  ⚡ Work ({{ mobileCategoryCompleted.work }}/{{ mobileCategoryCounts.work }})
+                </button>
+                <button
+                  v-if="mobileCategoryCounts.evening > 0"
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'evening' }"
+                  @click="activeMobileCategory = 'evening'"
+                >
+                  🌙 Evening ({{ mobileCategoryCompleted.evening }}/{{ mobileCategoryCounts.evening }})
+                </button>
+                <button
+                  v-if="mobileCategoryCounts.health > 0"
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'health' }"
+                  @click="activeMobileCategory = 'health'"
+                >
+                  🥗 Health ({{ mobileCategoryCompleted.health }}/{{ mobileCategoryCounts.health }})
+                </button>
+                <button
+                  v-if="mobileCategoryCounts.shared > 0"
+                  class="mobile-cat-chip"
+                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'shared' }"
+                  @click="activeMobileCategory = 'shared'"
+                >
+                  ★ Shared ({{ mobileCategoryCompleted.shared }}/{{ mobileCategoryCounts.shared }})
+                </button>
               </div>
 
               <!-- Progress Summary -->
@@ -1534,104 +1857,133 @@ watch(darkMode, () => {
                   ></div>
                 </div>
                 <div class="mobile-daily__progress-stats">
-                  <span><strong>{{ mobileDayCompleted }}</strong>/{{ totalHabits }} habits</span>
-                  <span><strong>{{ mobileDayPoints }}</strong>/{{ maxDailyPoints }} pts</span>
+                  <span><strong>{{ mobileDayCompleted }}</strong>/{{ totalHabits }} habits completed</span>
+                  <span><strong>{{ mobileDayPoints }}</strong>/{{ maxDailyPoints }} pts earned</span>
                 </div>
               </div>
 
               <!-- Habit Cards -->
               <div class="mobile-daily__list">
                 <button
-                  v-for="habit in localHabits"
+                  v-for="habit in filteredMobileHabits"
                   :key="'m-' + habit.id"
                   class="mobile-daily__card"
                   :class="{
                     'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
                     'mobile-daily__card--shared': habit.name.startsWith('★'),
+                    [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
                   }"
                   :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
                   @click="toggleHabitForDay(habit, mobileDay)"
                 >
                   <div class="mobile-daily__card-check">
                     <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
-                    <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">✓</span>
+                    <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
+                      <Check class="icon-check-mobile" />
+                    </span>
                     <span v-else class="mobile-daily__circle"></span>
                   </div>
                   <div class="mobile-daily__card-body">
                     <span class="mobile-daily__card-name">{{ habit.name }}</span>
+                    <span class="mobile-daily__card-category">
+                      {{ getCategoryLabel(getHabitCategory(habit)) }}
+                    </span>
                   </div>
-                  <span class="mobile-daily__card-pts">{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small></span>
+                  <span class="mobile-daily__card-pts">
+                    +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
+                  </span>
                 </button>
               </div>
             </div>
 
-            <!-- ── Desktop Month Grid (hidden on mobile when daily view active) ── -->
+            <!-- ── Desktop Month Grid ── -->
             <div class="habit-grid-wrap" :class="{ 'habit-grid-wrap--mobile-hidden': mobileViewMode === 'daily' }">
-            <table class="habit-grid">
-              <thead>
-                <tr>
-                  <th class="habit-grid__sticky">Core Habit (Leading Indicator)</th>
-                  <th class="habit-grid__pts">Pts</th>
-                  <th
-                    v-for="day in days"
-                    :key="`head-${day}`"
-                    class="habit-grid__day"
-                    :class="[
-                      props.isCurrentMonth && day === props.currentDay ? 'habit-grid__day--current' : '',
-                      isWeekendDay(day) ? 'habit-grid__day--weekend' : '',
-                    ]"
-                  >
-                    {{ day }}
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
-                  <td class="habit-grid__sticky habit-grid__name">{{ habit.name }}</td>
-                  <td class="habit-grid__pts">{{ habit.points }}</td>
-
-                  <td
-                    v-for="day in days"
-                    :key="`${habit.id}-${day}`"
-                    class="habit-grid__cell"
-                    :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
-                  >
-                    <button
-                      class="habit-grid__check"
-                      :class="hasCompletedDay(habit, day) ? 'habit-grid__check--done' : ''"
-                      :disabled="isFutureMonth || !!pendingCells[keyFor(habit.id, day)]"
-                      @click="toggleHabitForDay(habit, day)"
+              <table class="habit-grid">
+                <thead>
+                  <tr>
+                    <th class="habit-grid__sticky">Core Habit (Leading Indicator)</th>
+                    <th class="habit-grid__pts">Pts</th>
+                    <th
+                      v-for="day in days"
+                      :key="`head-${day}`"
+                      class="habit-grid__day"
+                      :class="[
+                        props.isCurrentMonth && day === props.currentDay ? 'habit-grid__day--current' : '',
+                        isWeekendDay(day) ? 'habit-grid__day--weekend' : '',
+                      ]"
                     >
-                      <span v-if="hasCompletedDay(habit, day)">✓</span>
-                      <span v-else-if="pendingCells[keyFor(habit.id, day)]">…</span>
-                      <span v-else-if="isFutureMonth">–</span>
-                    </button>
-                  </td>
-                </tr>
+                      {{ day }}
+                    </th>
+                  </tr>
+                </thead>
 
-                <tr class="habit-grid__totals">
-                  <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
-                  <td class="habit-grid__pts">—</td>
-                  <td
-                    v-for="day in days"
-                    :key="`tot-${day}`"
-                    :class="isWeekendDay(day) ? 'habit-grid__cell--weekend' : ''"
-                  >{{ getDayTotal(day) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                <tbody>
+                  <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
+                    <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★') }">
+                      <span class="habit-grid__name-text">{{ habit.name }}</span>
+                    </td>
+                    <td class="habit-grid__pts">{{ habit.points }}</td>
+
+                    <td
+                      v-for="day in days"
+                      :key="`${habit.id}-${day}`"
+                      class="habit-grid__cell"
+                      :class="[
+                        isWeekendDay(day) ? 'habit-grid__cell--weekend' : '',
+                        props.isCurrentMonth && day === props.currentDay ? 'habit-grid__cell--today' : '',
+                      ]"
+                    >
+                      <button
+                        class="habit-grid__check"
+                        :class="hasCompletedDay(habit, day) ? 'habit-grid__check--done' : ''"
+                        :disabled="isFutureMonth || !!pendingCells[keyFor(habit.id, day)]"
+                        @click="toggleHabitForDay(habit, day)"
+                        :title="`Day ${day}: ${habit.name}`"
+                      >
+                        <Check v-if="hasCompletedDay(habit, day)" class="icon-grid-check" />
+                        <span v-else-if="pendingCells[keyFor(habit.id, day)]">…</span>
+                        <span v-else-if="isFutureMonth">–</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr class="habit-grid__totals">
+                    <td class="habit-grid__sticky">DAILY TOTAL POINTS</td>
+                    <td class="habit-grid__pts">—</td>
+                    <td
+                      v-for="day in days"
+                      :key="`tot-${day}`"
+                      class="habit-grid__cell"
+                      :class="[
+                        isWeekendDay(day) ? 'habit-grid__cell--weekend' : '',
+                        props.isCurrentMonth && day === props.currentDay ? 'habit-grid__cell--today' : '',
+                        getDayTotal(day) >= Math.max(25, Math.ceil(maxDailyPoints * 0.6)) ? 'habit-grid__tot--target-met' : ''
+                      ]"
+                    >
+                      {{ getDayTotal(day) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </template>
         </template>
-
       </section>
 
+      <!-- ── SECTION: REWARDS & LEDGER ── -->
       <section class="dashboard-columns" id="rewards">
         <article class="card column-card">
           <div class="section-head">
-            <h2>💰 THE REWARD SHOP</h2>
-            <button v-if="!rewardsEditing" class="btn btn--secondary" @click="startEditingRewards">✏ Edit Rewards</button>
+            <h2 class="section-title">
+              <span class="section-title__icon">
+                <Gift class="icon-md" />
+              </span>
+              <span>The Reward Shop</span>
+            </h2>
+            <button v-if="!rewardsEditing" class="btn btn--secondary" @click="startEditingRewards">
+              <Edit3 class="icon-sm" />
+              <span>Edit Rewards</span>
+            </button>
           </div>
 
           <div v-if="rewardsEditing" class="rewards-editor">
@@ -1645,16 +1997,23 @@ watch(darkMode, () => {
                   <span>Pts</span>
                   <input v-model.number="reward.cost" type="number" min="1" max="10000" class="rewards-editor__cost">
                 </label>
-                <button class="habits-editor__delete" @click="removeDraftReward(index)">✕</button>
+                <button class="habits-editor__delete" @click="removeDraftReward(index)">
+                  <Trash2 class="icon-sm" />
+                </button>
               </div>
             </div>
 
-            <button class="btn btn--secondary rewards-editor__add" @click="addDraftReward">+ Add Reward</button>
+            <button class="btn btn--secondary rewards-editor__add" @click="addDraftReward">
+              <Plus class="icon-sm" />
+              <span>Add Reward</span>
+            </button>
 
             <div class="habits-editor__actions">
-              <button class="btn" :disabled="rewardDraftHasErrors || rewardSaveStatus === 'saving'" @click="saveEditedRewards">
+              <button class="btn btn--primary-action" :disabled="rewardDraftHasErrors || rewardSaveStatus === 'saving'" @click="saveEditedRewards">
                 <span v-if="rewardSaveStatus === 'saving'">Saving…</span>
-                <span v-else-if="rewardSaveStatus === 'saved'">✓ Saved</span>
+                <span v-else-if="rewardSaveStatus === 'saved'" class="btn-inner-saved">
+                  <Check class="icon-sm" /> Saved
+                </span>
                 <span v-else>Save Rewards</span>
               </button>
               <button class="btn btn--ghost" @click="cancelEditingRewards">Cancel</button>
@@ -1663,15 +2022,15 @@ watch(darkMode, () => {
 
           <div v-else class="rewards-grid">
             <article v-for="reward in rewards" :key="`${reward.type}-${reward.item}`" class="reward-item">
-              <p>{{ reward.type }}</p>
-              <h3>{{ reward.item }}</h3>
+              <span class="reward-tag">{{ reward.type }}</span>
+              <h3 class="reward-title">{{ reward.item }}</h3>
               <button
                 class="reward-btn"
                 :disabled="availableWallet < reward.cost"
                 @click="claimReward(reward)"
               >
                 <span>Redeem</span>
-                <strong>{{ reward.cost }}</strong>
+                <strong>{{ reward.cost }} pts</strong>
               </button>
             </article>
           </div>
@@ -1679,13 +2038,24 @@ watch(darkMode, () => {
 
         <article class="card column-card">
           <div class="section-head">
-            <h2>📜 POINT LEDGER</h2>
-            <button v-if="!ledgerEditing" class="btn btn--secondary" @click="startEditingLedger">✏ Edit Ledger</button>
+            <h2 class="section-title">
+              <span class="section-title__icon">
+                <FileText class="icon-md" />
+              </span>
+              <span>Point Ledger</span>
+            </h2>
+            <button v-if="!ledgerEditing" class="btn btn--secondary" @click="startEditingLedger">
+              <Edit3 class="icon-sm" />
+              <span>Edit Ledger</span>
+            </button>
           </div>
 
           <div v-if="ledgerEditing" class="ledger-editor">
             <div class="ledger-editor__actions">
-              <button class="btn btn--secondary" @click="addDraftLedgerEntry">+ Add Entry</button>
+              <button class="btn btn--secondary" @click="addDraftLedgerEntry">
+                <Plus class="icon-sm" />
+                <span>Add Entry</span>
+              </button>
             </div>
 
             <div class="ledger-wrap">
@@ -1705,7 +2075,11 @@ watch(darkMode, () => {
                     <td><input v-model="entry.description" type="text" maxlength="120" class="ledger-editor__input"></td>
                     <td><input v-model="entry.date" type="text" maxlength="40" class="ledger-editor__input"></td>
                     <td><input v-model.number="entry.cost" type="number" min="0" max="10000" class="ledger-editor__cost"></td>
-                    <td><button class="habits-editor__delete" @click="removeDraftLedgerEntry(index)">✕</button></td>
+                    <td>
+                      <button class="habits-editor__delete" @click="removeDraftLedgerEntry(index)">
+                        <Trash2 class="icon-sm" />
+                      </button>
+                    </td>
                   </tr>
                   <tr v-if="ledgerDraft.length === 0">
                     <td colspan="5" class="ledger-table__empty">No redemptions found. Add one manually or redeem from Reward Shop.</td>
@@ -1715,56 +2089,98 @@ watch(darkMode, () => {
             </div>
 
             <div class="habits-editor__actions">
-              <button class="btn" :disabled="ledgerDraftHasErrors || ledgerSaveStatus === 'saving'" @click="saveEditedLedger">
+              <button class="btn btn--primary-action" :disabled="ledgerDraftHasErrors || ledgerSaveStatus === 'saving'" @click="saveEditedLedger">
                 <span v-if="ledgerSaveStatus === 'saving'">Saving…</span>
-                <span v-else-if="ledgerSaveStatus === 'saved'">✓ Saved</span>
+                <span v-else-if="ledgerSaveStatus === 'saved'" class="btn-inner-saved">
+                  <Check class="icon-sm" /> Saved
+                </span>
                 <span v-else>Save Ledger</span>
               </button>
               <button class="btn btn--ghost" @click="cancelEditingLedger">Cancel</button>
             </div>
           </div>
 
-          <div v-else class="ledger-wrap">
-            <table class="ledger-table">
-              <thead>
-                <tr>
-                  <th>Reward Item</th>
-                  <th>Description</th>
-                  <th>Date</th>
-                  <th>Exact Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="entry in rewardLedger" :key="entry.timestamp">
-                  <td>{{ entry.item }}</td>
-                  <td>{{ entry.description }}</td>
-                  <td>{{ entry.date }}</td>
-                  <td class="ledger-table__cost">-{{ entry.cost }} pts</td>
-                </tr>
-                <tr v-if="rewardLedger.length === 0">
-                  <td colspan="4" class="ledger-table__empty">No redemptions found. Build your bank first.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div v-else>
+            <!-- Desktop Table View -->
+            <div class="ledger-wrap">
+              <table class="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Reward Item</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Exact Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="entry in rewardLedger" :key="entry.timestamp">
+                    <td class="ledger-item-name">{{ entry.item }}</td>
+                    <td class="ledger-item-desc">{{ entry.description }}</td>
+                    <td class="ledger-item-date">{{ entry.date }}</td>
+                    <td class="ledger-table__cost">-{{ entry.cost }} pts</td>
+                  </tr>
+                  <tr v-if="rewardLedger.length === 0">
+                    <td colspan="4" class="ledger-table__empty">No redemptions found. Build your bank first.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mobile Transaction Cards View -->
+            <div class="ledger-mobile-cards">
+              <div v-if="rewardLedger.length === 0" class="ledger-table__empty">
+                No redemptions found. Build your point bank first.
+              </div>
+              <article
+                v-for="entry in rewardLedger"
+                :key="'m-led-' + entry.timestamp"
+                class="ledger-mobile-card"
+              >
+                <div class="ledger-mobile-card__head">
+                  <strong>{{ entry.item }}</strong>
+                  <span class="ledger-mobile-card__cost">-{{ entry.cost }} pts</span>
+                </div>
+                <p v-if="entry.description" class="ledger-mobile-card__desc">{{ entry.description }}</p>
+                <span class="ledger-mobile-card__date">{{ entry.date }}</span>
+              </article>
+            </div>
           </div>
 
           <div class="ledger-actions">
-            <button class="btn btn--ghost" @click="clearLocalProgress">Clear All Progress</button>
+            <button class="btn btn--ghost btn--clear-all" @click="clearLocalProgress">
+              <Trash2 class="icon-xs" />
+              <span>Clear All Progress</span>
+            </button>
           </div>
         </article>
       </section>
 
+      <!-- ── SECTION: WEEKLY REVIEW PROTOCOL ── -->
       <section class="card" id="weekly-review">
         <div class="section-head">
-          <div>
-            <h2>🧭 Weekly Review Protocol</h2>
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span class="section-title__icon">
+                <Compass class="icon-md" />
+              </span>
+              <span>Weekly Review Protocol</span>
+            </h2>
             <small>Sunday check-in. Keep it short, honest, and actionable.</small>
           </div>
-          <button class="btn btn--secondary" @click="fillWeeklyReviewMetrics">Use Auto Metrics</button>
+          <button class="btn btn--secondary" @click="fillWeeklyReviewMetrics">
+            <Sparkles class="icon-sm" />
+            <span>Use Auto Metrics</span>
+          </button>
         </div>
 
-        <p class="review-snapshot">Auto weekly snapshot: {{ weeklySnapshotLabel }}</p>
-        <p class="review-snapshot">Auto monthly snapshot: {{ monthlySnapshotLabel }}</p>
+        <div class="review-snapshots-wrap">
+          <p class="review-snapshot">
+            <strong>Auto Weekly:</strong> {{ weeklySnapshotLabel }}
+          </p>
+          <p class="review-snapshot">
+            <strong>Auto Monthly:</strong> {{ monthlySnapshotLabel }}
+          </p>
+        </div>
 
         <div class="review-grid">
           <article class="review-card">
@@ -1801,9 +2217,18 @@ watch(darkMode, () => {
 
             <div class="check-list">
               <div v-for="(check, index) in weeklyReview.checks" :key="`check-${index}`" class="check-item">
-                <input v-model="check.done" type="checkbox" @change="saveWeeklyReview">
+                <button
+                  type="button"
+                  class="focus-checkbox"
+                  :class="{ 'focus-checkbox--checked': check.done }"
+                  @click="check.done = !check.done; saveWeeklyReview()"
+                >
+                  <Check v-if="check.done" class="icon-check-focus" />
+                </button>
                 <input v-model="check.text" type="text" maxlength="160" @change="saveWeeklyReview">
-                <button @click="removeWeeklyCheck(index)">✕</button>
+                <button @click="removeWeeklyCheck(index)" class="check-delete-btn" title="Remove check">
+                  <Trash2 class="icon-xs" />
+                </button>
               </div>
             </div>
 
@@ -1815,7 +2240,10 @@ watch(darkMode, () => {
                 placeholder="Add a practical weekly check..."
                 @keydown.enter.prevent="addWeeklyCheck"
               >
-              <button class="btn" :disabled="newWeeklyCheck.trim() === ''" @click="addWeeklyCheck">+ Add</button>
+              <button class="btn btn--add-check" :disabled="newWeeklyCheck.trim() === ''" @click="addWeeklyCheck">
+                <Plus class="icon-sm" />
+                <span>Add</span>
+              </button>
             </div>
           </article>
         </div>
@@ -1823,31 +2251,31 @@ watch(darkMode, () => {
         <div class="reflection-grid">
           <label>
             Biggest Wins Worth Repeating
-            <textarea v-model="weeklyReview.reflections.wins" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.wins" rows="2" placeholder="What went exceptionally well?" @blur="saveWeeklyReview" />
           </label>
           <label>
             Missed Days & Friction Pattern
-            <textarea v-model="weeklyReview.reflections.misses" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.misses" rows="2" placeholder="Where did friction occur?" @blur="saveWeeklyReview" />
           </label>
           <label>
             Trigger + If-Then Plan
-            <textarea v-model="weeklyReview.reflections.triggerPlan" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.triggerPlan" rows="2" placeholder="If [trigger occurs], then I will [action]..." @blur="saveWeeklyReview" />
           </label>
           <label>
             Reward Motivation Check
-            <textarea v-model="weeklyReview.reflections.rewardTune" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.rewardTune" rows="2" placeholder="Are rewards motivating enough?" @blur="saveWeeklyReview" />
           </label>
           <label>
             Scale-Down Rule for Hard Days
-            <textarea v-model="weeklyReview.reflections.habitScale" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.habitScale" rows="2" placeholder="Minimum floor on low energy days..." @blur="saveWeeklyReview" />
           </label>
           <label>
-            Health Check (Sleep/Reflux/Stress)
-            <textarea v-model="weeklyReview.reflections.healthCheck" rows="2" @blur="saveWeeklyReview" />
+            Health Check (Sleep / Recovery / Energy)
+            <textarea v-model="weeklyReview.reflections.healthCheck" rows="2" placeholder="Sleep quality, stress, nutrition protocol..." @blur="saveWeeklyReview" />
           </label>
           <label class="reflection-grid__wide">
             Next Week Focus Commitments
-            <textarea v-model="weeklyReview.reflections.nextWeekFocus" rows="2" @blur="saveWeeklyReview" />
+            <textarea v-model="weeklyReview.reflections.nextWeekFocus" rows="2" placeholder="Non-negotiable outcomes for the upcoming week..." @blur="saveWeeklyReview" />
           </label>
         </div>
       </section>
