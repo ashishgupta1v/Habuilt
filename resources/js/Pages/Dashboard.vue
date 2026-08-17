@@ -61,6 +61,10 @@ import {
   Hash,
   Sparkle,
   Bell,
+  Plane,
+  MapPin,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -248,6 +252,46 @@ const jyotiTierDescriptions = {
   'j-18': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
 };
 
+// ── Ashish Travel Mode (Chandigarh) — lighter set, 14 habits ──
+const ashishTravelHabits = [
+  // Morning (lighter — no boxing gym access)
+  { id: 'at-1',  name: '06:00 Wake-Up & Hydrate',                        points: 2 },
+  { id: 'at-2',  name: 'Deep Block — Build & Ship (1h)',                  points: 3 },
+  { id: 'at-3',  name: '30-Min Walk / Bodyweight Movement',               points: 2 },
+  { id: 'at-4',  name: '★ Shaarvi Video Call / Play (15 min)',             points: 3 },
+  // Work
+  { id: 'at-5',  name: 'Job Performance — Remote Intensity',              points: 2 },
+  { id: 'at-6',  name: 'Daily Outbound Touches (3/day)',                   points: 2 },
+  { id: 'at-7',  name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
+  // Evening
+  { id: 'at-8',  name: '19:00 Hard Stop — Family Time',                   points: 2 },
+  { id: 'at-9',  name: 'Family Walk + Dinner Together',                   points: 2 },
+  { id: 'at-10', name: 'Sleep by 23:00 — 7h Floor',                       points: 2 },
+  // Health & Essentials
+  { id: 'at-11', name: 'Protein Every Meal + Supplements',                points: 2 },
+  { id: 'at-12', name: 'Limit Phone — No Doom Scrolling',                 points: 1 },
+  // Weekly (still tracked)
+  { id: 'at-13', name: 'Build-in-Public Post (1/week)',                    points: 2 },
+  { id: 'at-14', name: '★ Sunday Board Meeting Call (30 min)',             points: 3 },
+];
+
+const ashishTravelTierDescriptions = {
+  'at-1':  ['Wake by 07:00', 'Wake by 06:30', 'Wake by 06:00 + hydrate', '06:00 + breathwork'],
+  'at-2':  ['30 min build', '45 min build', '1h deep block', '1h deep + ship'],
+  'at-3':  ['10 min stretch', '15 min walk', '30 min walk/bodyweight', '30 min + yoga'],
+  'at-4':  ['Quick video call', '10 min call', '15 min video play', '15 min + milestone check'],
+  'at-5':  ['Show up, basics', 'Meet expectations', 'High intensity remote', 'Top output'],
+  'at-6':  ['1 touch', '2 touches', '3 touches', '3 personalized + follow-ups'],
+  'at-7':  ['Note 1 idea', '15 min pipeline', '30 min stealth', '30 min + review'],
+  'at-8':  ['Stop by 20:00', 'Stop by 19:30', '19:00 hard stop', '19:00 + phone away'],
+  'at-9':  ['Eat together', '+ short walk', 'Full walk + dinner', '+ no phones'],
+  'at-10': ['Bed by midnight', 'Bed by 23:30', 'Sleep by 23:00', '23:00 + wind-down'],
+  'at-11': ['Protein 1 meal', '2 meals', 'Every meal + supps', '+ track macros'],
+  'at-12': ['Reduce 30 min', '1h phone-free', '2h phone-free', 'Minimal scrolling'],
+  'at-13': ['1 post/week', '1 post + engage', '1 quality post', '1 post + community'],
+  'at-14': ['Quick sync', '20 min review', '30 min board call', '+ action items'],
+};
+
 // ── Progressive Phases ──
 const defaultPhases = [
   { id: 'assets',   name: 'Assets & Foundations', weeks: [1, 6],   description: 'Build core routines, establish Floor habits' },
@@ -261,7 +305,14 @@ const isJyoti = computed(() => {
   return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
 });
 
-const fallbackHabits = computed(() => isJyoti.value ? jyotiHabits : ashishHabits);
+// ── Travel Mode ──
+const travelMode = ref(false);
+
+const fallbackHabits = computed(() => {
+  if (isJyoti.value) return jyotiHabits;
+  if (travelMode.value) return ashishTravelHabits;
+  return ashishHabits;
+});
 
 const darkMode = ref(false);
 const mobileViewMode = ref('daily'); // 'daily' | 'grid'
@@ -541,8 +592,27 @@ const mobileGoToday = () => {
 
 // ── Progressive System Computed Helpers ──
 const getTierDescriptions = (habitId) => {
+  if (travelMode.value && ashishTravelTierDescriptions[habitId]) {
+    return ashishTravelTierDescriptions[habitId];
+  }
   const descs = isJyoti.value ? jyotiTierDescriptions : ashishTierDescriptions;
   return descs[habitId] || ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'];
+};
+
+// Toggle travel mode — switches habit list and persists
+const toggleTravelMode = () => {
+  travelMode.value = !travelMode.value;
+  // Re-initialize habits from the new preset, preserving completion data
+  const newPreset = travelMode.value ? ashishTravelHabits : ashishHabits;
+  const currentMap = {};
+  localHabits.value.forEach(h => { currentMap[h.id] = h; });
+  localHabits.value = newPreset.map(h => ({
+    ...h,
+    completedDays: currentMap[h.id]?.completedDays || [],
+    completedToday: currentMap[h.id]?.completedToday || false,
+  }));
+  hasCustomHabits.value = false;
+  persistLocalState();
 };
 
 const getHabitTier = (habitId) => {
@@ -758,14 +828,72 @@ const applySuggestedDayType = () => {
 const activeMobileCategory = ref('all');
 const hoveredChartPoint = ref(null);
 
+// Time-of-day slot for each habit — used to group and order the checklist timeline
+const getHabitTimeSlot = (habit) => {
+  if (!habit || !habit.name) return 'anytime';
+  const id = habit.id || '';
+  const name = habit.name.toLowerCase();
+
+  // Ashish regular habits by ID
+  if (id === 'a-1' || id === 'a-2' || id === 'a-3' || id === 'a-4' || id === 'a-5') return 'morning';
+  if (id === 'a-6' || id === 'a-7' || id === 'a-8' || id === 'a-9') return 'work';
+  if (id === 'a-10' || id === 'a-11' || id === 'a-12' || id === 'a-13' || id === 'a-14') return 'evening';
+  if (id === 'a-15' || id === 'a-16' || id === 'a-17' || id === 'a-18') return 'anytime';
+  if (id === 'a-19' || id === 'a-20' || id === 'a-21' || id === 'a-22') return 'weekly';
+
+  // Ashish travel habits
+  if (id === 'at-1' || id === 'at-2' || id === 'at-3' || id === 'at-4') return 'morning';
+  if (id === 'at-5' || id === 'at-6' || id === 'at-7') return 'work';
+  if (id === 'at-8' || id === 'at-9' || id === 'at-10') return 'evening';
+  if (id === 'at-11' || id === 'at-12') return 'anytime';
+  if (id === 'at-13' || id === 'at-14') return 'weekly';
+
+  // Jyoti habits by ID
+  if (id === 'j-1' || id === 'j-2' || id === 'j-3') return 'morning';
+  if (id === 'j-4' || id === 'j-5') return 'midday';
+  if (id === 'j-6' || id === 'j-7' || id === 'j-8') return 'evening';
+  if (id === 'j-9' || id === 'j-10' || id === 'j-11' || id === 'j-12') return 'anytime';
+  if (id === 'j-13' || id === 'j-14') return 'work';
+  if (id === 'j-15' || id === 'j-16' || id === 'j-17' || id === 'j-18') return 'weekly';
+
+  // Fallback heuristic for custom habits
+  if (name.includes('wake') || name.includes('morning') || name.includes('block 1') || name.includes('block a') || name.includes('groom') || name.includes('boxing')) return 'morning';
+  if (name.includes('job') || name.includes('work') || name.includes('outbound') || name.includes('stealth') || name.includes('career') || name.includes('skill')) return 'work';
+  if (name.includes('sleep by') || name.includes('night') || name.includes('dinner') || name.includes('walk') || name.includes('hard stop') || name.includes('bedtime') || name.includes('block 2')) return 'evening';
+  return 'anytime';
+};
+
+const timeSlotOrder = { morning: 0, midday: 1, work: 2, evening: 3, anytime: 4, weekly: 5 };
+const timeSlotMeta = {
+  morning:  { label: 'Morning',           emoji: '🌅', time: '05:00 – 08:30' },
+  midday:   { label: 'Midday',            emoji: '☀️', time: '10:45 – 15:00' },
+  work:     { label: 'Work / Deep Focus',  emoji: '⚡', time: '08:45 – 18:30' },
+  evening:  { label: 'Evening',            emoji: '🌙', time: '18:30 – 22:30' },
+  anytime:  { label: 'Health & Daily',     emoji: '🥗', time: 'All Day' },
+  weekly:   { label: 'Weekly Rituals',     emoji: '📅', time: 'Tracked Weekly' },
+};
+
+// Grouped habits for timeline view
+const timelineGroupedHabits = computed(() => {
+  const source = focusFilteredHabits.value;
+  const groups = {};
+  for (const h of source) {
+    const slot = getHabitTimeSlot(h);
+    if (!groups[slot]) groups[slot] = { slot, meta: timeSlotMeta[slot] || timeSlotMeta.anytime, habits: [] };
+    groups[slot].habits.push(h);
+  }
+  return Object.values(groups).sort((a, b) => (timeSlotOrder[a.slot] ?? 99) - (timeSlotOrder[b.slot] ?? 99));
+});
+
 const getHabitCategory = (habit) => {
   if (!habit || !habit.name) return 'other';
   if (habit.name.startsWith('★')) return 'shared';
-  const name = habit.name.toLowerCase();
-  if (name.includes('wake') || name.includes('morning') || name.includes('sleep —') || name.includes('block 1') || name.includes('block a') || name.includes('groom') || name.includes('boxing')) return 'morning';
-  if (name.includes('job') || name.includes('work') || name.includes('outbound') || name.includes('eye break') || name.includes('stealth') || name.includes('block b') || name.includes('career') || name.includes('skill') || name.includes('entity') || name.includes('marathon') || name.includes('pipeline')) return 'work';
-  if (name.includes('sleep by') || name.includes('night') || name.includes('dinner') || name.includes('walk') || name.includes('evening') || name.includes('hard stop') || name.includes('bedtime') || name.includes('block 2')) return 'evening';
-  if (name.includes('protein') || name.includes('supplement') || name.includes('water') || name.includes('hair') || name.includes('screen') || name.includes('phone') || name.includes('recovery')) return 'health';
+  const slot = getHabitTimeSlot(habit);
+  if (slot === 'morning') return 'morning';
+  if (slot === 'work' || slot === 'midday') return 'work';
+  if (slot === 'evening') return 'evening';
+  if (slot === 'anytime') return 'health';
+  if (slot === 'weekly') return 'work';
   return 'other';
 };
 
@@ -881,11 +1009,15 @@ const availableWallet = computed(() => Math.max(
   openingBalance.value + monthEarned.value - monthRedeemed.value
 ));
 
-const activeMilestoneTarget = computed(() => (availableWallet.value >= 500 ? 2000 : 500));
+// Milestone offset — subtracted from wallet so milestone counts from reset point
+const milestonePointsOffset = ref(0);
+const milestoneWallet = computed(() => Math.max(0, availableWallet.value - milestonePointsOffset.value));
+
+const activeMilestoneTarget = computed(() => (milestoneWallet.value >= 500 ? 2000 : 500));
 const activeMilestoneLabel = computed(() => (activeMilestoneTarget.value === 500 ? 'Vacation' : 'International Vacation'));
-const pointsToVacation = computed(() => Math.max(activeMilestoneTarget.value - availableWallet.value, 0));
+const pointsToVacation = computed(() => Math.max(activeMilestoneTarget.value - milestoneWallet.value, 0));
 const vacationProgress = computed(
-  () => Math.max(0, Math.min((availableWallet.value / activeMilestoneTarget.value) * 100, 100)),
+  () => Math.max(0, Math.min((milestoneWallet.value / activeMilestoneTarget.value) * 100, 100)),
 );
 const milestoneMessage = computed(() => {
   if (pointsToVacation.value > 0) {
@@ -898,6 +1030,13 @@ const milestoneMessage = computed(() => {
 
   return 'International Vacation unlocked. Time to redeem!';
 });
+
+const resetMilestone = () => {
+  milestonePointsOffset.value = availableWallet.value;
+  // Store globally in localStorage so it persists across months
+  try { localStorage.setItem('habuilt.milestoneOffset.' + props.userId, String(milestonePointsOffset.value)); } catch {}
+  persistLocalState();
+};
 
 watch(
   () => props.wallet,
@@ -1131,6 +1270,8 @@ const persistLocalState = async () => {
     weeklyReview: weeklyReview.value,
     localHabits: localHabits.value,
     hasCustomHabits: hasCustomHabits.value,
+    travelMode: travelMode.value,
+    milestonePointsOffset: milestonePointsOffset.value,
     progressiveSettings: progressiveSettings.value,
     enhancedState: enhancedState.value,
   };
@@ -1286,7 +1427,17 @@ const loadLocalState = async () => {
       ? parsed.rewardLedger.map((entry, index) => normalizeLedgerEntry(entry, index))
       : [];
     weeklyReview.value = normalizeWeeklyReview(parsed.weeklyReview);
-    
+
+    // Restore travel mode
+    if (typeof parsed.travelMode === 'boolean') {
+      travelMode.value = parsed.travelMode;
+    }
+
+    // Restore milestone offset
+    if (typeof parsed.milestonePointsOffset === 'number') {
+      milestonePointsOffset.value = parsed.milestonePointsOffset;
+    }
+
     // Restore progressive settings
     if (parsed.progressiveSettings && typeof parsed.progressiveSettings === 'object') {
       const ps = parsed.progressiveSettings;
@@ -1348,6 +1499,14 @@ const loadLocalState = async () => {
   } catch {
     weeklyReview.value = createDefaultWeeklyReview();
   }
+
+  // Restore global milestone offset from localStorage (persists across months)
+  try {
+    const savedOffset = localStorage.getItem('habuilt.milestoneOffset.' + props.userId);
+    if (savedOffset !== null) {
+      milestonePointsOffset.value = Number(savedOffset) || 0;
+    }
+  } catch {}
 
   await recalculateGlobalTotals();
 };
@@ -1720,6 +1879,8 @@ const clearLocalProgress = async () => {
   focusTasksByDay.value = {};
   newFocusTask.value = '';
   rewardLedger.value = [];
+  milestonePointsOffset.value = 0;
+  try { localStorage.removeItem('habuilt.milestoneOffset.' + props.userId); } catch {}
   weeklyReview.value = createDefaultWeeklyReview();
   newWeeklyCheck.value = '';
   await persistLocalState();
@@ -2233,6 +2394,8 @@ const exportBackup = () => {
     year: props.year,
     localHabits: localHabits.value,
     hasCustomHabits: hasCustomHabits.value,
+    travelMode: travelMode.value,
+    milestonePointsOffset: milestonePointsOffset.value,
     progressiveSettings: progressiveSettings.value,
     enhancedState: enhancedState.value,
     rewards: rewards.value,
@@ -2339,6 +2502,18 @@ const shareProgress = async () => {
             </div>
           </div>
           <div class="hero-command-bar__right">
+            <!-- Travel Mode (Chandigarh Preset) -->
+            <button
+              v-if="!isJyoti"
+              class="hero-nav-btn hero-nav-btn--travel"
+              :class="{ 'hero-nav-btn--travel-active': travelMode }"
+              @click="toggleTravelMode"
+              :title="travelMode ? 'Travel Mode Active (Chandigarh - 14 habits) • Click to return to Home' : 'Switch to Travel Mode (Chandigarh)'"
+            >
+              <Plane class="icon-sm" />
+              <span class="hero-travel-tag">{{ travelMode ? 'Chandigarh' : 'Travel' }}</span>
+            </button>
+
             <button class="hero-nav-btn" :disabled="!canNavigatePrevMonth || isNavigatingMonth" @click="goToPreviousMonth" title="Previous Month">
               <ChevronLeft class="icon-sm" />
             </button>
@@ -2992,13 +3167,13 @@ const shareProgress = async () => {
               </div>
             </div>
             <div class="milestone-block__meta">
-              <span class="milestone-block__target">{{ availableWallet }} / {{ activeMilestoneTarget }} pts</span>
+              <span class="milestone-block__target">{{ milestoneWallet }} / {{ activeMilestoneTarget }} pts</span>
               <strong class="milestone-block__pct">{{ vacationProgress.toFixed(1) }}%</strong>
             </div>
           </div>
           <div class="milestone-track">
             <div class="milestone-fill" :style="`width: ${Math.min(100, vacationProgress)}%`">
-              <span v-if="vacationProgress > 12" class="milestone-fill__label">{{ availableWallet }} pts</span>
+              <span v-if="vacationProgress > 12" class="milestone-fill__label">{{ milestoneWallet }} pts</span>
             </div>
           </div>
           <div class="milestone-footer">
@@ -3006,6 +3181,9 @@ const shareProgress = async () => {
             <span class="milestone-badge" :class="vacationProgress >= 100 ? 'milestone-badge--unlocked' : ''">
               {{ vacationProgress >= 100 ? '🎉 Unlocked' : `${pointsToVacation} pts left` }}
             </span>
+            <button class="milestone-reset-btn" @click="resetMilestone" title="Reset milestone to start fresh">
+              <RefreshCw class="icon-xs" /> Reset
+            </button>
           </div>
         </div>
       </section>
@@ -3677,6 +3855,17 @@ const shareProgress = async () => {
                 </button>
               </div>
 
+              <!-- Travel Mode Toggle (Ashish only) -->
+              <div v-if="!isJyoti" class="travel-mode-bar">
+                <button class="travel-mode-toggle" :class="{ 'travel-mode-toggle--active': travelMode }" @click="toggleTravelMode">
+                  <Plane v-if="travelMode" class="icon-sm" />
+                  <MapPin v-else class="icon-sm" />
+                  <span>{{ travelMode ? 'Travel Mode (Chandigarh)' : 'Home Mode' }}</span>
+                  <ToggleRight v-if="travelMode" class="icon-md travel-toggle-icon" />
+                  <ToggleLeft v-else class="icon-md travel-toggle-icon" />
+                </button>
+              </div>
+
               <!-- Progress Summary -->
               <div class="mobile-daily__progress">
                 <div class="mobile-daily__progress-bar">
@@ -3691,63 +3880,75 @@ const shareProgress = async () => {
                 </div>
               </div>
 
-              <!-- Habit Cards -->
+              <!-- Timeline-Grouped Habit Cards -->
               <div class="mobile-daily__list">
-                <template v-for="habit in focusFilteredHabits" :key="'m-' + habit.id">
-                  <button
-                    class="mobile-daily__card"
-                    :class="{
-                      'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
-                      'mobile-daily__card--shared': habit.name.startsWith('★'),
-                      [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
-                    }"
-                    :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
-                    @click="toggleHabitForDay(habit, mobileDay)"
-                  >
-                    <div class="mobile-daily__card-check">
-                      <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
-                      <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
-                        <Check class="icon-check-mobile" />
-                      </span>
-                      <span v-else class="mobile-daily__circle"></span>
-                    </div>
-                    <div class="mobile-daily__card-body">
-                      <span class="mobile-daily__card-name">{{ habit.name }}</span>
-                      <span class="mobile-daily__card-meta">
-                        <span class="mobile-daily__card-category">{{ getCategoryLabel(getHabitCategory(habit)) }}</span>
-                        <span class="tier-badge tier-badge--inline" :class="tierColorClass(getHabitTier(habit.id))" @click.stop="toggleTierDetail(habit.id)">
-                          T{{ getHabitTier(habit.id) }}
+                <template v-for="group in timelineGroupedHabits" :key="'tg-' + group.slot">
+                  <!-- Time Slot Header -->
+                  <div class="timeline-slot-header" :class="'timeline-slot-header--' + group.slot">
+                    <span class="timeline-slot-emoji">{{ group.meta.emoji }}</span>
+                    <span class="timeline-slot-label">{{ group.meta.label }}</span>
+                    <span class="timeline-slot-time">{{ group.meta.time }}</span>
+                    <span class="timeline-slot-count">
+                      {{ group.habits.filter(h => hasCompletedDay(h, mobileDay)).length }}/{{ group.habits.length }}
+                    </span>
+                  </div>
+                  <!-- Habit Cards in this slot -->
+                  <template v-for="habit in group.habits" :key="'m-' + habit.id">
+                    <button
+                      class="mobile-daily__card"
+                      :class="{
+                        'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
+                        'mobile-daily__card--shared': habit.name.startsWith('★'),
+                        [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
+                      }"
+                      :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
+                      @click="toggleHabitForDay(habit, mobileDay)"
+                    >
+                      <div class="mobile-daily__card-check">
+                        <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
+                        <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
+                          <Check class="icon-check-mobile" />
                         </span>
-                      </span>
-                      <!-- Tier Detail Expand -->
-                      <div v-if="tierDetailHabitId === habit.id" class="tier-detail-expand" @click.stop>
-                        <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': getHabitTier(habit.id) === t }">
-                          <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
-                          <span class="tier-detail-desc">{{ getTierDescriptions(habit.id)[t - 1] }}</span>
-                          <button v-if="getHabitTier(habit.id) !== t" class="tier-detail-set" @click.stop="setHabitTier(habit.id, t)">Set</button>
-                          <Check v-else class="icon-xs tier-detail-active" />
+                        <span v-else class="mobile-daily__circle"></span>
+                      </div>
+                      <div class="mobile-daily__card-body">
+                        <span class="mobile-daily__card-name">{{ habit.name }}</span>
+                        <span class="mobile-daily__card-meta">
+                          <span class="mobile-daily__card-category">{{ group.meta.label }}</span>
+                          <span class="tier-badge tier-badge--inline" :class="tierColorClass(getHabitTier(habit.id))" @click.stop="toggleTierDetail(habit.id)">
+                            T{{ getHabitTier(habit.id) }}
+                          </span>
+                        </span>
+                        <!-- Tier Detail Expand -->
+                        <div v-if="tierDetailHabitId === habit.id" class="tier-detail-expand" @click.stop>
+                          <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': getHabitTier(habit.id) === t }">
+                            <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
+                            <span class="tier-detail-desc">{{ getTierDescriptions(habit.id)[t - 1] }}</span>
+                            <button v-if="getHabitTier(habit.id) !== t" class="tier-detail-set" @click.stop="setHabitTier(habit.id, t)">Set</button>
+                            <Check v-else class="icon-xs tier-detail-active" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <span class="mobile-daily__card-pts">
-                      +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
-                    </span>
-                    <!-- Habit Note Toggle -->
-                    <button class="habit-note-btn" @click.stop="toggleHabitNote(habit.id, mobileDay)"
-                      :class="{ 'habit-note-btn--has': getHabitNote(habit.id, mobileDay) }"
-                      title="Add note">
-                      <MessageSquare class="icon-xs" />
+                      <span class="mobile-daily__card-pts">
+                        +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
+                      </span>
+                      <!-- Habit Note Toggle -->
+                      <button class="habit-note-btn" @click.stop="toggleHabitNote(habit.id, mobileDay)"
+                        :class="{ 'habit-note-btn--has': getHabitNote(habit.id, mobileDay) }"
+                        title="Add note">
+                        <MessageSquare class="icon-xs" />
+                      </button>
                     </button>
-                  </button>
-                  <!-- Habit Note Input -->
-                  <div v-if="habitNotesOpen === habit.id + ':' + mobileDay" class="habit-note-input" @click.stop>
-                    <textarea
-                      :value="getHabitNote(habit.id, mobileDay)"
-                      @input="setHabitNote(habit.id, mobileDay, $event.target.value)"
-                      rows="2"
-                      placeholder="Quick note about this habit today..."
-                    ></textarea>
-                  </div>
+                    <!-- Habit Note Input -->
+                    <div v-if="habitNotesOpen === habit.id + ':' + mobileDay" class="habit-note-input" @click.stop>
+                      <textarea
+                        :value="getHabitNote(habit.id, mobileDay)"
+                        @input="setHabitNote(habit.id, mobileDay, $event.target.value)"
+                        rows="2"
+                        placeholder="Quick note about this habit today..."
+                      ></textarea>
+                    </div>
+                  </template>
                 </template>
               </div>
             </div>

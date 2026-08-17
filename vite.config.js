@@ -8,7 +8,14 @@ export default defineConfig({
       input: ['resources/js/app.js'],
       refresh: true,
     }),
-    vue(),
+    vue({
+      template: {
+        transformAssetUrls: {
+          base: null,
+          includeAbsolute: false,
+        },
+      },
+    }),
   ],
   build: {
     rollupOptions: {
@@ -21,6 +28,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/resources/js',
+    },
+  },
+  server: {
+    hmr: {
+      overlay: true,
     },
   },
 });
