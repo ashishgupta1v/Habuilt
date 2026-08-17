@@ -39,3 +39,4 @@ Thumbs.db
 *.swp
 *~
 /.vite/
+*.timestamp-*.mjs

@@ -143,63 +143,99 @@ const page = usePage();
 const localHabits = ref([]);
 const pendingCells = ref({});
 
-// ── Progressive Habits: Ashish's Track (22 habits, 41 pts/day max) ──
+// ── Progressive Habits: Ashish's Track — Micro-Detail (42 activities, time-sequenced) ──
 const ashishHabits = [
-  // Morning System 05:00–08:30
-  { id: 'a-1',  name: '05:00 Wake-Up & Hydrate',                         points: 3 },
-  { id: 'a-2',  name: 'Deep Block 1 — Build & Ship (1h45)',              points: 4 },
-  { id: 'a-3',  name: 'Boxing — The Daily 30',                           points: 3 },
-  { id: 'a-4',  name: '★ Shaarvi Morning Watch — Turn-Taking #1',        points: 3 },
-  { id: 'a-5',  name: 'Groom & Cold Finish Shower',                      points: 1 },
-  // Work System 08:45–18:30
-  { id: 'a-6',  name: 'Job Performance — Full Intensity',                 points: 2 },
-  { id: 'a-7',  name: 'Daily Outbound Touches (5/day)',                   points: 3 },
-  { id: 'a-8',  name: '20-20-20 Eye Breaks + Posture',                   points: 1 },
-  { id: 'a-9',  name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
-  // Evening System 18:30–22:30
-  { id: 'a-10', name: '★ 18:30 Hard Stop — Laptop Closed',               points: 2 },
-  { id: 'a-11', name: '★ Family Walk + Dinner Together',                  points: 2 },
-  { id: 'a-12', name: '★ Shaarvi Bedtime Routine (Ashish Owns)',          points: 3 },
-  { id: 'a-13', name: 'Deep Block 2 — Pipeline & Admin (1h15)',           points: 2 },
-  { id: 'a-14', name: 'Sleep by 22:30 — 7h Floor',                       points: 3 },
-  // Nutrition & Health
-  { id: 'a-15', name: 'Protein Every Meal + Iron Protocol',               points: 2 },
-  { id: 'a-16', name: 'Supplements — B12, Omega-3, D3, Mg',              points: 1 },
-  { id: 'a-17', name: 'Hair & Stress Protocol (Scalp Rinse)',             points: 1 },
-  { id: 'a-18', name: 'Limit Phone / Zero Screens Near Shaarvi',          points: 2 },
-  // Weekly Rituals (tracked daily, reported Sunday)
-  { id: 'a-19', name: 'Build-in-Public Posts (2/week)',                    points: 2 },
-  { id: 'a-20', name: 'Saturday Build Marathon (4h)',                      points: 4 },
-  { id: 'a-21', name: '★ Sunday Board Meeting (45 min)',                   points: 3 },
-  { id: 'a-22', name: '10% Tax Transfer + Money Log',                     points: 2 },
+  // ── MORNING 05:00–08:30 (10 micro-steps) ──
+  { id: 'a-1',  name: '05:00 Alarm — Out of Bed',                        points: 1 },
+  { id: 'a-2',  name: '05:05 Hydrate — 500ml Water + Lemon',             points: 1 },
+  { id: 'a-3',  name: '05:10 Breathwork / Meditation (5 min)',            points: 1 },
+  { id: 'a-4',  name: '05:15 Deep Block 1 — Build & Ship (1h45)',        points: 3 },
+  { id: 'a-5',  name: '07:00 Ship Something — Commit & Push',            points: 1 },
+  { id: 'a-6',  name: '07:15 Boxing Training — 30 Min',                  points: 2 },
+  { id: 'a-7',  name: '07:45 Post-Workout Stretch (5 min)',              points: 1 },
+  { id: 'a-8',  name: '07:55 ★ Shaarvi Morning Play — Turn-Taking',     points: 3 },
+  { id: 'a-9',  name: '08:20 Cold Finish Shower',                        points: 1 },
+  { id: 'a-10', name: '08:30 Groom + Skincare',                          points: 1 },
+  // ── WORK 08:45–18:30 (8 micro-steps) ──
+  { id: 'a-11', name: '08:45 Job Start — Full Intensity Mode',           points: 2 },
+  { id: 'a-12', name: 'Outbound Touches — 5 Personalized',               points: 2 },
+  { id: 'a-13', name: 'Follow-Ups on Previous Touches',                  points: 1 },
+  { id: 'a-14', name: '20-20-20 Eye Breaks (Every 20 min)',              points: 1 },
+  { id: 'a-15', name: 'Hourly Posture Check + Stand',                    points: 1 },
+  { id: 'a-16', name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
+  { id: 'a-17', name: 'Pipeline Ideas — Note & Research',                points: 1 },
+  { id: 'a-18', name: 'Weekly Pipeline Review Note',                     points: 1 },
+  // ── EVENING 18:30–22:30 (9 micro-steps) ──
+  { id: 'a-19', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2 },
+  { id: 'a-20', name: '18:35 Phone in Drawer',                           points: 1 },
+  { id: 'a-21', name: '★ 18:45 Family Walk (15 min)',                    points: 1 },
+  { id: 'a-22', name: '★ 19:00 Dinner Together — No Phones',             points: 1 },
+  { id: 'a-23', name: '★ 19:30 Shaarvi Bedtime — Story + Routine',      points: 3 },
+  { id: 'a-24', name: '20:00 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
+  { id: 'a-25', name: '21:15 Review & Plan Tomorrow',                    points: 1 },
+  { id: 'a-26', name: '22:00 Wind-Down — No Screens',                    points: 1 },
+  { id: 'a-27', name: '22:30 Lights Out — 7h Sleep Floor',               points: 2 },
+  // ── HEALTH & DAILY (9 micro-steps) ──
+  { id: 'a-28', name: 'Breakfast — Protein + Iron',                      points: 1 },
+  { id: 'a-29', name: 'Lunch — Protein + Iron',                          points: 1 },
+  { id: 'a-30', name: 'Dinner — Protein + Iron',                         points: 1 },
+  { id: 'a-31', name: 'Supplements — B12, Omega-3, D3, Mg',             points: 1 },
+  { id: 'a-32', name: 'Scalp Rinse + Hair Protocol',                     points: 1 },
+  { id: 'a-33', name: 'Stress Check-In (5 min journal)',                  points: 1 },
+  { id: 'a-34', name: 'Zero Screens Near Shaarvi',                       points: 2 },
+  { id: 'a-35', name: 'Track Sleep Duration',                            points: 1 },
+  { id: 'a-36', name: '3L Water Intake',                                 points: 1 },
+  // ── WEEKLY RITUALS (6 micro-steps) ──
+  { id: 'a-37', name: 'Build-in-Public Post #1',                         points: 1 },
+  { id: 'a-38', name: 'Build-in-Public Post #2 + Engage',                points: 1 },
+  { id: 'a-39', name: 'Saturday Build Marathon (4h)',                     points: 3 },
+  { id: 'a-40', name: '★ Sunday Board Meeting (45 min)',                  points: 3 },
+  { id: 'a-41', name: '10% Tax Transfer',                                points: 1 },
+  { id: 'a-42', name: 'Money Log — Income & Expense',                    points: 1 },
 ];
 
-// ── Progressive Habits: Jyoti's Track (18 habits, 34 pts/day max) ──
+// ── Progressive Habits: Jyoti's Track — Micro-Detail (34 activities, time-sequenced) ──
 const jyotiHabits = [
-  // Morning System 08:00–11:00
-  { id: 'j-1',  name: 'Protected Sleep — 05:00 to 08:00',                points: 3 },
-  { id: 'j-2',  name: 'Block A — Deep Work (2h)',                        points: 4 },
-  { id: 'j-3',  name: '20-Min Walk + Postpartum Recovery',               points: 2 },
-  // Midday System 10:45–15:00
-  { id: 'j-4',  name: '★ Shaarvi Care — Feed, Floor Play, Naming',       points: 3 },
-  { id: 'j-5',  name: 'Block B — Light Work (1h)',                       points: 2 },
-  // Evening & Night
-  { id: 'j-6',  name: '★ 18:30 Hard Stop — Floor Play with Shaarvi',     points: 2 },
-  { id: 'j-7',  name: '★ Family Walk + Dinner Together',                  points: 2 },
-  { id: 'j-8',  name: 'Night Watch — Feeds & Settling',                   points: 2 },
-  // Nutrition & Health
-  { id: 'j-9',  name: 'Protein Every Meal + Iron Protocol',               points: 2 },
-  { id: 'j-10', name: 'Nursing Supplements — B12, DHA, D3',              points: 1 },
-  { id: 'j-11', name: 'Limit Phone / Zero Screens Near Shaarvi',          points: 2 },
-  { id: 'j-12', name: '3L Water + No Tea After Meals',                    points: 1 },
-  // Career Track
-  { id: 'j-13', name: 'Track Progress — Skill Building',                  points: 3 },
-  { id: 'j-14', name: 'Own Entity — Invoices & Accounts',                 points: 2 },
-  // Weekly Rituals
-  { id: 'j-15', name: 'Saturday Afternoon Block — 3h (Hers)',             points: 3 },
-  { id: 'j-16', name: '★ Sunday Board Meeting (45 min)',                   points: 3 },
-  { id: 'j-17', name: '★ Sunday Batch Cooking (2h, Both)',                 points: 2 },
-  { id: 'j-18', name: '★ Shaarvi Monthly Report (29th)',                   points: 2 },
+  // ── MORNING 05:00–11:00 (8 micro-steps) ──
+  { id: 'j-1',  name: 'Protected Sleep — 05:00 to 08:00',               points: 2 },
+  { id: 'j-2',  name: '08:00 Wake-Up — Hydrate (500ml)',                 points: 1 },
+  { id: 'j-3',  name: '08:15 Nursing Supplements — B12, DHA, D3',       points: 1 },
+  { id: 'j-4',  name: '08:30 Block A — Deep Work Session 1 (1h)',       points: 2 },
+  { id: 'j-5',  name: '09:30 Block A — Deep Work Session 2 (1h)',       points: 2 },
+  { id: 'j-6',  name: '10:30 Walk — 20 Min Outdoor',                    points: 1 },
+  { id: 'j-7',  name: '10:50 Postpartum Recovery Exercises',            points: 1 },
+  { id: 'j-8',  name: '11:00 Pelvic Floor Work (5 min)',                points: 1 },
+  // ── MIDDAY 11:00–15:00 (5 micro-steps) ──
+  { id: 'j-9',  name: '★ 11:00 Shaarvi Feed',                           points: 1 },
+  { id: 'j-10', name: '★ 11:30 Shaarvi Floor Play + Naming',            points: 2 },
+  { id: 'j-11', name: '★ 12:00 Shaarvi Milestone Check',                points: 1 },
+  { id: 'j-12', name: '13:00 Block B — Light Work (1h)',                points: 2 },
+  { id: 'j-13', name: '14:00 Skill Application — Practice',             points: 1 },
+  // ── EVENING & NIGHT (7 micro-steps) ──
+  { id: 'j-14', name: '★ 18:30 Hard Stop — Floor Play with Shaarvi',    points: 2 },
+  { id: 'j-15', name: '★ 19:00 Developmental Activity with Shaarvi',    points: 1 },
+  { id: 'j-16', name: '★ 19:15 Family Walk (15 min)',                   points: 1 },
+  { id: 'j-17', name: '★ 19:30 Dinner Together — No Phones',            points: 1 },
+  { id: 'j-18', name: '20:30 Night Watch — Feeds & Settling',           points: 2 },
+  { id: 'j-19', name: '21:00 Sleep Log — Track Duration',               points: 1 },
+  { id: 'j-20', name: '22:00 Wind-Down — Lights Out',                   points: 1 },
+  // ── NUTRITION & HEALTH (6 micro-steps) ──
+  { id: 'j-21', name: 'Breakfast — Protein + Iron',                      points: 1 },
+  { id: 'j-22', name: 'Lunch — Protein + Iron',                          points: 1 },
+  { id: 'j-23', name: 'Dinner — Protein + Iron',                         points: 1 },
+  { id: 'j-24', name: '3L Water Intake',                                 points: 1 },
+  { id: 'j-25', name: 'No Tea After Meals',                              points: 1 },
+  { id: 'j-26', name: 'Zero Screens Near Shaarvi',                       points: 2 },
+  // ── CAREER TRACK (3 micro-steps) ──
+  { id: 'j-27', name: 'Skill Building — Read / Learn (30 min)',          points: 2 },
+  { id: 'j-28', name: 'Track Progress — Portfolio Update',               points: 1 },
+  { id: 'j-29', name: 'Entity — Invoices & Accounts',                    points: 2 },
+  // ── WEEKLY RITUALS (5 micro-steps) ──
+  { id: 'j-30', name: 'Saturday Afternoon Block — 3h (Hers)',            points: 3 },
+  { id: 'j-31', name: '★ Sunday Board Meeting (45 min)',                  points: 3 },
+  { id: 'j-32', name: '★ Sunday Batch Cooking (2h)',                      points: 2 },
+  { id: 'j-33', name: 'Week Meal Plan — Prep List',                      points: 1 },
+  { id: 'j-34', name: '★ Shaarvi Monthly Report (29th)',                  points: 2 },
 ];
 
 // ── Progressive Habits System: Tier Definitions ──
@@ -207,49 +243,85 @@ const jyotiHabits = [
 const defaultTierLabels = ['Floor', 'Foundation', 'Standard', 'Mastery'];
 
 const ashishTierDescriptions = {
-  'a-1':  ['Wake by 06:30', 'Wake by 06:00', 'Wake by 05:30 + hydrate', '05:00 + hydrate + 5min breathwork'],
-  'a-2':  ['30 min build work', '1h build work', '1h45 deep block', '1h45 deep + ship daily'],
-  'a-3':  ['10 min movement', '20 min exercise', '30 min boxing', '30 min boxing + stretching'],
-  'a-4':  ['10 min with Shaarvi', '15 min turn-taking', '20 min structured play', '30 min milestone activity'],
-  'a-5':  ['Basic hygiene', 'Groom + shower', 'Cold finish shower', 'Full cold shower + skincare'],
-  'a-6':  ['Show up, basics done', 'Meet expectations', 'High intensity work', 'Top performer output'],
-  'a-7':  ['1 outbound touch', '3 outbound touches', '5 outbound touches', '5 personalized + follow-ups'],
-  'a-8':  ['1 eye break/day', '3 breaks/day', '20-20-20 rule all day', '+ posture checks hourly'],
-  'a-9':  ['Note 1 pipeline idea', '15 min pipeline', '30 min stealth block', '30 min + weekly review'],
-  'a-10': ['Stop by 20:00', 'Stop by 19:30', '18:30 hard stop', '18:30 + phone in drawer'],
-  'a-11': ['Eat together', '+ 10 min walk', 'Full walk + dinner', '+ no phones at table'],
-  'a-12': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Full routine + story time'],
-  'a-13': ['15 min admin', '30 min pipeline', '1h15 deep block 2', '+ weekly pipeline review'],
-  'a-14': ['In bed by 23:30', 'In bed by 23:00', 'Sleep by 22:30', '22:30 + sleep tracking'],
-  'a-15': ['Protein 1 meal', '2 meals protein', 'Every meal + iron', '+ meal prep Sundays'],
-  'a-16': ['Take 1 supplement', 'B12 + D3', 'Full stack daily', 'Full stack + track levels'],
-  'a-17': ['Skip harmful products', 'Basic scalp care', 'Full scalp rinse protocol', '+ stress management'],
-  'a-18': ['Reduce screen 30min', '1h phone-free', '2h phone-free near baby', 'Zero screens near Shaarvi'],
-  'a-19': ['1 post/week', '2 posts/week', '2 posts + engagement', '3 posts + community'],
-  'a-20': ['1h Saturday build', '2h Saturday build', '4h marathon', '4h + ship something'],
-  'a-21': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
-  'a-22': ['Track spending', 'Log income/expense', '10% transfer + log', '+ investment review'],
+  'a-1':  ['Wake by 06:30', 'Wake by 06:00', 'Wake by 05:30', '05:00 sharp every day'],
+  'a-2':  ['Glass of water', '300ml water', '500ml + lemon', '500ml + lemon + electrolytes'],
+  'a-3':  ['1 min deep breaths', '3 min breathwork', '5 min meditation', '5 min + intention set'],
+  'a-4':  ['30 min build work', '1h build work', '1h45 deep block', '1h45 + ship daily'],
+  'a-5':  ['Note what to ship', 'Stage a commit', 'Push code / content', 'Ship + announce'],
+  'a-6':  ['10 min movement', '20 min exercise', '30 min boxing', '30 min + sparring drills'],
+  'a-7':  ['Quick stretch', '3 min stretch', '5 min full stretch', '5 min + foam roll'],
+  'a-8':  ['10 min with Shaarvi', '15 min turn-taking', '20 min structured', '20 min + milestone'],
+  'a-9':  ['Warm shower', 'Cool rinse finish', 'Cold finish 30s', 'Full cold shower'],
+  'a-10': ['Basic hygiene', 'Groom clean', 'Groom + skincare', 'Full skincare routine'],
+  'a-11': ['Show up, basics done', 'Meet expectations', 'High intensity', 'Top performer output'],
+  'a-12': ['1 outbound touch', '3 touches', '5 personalized', '5 + tailored follow-ups'],
+  'a-13': ['Check for replies', 'Reply to 1', 'Reply all pending', 'Reply + re-engage cold'],
+  'a-14': ['1 eye break/day', '3 breaks/day', 'Every 20 min', 'Every 20 min + 10s rule'],
+  'a-15': ['Stand once/day', 'Stand hourly', 'Posture check hourly', '+ standing desk 2h'],
+  'a-16': ['Note 1 pipeline idea', '15 min pipeline', '30 min stealth block', '30 min + metrics'],
+  'a-17': ['Jot 1 idea', 'Research 1 lead', 'Note + research 2', 'Full pipeline brief'],
+  'a-18': ['Skim notes', 'Quick review', 'Written review', 'Review + next actions'],
+  'a-19': ['Stop by 20:00', 'Stop by 19:30', '18:30 hard stop', '18:30 non-negotiable'],
+  'a-20': ['Phone on silent', 'Phone face-down', 'Phone in drawer', 'Phone off + drawer'],
+  'a-21': ['5 min walk', '10 min walk', '15 min family walk', '15 min + no phones'],
+  'a-22': ['Eat together', 'Eat + talk', 'Dinner no phones', 'Dinner + gratitude share'],
+  'a-23': ['Help with bedtime', 'Own 1 step', 'Own full routine', 'Routine + story time'],
+  'a-24': ['15 min admin', '30 min pipeline', '1h15 deep block', '1h15 + follow-ups sent'],
+  'a-25': ['Glance at calendar', 'List 3 priorities', 'Full plan + prep', 'Plan + pre-work done'],
+  'a-26': ['Reduce screens 30m', 'No screens 9:30pm', 'No screens 10pm', '10pm + reading only'],
+  'a-27': ['Bed by 23:30', 'Bed by 23:00', 'Sleep by 22:30', '22:30 + sleep tracking'],
+  'a-28': ['Eat breakfast', 'Add protein', 'Protein + iron source', '+ meal prep'],
+  'a-29': ['Eat lunch', 'Add protein', 'Protein + iron source', '+ balanced macros'],
+  'a-30': ['Eat dinner', 'Add protein', 'Protein + iron source', '+ portion control'],
+  'a-31': ['Take 1 supplement', 'B12 + D3', 'Full stack daily', 'Full stack + track levels'],
+  'a-32': ['Skip harmful products', 'Basic scalp wash', 'Full rinse protocol', '+ DHT blocker'],
+  'a-33': ['Notice stress level', 'Rate 1-10', '5 min journal entry', 'Journal + action step'],
+  'a-34': ['Reduce screen 30m', '1h phone-free', '2h phone-free', 'Zero screens near Shaarvi'],
+  'a-35': ['Note sleep time', 'Log hours', 'Track duration + quality', '+ sleep score'],
+  'a-36': ['1L water', '2L water', '3L water', '3L + electrolytes'],
+  'a-37': ['Draft 1 post', 'Publish 1 post', 'Post + 1 comment', 'Post + engage community'],
+  'a-38': ['Draft post #2', 'Publish post #2', 'Post + engage', 'Post + collab thread'],
+  'a-39': ['1h Saturday build', '2h build', '4h marathon', '4h + ship something'],
+  'a-40': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
+  'a-41': ['Note amount', 'Calculate 10%', 'Transfer 10%', 'Transfer + auto-invest'],
+  'a-42': ['Glance at bank', 'Log 1 entry', 'Full income/expense log', '+ budget review'],
 };
 
 const jyotiTierDescriptions = {
-  'j-1':  ['Sleep 6h minimum', 'Sleep 7h, wake by 08:30', 'Protected 05-08 sleep', '8h + sleep quality tracking'],
-  'j-2':  ['30 min focused work', '1h deep work', '2h deep block', '2h deep + output tracking'],
-  'j-3':  ['5 min stretching', '10 min walk', '20 min walk + recovery', '20 min + pelvic floor work'],
-  'j-4':  ['15 min with Shaarvi', '30 min care block', 'Feed + floor play + naming', '+ milestone tracking'],
-  'j-5':  ['15 min light tasks', '30 min light work', '1h light work block', '1h + skill application'],
-  'j-6':  ['Present at 18:30', 'Floor play 15min', 'Full floor play session', '+ developmental activity'],
-  'j-7':  ['Eat together', '+ 10 min walk', 'Full walk + dinner', '+ no phones at table'],
-  'j-8':  ['Respond to feeds', 'Manage 1 night feed', 'Full night watch', '+ sleep log tracking'],
-  'j-9':  ['Protein 1 meal', '2 meals protein', 'Every meal + iron', '+ meal prep Sundays'],
-  'j-10': ['Take 1 supplement', 'B12 + D3', 'Full nursing stack', '+ track levels quarterly'],
-  'j-11': ['Reduce screen 30min', '1h phone-free', '2h phone-free', 'Zero screens near Shaarvi'],
-  'j-12': ['1.5L water', '2L water', '3L + no tea after meals', '3L + herbal tea only'],
-  'j-13': ['Read 10 min/day', '30 min skill practice', 'Track progress + learn', '+ portfolio/showcase'],
-  'j-14': ['Review accounts monthly', 'Send 1 invoice/month', 'Full invoices + accounts', '+ entity tax planning'],
-  'j-15': ['1h Saturday block', '2h Saturday block', '3h deep afternoon', '3h + ship output'],
-  'j-16': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
-  'j-17': ['Prep 2 meals', 'Prep 3-4 meals', '2h batch cooking', '2h + week meal plan'],
-  'j-18': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
+  'j-1':  ['Sleep 6h minimum', 'Sleep 7h', 'Protected 05-08 sleep', '8h + sleep quality tracking'],
+  'j-2':  ['Glass of water', '300ml water', '500ml hydrate', '500ml + electrolytes'],
+  'j-3':  ['Take 1 supplement', 'B12 + D3', 'Full nursing stack', '+ track levels quarterly'],
+  'j-4':  ['30 min focused work', '45 min deep work', '1h deep block', '1h + output tracking'],
+  'j-5':  ['15 min focused work', '30 min deep work', '1h deep block', '1h + milestone push'],
+  'j-6':  ['5 min stretching', '10 min walk', '20 min outdoor walk', '20 min + breathing'],
+  'j-7':  ['Light stretch', '5 min recovery', 'Full postpartum set', '+ physio exercises'],
+  'j-8':  ['Awareness only', '3 min practice', '5 min pelvic floor', '5 min + tracking'],
+  'j-9':  ['Feed on demand', 'Feed + burp', 'Feed + log time', 'Feed + track volume'],
+  'j-10': ['5 min play', '10 min floor play', '15 min + naming', '20 min structured play'],
+  'j-11': ['Note 1 milestone', 'Check milestone chart', 'Log milestone + photo', '+ developmental note'],
+  'j-12': ['15 min light tasks', '30 min light work', '1h light work', '1h + skill application'],
+  'j-13': ['10 min practice', '20 min practice', 'Focused application', 'Apply + document'],
+  'j-14': ['Present at 18:30', 'Floor play 15min', 'Full floor play', '+ developmental focus'],
+  'j-15': ['5 min activity', '10 min guided', '15 min developmental', '15 min + new skill'],
+  'j-16': ['5 min walk', '10 min walk', '15 min family walk', '15 min + no phones'],
+  'j-17': ['Eat together', 'Eat + talk', 'Dinner no phones', 'Dinner + gratitude'],
+  'j-18': ['Respond to feeds', 'Manage 1 feed', 'Full night watch', '+ comfort routine'],
+  'j-19': ['Note sleep time', 'Log hours', 'Track duration + quality', '+ sleep score'],
+  'j-20': ['Bed by 23:00', 'Bed by 22:30', 'Lights out 22:00', '22:00 + wind-down routine'],
+  'j-21': ['Eat breakfast', 'Add protein', 'Protein + iron source', '+ meal prep'],
+  'j-22': ['Eat lunch', 'Add protein', 'Protein + iron source', '+ balanced macros'],
+  'j-23': ['Eat dinner', 'Add protein', 'Protein + iron source', '+ portion control'],
+  'j-24': ['1.5L water', '2L water', '3L water', '3L + herbal tea only'],
+  'j-25': ['Tea 1h after meals', '90 min gap', 'No tea after meals', 'No caffeine after 2pm'],
+  'j-26': ['Reduce screen 30m', '1h phone-free', '2h phone-free', 'Zero screens near Shaarvi'],
+  'j-27': ['Read 10 min/day', '20 min learn', '30 min skill building', '30 min + notes'],
+  'j-28': ['Note what learned', 'Update 1 item', 'Portfolio update', '+ showcase piece'],
+  'j-29': ['Review accounts', 'Send 1 invoice', 'Full invoices + accounts', '+ tax planning'],
+  'j-30': ['1h Saturday block', '2h Saturday block', '3h deep afternoon', '3h + ship output'],
+  'j-31': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
+  'j-32': ['Prep 2 meals', 'Prep 3-4 meals', '2h batch cooking', '2h + variety'],
+  'j-33': ['List 3 meals', 'Plan 5 meals', 'Full week plan', 'Plan + shopping list'],
+  'j-34': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
 };
 
 // ── Ashish Travel Mode (Chandigarh) — lighter set, 14 habits ──
@@ -834,12 +906,12 @@ const getHabitTimeSlot = (habit) => {
   const id = habit.id || '';
   const name = habit.name.toLowerCase();
 
-  // Ashish regular habits by ID
-  if (id === 'a-1' || id === 'a-2' || id === 'a-3' || id === 'a-4' || id === 'a-5') return 'morning';
-  if (id === 'a-6' || id === 'a-7' || id === 'a-8' || id === 'a-9') return 'work';
-  if (id === 'a-10' || id === 'a-11' || id === 'a-12' || id === 'a-13' || id === 'a-14') return 'evening';
-  if (id === 'a-15' || id === 'a-16' || id === 'a-17' || id === 'a-18') return 'anytime';
-  if (id === 'a-19' || id === 'a-20' || id === 'a-21' || id === 'a-22') return 'weekly';
+  // Ashish regular habits by ID (micro-detail: a-1..a-42)
+  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10'].includes(id)) return 'morning';
+  if (['a-11','a-12','a-13','a-14','a-15','a-16','a-17','a-18'].includes(id)) return 'work';
+  if (['a-19','a-20','a-21','a-22','a-23','a-24','a-25','a-26','a-27'].includes(id)) return 'evening';
+  if (['a-28','a-29','a-30','a-31','a-32','a-33','a-34','a-35','a-36'].includes(id)) return 'anytime';
+  if (['a-37','a-38','a-39','a-40','a-41','a-42'].includes(id)) return 'weekly';
 
   // Ashish travel habits
   if (id === 'at-1' || id === 'at-2' || id === 'at-3' || id === 'at-4') return 'morning';
@@ -848,13 +920,13 @@ const getHabitTimeSlot = (habit) => {
   if (id === 'at-11' || id === 'at-12') return 'anytime';
   if (id === 'at-13' || id === 'at-14') return 'weekly';
 
-  // Jyoti habits by ID
-  if (id === 'j-1' || id === 'j-2' || id === 'j-3') return 'morning';
-  if (id === 'j-4' || id === 'j-5') return 'midday';
-  if (id === 'j-6' || id === 'j-7' || id === 'j-8') return 'evening';
-  if (id === 'j-9' || id === 'j-10' || id === 'j-11' || id === 'j-12') return 'anytime';
-  if (id === 'j-13' || id === 'j-14') return 'work';
-  if (id === 'j-15' || id === 'j-16' || id === 'j-17' || id === 'j-18') return 'weekly';
+  // Jyoti habits by ID (micro-detail: j-1..j-34)
+  if (['j-1','j-2','j-3','j-4','j-5','j-6','j-7','j-8'].includes(id)) return 'morning';
+  if (['j-9','j-10','j-11','j-12','j-13'].includes(id)) return 'midday';
+  if (['j-14','j-15','j-16','j-17','j-18','j-19','j-20'].includes(id)) return 'evening';
+  if (['j-21','j-22','j-23','j-24','j-25','j-26'].includes(id)) return 'anytime';
+  if (['j-27','j-28','j-29'].includes(id)) return 'work';
+  if (['j-30','j-31','j-32','j-33','j-34'].includes(id)) return 'weekly';
 
   // Fallback heuristic for custom habits
   if (name.includes('wake') || name.includes('morning') || name.includes('block 1') || name.includes('block a') || name.includes('groom') || name.includes('boxing')) return 'morning';
@@ -1052,6 +1124,11 @@ const targetDailyPoints = computed(() => {
 
 const heroStatsExpanded = ref(false);
 const mobileHeroExpanded = ref(false);
+
+// Collapsible sections — start collapsed to reduce scroll
+const rewardsExpanded = ref(false);
+const ledgerExpanded = ref(false);
+const weeklyReviewExpanded = ref(false);
 
 const timeGreeting = computed(() => {
   const hour = new Date().getHours();
@@ -2771,8 +2848,8 @@ const shareProgress = async () => {
                       transform="rotate(-90 32 32)" />
                     <defs>
                       <linearGradient id="heroFlameGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#fbbf24" />
-                        <stop offset="100%" stop-color="#f59e0b" />
+                        <stop offset="0%" stop-color="#D4B36A" />
+                        <stop offset="100%" stop-color="#D4A03E" />
                       </linearGradient>
                     </defs>
                   </svg>
@@ -2797,8 +2874,8 @@ const shareProgress = async () => {
                       transform="rotate(-90 32 32)" />
                     <defs>
                       <linearGradient id="heroAmberGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#f59e0b" />
-                        <stop offset="100%" stop-color="#d97706" />
+                        <stop offset="0%" stop-color="#D4A03E" />
+                        <stop offset="100%" stop-color="#B08D3E" />
                       </linearGradient>
                     </defs>
                   </svg>
@@ -2823,8 +2900,8 @@ const shareProgress = async () => {
                       transform="rotate(-90 32 32)" />
                     <defs>
                       <linearGradient id="heroEmeraldGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#34d399" />
-                        <stop offset="100%" stop-color="#059669" />
+                        <stop offset="0%" stop-color="#D4B36A" />
+                        <stop offset="100%" stop-color="#B08D3E" />
                       </linearGradient>
                     </defs>
                   </svg>
@@ -2849,8 +2926,8 @@ const shareProgress = async () => {
                       transform="rotate(-90 32 32)" />
                     <defs>
                       <linearGradient id="heroSkyGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#38bdf8" />
-                        <stop offset="100%" stop-color="#0284c7" />
+                        <stop offset="0%" stop-color="#D4A574" />
+                        <stop offset="100%" stop-color="#B8865A" />
                       </linearGradient>
                     </defs>
                   </svg>
@@ -2959,14 +3036,14 @@ const shareProgress = async () => {
               <svg class="analytics-svg" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="analyticsAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.35" />
-                    <stop offset="70%" stop-color="#10b981" stop-opacity="0.08" />
-                    <stop offset="100%" stop-color="#10b981" stop-opacity="0.00" />
+                    <stop offset="0%" stop-color="#C8A456" stop-opacity="0.35" />
+                    <stop offset="70%" stop-color="#C8A456" stop-opacity="0.08" />
+                    <stop offset="100%" stop-color="#C8A456" stop-opacity="0.00" />
                   </linearGradient>
                   <linearGradient id="analyticsLineGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#34d399" />
-                    <stop offset="50%" stop-color="#10b981" />
-                    <stop offset="100%" stop-color="#059669" />
+                    <stop offset="0%" stop-color="#D4B36A" />
+                    <stop offset="50%" stop-color="#C8A456" />
+                    <stop offset="100%" stop-color="#B08D3E" />
                   </linearGradient>
                 </defs>
 
@@ -4061,19 +4138,22 @@ const shareProgress = async () => {
       <!-- ── SECTION: REWARDS & LEDGER ── -->
       <section class="dashboard-columns" id="rewards">
         <article class="card column-card">
-          <div class="section-head">
+          <div class="section-head section-head--collapsible" @click="rewardsExpanded = !rewardsExpanded">
             <h2 class="section-title">
               <span class="section-title__icon">
                 <Gift class="icon-md" />
               </span>
               <span>The Reward Shop</span>
+              <ChevronDown v-if="!rewardsExpanded" class="icon-sm collapse-chevron" />
+              <ChevronUp v-else class="icon-sm collapse-chevron" />
             </h2>
-            <button v-if="!rewardsEditing" class="btn btn--secondary" @click="startEditingRewards">
+            <button v-if="!rewardsEditing" class="btn btn--secondary" @click.stop="rewardsExpanded = true; startEditingRewards()">
               <Edit3 class="icon-sm" />
               <span>Edit Rewards</span>
             </button>
           </div>
 
+          <div v-show="rewardsExpanded" class="collapsible-body">
           <div v-if="rewardsEditing" class="rewards-editor">
             <p class="habits-editor__hint">Edit reward type, title and redeem points. Save to apply for this month.</p>
 
@@ -4122,22 +4202,26 @@ const shareProgress = async () => {
               </button>
             </article>
           </div>
+          </div><!-- /collapsible-body rewards -->
         </article>
 
         <article class="card column-card">
-          <div class="section-head">
+          <div class="section-head section-head--collapsible" @click="ledgerExpanded = !ledgerExpanded">
             <h2 class="section-title">
               <span class="section-title__icon">
                 <FileText class="icon-md" />
               </span>
               <span>Point Ledger</span>
+              <ChevronDown v-if="!ledgerExpanded" class="icon-sm collapse-chevron" />
+              <ChevronUp v-else class="icon-sm collapse-chevron" />
             </h2>
-            <button v-if="!ledgerEditing" class="btn btn--secondary" @click="startEditingLedger">
+            <button v-if="!ledgerEditing" class="btn btn--secondary" @click.stop="ledgerExpanded = true; startEditingLedger()">
               <Edit3 class="icon-sm" />
               <span>Edit Ledger</span>
             </button>
           </div>
 
+          <div v-show="ledgerExpanded" class="collapsible-body">
           <div v-if="ledgerEditing" class="ledger-editor">
             <div class="ledger-editor__actions">
               <button class="btn btn--secondary" @click="addDraftLedgerEntry">
@@ -4240,27 +4324,31 @@ const shareProgress = async () => {
               <span>Clear All Progress</span>
             </button>
           </div>
+          </div><!-- /collapsible-body ledger -->
         </article>
       </section>
 
       <!-- ── SECTION: WEEKLY REVIEW PROTOCOL ── -->
       <section class="card" id="weekly-review">
-        <div class="section-head">
+        <div class="section-head section-head--collapsible" @click="weeklyReviewExpanded = !weeklyReviewExpanded">
           <div class="section-title-wrap">
             <h2 class="section-title">
               <span class="section-title__icon">
                 <Compass class="icon-md" />
               </span>
               <span>Weekly Review Protocol</span>
+              <ChevronDown v-if="!weeklyReviewExpanded" class="icon-sm collapse-chevron" />
+              <ChevronUp v-else class="icon-sm collapse-chevron" />
             </h2>
             <small>Sunday check-in. Keep it short, honest, and actionable.</small>
           </div>
-          <button class="btn btn--secondary" @click="fillWeeklyReviewMetrics">
+          <button class="btn btn--secondary" @click.stop="weeklyReviewExpanded = true; fillWeeklyReviewMetrics()">
             <Sparkles class="icon-sm" />
             <span>Use Auto Metrics</span>
           </button>
         </div>
 
+        <div v-show="weeklyReviewExpanded" class="collapsible-body">
         <div class="review-snapshots-wrap">
           <p class="review-snapshot">
             <strong>Auto Weekly:</strong> {{ weeklySnapshotLabel }}
@@ -4366,6 +4454,7 @@ const shareProgress = async () => {
             <textarea v-model="weeklyReview.reflections.nextWeekFocus" rows="2" placeholder="Non-negotiable outcomes for the upcoming week..." @blur="saveWeeklyReview" />
           </label>
         </div>
+        </div><!-- /collapsible-body weekly-review -->
       </section>
       <!-- Confetti Overlay -->
       <div class="confetti-overlay" v-if="showConfetti">
@@ -4374,7 +4463,7 @@ const shareProgress = async () => {
           :style="{
             left: Math.random() * 100 + '%',
             animationDelay: Math.random() * 0.5 + 's',
-            backgroundColor: ['#f59e0b', '#10b981', '#6366f1', '#ef4444', '#ec4899', '#06b6d4'][i % 6],
+            backgroundColor: ['#C8A456', '#D4B36A', '#8B7355', '#D4A574', '#C9B18C', '#B08D3E'][i % 6],
           }">
         </div>
       </div>
