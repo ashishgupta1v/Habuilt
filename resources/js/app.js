@@ -56,3 +56,29 @@ if (canBootInertia) {
   // Pure SPA fallback for Vercel static deployment
   mountMainSPA();
 }
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Auto-update on new SW
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if (newSW) {
+            newSW.addEventListener('statechange', () => {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content available — activate immediately
+                newSW.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+              }
+            });
+          }
+        });
+      })
+      .catch(() => {
+        // SW registration failed — app works fine without it
+      });
+  });
+}
