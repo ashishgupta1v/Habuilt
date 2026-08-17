@@ -27,3 +27,18 @@ await copyIfExists('public/favicon.svg', 'dist/favicon.svg');
 await copyIfExists('public/favicon.ico', 'dist/favicon.ico');
 await copyIfExists('public/apple-touch-icon.png', 'dist/apple-touch-icon.png');
 await copyIfExists('public/site.webmanifest', 'dist/site.webmanifest');
+
+// PWA files
+await copyIfExists('public/sw.js', 'dist/sw.js');
+await copyIfExists('public/manifest.webmanifest', 'dist/manifest.webmanifest');
+
+// PWA icons directory
+const copyDirIfExists = async (from, to) => {
+	try {
+		await access(from);
+		await cp(from, to, { recursive: true });
+	} catch {
+		// Ignore missing optional directories.
+	}
+};
+await copyDirIfExists('public/icons', 'dist/icons');

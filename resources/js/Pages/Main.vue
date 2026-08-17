@@ -3,10 +3,53 @@ import { ref, onMounted, computed } from 'vue';
 import { supabase } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
-import { LogOut, LayoutDashboard, User } from 'lucide-vue-next';
+import { LogOut, LayoutDashboard, User, Download, Share2 } from 'lucide-vue-next';
 
 const activeUser = ref(null);
 const authLoading = ref(true);
+
+// PWA Install prompt
+const deferredPrompt = ref(null);
+const showInstallBtn = ref(false);
+const isIOS = ref(false);
+const showIOSInstructions = ref(false);
+
+// Detect iOS (no beforeinstallprompt on Safari)
+const checkIOS = () => {
+  const ua = navigator.userAgent;
+  isIOS.value = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Show install button on iOS if not already in standalone
+  if (isIOS.value && !window.matchMedia('(display-mode: standalone)').matches) {
+    showInstallBtn.value = true;
+  }
+};
+
+// Capture beforeinstallprompt (Chrome, Edge, Samsung, etc.)
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt.value = e;
+  showInstallBtn.value = true;
+});
+
+// Hide button after install
+window.addEventListener('appinstalled', () => {
+  showInstallBtn.value = false;
+  deferredPrompt.value = null;
+});
+
+const handleInstall = async () => {
+  if (isIOS.value) {
+    showIOSInstructions.value = !showIOSInstructions.value;
+    return;
+  }
+  if (!deferredPrompt.value) return;
+  deferredPrompt.value.prompt();
+  const { outcome } = await deferredPrompt.value.userChoice;
+  if (outcome === 'accepted') {
+    showInstallBtn.value = false;
+  }
+  deferredPrompt.value = null;
+};
 
 const todayDate = new Date();
 const urlParams = new URLSearchParams(window.location.search);
@@ -42,6 +85,16 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
+const isUserJyoti = computed(() => {
+  const email = (activeUser.value?.email || '').toLowerCase().trim();
+  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
+});
+
+const userInitial = computed(() => {
+  if (!activeUser.value?.email) return 'U';
+  return activeUser.value.email.charAt(0).toUpperCase();
+});
+
 const handleNavigateMonth = (monthOffset) => {
   let newMonth = month.value + monthOffset;
   let newYear = year.value;
@@ -62,6 +115,8 @@ onMounted(async () => {
   supabase.auth.onAuthStateChange((_event, session) => {
     activeUser.value = session?.user || null;
   });
+
+  checkIOS();
 });
 </script>
 
@@ -86,22 +141,55 @@ onMounted(async () => {
               <div class="app-nav__logo-icon">
                 <LayoutDashboard class="icon-brand" />
               </div>
-              <span class="app-nav__brand-text">Habuilt</span>
+              <div class="app-nav__brand-info">
+                <span class="app-nav__brand-text">Habuilt</span>
+                <span class="app-nav__brand-tag">PRO</span>
+              </div>
             </div>
 
             <div class="app-nav__right">
-              <div class="user-badge">
-                <User class="icon-sm" />
+              <!-- PWA Install Button -->
+              <button
+                v-if="showInstallBtn"
+                @click="handleInstall"
+                class="btn btn--install"
+                :title="isIOS ? 'Install on iOS' : 'Install Habuilt App'"
+              >
+                <Download v-if="!isIOS" class="icon-sm" />
+                <Share2 v-else class="icon-sm" />
+                <span class="install-text">Install App</span>
+              </button>
+
+              <div class="user-badge" :title="activeUser.email">
+                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : 'user-avatar--ashish'">
+                  {{ userInitial }}
+                </div>
                 <span class="user-badge__text">{{ activeUser.email }}</span>
+                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : 'user-track-pill--ashish'">
+                  {{ isUserJyoti ? 'Jyoti Track' : 'Ashish Track' }}
+                </span>
               </div>
 
-              <button @click="handleSignOut" class="btn btn--logout">
+              <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
                 <LogOut class="icon-sm" />
                 <span class="logout-text">Sign Out</span>
               </button>
             </div>
           </div>
         </nav>
+
+        <!-- iOS Install Instructions -->
+        <div v-if="showIOSInstructions" class="ios-install-banner">
+          <div class="ios-install-content">
+            <p class="ios-install-title">Install Habuilt on iOS</p>
+            <ol class="ios-install-steps">
+              <li>Tap the <strong>Share</strong> button <Share2 style="width:14px;height:14px;vertical-align:middle;" /> in Safari</li>
+              <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+              <li>Tap <strong>"Add"</strong> to install</li>
+            </ol>
+            <button @click="showIOSInstructions = false" class="btn btn--ios-dismiss">Got it</button>
+          </div>
+        </div>
 
         <Dashboard
           :userId="activeUser.id"
