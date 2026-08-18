@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { Flame, Award, Clock, Check, ChevronUp, ChevronDown } from 'lucide-vue-next';
+import { Flame, Award, Clock, Check, Sparkles } from 'lucide-vue-next';
 
 const props = defineProps({
   timeGreeting: { type: Object, required: true },
@@ -13,13 +13,11 @@ const props = defineProps({
   isCurrentMonth: { type: Boolean, default: true },
   currentDay: { type: Number, default: 1 },
   upNextHabitInfo: { type: Object, default: null },
-  mobileHeroExpanded: { type: Boolean, default: false },
   hasCompletedDay: { type: Function, required: true },
 });
 
 const emit = defineEmits([
   'toggle-up-next',
-  'toggle-expand',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -48,14 +46,15 @@ const autoProtocolBadge = computed(() => {
       <div class="mcb-progress-track">
         <div class="mcb-progress-fill" :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"></div>
       </div>
-      <span class="mcb-progress-label">{{ todayCompletedCount }}/{{ totalHabits }}</span>
+      <span class="mcb-progress-label mono-num">{{ todayCompletedCount }}/{{ totalHabits }}</span>
     </div>
 
-    <!-- Live Up Next Activity Row on Mobile -->
+    <!-- Live Up Next Activity Strip on Mobile -->
     <div
       v-if="isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, currentDay)"
       class="mcb-up-next-row"
       @click="emit('toggle-up-next', upNextHabitInfo.habit, currentDay)"
+      title="Tap to mark done"
     >
       <div class="mcb-up-next-tag" :class="{ 'mcb-up-next-tag--due': upNextHabitInfo.status === 'due' }">
         <Clock class="icon-xs" />
@@ -67,11 +66,5 @@ const autoProtocolBadge = computed(() => {
         <span>+{{ upNextHabitInfo.habit.points }}pt</span>
       </span>
     </div>
-
-    <button class="mcb-expand-btn" @click="emit('toggle-expand')">
-      {{ mobileHeroExpanded ? 'Hide Dashboard' : 'Show Dashboard' }}
-      <ChevronUp v-if="mobileHeroExpanded" class="icon-xs" />
-      <ChevronDown v-else class="icon-xs" />
-    </button>
   </div>
 </template>

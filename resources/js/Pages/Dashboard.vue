@@ -870,8 +870,9 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Mobile Compact Bar (Top Summary + Live UP NEXT) -->
+    <!-- Mobile Compact Bar (Top Summary + Live UP NEXT for Today tab) -->
     <MobileCompactBar
+      v-if="activeMobileTab === 'today'"
       :time-greeting="timeGreeting"
       :performance-grade="performanceGrade"
       :system-streak="systemStreak"
@@ -882,21 +883,15 @@ onBeforeUnmount(() => {
       :is-current-month="props.isCurrentMonth"
       :current-day="props.currentDay"
       :up-next-habit-info="upNextHabitInfo"
-      :mobile-hero-expanded="mobileHeroExpanded"
       :has-completed-day="hasCompletedDay"
       @toggle-up-next="toggleHabitForDay"
-      @toggle-expand="mobileHeroExpanded = !mobileHeroExpanded"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
     <div class="dashboard-flow" :class="{ 'dark-mode': darkMode }">
-      <!-- ── SECTION: TOP HERO & COMMAND BAR ── -->
+      <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
-        class="card card--hero mobile-tab-section"
-        :class="[
-          (activeMobileTab === 'today' || activeMobileTab === 'stats') ? 'mobile-tab-section--active' : '',
-          { 'mobile-hero-collapsed': !mobileHeroExpanded && activeMobileTab === 'today' }
-        ]"
+        class="card card--hero mobile-tab-hero"
         id="overview"
       >
         <TopCommandBar
@@ -913,6 +908,9 @@ onBeforeUnmount(() => {
           :month-label="monthLabel"
           :year="props.year"
           :dark-mode="darkMode"
+          :active-tab="activeMobileTab"
+          :timer-running="timerState && timerState.running"
+          @set-tab="tab => activeMobileTab = tab"
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
@@ -1145,6 +1143,7 @@ onBeforeUnmount(() => {
 
         <RewardShop
           :available-wallet="availableWallet"
+          :monthly-total-earned="monthlyTotalEarned"
           :rewards-expanded="true"
           :rewards-editing="rewardsEditing"
           :rewards-draft="rewardsDraft"

@@ -9,6 +9,10 @@ import {
   Calendar,
   Sun,
   Moon,
+  CheckSquare,
+  Timer,
+  BarChart3,
+  Award,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -25,6 +29,8 @@ const props = defineProps({
   monthLabel: { type: String, default: '' },
   year: { type: Number, required: true },
   darkMode: { type: Boolean, default: false },
+  activeTab: { type: String, default: 'today' },
+  timerRunning: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -32,6 +38,7 @@ const emit = defineEmits([
   'prev-month',
   'next-month',
   'toggle-theme',
+  'set-tab',
 ]);
 </script>
 
@@ -52,6 +59,48 @@ const emit = defineEmits([
         <span class="hero-level-chip__xp">{{ totalXP }} XP</span>
       </div>
     </div>
+
+    <!-- Desktop Navigation Tab Switcher -->
+    <nav class="hero-desktop-nav" aria-label="Desktop Views">
+      <button
+        type="button"
+        class="hero-desktop-tab"
+        :class="{ 'hero-desktop-tab--active': activeTab === 'today' }"
+        @click="emit('set-tab', 'today')"
+      >
+        <CheckSquare class="icon-xs" />
+        <span>Checklist</span>
+      </button>
+      <button
+        type="button"
+        class="hero-desktop-tab"
+        :class="{ 'hero-desktop-tab--active': activeTab === 'focus' }"
+        @click="emit('set-tab', 'focus')"
+      >
+        <Timer class="icon-xs" />
+        <span>Focus Station</span>
+        <span v-if="timerRunning" class="hero-desktop-tab__pulse"></span>
+      </button>
+      <button
+        type="button"
+        class="hero-desktop-tab"
+        :class="{ 'hero-desktop-tab--active': activeTab === 'stats' }"
+        @click="emit('set-tab', 'stats')"
+      >
+        <BarChart3 class="icon-xs" />
+        <span>Analytics</span>
+      </button>
+      <button
+        type="button"
+        class="hero-desktop-tab"
+        :class="{ 'hero-desktop-tab--active': activeTab === 'rewards' }"
+        @click="emit('set-tab', 'rewards')"
+      >
+        <Award class="icon-xs" />
+        <span>Reward Vault</span>
+      </button>
+    </nav>
+
     <div class="hero-command-bar__right">
       <!-- Travel Mode (Chandigarh Preset — Ashish only) -->
       <button
