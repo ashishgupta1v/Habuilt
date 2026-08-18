@@ -7251,3 +7251,55 @@ body.theme-dark .reward-bar {
     right: 16px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CHECKLIST EMPTY STATE — for generic users starting fresh
+   ══════════════════════════════════════════════════════════════════════════════ */
+.checklist-empty {
+  text-align: center;
+  padding: 40px 20px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.05), rgba(139, 115, 85, 0.03));
+  border: 2px dashed rgba(200, 164, 86, 0.25);
+  margin: 12px 0;
+}
+.checklist-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(200, 164, 86, 0.15);
+  color: #C8A456;
+  margin-bottom: 14px;
+}
+.checklist-empty__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--text-color-primary, #111827);
+}
+.checklist-empty__body {
+  color: var(--text-color-secondary, #6b7280);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 340px;
+  margin: 0 auto 18px;
+}
+.checklist-empty__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Generic user hero pill (distinct color from Ashish/Jyoti) */
+.hero-track-pill--generic {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08));
+  color: #6366f1;
+  border-color: rgba(99, 102, 241, 0.25);
+}
+.theme-dark .hero-track-pill--generic {
+  color: #a5b4fc;
+}

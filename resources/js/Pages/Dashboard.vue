@@ -433,19 +433,40 @@ const defaultPhases = [
   { id: 'mastery',  name: 'Rate, Volume & Exit',  weeks: [15, 26], description: 'Hit Mastery tier, compound gains' },
 ];
 
-// Select preset based on logged-in user email
+// ── SEEDED USERS: Ashish & Jyoti keep their hardcoded curated checklists ──
+// All other users get a small generic starter set and full customization.
+const isAshish = computed(() => {
+  const email = (props.userEmail || '').toLowerCase().trim();
+  return email === 'ashishgupta1v@gmail.com';
+});
 const isJyoti = computed(() => {
   const email = (props.userEmail || '').toLowerCase().trim();
   return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
 });
+const isSeededUser = computed(() => isAshish.value || isJyoti.value);
 
-// ── Travel Mode ──
+// ── Travel Mode (Ashish only) ──
 const travelMode = ref(false);
+
+// ── Generic starter set for non-seeded users ──
+// Universally-applicable atomic habits — user can add/rename/remove/archive freely.
+const genericStarterHabits = [
+  { id: 'g-1', name: 'Wake up on time',                    points: 1 },
+  { id: 'g-2', name: '500ml water first thing',            points: 1 },
+  { id: 'g-3', name: 'Move for 20 minutes',                points: 2 },
+  { id: 'g-4', name: 'Deep focus block (60 min)',          points: 3 },
+  { id: 'g-5', name: 'Read for 15 minutes',                points: 1 },
+  { id: 'g-6', name: 'Plan tomorrow (5 min)',              points: 1 },
+  { id: 'g-7', name: 'Lights out by target time',          points: 2 },
+];
 
 const fallbackHabits = computed(() => {
   if (isJyoti.value) return jyotiHabits;
-  if (travelMode.value) return ashishTravelHabits;
-  return ashishHabits;
+  if (isAshish.value) {
+    return travelMode.value ? ashishTravelHabits : ashishHabits;
+  }
+  // Generic user — small starter set they can immediately customize
+  return genericStarterHabits;
 });
 
 const darkMode = ref(false);
@@ -1002,7 +1023,13 @@ const dismissGraduationSuggestion = (habitId) => {
 
 // ── Day-Type Auto-Suggest ──
 // Checks previous day's sleep habit to suggest today's day type
-const sleepHabitId = computed(() => isJyoti.value ? 'j-1' : 'a-14');
+const sleepHabitId = computed(() => {
+  if (isJyoti.value) return 'j-1';
+  if (isAshish.value) return 'a-14';
+  // Generic user: try to detect a sleep-related habit by name
+  const match = localHabits.value.find(h => /sleep|lights out|bedtime/i.test(h.name || ''));
+  return match?.id || null;
+});
 
 const suggestedDayType = computed(() => {
   // Find sleep habit
@@ -1307,9 +1334,22 @@ const rewardsExpanded = ref(false);
 const ledgerExpanded = ref(false);
 const weeklyReviewExpanded = ref(false);
 
+// Best-effort friendly name — falls back to the email local-part for generic users
+const displayName = computed(() => {
+  if (isJyoti.value) return 'Jyoti';
+  if (isAshish.value) return 'Ashish';
+  const email = String(props.userEmail || '').trim();
+  if (!email) return 'Friend';
+  const local = email.split('@')[0] || 'Friend';
+  // Prettify: dots/underscores → spaces, capitalize first letter
+  const cleaned = local.replace(/[._-]+/g, ' ').replace(/\d+$/, '').trim();
+  if (!cleaned) return 'Friend';
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+});
+
 const timeGreeting = computed(() => {
   const hour = new Date().getHours();
-  const name = isJyoti.value ? 'Jyoti' : 'Ashish';
+  const name = displayName.value;
   let salute = 'Good evening';
   let quote = 'Finish the day strong with relentless execution.';
   if (hour >= 5 && hour < 12) {
@@ -3418,13 +3458,40 @@ const missingDefaultHabits = computed(() => {
   return fallbackHabits.value.filter(h => !currentIds.has(h.id));
 });
 
+// Bulk-add every missing default habit at once (used from empty state)
+const restoreAllDefaults = async () => {
+  const additions = missingDefaultHabits.value.map(h => ({
+    id: h.id,
+    name: h.name,
+    points: h.points,
+    completedDays: [],
+    completedToday: false,
+  }));
+  if (additions.length === 0) return;
+  localHabits.value = [...localHabits.value, ...additions];
+  // Also un-archive any that were archived
+  enhancedState.value.archivedHabitIds = (enhancedState.value.archivedHabitIds || [])
+    .filter(id => !additions.some(a => a.id === id));
+  hasCustomHabits.value = true;
+  await persistLocalState();
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // TIER 4: SOCIAL & EXPORT
 // ══════════════════════════════════════════════════════════════════════════════
 
 // Partner data loading
-const partnerEmail = computed(() => isJyoti.value ? 'ashishgupta1v@gmail.com' : 'goyaljyoti007@gmail.com');
-const partnerName = computed(() => isJyoti.value ? 'Ashish' : 'Jyoti');
+// Partner view: only meaningful for the seeded Ashish/Jyoti pair
+const partnerEmail = computed(() => {
+  if (isJyoti.value) return 'ashishgupta1v@gmail.com';
+  if (isAshish.value) return 'goyaljyoti007@gmail.com';
+  return '';
+});
+const partnerName = computed(() => {
+  if (isJyoti.value) return 'Ashish';
+  if (isAshish.value) return 'Jyoti';
+  return '';
+});
 
 const loadPartnerData = async () => {
   partnerViewOpen.value = !partnerViewOpen.value;
@@ -3824,9 +3891,11 @@ const shareProgress = async () => {
         <!-- ── Command Bar: Month Nav + Track + Level Pill + Theme ── -->
         <div class="hero-command-bar">
           <div class="hero-command-bar__left">
-            <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : 'hero-track-pill--ashish'">
+            <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : (isAshish ? 'hero-track-pill--ashish' : 'hero-track-pill--generic')">
               <Sparkles class="icon-xs" />
-              <span>{{ isJyoti ? "Jyoti's System" : "Ashish's System" }}</span>
+              <span v-if="isJyoti">Jyoti's System</span>
+              <span v-else-if="isAshish">Ashish's System</span>
+              <span v-else>{{ displayName }}'s System</span>
             </span>
             <span class="hero-version-tag">PRO</span>
             <!-- Level / XP Pill -->
@@ -3837,9 +3906,9 @@ const shareProgress = async () => {
             </div>
           </div>
           <div class="hero-command-bar__right">
-            <!-- Travel Mode (Chandigarh Preset) -->
+            <!-- Travel Mode (Chandigarh Preset — Ashish only) -->
             <button
-              v-if="!isJyoti"
+              v-if="isAshish"
               class="hero-nav-btn hero-nav-btn--travel"
               :class="{ 'hero-nav-btn--travel-active': travelMode }"
               @click="toggleTravelMode"
@@ -5193,7 +5262,14 @@ const shareProgress = async () => {
           <div v-if="missingDefaultHabits.length > 0" class="habits-editor__restore-defaults">
             <div class="habits-editor__restore-title">
               <RotateCcw class="icon-xs" />
-              <span>Restore from your default {{ isJyoti ? 'Jyoti' : (travelMode ? 'Travel' : 'Ashish') }} preset ({{ missingDefaultHabits.length }} missing):</span>
+              <span>
+                Restore from your default
+                <template v-if="isJyoti">Jyoti</template>
+                <template v-else-if="isAshish && travelMode">Travel</template>
+                <template v-else-if="isAshish">Ashish</template>
+                <template v-else>Starter</template>
+                preset ({{ missingDefaultHabits.length }} missing):
+              </span>
             </div>
             <div class="habits-editor__restore-chips">
               <button
@@ -5357,7 +5433,7 @@ const shareProgress = async () => {
               </div>
 
               <!-- Travel Mode Toggle (Ashish only) -->
-              <div v-if="!isJyoti" class="travel-mode-bar">
+              <div v-if="isAshish" class="travel-mode-bar">
                 <button class="travel-mode-toggle" :class="{ 'travel-mode-toggle--active': travelMode }" @click="toggleTravelMode">
                   <Plane v-if="travelMode" class="icon-sm" />
                   <MapPin v-else class="icon-sm" />
@@ -5383,6 +5459,23 @@ const shareProgress = async () => {
 
               <!-- Timeline-Grouped Habit Cards -->
               <div class="mobile-daily__list">
+                <!-- Empty state — when user has no visible habits at all -->
+                <div v-if="visibleHabits.length === 0" class="checklist-empty">
+                  <div class="checklist-empty__icon"><Sparkles class="icon-md" /></div>
+                  <h3 class="checklist-empty__title">Your checklist is empty</h3>
+                  <p class="checklist-empty__body">
+                    Add habits that fit your life — even 3–5 to start is enough.
+                    You can archive or remove any of them anytime.
+                  </p>
+                  <div class="checklist-empty__actions">
+                    <button class="btn btn--primary-action" @click="startEditingHabits">
+                      <Plus class="icon-sm" /> <span>Add Your First Habits</span>
+                    </button>
+                    <button v-if="missingDefaultHabits.length > 0" class="btn btn--secondary" @click="restoreAllDefaults">
+                      <RotateCcw class="icon-sm" /> <span>Load Starter Preset ({{ missingDefaultHabits.length }})</span>
+                    </button>
+                  </div>
+                </div>
                 <template v-for="group in timelineGroupedHabits" :key="'tg-' + group.slot">
                   <!-- Time Slot Header -->
                   <div class="timeline-slot-header" :class="'timeline-slot-header--' + group.slot">
