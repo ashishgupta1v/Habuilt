@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import {
   Sparkles,
   Zap,
@@ -13,6 +13,8 @@ import {
   Timer,
   BarChart3,
   Award,
+  Info,
+  X,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -40,6 +42,8 @@ const emit = defineEmits([
   'toggle-theme',
   'set-tab',
 ]);
+
+const showLevelInfo = ref(false);
 </script>
 
 <template>
@@ -52,16 +56,22 @@ const emit = defineEmits([
         <span v-else>{{ displayName }}'s System</span>
       </span>
       <span class="hero-version-tag">PRO</span>
-      <!-- Level / XP Pill -->
-      <div class="hero-level-chip" :title="`${levelData.xpInLevel} / ${levelData.xpForNext} XP to next level`">
+
+      <!-- Level & XP Chip (Clickable for info) -->
+      <button
+        type="button"
+        class="hero-level-chip"
+        @click="showLevelInfo = !showLevelInfo"
+        :title="`Level ${levelData.level} ${levelTitle} • ${levelData.xpInLevel}/${levelData.xpForNext} XP to next level (Click to learn more)`"
+      >
         <Zap class="icon-xs icon-zap" />
         <span class="hero-level-chip__text">Lv. {{ levelData.level }} {{ levelTitle }}</span>
-        <span class="hero-level-chip__xp">{{ totalXP }} XP</span>
-      </div>
+        <span class="hero-level-chip__xp mono-num">{{ totalXP }} XP</span>
+      </button>
     </div>
 
     <!-- Desktop Navigation Tab Switcher -->
-    <nav class="hero-desktop-nav" aria-label="Desktop Views">
+    <nav class="hero-desktop-nav" aria-label="Desktop Navigation">
       <button
         type="button"
         class="hero-desktop-tab"
@@ -102,32 +112,106 @@ const emit = defineEmits([
     </nav>
 
     <div class="hero-command-bar__right">
-      <!-- Travel Mode (Chandigarh Preset — Ashish only) -->
+      <!-- Travel Mode Button (Aligned Icon + Text) -->
       <button
         v-if="isAshish"
-        class="hero-nav-btn hero-nav-btn--travel"
-        :class="{ 'hero-nav-btn--travel-active': travelMode }"
+        type="button"
+        class="hero-travel-btn"
+        :class="{ 'hero-travel-btn--active': travelMode }"
         @click="emit('toggle-travel')"
-        :title="travelMode ? 'Travel Mode Active (Chandigarh - 33 habits) • Click to return to Home' : 'Switch to Travel Mode (Chandigarh)'"
+        :title="travelMode ? 'Travel Mode Active (Chandigarh Routine: 33 habits) • Tap to switch to Home' : 'Switch to Travel Mode (Chandigarh Routine)'"
       >
-        <Plane class="icon-sm" />
-        <span class="hero-travel-tag">{{ travelMode ? 'Chandigarh' : 'Travel' }}</span>
+        <Plane class="icon-xs icon-plane" />
+        <span class="hero-travel-text">{{ travelMode ? 'Chandigarh' : 'Travel' }}</span>
       </button>
 
-      <button class="hero-nav-btn" :disabled="!canNavigatePrevMonth || isNavigatingMonth" @click="emit('prev-month')" title="Previous Month">
-        <ChevronLeft class="icon-sm" />
-      </button>
-      <div class="hero-month-chip">
-        <Calendar class="icon-xs" />
-        <span>{{ monthLabel.slice(0, 3) }} '{{ String(year).slice(-2) }}</span>
+      <!-- Month Controls -->
+      <div class="hero-month-group">
+        <button
+          type="button"
+          class="hero-icon-btn"
+          :disabled="!canNavigatePrevMonth || isNavigatingMonth"
+          @click="emit('prev-month')"
+          title="Previous Month"
+          aria-label="Previous Month"
+        >
+          <ChevronLeft class="icon-sm" />
+        </button>
+        <div class="hero-month-chip">
+          <Calendar class="icon-xs" />
+          <span>{{ monthLabel.slice(0, 3) }} '{{ String(year).slice(-2) }}</span>
+        </div>
+        <button
+          type="button"
+          class="hero-icon-btn"
+          :disabled="!canNavigateNextMonth || isNavigatingMonth"
+          @click="emit('next-month')"
+          title="Next Month"
+          aria-label="Next Month"
+        >
+          <ChevronRight class="icon-sm" />
+        </button>
       </div>
-      <button class="hero-nav-btn" :disabled="!canNavigateNextMonth || isNavigatingMonth" @click="emit('next-month')" title="Next Month">
-        <ChevronRight class="icon-sm" />
-      </button>
-      <button class="hero-nav-btn hero-nav-btn--theme" @click="emit('toggle-theme')" :title="darkMode ? 'Light Mode' : 'Dark Mode'" aria-label="Toggle Theme">
+
+      <!-- Theme Switcher -->
+      <button
+        type="button"
+        class="hero-icon-btn hero-icon-btn--theme"
+        @click="emit('toggle-theme')"
+        :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+        aria-label="Toggle Theme"
+      >
         <Sun v-if="darkMode" class="icon-sm icon-sun" />
         <Moon v-else class="icon-sm icon-moon" />
       </button>
+    </div>
+
+    <!-- Level & XP Popover Modal -->
+    <div v-if="showLevelInfo" class="hero-level-popover-overlay" @click.self="showLevelInfo = false">
+      <div class="hero-level-popover">
+        <div class="hero-level-popover__head">
+          <div class="hero-level-popover__title">
+            <Zap class="icon-sm icon-zap" />
+            <span>Habuilt XP Progression System</span>
+          </div>
+          <button type="button" class="hero-level-popover__close" @click="showLevelInfo = false">
+            <X class="icon-xs" />
+          </button>
+        </div>
+        <div class="hero-level-popover__body">
+          <p class="hero-level-popover__desc">
+            You earn <strong>10 XP</strong> for every point completed. Your current rank is
+            <strong>Level {{ levelData.level }} {{ levelTitle }}</strong> ({{ totalXP }} total XP).
+          </p>
+          <div class="hero-level-tiers-list">
+            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 1 || levelData.level === 2 }">
+              <span class="tier-badge">Lv 1–2</span>
+              <span class="tier-title">Initiate</span>
+              <span class="tier-xp">0–999 XP</span>
+            </div>
+            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 3 || levelData.level === 4 }">
+              <span class="tier-badge">Lv 3–4</span>
+              <span class="tier-title">Practitioner</span>
+              <span class="tier-xp">1,000–1,999 XP</span>
+            </div>
+            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 5 || levelData.level === 6 }">
+              <span class="tier-badge">Lv 5–6</span>
+              <span class="tier-title">Architect</span>
+              <span class="tier-xp">2,000–2,999 XP</span>
+            </div>
+            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 7 && levelData.level <= 9 }">
+              <span class="tier-badge">Lv 7–9</span>
+              <span class="tier-title">Titan</span>
+              <span class="tier-xp">3,000–4,999 XP</span>
+            </div>
+            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 10 }">
+              <span class="tier-badge">Lv 10+</span>
+              <span class="tier-title">Ascendant</span>
+              <span class="tier-xp">5,000+ XP</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

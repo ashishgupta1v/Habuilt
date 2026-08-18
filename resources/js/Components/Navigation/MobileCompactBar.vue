@@ -1,6 +1,16 @@
 <script setup>
 import { computed } from 'vue';
-import { Flame, Award, Clock, Check, Sparkles } from 'lucide-vue-next';
+import {
+  Flame,
+  Award,
+  Clock,
+  Check,
+  Sparkles,
+  Sun,
+  Moon,
+  Plane,
+  Share2,
+} from 'lucide-vue-next';
 
 const props = defineProps({
   timeGreeting: { type: Object, required: true },
@@ -14,10 +24,16 @@ const props = defineProps({
   currentDay: { type: Number, default: 1 },
   upNextHabitInfo: { type: Object, default: null },
   hasCompletedDay: { type: Function, required: true },
+  isAshish: { type: Boolean, default: false },
+  travelMode: { type: Boolean, default: false },
+  darkMode: { type: Boolean, default: true },
 });
 
 const emit = defineEmits([
   'toggle-up-next',
+  'toggle-theme',
+  'toggle-travel',
+  'share-scorecard',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -31,22 +47,71 @@ const autoProtocolBadge = computed(() => {
 
 <template>
   <div class="mobile-compact-bar">
-    <div class="mcb-row">
-      <span class="mcb-greeting">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
-      <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-      <span class="mcb-streak"><Flame class="icon-xs" /> {{ systemStreak.current }}d</span>
-      <span class="mcb-wallet"><Award class="icon-xs" /> {{ availableWallet }}pts</span>
+    <!-- Top Row: Greeting, Status & Action Icons -->
+    <div class="mcb-row mcb-row--top">
+      <div class="mcb-user-group">
+        <span class="mcb-greeting">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
+        <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+      </div>
+
+      <div class="mcb-actions-group">
+        <!-- Travel Mode Toggle (Ashish only) -->
+        <button
+          v-if="isAshish"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--travel"
+          :class="{ 'mcb-icon-btn--travel-active': travelMode }"
+          @click="emit('toggle-travel')"
+          :title="travelMode ? 'Chandigarh Routine Active • Tap to return to Home' : 'Switch to Chandigarh Routine'"
+        >
+          <Plane class="icon-xs" />
+          <span class="mcb-travel-label">{{ travelMode ? 'CHD' : 'Travel' }}</span>
+        </button>
+
+        <!-- Share Scorecard Button -->
+        <button
+          type="button"
+          class="mcb-icon-btn"
+          @click="emit('share-scorecard')"
+          title="Share Daily Scorecard"
+          aria-label="Share Daily Scorecard"
+        >
+          <Share2 class="icon-xs" />
+        </button>
+
+        <!-- Dark / Light Mode Switcher -->
+        <button
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--theme"
+          @click="emit('toggle-theme')"
+          :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+          aria-label="Toggle Theme"
+        >
+          <Sun v-if="darkMode" class="icon-xs icon-sun" />
+          <Moon v-else class="icon-xs icon-moon" />
+        </button>
+      </div>
     </div>
 
-    <!-- Automatic Progress & Protocol Row -->
-    <div class="mcb-row mcb-row--progress">
-      <span class="mcb-auto-badge" :class="autoProtocolBadge.class">
-        {{ autoProtocolBadge.label }}
-      </span>
-      <div class="mcb-progress-track">
-        <div class="mcb-progress-fill" :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"></div>
+    <!-- Middle Row: Streak, Wallet & Progress Bar -->
+    <div class="mcb-row mcb-row--stats">
+      <div class="mcb-stats-pills">
+        <span class="mcb-streak"><Flame class="icon-xs icon-flame" /> {{ systemStreak.current }}d streak</span>
+        <span class="mcb-wallet"><Award class="icon-xs icon-vault-gold" /> {{ availableWallet }} pts</span>
       </div>
-      <span class="mcb-progress-label mono-num">{{ todayCompletedCount }}/{{ totalHabits }}</span>
+
+      <div class="mcb-progress-group">
+        <span class="mcb-auto-badge" :class="autoProtocolBadge.class">
+          {{ autoProtocolBadge.label }}
+        </span>
+        <div class="mcb-progress-track">
+          <div
+            class="mcb-progress-fill"
+            :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"
+          ></div>
+        </div>
+        <span class="mcb-progress-label mono-num">{{ todayCompletedCount }}/{{ totalHabits }}</span>
+      </div>
     </div>
 
     <!-- Live Up Next Activity Strip on Mobile -->

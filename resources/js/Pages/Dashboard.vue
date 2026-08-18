@@ -146,7 +146,6 @@ const fallbackHabits = computed(() => {
   return genericStarterHabits;
 });
 
-const darkMode = ref(false);
 const mobileViewMode = ref('daily');
 const mobileSelectedDay = ref(props.currentDay);
 const focusDay = ref(props.currentDay);
@@ -318,6 +317,104 @@ const createDefaultWeeklyReview = () => ({
   reflections: { wins: '', misses: '', triggerPlan: '', rewardTune: '', habitScale: '', healthCheck: '', nextWeekFocus: '' },
 });
 const weeklyReview = ref(createDefaultWeeklyReview());
+
+const calculatePastWeekPoints = () => {
+  const currentD = props.isCurrentMonth ? props.currentDay : props.monthDays;
+  const startD = Math.max(1, currentD - 6);
+  let pts = 0;
+  for (let d = startD; d <= currentD; d++) {
+    pts += getDayTotal(d);
+  }
+  return pts;
+};
+
+const calculatePastWeekStickiness = () => {
+  const currentD = props.isCurrentMonth ? props.currentDay : props.monthDays;
+  const startD = Math.max(1, currentD - 6);
+  const totalDays = (currentD - startD) + 1;
+  if (totalDays === 0) return '0%';
+  let metDays = 0;
+  for (let d = startD; d <= currentD; d++) {
+    if (getDayTotal(d) >= 4) metDays++;
+  }
+  return `${Math.round((metDays / totalDays) * 100)}%`;
+};
+
+const fillSundayMetrics = () => {
+  const weeklyPoints = calculatePastWeekPoints();
+  const weeklyStickiness = calculatePastWeekStickiness();
+  const monthlyPoints = monthlyTotalEarned.value;
+  const monthlyStickiness = `${consistencyScore.value}%`;
+  weeklyReview.value.metrics = {
+    weeklyPoints,
+    weeklyStickiness,
+    monthlyPoints,
+    monthlyStickiness,
+  };
+  weeklyReview.value.reviewDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  saveState();
+};
+
+// Theme Management (Dark / Light Mode)
+const darkMode = ref(
+  typeof window !== 'undefined'
+    ? (localStorage.getItem('habuilt_theme') ? localStorage.getItem('habuilt_theme') === 'dark' : true)
+    : true
+);
+
+const applyTheme = (isDark) => {
+  if (typeof document === 'undefined') return;
+  if (isDark) {
+    document.documentElement.classList.add('dark-mode', 'theme-dark');
+    document.body.classList.add('dark-mode', 'theme-dark');
+  } else {
+    document.documentElement.classList.remove('dark-mode', 'theme-dark');
+    document.body.classList.remove('dark-mode', 'theme-dark');
+  }
+};
+
+const toggleTheme = () => {
+  darkMode.value = !darkMode.value;
+};
+
+watch(darkMode, (newVal) => {
+  applyTheme(newVal);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt_theme', newVal ? 'dark' : 'light');
+  }
+}, { immediate: true });
+
+onMounted(() => {
+  applyTheme(darkMode.value);
+});
+
+const weeklyReviewExpanded = ref(false);
+const toastMessage = ref('');
+
+const shareDailyScorecard = async () => {
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const tierName = autoProtocolTier.value?.title || 'Daily Protocol';
+  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${totalHabits.value} Habits Done\n#Habuilt #HabitMastery`;
+  
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({ title: 'My Habuilt Scorecard', text });
+      return;
+    } catch (e) {
+      // Fallback if cancelled
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toastMessage.value = '📋 Daily Scorecard copied to clipboard!';
+      setTimeout(() => { toastMessage.value = ''; }, 2500);
+    } catch (e) {
+      toastMessage.value = 'Scorecard ready to share!';
+      setTimeout(() => { toastMessage.value = ''; }, 2500);
+    }
+  }
+};
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.${monthScope.value}`);
@@ -884,7 +981,13 @@ onBeforeUnmount(() => {
       :current-day="props.currentDay"
       :up-next-habit-info="upNextHabitInfo"
       :has-completed-day="hasCompletedDay"
+      :is-ashish="isAshish"
+      :travel-mode="travelMode"
+      :dark-mode="darkMode"
       @toggle-up-next="toggleHabitForDay"
+      @toggle-theme="toggleTheme"
+      @toggle-travel="toggleTravelMode"
+      @share-scorecard="shareDailyScorecard"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
@@ -914,7 +1017,7 @@ onBeforeUnmount(() => {
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
-          @toggle-theme="darkMode = !darkMode"
+          @toggle-theme="toggleTheme"
         />
 
         <!-- Greeting & Automatic Protocol Status -->
@@ -930,24 +1033,57 @@ onBeforeUnmount(() => {
             </p>
           </div>
 
-          <!-- Automatic Protocol Status -->
+          <!-- Automatic Milestone Protocol Gauge -->
           <div class="hero-auto-protocol-box">
             <div class="hero-auto-protocol-header">
-              <span class="hero-auto-protocol-label">Today's Protocol</span>
-              <span class="hero-auto-protocol-pts mono-num">{{ todayPoints }} pts earned</span>
+              <div class="hero-auto-protocol-title-wrap">
+                <Shield class="icon-xs icon-gold" />
+                <span class="hero-auto-protocol-label">Today's Protocol</span>
+              </div>
+              <div class="hero-auto-protocol-pts-chip">
+                <span class="hero-auto-protocol-pts mono-num">{{ todayPoints }}</span>
+                <span class="hero-auto-protocol-target mono-num">/ 15 pts</span>
+              </div>
             </div>
+
+            <!-- Segmented Milestone Gauge Bar -->
+            <div class="hero-milestone-gauge">
+              <div
+                class="hero-milestone-gauge__fill"
+                :style="{ width: `${Math.min(100, Math.round((todayPoints / 15) * 100))}%` }"
+              ></div>
+            </div>
+
+            <!-- 3 Dynamic Milestone Status Cards -->
             <div class="hero-auto-protocol-tiers">
-              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 4 }">
-                <span class="hero-auto-tier__dot"></span>
-                <span>Floor (4p)</span>
+              <div
+                class="hero-auto-tier"
+                :class="{ 'hero-auto-tier--met': todayPoints >= 4 }"
+                :title="todayPoints >= 4 ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${4 - todayPoints} more pts for Floor`"
+              >
+                <span class="hero-auto-tier__icon">🛡️</span>
+                <span class="hero-auto-tier__name">Floor (4p)</span>
+                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 4 ? '✓ Safe' : `${todayPoints}/4p` }}</span>
               </div>
-              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 8 }">
-                <span class="hero-auto-tier__dot"></span>
-                <span>Half (8p)</span>
+
+              <div
+                class="hero-auto-tier"
+                :class="{ 'hero-auto-tier--met': todayPoints >= 8 }"
+                :title="todayPoints >= 8 ? 'Half Protocol Achieved (Solid Execution)' : `Need ${8 - todayPoints} more pts for Half`"
+              >
+                <span class="hero-auto-tier__icon">⚡</span>
+                <span class="hero-auto-tier__name">Half (8p)</span>
+                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 8 ? '✓ Hit' : `${todayPoints}/8p` }}</span>
               </div>
-              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 15 }">
-                <span class="hero-auto-tier__dot"></span>
-                <span>Full (15p)</span>
+
+              <div
+                class="hero-auto-tier"
+                :class="{ 'hero-auto-tier--met': todayPoints >= 15 }"
+                :title="todayPoints >= 15 ? 'Full Target Achieved (Elite Performance)' : `Need ${15 - todayPoints} more pts for Full`"
+              >
+                <span class="hero-auto-tier__icon">🏆</span>
+                <span class="hero-auto-tier__name">Full (15p)</span>
+                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 15 ? '👑 Peak' : `${todayPoints}/15p` }}</span>
               </div>
             </div>
           </div>
@@ -1170,15 +1306,24 @@ onBeforeUnmount(() => {
         id="weekly-review"
       >
         <SundayReview
-          :weekly-review-expanded="true"
-          :weekly-snapshot-label="`${consistencyScore}%`"
+          :weekly-review-expanded="weeklyReviewExpanded"
+          :weekly-snapshot-label="calculatePastWeekStickiness()"
           :monthly-snapshot-label="`${consistencyScore}%`"
+          :weekly-points="calculatePastWeekPoints()"
+          :monthly-points="monthlyTotalEarned"
           :weekly-review="weeklyReview"
-          @toggle-expand="() => {}"
-          @fill-metrics="() => {}"
+          @toggle-expand="weeklyReviewExpanded = !weeklyReviewExpanded"
+          @fill-metrics="fillSundayMetrics"
           @save-review="saveState"
         />
       </section>
+
+      <!-- Global Floating Toast Notification -->
+      <transition name="toast-fade">
+        <div v-if="toastMessage" class="habuilt-floating-toast">
+          <span>{{ toastMessage }}</span>
+        </div>
+      </transition>
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
       <MobileBottomNav
