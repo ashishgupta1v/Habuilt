@@ -951,6 +951,16 @@ const applySuggestedDayType = () => {
 
 // ── Mobile Category Filters & Classification ──
 const activeMobileCategory = ref('all');
+const activeTimeFilter = ref('all');
+
+// Auto-detect current time block based on hour
+const getCurrentTimeBlock = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 9) return 'morning';
+  if (hour >= 9 && hour < 18) return 'work';
+  if (hour >= 18 && hour < 23) return 'evening';
+  return 'anytime';
+};
 const hoveredChartPoint = ref(null);
 
 // Time-of-day slot for each habit — used to group and order the checklist timeline
@@ -1033,10 +1043,41 @@ const getCategoryLabel = (category) => {
 };
 
 const filteredMobileHabits = computed(() => {
-  if (activeMobileCategory.value === 'all') return localHabits.value;
-  return localHabits.value.filter((h) => getHabitCategory(h) === activeMobileCategory.value);
+  let source = localHabits.value;
+  // Apply time-slot filter first
+  if (activeTimeFilter.value !== 'all') {
+    source = source.filter(h => getHabitTimeSlot(h) === activeTimeFilter.value);
+  }
+  // Then apply category filter on top
+  if (activeMobileCategory.value !== 'all') {
+    source = source.filter(h => getHabitCategory(h) === activeMobileCategory.value);
+  }
+  return source;
 });
 
+// Time-slot based counts and completion for filter pills
+const timeSlotCounts = computed(() => {
+  const counts = { all: localHabits.value.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  for (const h of localHabits.value) {
+    const slot = getHabitTimeSlot(h);
+    if (counts[slot] !== undefined) counts[slot]++;
+  }
+  return counts;
+});
+
+const timeSlotCompleted = computed(() => {
+  const comp = { all: 0, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  for (const h of localHabits.value) {
+    if (hasCompletedDay(h, mobileDay.value)) {
+      comp.all++;
+      const slot = getHabitTimeSlot(h);
+      if (comp[slot] !== undefined) comp[slot]++;
+    }
+  }
+  return comp;
+});
+
+// Keep old category counts for backward compat
 const mobileCategoryCounts = computed(() => {
   const counts = { all: localHabits.value.length, morning: 0, work: 0, evening: 0, health: 0, shared: 0 };
   for (const h of localHabits.value) {
@@ -2499,6 +2540,55 @@ const smartSuggestions = computed(() => {
   return suggestions.slice(0, 3); // Max 3 suggestions
 });
 
+// ── Best Time of Day analytics ──
+const bestTimeOfDay = computed(() => {
+  const slots = ['morning', 'work', 'evening', 'anytime'];
+  const stats = {};
+  for (const slot of slots) {
+    const habitsInSlot = localHabits.value.filter(h => getHabitTimeSlot(h) === slot);
+    if (habitsInSlot.length === 0) continue;
+    let totalCompletions = 0;
+    let totalPossible = habitsInSlot.length * evaluatedDays.value;
+    for (const h of habitsInSlot) {
+      totalCompletions += (h.completedDays || []).filter(d => d <= evaluatedDays.value).length;
+    }
+    const rate = totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0;
+    stats[slot] = { count: habitsInSlot.length, completions: totalCompletions, possible: totalPossible, rate };
+  }
+  const sorted = Object.entries(stats).sort((a, b) => b[1].rate - a[1].rate);
+  const best = sorted[0];
+  const weakest = sorted[sorted.length - 1];
+  return { stats, best: best ? { slot: best[0], ...best[1] } : null, weakest: weakest ? { slot: weakest[0], ...weakest[1] } : null };
+});
+
+// ── Weekly Momentum Sparkline (7-day point totals) ──
+const weeklyMomentumData = computed(() => {
+  const today = props.currentDay;
+  const points = [];
+  for (let i = 6; i >= 0; i--) {
+    const day = today - i;
+    points.push(day >= 1 ? getDayTotal(day) : 0);
+  }
+  const max = Math.max(...points, 1);
+  const trend = points[6] - points[0]; // positive = improving
+  const avg = Math.round(points.reduce((s, v) => s + v, 0) / 7);
+  return { points, max, trend, avg };
+});
+
+// ── Milestone Badges ──
+const milestoneBadges = computed(() => {
+  const xp = totalXP.value;
+  const milestones = [
+    { threshold: 500,   label: 'Starter',    icon: '🌱' },
+    { threshold: 1000,  label: 'Builder',    icon: '🔨' },
+    { threshold: 2500,  label: 'Achiever',   icon: '⭐' },
+    { threshold: 5000,  label: 'Champion',   icon: '🏆' },
+    { threshold: 10000, label: 'Legend',      icon: '👑' },
+  ];
+  return milestones.map(m => ({ ...m, earned: xp >= m.threshold }));
+});
+const nextMilestone = computed(() => milestoneBadges.value.find(m => !m.earned) || null);
+
 // ══════════════════════════════════════════════════════════════════════════════
 // TIER 4: SOCIAL & EXPORT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2917,7 +3007,7 @@ const shareProgress = async () => {
               </article>
 
               <!-- KPI 2: Streak & Grade -->
-              <article class="glass-kpi glass-kpi--amber">
+              <article class="glass-kpi glass-kpi--amber" :class="{ 'streak-flame-glow': [7, 14, 21, 30, 60, 90].includes(systemStreak.current) }">
                 <div class="glass-kpi__ring-wrap">
                   <svg class="glass-kpi__ring" viewBox="0 0 64 64">
                     <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
@@ -3458,6 +3548,77 @@ const shareProgress = async () => {
           </div>
         </div>
 
+        <!-- Best Time of Day Card -->
+        <div class="analytics-card analytics-card--time-energy" v-if="bestTimeOfDay.best && evaluatedDays > 3">
+          <div class="analytics-card__head">
+            <Clock class="icon-sm" />
+            <strong>Best Time of Day</strong>
+          </div>
+          <div class="time-energy-grid">
+            <div v-for="slot in ['morning', 'work', 'evening', 'anytime']" :key="slot"
+              class="time-energy-cell"
+              :class="{ 'time-energy-cell--best': bestTimeOfDay.best?.slot === slot, 'time-energy-cell--weak': bestTimeOfDay.weakest?.slot === slot }">
+              <span class="time-energy-cell__emoji">{{ { morning: '🌅', work: '⚡', evening: '🌙', anytime: '🥗' }[slot] }}</span>
+              <span class="time-energy-cell__label">{{ { morning: 'Morning', work: 'Work', evening: 'Evening', anytime: 'Health' }[slot] }}</span>
+              <strong class="time-energy-cell__rate mono-num">{{ bestTimeOfDay.stats[slot]?.rate ?? 0 }}%</strong>
+              <div class="time-energy-cell__bar">
+                <div class="time-energy-cell__fill" :style="{ width: (bestTimeOfDay.stats[slot]?.rate ?? 0) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+          <p class="analytics-card__insight" v-if="bestTimeOfDay.best && bestTimeOfDay.weakest && bestTimeOfDay.best.slot !== bestTimeOfDay.weakest.slot">
+            You're strongest in <strong>{{ { morning: 'mornings', work: 'work hours', evening: 'evenings', anytime: 'health habits' }[bestTimeOfDay.best.slot] }}</strong> ({{ bestTimeOfDay.best.rate }}%).
+            Focus on <strong>{{ { morning: 'mornings', work: 'work hours', evening: 'evenings', anytime: 'health habits' }[bestTimeOfDay.weakest.slot] }}</strong> ({{ bestTimeOfDay.weakest.rate }}%) to level up.
+          </p>
+        </div>
+
+        <!-- Weekly Momentum Sparkline -->
+        <div class="analytics-card analytics-card--momentum" v-if="evaluatedDays > 1">
+          <div class="analytics-card__head">
+            <TrendingUp class="icon-sm" />
+            <strong>7-Day Momentum</strong>
+            <span class="momentum-trend mono-num" :class="weeklyMomentumData.trend >= 0 ? 'momentum-trend--up' : 'momentum-trend--down'">
+              {{ weeklyMomentumData.trend >= 0 ? '+' : '' }}{{ weeklyMomentumData.trend }} pts
+            </span>
+          </div>
+          <div class="sparkline-wrap">
+            <svg class="sparkline-svg" viewBox="0 0 180 40" preserveAspectRatio="none">
+              <polyline
+                :points="weeklyMomentumData.points.map((v, i) => `${i * 30},${40 - (v / weeklyMomentumData.max) * 36}`).join(' ')"
+                fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <circle v-for="(v, i) in weeklyMomentumData.points" :key="i"
+                :cx="i * 30" :cy="40 - (v / weeklyMomentumData.max) * 36" r="2.5"
+                :fill="i === 6 ? 'var(--accent)' : 'var(--surface-2)'" stroke="var(--accent)" stroke-width="1.5" />
+            </svg>
+            <div class="sparkline-labels">
+              <span v-for="(v, i) in weeklyMomentumData.points" :key="'sl'+i" class="sparkline-day-label mono-num">
+                {{ v }}
+              </span>
+            </div>
+          </div>
+          <p class="analytics-card__stat">Avg <strong class="mono-num">{{ weeklyMomentumData.avg }}</strong> pts/day over last 7 days</p>
+        </div>
+
+        <!-- Milestone Badges -->
+        <div class="analytics-card analytics-card--badges" v-if="totalXP > 0">
+          <div class="analytics-card__head">
+            <Award class="icon-sm" />
+            <strong>Milestone Badges</strong>
+            <span class="milestone-earned-count mono-num">{{ milestoneBadges.filter(m => m.earned).length }}/{{ milestoneBadges.length }}</span>
+          </div>
+          <div class="milestone-badge-row">
+            <div v-for="m in milestoneBadges" :key="m.threshold"
+              class="xp-badge" :class="{ 'xp-badge--earned': m.earned, 'xp-badge--next': !m.earned && nextMilestone?.threshold === m.threshold }">
+              <span class="xp-badge__icon">{{ m.icon }}</span>
+              <span class="xp-badge__label">{{ m.label }}</span>
+              <span class="xp-badge__threshold mono-num">{{ m.threshold >= 1000 ? (m.threshold/1000) + 'k' : m.threshold }}</span>
+            </div>
+          </div>
+          <p class="analytics-card__stat" v-if="nextMilestone">
+            <strong class="mono-num">{{ nextMilestone.threshold - totalXP }}</strong> XP to <strong>{{ nextMilestone.label }}</strong> badge
+          </p>
+        </div>
+
         <!-- Category Breakdown -->
         <div class="category-breakdown" v-if="categoryBreakdown.length > 0">
           <div class="category-breakdown__title">Category Performance</div>
@@ -3961,54 +4122,69 @@ const shareProgress = async () => {
                 </button>
               </div>
 
-              <!-- Category Filter Chips -->
-              <div class="mobile-cat-chips">
+              <!-- Time-Slot Filter Pills (sticky) -->
+              <div class="time-filter-bar">
                 <button
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'all' }"
-                  @click="activeMobileCategory = 'all'"
+                  class="time-filter-pill"
+                  :class="{ 'time-filter-pill--active': activeTimeFilter === 'all' }"
+                  @click="activeTimeFilter = 'all'"
                 >
-                  All ({{ mobileCategoryCompleted.all }}/{{ mobileCategoryCounts.all }})
+                  <span class="time-filter-pill__label">All</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.all }}/{{ timeSlotCounts.all }}</span>
                 </button>
                 <button
-                  v-if="mobileCategoryCounts.morning > 0"
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'morning' }"
-                  @click="activeMobileCategory = 'morning'"
+                  v-if="timeSlotCounts.morning > 0"
+                  class="time-filter-pill"
+                  :class="{
+                    'time-filter-pill--active': activeTimeFilter === 'morning',
+                    'time-filter-pill--current': getCurrentTimeBlock() === 'morning' && activeTimeFilter === 'all'
+                  }"
+                  @click="activeTimeFilter = activeTimeFilter === 'morning' ? 'all' : 'morning'"
                 >
-                  🌅 Morning ({{ mobileCategoryCompleted.morning }}/{{ mobileCategoryCounts.morning }})
+                  <span class="time-filter-pill__label">Morning</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.morning }}/{{ timeSlotCounts.morning }}</span>
                 </button>
                 <button
-                  v-if="mobileCategoryCounts.work > 0"
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'work' }"
-                  @click="activeMobileCategory = 'work'"
+                  v-if="timeSlotCounts.work > 0"
+                  class="time-filter-pill"
+                  :class="{
+                    'time-filter-pill--active': activeTimeFilter === 'work',
+                    'time-filter-pill--current': getCurrentTimeBlock() === 'work' && activeTimeFilter === 'all'
+                  }"
+                  @click="activeTimeFilter = activeTimeFilter === 'work' ? 'all' : 'work'"
                 >
-                  ⚡ Work ({{ mobileCategoryCompleted.work }}/{{ mobileCategoryCounts.work }})
+                  <span class="time-filter-pill__label">Work</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.work }}/{{ timeSlotCounts.work }}</span>
                 </button>
                 <button
-                  v-if="mobileCategoryCounts.evening > 0"
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'evening' }"
-                  @click="activeMobileCategory = 'evening'"
+                  v-if="timeSlotCounts.evening > 0"
+                  class="time-filter-pill"
+                  :class="{
+                    'time-filter-pill--active': activeTimeFilter === 'evening',
+                    'time-filter-pill--current': getCurrentTimeBlock() === 'evening' && activeTimeFilter === 'all'
+                  }"
+                  @click="activeTimeFilter = activeTimeFilter === 'evening' ? 'all' : 'evening'"
                 >
-                  🌙 Evening ({{ mobileCategoryCompleted.evening }}/{{ mobileCategoryCounts.evening }})
+                  <span class="time-filter-pill__label">Evening</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.evening }}/{{ timeSlotCounts.evening }}</span>
                 </button>
                 <button
-                  v-if="mobileCategoryCounts.health > 0"
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'health' }"
-                  @click="activeMobileCategory = 'health'"
+                  v-if="timeSlotCounts.anytime > 0"
+                  class="time-filter-pill"
+                  :class="{ 'time-filter-pill--active': activeTimeFilter === 'anytime' }"
+                  @click="activeTimeFilter = activeTimeFilter === 'anytime' ? 'all' : 'anytime'"
                 >
-                  🥗 Health ({{ mobileCategoryCompleted.health }}/{{ mobileCategoryCounts.health }})
+                  <span class="time-filter-pill__label">Health</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.anytime }}/{{ timeSlotCounts.anytime }}</span>
                 </button>
                 <button
-                  v-if="mobileCategoryCounts.shared > 0"
-                  class="mobile-cat-chip"
-                  :class="{ 'mobile-cat-chip--active': activeMobileCategory === 'shared' }"
-                  @click="activeMobileCategory = 'shared'"
+                  v-if="timeSlotCounts.weekly > 0"
+                  class="time-filter-pill"
+                  :class="{ 'time-filter-pill--active': activeTimeFilter === 'weekly' }"
+                  @click="activeTimeFilter = activeTimeFilter === 'weekly' ? 'all' : 'weekly'"
                 >
-                  ★ Shared ({{ mobileCategoryCompleted.shared }}/{{ mobileCategoryCounts.shared }})
+                  <span class="time-filter-pill__label">Weekly</span>
+                  <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.weekly }}/{{ timeSlotCounts.weekly }}</span>
                 </button>
               </div>
 
@@ -4045,8 +4221,12 @@ const shareProgress = async () => {
                     <span class="timeline-slot-emoji">{{ group.meta.emoji }}</span>
                     <span class="timeline-slot-label">{{ group.meta.label }}</span>
                     <span class="timeline-slot-time">{{ group.meta.time }}</span>
-                    <span class="timeline-slot-count">
+                    <span
+                      class="timeline-slot-count"
+                      :class="{ 'timeline-slot-complete-badge': group.habits.filter(h => hasCompletedDay(h, mobileDay)).length === group.habits.length && group.habits.length > 0 }"
+                    >
                       {{ group.habits.filter(h => hasCompletedDay(h, mobileDay)).length }}/{{ group.habits.length }}
+                      <span v-if="group.habits.filter(h => hasCompletedDay(h, mobileDay)).length === group.habits.length && group.habits.length > 0">✓</span>
                     </span>
                   </div>
                   <!-- Habit Cards in this slot -->
@@ -4187,25 +4367,33 @@ const shareProgress = async () => {
         </template>
       </section>
 
-      <!-- ── SECTION: REWARDS & LEDGER ── -->
-      <section class="dashboard-columns" id="rewards">
-        <article class="card column-card">
-          <div class="section-head section-head--collapsible" @click="rewardsExpanded = !rewardsExpanded">
-            <h2 class="section-title">
-              <span class="section-title__icon">
-                <Gift class="icon-md" />
-              </span>
-              <span>The Reward Shop</span>
-              <ChevronDown v-if="!rewardsExpanded" class="icon-sm collapse-chevron" />
-              <ChevronUp v-else class="icon-sm collapse-chevron" />
-            </h2>
-            <button v-if="!rewardsEditing" class="btn btn--secondary" @click.stop="rewardsExpanded = true; startEditingRewards()">
-              <Edit3 class="icon-sm" />
-              <span>Edit Rewards</span>
+      <!-- ── SECTION: COMPACT REWARD BAR + LEDGER ── -->
+      <section class="card card--compact-rewards" id="rewards">
+        <!-- ── Compact Reward Bar ── -->
+        <div class="reward-bar">
+          <div class="reward-bar__wallet">
+            <Gift class="icon-sm" />
+            <span class="reward-bar__label">Reward Wallet</span>
+            <strong class="reward-bar__balance mono-num">{{ availableWallet }} <small>pts</small></strong>
+          </div>
+          <div class="reward-bar__actions">
+            <button
+              class="btn btn--compact-redeem"
+              :class="{ 'btn--compact-redeem--open': rewardsExpanded }"
+              @click="rewardsExpanded = !rewardsExpanded"
+            >
+              <span>{{ rewardsExpanded ? 'Close' : 'Redeem' }}</span>
+              <ChevronDown v-if="!rewardsExpanded" class="icon-xs" />
+              <ChevronUp v-else class="icon-xs" />
+            </button>
+            <button class="btn btn--icon-only" @click="rewardsExpanded = true; startEditingRewards()" title="Edit Rewards">
+              <Edit3 class="icon-xs" />
             </button>
           </div>
+        </div>
 
-          <div v-show="rewardsExpanded" class="collapsible-body">
+        <!-- ── Expandable Reward List (compact) ── -->
+        <div v-show="rewardsExpanded" class="reward-bar__body">
           <div v-if="rewardsEditing" class="rewards-editor">
             <p class="habits-editor__hint">Edit reward type, title and redeem points. Save to apply for this month.</p>
 
@@ -4240,209 +4428,181 @@ const shareProgress = async () => {
             </div>
           </div>
 
-          <div v-else class="rewards-grid">
-            <article v-for="reward in rewards" :key="`${reward.type}-${reward.item}`" class="reward-item">
-              <span class="reward-tag">{{ reward.type }}</span>
-              <h3 class="reward-title">{{ reward.item }}</h3>
+          <div v-else class="reward-compact-list">
+            <div
+              v-for="reward in rewards"
+              :key="`${reward.type}-${reward.item}`"
+              class="reward-compact-row"
+            >
+              <span class="reward-compact-row__tag">{{ reward.type }}</span>
+              <span class="reward-compact-row__name">{{ reward.item }}</span>
               <button
-                class="reward-btn"
+                class="reward-compact-row__btn"
                 :disabled="availableWallet < reward.cost"
                 @click="claimReward(reward)"
               >
-                <span>Redeem</span>
-                <strong>{{ reward.cost }} pts</strong>
+                <span class="mono-num">{{ reward.cost }}</span> pts
               </button>
-            </article>
+            </div>
           </div>
-          </div><!-- /collapsible-body rewards -->
-        </article>
+        </div>
 
-        <article class="card column-card">
-          <div class="section-head section-head--collapsible" @click="ledgerExpanded = !ledgerExpanded">
-            <h2 class="section-title">
-              <span class="section-title__icon">
-                <FileText class="icon-md" />
-              </span>
+        <!-- ── Point Ledger (compact) ── -->
+        <div class="ledger-bar">
+          <div class="ledger-bar__head" @click="ledgerExpanded = !ledgerExpanded">
+            <div class="ledger-bar__title">
+              <FileText class="icon-sm" />
               <span>Point Ledger</span>
-              <ChevronDown v-if="!ledgerExpanded" class="icon-sm collapse-chevron" />
-              <ChevronUp v-else class="icon-sm collapse-chevron" />
-            </h2>
-            <button v-if="!ledgerEditing" class="btn btn--secondary" @click.stop="ledgerExpanded = true; startEditingLedger()">
-              <Edit3 class="icon-sm" />
-              <span>Edit Ledger</span>
-            </button>
-          </div>
-
-          <div v-show="ledgerExpanded" class="collapsible-body">
-          <div v-if="ledgerEditing" class="ledger-editor">
-            <div class="ledger-editor__actions">
-              <button class="btn btn--secondary" @click="addDraftLedgerEntry">
-                <Plus class="icon-sm" />
-                <span>Add Entry</span>
-              </button>
+              <small class="ledger-bar__purpose">Transaction log of redeemed rewards</small>
             </div>
-
-            <div class="ledger-wrap">
-              <table class="ledger-table">
-                <thead>
-                  <tr>
-                    <th>Reward Item</th>
-                    <th>Description</th>
-                    <th>Date</th>
-                    <th>Redeem Cost</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in ledgerDraft" :key="`ledger-draft-${entry.timestamp}-${index}`">
-                    <td><input v-model="entry.item" type="text" maxlength="80" class="ledger-editor__input"></td>
-                    <td><input v-model="entry.description" type="text" maxlength="120" class="ledger-editor__input"></td>
-                    <td><input v-model="entry.date" type="text" maxlength="40" class="ledger-editor__input"></td>
-                    <td><input v-model.number="entry.cost" type="number" min="0" max="10000" class="ledger-editor__cost"></td>
-                    <td>
-                      <button class="habits-editor__delete" @click="removeDraftLedgerEntry(index)">
-                        <Trash2 class="icon-sm" />
-                      </button>
-                    </td>
-                  </tr>
-                  <tr v-if="ledgerDraft.length === 0">
-                    <td colspan="5" class="ledger-table__empty">No redemptions found. Add one manually or redeem from Reward Shop.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="habits-editor__actions">
-              <button class="btn btn--primary-action" :disabled="ledgerDraftHasErrors || ledgerSaveStatus === 'saving'" @click="saveEditedLedger">
-                <span v-if="ledgerSaveStatus === 'saving'">Saving…</span>
-                <span v-else-if="ledgerSaveStatus === 'saved'" class="btn-inner-saved">
-                  <Check class="icon-sm" /> Saved
-                </span>
-                <span v-else>Save Ledger</span>
-              </button>
-              <button class="btn btn--ghost" @click="cancelEditingLedger">Cancel</button>
+            <div class="ledger-bar__meta">
+              <span class="ledger-bar__count mono-num">{{ rewardLedger.length }} txns</span>
+              <ChevronDown v-if="!ledgerExpanded" class="icon-xs collapse-chevron" />
+              <ChevronUp v-else class="icon-xs collapse-chevron" />
             </div>
           </div>
 
-          <div v-else>
-            <!-- Desktop Table View -->
-            <div class="ledger-wrap">
-              <table class="ledger-table">
-                <thead>
-                  <tr>
-                    <th>Reward Item</th>
-                    <th>Description</th>
-                    <th>Date</th>
-                    <th>Exact Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="entry in rewardLedger" :key="entry.timestamp">
-                    <td class="ledger-item-name">{{ entry.item }}</td>
-                    <td class="ledger-item-desc">{{ entry.description }}</td>
-                    <td class="ledger-item-date">{{ entry.date }}</td>
-                    <td class="ledger-table__cost">-{{ entry.cost }} pts</td>
-                  </tr>
-                  <tr v-if="rewardLedger.length === 0">
-                    <td colspan="4" class="ledger-table__empty">No redemptions found. Build your bank first.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Mobile Transaction Cards View -->
-            <div class="ledger-mobile-cards">
-              <div v-if="rewardLedger.length === 0" class="ledger-table__empty">
-                No redemptions found. Build your point bank first.
+          <div v-show="ledgerExpanded" class="ledger-bar__body">
+            <!-- Edit Mode -->
+            <div v-if="ledgerEditing" class="ledger-editor">
+              <div class="ledger-editor__actions">
+                <button class="btn btn--secondary" @click="addDraftLedgerEntry">
+                  <Plus class="icon-sm" />
+                  <span>Add Entry</span>
+                </button>
               </div>
-              <article
+
+              <div class="ledger-wrap">
+                <table class="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Reward Item</th>
+                      <th>Description</th>
+                      <th>Date</th>
+                      <th>Redeem Cost</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(entry, index) in ledgerDraft" :key="`ledger-draft-${entry.timestamp}-${index}`">
+                      <td><input v-model="entry.item" type="text" maxlength="80" class="ledger-editor__input"></td>
+                      <td><input v-model="entry.description" type="text" maxlength="120" class="ledger-editor__input"></td>
+                      <td><input v-model="entry.date" type="text" maxlength="40" class="ledger-editor__input"></td>
+                      <td><input v-model.number="entry.cost" type="number" min="0" max="10000" class="ledger-editor__cost"></td>
+                      <td>
+                        <button class="habits-editor__delete" @click="removeDraftLedgerEntry(index)">
+                          <Trash2 class="icon-sm" />
+                        </button>
+                      </td>
+                    </tr>
+                    <tr v-if="ledgerDraft.length === 0">
+                      <td colspan="5" class="ledger-table__empty">No redemptions yet. Redeem from Reward Shop above.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="habits-editor__actions">
+                <button class="btn btn--primary-action" :disabled="ledgerDraftHasErrors || ledgerSaveStatus === 'saving'" @click="saveEditedLedger">
+                  <span v-if="ledgerSaveStatus === 'saving'">Saving…</span>
+                  <span v-else-if="ledgerSaveStatus === 'saved'" class="btn-inner-saved">
+                    <Check class="icon-sm" /> Saved
+                  </span>
+                  <span v-else>Save Ledger</span>
+                </button>
+                <button class="btn btn--ghost" @click="cancelEditingLedger">Cancel</button>
+              </div>
+            </div>
+
+            <!-- Read Mode — compact transaction list -->
+            <div v-else class="ledger-compact-list">
+              <div v-if="rewardLedger.length === 0" class="ledger-compact-empty">
+                No redemptions yet. Build your point bank first.
+              </div>
+              <div
                 v-for="entry in rewardLedger"
-                :key="'m-led-' + entry.timestamp"
-                class="ledger-mobile-card"
+                :key="entry.timestamp"
+                class="ledger-compact-row"
               >
-                <div class="ledger-mobile-card__head">
+                <div class="ledger-compact-row__left">
                   <strong>{{ entry.item }}</strong>
-                  <span class="ledger-mobile-card__cost">-{{ entry.cost }} pts</span>
+                  <small v-if="entry.description">{{ entry.description }}</small>
                 </div>
-                <p v-if="entry.description" class="ledger-mobile-card__desc">{{ entry.description }}</p>
-                <span class="ledger-mobile-card__date">{{ entry.date }}</span>
-              </article>
+                <div class="ledger-compact-row__right">
+                  <span class="ledger-compact-row__cost mono-num">-{{ entry.cost }} pts</span>
+                  <span class="ledger-compact-row__date">{{ entry.date }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ledger-bar__footer">
+              <button class="btn btn--icon-only" @click.stop="ledgerExpanded = true; startEditingLedger()" title="Edit Ledger">
+                <Edit3 class="icon-xs" />
+              </button>
+              <button class="btn btn--ghost btn--clear-all" @click="clearLocalProgress">
+                <Trash2 class="icon-xs" />
+                <span>Clear All Progress</span>
+              </button>
             </div>
           </div>
-
-          <div class="ledger-actions">
-            <button class="btn btn--ghost btn--clear-all" @click="clearLocalProgress">
-              <Trash2 class="icon-xs" />
-              <span>Clear All Progress</span>
-            </button>
-          </div>
-          </div><!-- /collapsible-body ledger -->
-        </article>
+        </div>
       </section>
 
-      <!-- ── SECTION: WEEKLY REVIEW PROTOCOL ── -->
-      <section class="card" id="weekly-review">
+      <!-- ── SECTION: WEEKLY REVIEW (Compact) ── -->
+      <section class="card card--weekly-review" id="weekly-review">
         <div class="section-head section-head--collapsible" @click="weeklyReviewExpanded = !weeklyReviewExpanded">
-          <div class="section-title-wrap">
+          <div class="review-header-bar">
             <h2 class="section-title">
               <span class="section-title__icon">
                 <Compass class="icon-md" />
               </span>
-              <span>Weekly Review Protocol</span>
+              <span>Sunday Review</span>
               <ChevronDown v-if="!weeklyReviewExpanded" class="icon-sm collapse-chevron" />
               <ChevronUp v-else class="icon-sm collapse-chevron" />
             </h2>
-            <small>Sunday check-in. Keep it short, honest, and actionable.</small>
+            <!-- Inline auto-metrics summary when collapsed -->
+            <div v-if="!weeklyReviewExpanded" class="review-inline-metrics">
+              <span class="review-inline-stat mono-num">W: {{ weeklySnapshotLabel }}</span>
+              <span class="review-inline-stat mono-num">M: {{ monthlySnapshotLabel }}</span>
+            </div>
           </div>
           <button class="btn btn--secondary" @click.stop="weeklyReviewExpanded = true; fillWeeklyReviewMetrics()">
             <Sparkles class="icon-sm" />
-            <span>Use Auto Metrics</span>
+            <span>Auto Fill</span>
           </button>
         </div>
 
         <div v-show="weeklyReviewExpanded" class="collapsible-body">
-        <div class="review-snapshots-wrap">
-          <p class="review-snapshot">
-            <strong>Auto Weekly:</strong> {{ weeklySnapshotLabel }}
-          </p>
-          <p class="review-snapshot">
-            <strong>Auto Monthly:</strong> {{ monthlySnapshotLabel }}
-          </p>
-        </div>
-
-        <div class="review-grid">
-          <article class="review-card">
-            <h3>Consistency Metrics</h3>
-
-            <div class="review-fields">
-              <label>
-                Review Date
-                <input v-model="weeklyReview.reviewDate" type="date" @change="saveWeeklyReview">
-              </label>
-              <label>
-                Weekly Points
-                <input v-model="weeklyReview.metrics.weeklyPoints" type="text" placeholder="e.g. 104" @change="saveWeeklyReview">
-              </label>
-              <label>
-                Weekly Stickiness %
-                <input v-model="weeklyReview.metrics.weeklyStickiness" type="text" placeholder="e.g. 71.4" @change="saveWeeklyReview">
-                <small class="metric-guide">{{ weeklyStickinessGuide }}</small>
-              </label>
-              <label>
-                Monthly Points
-                <input v-model="weeklyReview.metrics.monthlyPoints" type="text" placeholder="e.g. 298" @change="saveWeeklyReview">
-              </label>
-              <label>
-                Monthly Stickiness %
-                <input v-model="weeklyReview.metrics.monthlyStickiness" type="text" placeholder="e.g. 64.5" @change="saveWeeklyReview">
-                <small class="metric-guide">{{ monthlyStickinessGuide }}</small>
-              </label>
+          <!-- Compact Metrics Row -->
+          <div class="review-metrics-strip">
+            <div class="review-metric-cell">
+              <span class="review-metric-cell__label">Date</span>
+              <input v-model="weeklyReview.reviewDate" type="date" class="review-metric-cell__input" @change="saveWeeklyReview">
             </div>
-          </article>
+            <div class="review-metric-cell">
+              <span class="review-metric-cell__label">Wk Pts</span>
+              <input v-model="weeklyReview.metrics.weeklyPoints" type="text" placeholder="104" class="review-metric-cell__input mono-num" @change="saveWeeklyReview">
+            </div>
+            <div class="review-metric-cell">
+              <span class="review-metric-cell__label">Wk Stick %</span>
+              <input v-model="weeklyReview.metrics.weeklyStickiness" type="text" placeholder="71.4" class="review-metric-cell__input mono-num" @change="saveWeeklyReview">
+            </div>
+            <div class="review-metric-cell">
+              <span class="review-metric-cell__label">Mo Pts</span>
+              <input v-model="weeklyReview.metrics.monthlyPoints" type="text" placeholder="298" class="review-metric-cell__input mono-num" @change="saveWeeklyReview">
+            </div>
+            <div class="review-metric-cell">
+              <span class="review-metric-cell__label">Mo Stick %</span>
+              <input v-model="weeklyReview.metrics.monthlyStickiness" type="text" placeholder="64.5" class="review-metric-cell__input mono-num" @change="saveWeeklyReview">
+            </div>
+          </div>
 
-          <article class="review-card">
-            <h3>Real-World Checkpoints</h3>
-
+          <!-- Checkpoints (compact) -->
+          <div class="review-checks-compact">
+            <div class="review-checks-compact__head">
+              <strong>Checkpoints</strong>
+              <span class="review-checks-compact__count mono-num">{{ weeklyReview.checks.filter(c => c.done).length }}/{{ weeklyReview.checks.length }}</span>
+            </div>
             <div class="check-list">
               <div v-for="(check, index) in weeklyReview.checks" :key="`check-${index}`" class="check-item">
                 <button
@@ -4454,58 +4614,42 @@ const shareProgress = async () => {
                   <Check v-if="check.done" class="icon-check-focus" />
                 </button>
                 <input v-model="check.text" type="text" maxlength="160" @change="saveWeeklyReview">
-                <button @click="removeWeeklyCheck(index)" class="check-delete-btn" title="Remove check">
+                <button @click="removeWeeklyCheck(index)" class="check-delete-btn" title="Remove">
                   <Trash2 class="icon-xs" />
                 </button>
               </div>
             </div>
-
             <div class="check-add-row">
-              <input
-                v-model="newWeeklyCheck"
-                type="text"
-                maxlength="160"
-                placeholder="Add a practical weekly check..."
-                @keydown.enter.prevent="addWeeklyCheck"
-              >
+              <input v-model="newWeeklyCheck" type="text" maxlength="160" placeholder="Add checkpoint..." @keydown.enter.prevent="addWeeklyCheck">
               <button class="btn btn--add-check" :disabled="newWeeklyCheck.trim() === ''" @click="addWeeklyCheck">
                 <Plus class="icon-sm" />
-                <span>Add</span>
               </button>
             </div>
-          </article>
-        </div>
+          </div>
 
-        <div class="reflection-grid">
-          <label>
-            Biggest Wins Worth Repeating
-            <textarea v-model="weeklyReview.reflections.wins" rows="2" placeholder="What went exceptionally well?" @blur="saveWeeklyReview" />
-          </label>
-          <label>
-            Missed Days & Friction Pattern
-            <textarea v-model="weeklyReview.reflections.misses" rows="2" placeholder="Where did friction occur?" @blur="saveWeeklyReview" />
-          </label>
-          <label>
-            Trigger + If-Then Plan
-            <textarea v-model="weeklyReview.reflections.triggerPlan" rows="2" placeholder="If [trigger occurs], then I will [action]..." @blur="saveWeeklyReview" />
-          </label>
-          <label>
-            Reward Motivation Check
-            <textarea v-model="weeklyReview.reflections.rewardTune" rows="2" placeholder="Are rewards motivating enough?" @blur="saveWeeklyReview" />
-          </label>
-          <label>
-            Scale-Down Rule for Hard Days
-            <textarea v-model="weeklyReview.reflections.habitScale" rows="2" placeholder="Minimum floor on low energy days..." @blur="saveWeeklyReview" />
-          </label>
-          <label>
-            Health Check (Sleep / Recovery / Energy)
-            <textarea v-model="weeklyReview.reflections.healthCheck" rows="2" placeholder="Sleep quality, stress, nutrition protocol..." @blur="saveWeeklyReview" />
-          </label>
-          <label class="reflection-grid__wide">
-            Next Week Focus Commitments
-            <textarea v-model="weeklyReview.reflections.nextWeekFocus" rows="2" placeholder="Non-negotiable outcomes for the upcoming week..." @blur="saveWeeklyReview" />
-          </label>
-        </div>
+          <!-- Compact Reflections (2-col) -->
+          <div class="reflection-compact">
+            <label>
+              <span class="reflection-compact__label">Wins</span>
+              <textarea v-model="weeklyReview.reflections.wins" rows="1" placeholder="What went well?" @blur="saveWeeklyReview" />
+            </label>
+            <label>
+              <span class="reflection-compact__label">Friction</span>
+              <textarea v-model="weeklyReview.reflections.misses" rows="1" placeholder="Where did you slip?" @blur="saveWeeklyReview" />
+            </label>
+            <label>
+              <span class="reflection-compact__label">If-Then Plan</span>
+              <textarea v-model="weeklyReview.reflections.triggerPlan" rows="1" placeholder="If [X], then [Y]" @blur="saveWeeklyReview" />
+            </label>
+            <label>
+              <span class="reflection-compact__label">Health Check</span>
+              <textarea v-model="weeklyReview.reflections.healthCheck" rows="1" placeholder="Sleep, stress, energy" @blur="saveWeeklyReview" />
+            </label>
+            <label class="reflection-compact__wide">
+              <span class="reflection-compact__label">Next Week Focus</span>
+              <textarea v-model="weeklyReview.reflections.nextWeekFocus" rows="1" placeholder="Non-negotiable outcomes..." @blur="saveWeeklyReview" />
+            </label>
+          </div>
         </div><!-- /collapsible-body weekly-review -->
       </section>
       <!-- Confetti Overlay -->
