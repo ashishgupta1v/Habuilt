@@ -324,10 +324,7 @@ const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest
 const localStatePrefix = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.`);
 const monthLabel = computed(() => new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(props.year, props.month - 1, 1)));
 const days = computed(() => Array.from({ length: props.monthDays }, (_, index) => index + 1));
-const targetDailyPoints = computed(() => {
-  const mult = progressiveSettings.value.pointMultipliers?.[currentDayType.value] ?? 1.0;
-  return Math.round(15 * mult);
-});
+const targetDailyPoints = computed(() => 15);
 
 const isHabitArchived = (habit) => enhancedState.value.archivedHabitIds?.includes(habit.id) || !!habit.archived;
 const visibleHabits = computed(() => (localHabits.value || []).filter(h => !isHabitArchived(h)));
@@ -565,11 +562,15 @@ const systemStreak = computed(() => {
 const consistencyScore = computed(() => {
   const daysEvaluated = props.isCurrentMonth ? props.currentDay : props.monthDays;
   if (daysEvaluated === 0) return 0;
-  let metDays = 0;
+  let totalScore = 0;
   for (let d = 1; d <= daysEvaluated; d++) {
-    if (getDayTotal(d) >= targetDailyPoints.value) metDays++;
+    const pts = getDayTotal(d);
+    if (pts >= 15) totalScore += 100;      // Full Protocol
+    else if (pts >= 8) totalScore += 75;   // Half Protocol
+    else if (pts >= 4) totalScore += 50;   // Floor Protocol (protected)
+    else if (pts > 0) totalScore += 25;
   }
-  return Math.min(100, Math.round((metDays / daysEvaluated) * 100));
+  return Math.min(100, Math.round(totalScore / daysEvaluated));
 });
 
 const consistencyGrade = computed(() => {
@@ -875,7 +876,7 @@ onBeforeUnmount(() => {
       :performance-grade="performanceGrade"
       :system-streak="systemStreak"
       :available-wallet="availableWallet"
-      :current-day-type="currentDayType"
+      :today-points="todayPoints"
       :today-completed-count="todayCompletedCount"
       :total-habits="totalHabits"
       :is-current-month="props.isCurrentMonth"
@@ -883,7 +884,6 @@ onBeforeUnmount(() => {
       :up-next-habit-info="upNextHabitInfo"
       :mobile-hero-expanded="mobileHeroExpanded"
       :has-completed-day="hasCompletedDay"
-      @set-day-type="setDayType"
       @toggle-up-next="toggleHabitForDay"
       @toggle-expand="mobileHeroExpanded = !mobileHeroExpanded"
     />
@@ -919,7 +919,7 @@ onBeforeUnmount(() => {
           @toggle-theme="darkMode = !darkMode"
         />
 
-        <!-- Greeting & Quick Day Type Strip -->
+        <!-- Greeting & Automatic Protocol Status -->
         <div class="hero-greeting-bar">
           <div class="hero-greeting-text">
             <div class="hero-greeting-title">
@@ -931,21 +931,26 @@ onBeforeUnmount(() => {
               <span class="hero-greeting-quote__brand">Habuilt.</span> {{ timeGreeting.quote }}
             </p>
           </div>
-          <div class="hero-day-type-box">
-            <div class="hero-day-type-label">
-              <span>Day Protocol</span>
-              <span class="hero-day-type-target">Target: {{ targetDailyPoints }} pts</span>
+
+          <!-- Automatic Protocol Status -->
+          <div class="hero-auto-protocol-box">
+            <div class="hero-auto-protocol-header">
+              <span class="hero-auto-protocol-label">Today's Protocol</span>
+              <span class="hero-auto-protocol-pts mono-num">{{ todayPoints }} pts earned</span>
             </div>
-            <div class="day-type-pills">
-              <button type="button" class="day-type-pill" :class="{ 'day-type-pill--active': currentDayType === 'full' }" @click="setDayType('full')">
-                <Zap class="icon-xs" /> Full (100%)
-              </button>
-              <button type="button" class="day-type-pill" :class="{ 'day-type-pill--active': currentDayType === 'half' }" @click="setDayType('half')">
-                <Clock class="icon-xs" /> Half (60%)
-              </button>
-              <button type="button" class="day-type-pill" :class="{ 'day-type-pill--active': currentDayType === 'floor' }" @click="setDayType('floor')">
-                <Shield class="icon-xs" /> Floor (30%)
-              </button>
+            <div class="hero-auto-protocol-tiers">
+              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 4 }">
+                <span class="hero-auto-tier__dot"></span>
+                <span>Floor (4p)</span>
+              </div>
+              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 8 }">
+                <span class="hero-auto-tier__dot"></span>
+                <span>Half (8p)</span>
+              </div>
+              <div class="hero-auto-tier" :class="{ 'hero-auto-tier--met': todayPoints >= 15 }">
+                <span class="hero-auto-tier__dot"></span>
+                <span>Full (15p)</span>
+              </div>
             </div>
           </div>
         </div>

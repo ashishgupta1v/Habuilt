@@ -7439,6 +7439,105 @@ body.theme-dark .reward-bar {
     display: block !important;
   }
 
+/* Automatic Protocol Badges */
+.mcb-auto-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mcb-auto-badge--base {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--text-color-secondary, #64748b);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+.mcb-auto-badge--floor {
+  background: rgba(212, 160, 62, 0.15);
+  color: #D4A03E;
+  border: 1px solid rgba(212, 160, 62, 0.35);
+}
+.mcb-auto-badge--half {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+.mcb-auto-badge--full {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Hero Automatic Protocol Box */
+.hero-auto-protocol-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+.hero-auto-protocol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hero-auto-protocol-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color-secondary, #64748b);
+}
+.hero-auto-protocol-pts {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-gold, #C8A456);
+}
+.hero-auto-protocol-tiers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-auto-tier {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-color-secondary, #94a3b8);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+.dark-mode .hero-auto-tier {
+  background: rgba(255, 255, 255, 0.04);
+}
+.hero-auto-tier__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.hero-auto-tier--met {
+  background: rgba(200, 164, 86, 0.15);
+  color: var(--brand-gold, #C8A456);
+  border-color: rgba(200, 164, 86, 0.3);
+}
+.hero-auto-tier--met .hero-auto-tier__dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+
   /* ══ FIXED GLASS BOTTOM NAVIGATION BAR ══ */
   .mobile-bottom-nav {
     display: flex !important;

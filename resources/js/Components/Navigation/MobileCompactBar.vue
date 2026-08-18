@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Flame, Award, Clock, Check, ChevronUp, ChevronDown } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -6,7 +7,7 @@ const props = defineProps({
   performanceGrade: { type: Object, required: true },
   systemStreak: { type: Object, required: true },
   availableWallet: { type: Number, default: 0 },
-  currentDayType: { type: String, default: 'full' },
+  todayPoints: { type: Number, default: 0 },
   todayCompletedCount: { type: Number, default: 0 },
   totalHabits: { type: Number, default: 0 },
   isCurrentMonth: { type: Boolean, default: true },
@@ -17,10 +18,17 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'set-day-type',
   'toggle-up-next',
   'toggle-expand',
 ]);
+
+const autoProtocolBadge = computed(() => {
+  const pts = props.todayPoints;
+  if (pts >= 15) return { label: '🏆 Full Target', class: 'mcb-auto-badge--full' };
+  if (pts >= 8)  return { label: '⚡ Half Hit', class: 'mcb-auto-badge--half' };
+  if (pts >= 4)  return { label: '🛡️ Floor Safe', class: 'mcb-auto-badge--floor' };
+  return { label: `${pts}/15 pts`, class: 'mcb-auto-badge--base' };
+});
 </script>
 
 <template>
@@ -31,12 +39,12 @@ const emit = defineEmits([
       <span class="mcb-streak"><Flame class="icon-xs" /> {{ systemStreak.current }}d</span>
       <span class="mcb-wallet"><Award class="icon-xs" /> {{ availableWallet }}pts</span>
     </div>
+
+    <!-- Automatic Progress & Protocol Row -->
     <div class="mcb-row mcb-row--progress">
-      <div class="mcb-day-pills">
-        <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'full' }" @click="emit('set-day-type', 'full')">Full</button>
-        <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'half' }" @click="emit('set-day-type', 'half')">Half</button>
-        <button class="mcb-pill" :class="{ 'mcb-pill--active': currentDayType === 'floor' }" @click="emit('set-day-type', 'floor')">Floor</button>
-      </div>
+      <span class="mcb-auto-badge" :class="autoProtocolBadge.class">
+        {{ autoProtocolBadge.label }}
+      </span>
       <div class="mcb-progress-track">
         <div class="mcb-progress-fill" :style="{ width: `${totalHabits > 0 ? Math.min(100, Math.round((todayCompletedCount / totalHabits) * 100)) : 0}%` }"></div>
       </div>
