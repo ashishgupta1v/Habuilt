@@ -65,6 +65,13 @@ import {
   MapPin,
   ToggleLeft,
   ToggleRight,
+  Archive,
+  RotateCcw,
+  Timer,
+  Coffee,
+  Pause,
+  History,
+  Link2,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -480,6 +487,72 @@ const enhancedState = ref({
   achievements: {},     // { [id]: { unlocked: true, date: 'YYYY-MM-DD' } }
   notificationsEnabled: false,
   quoteSeenDate: '',
+  // ── Extended state ──
+  morningSetupDate: '',       // 'YYYY-MM-DD' of last completed Quick Morning Setup
+  dailyFocus: {},             // { [day]: [ 'top1', 'top2', 'top3' ] } — user-set focus intentions
+  deepWorkTimer: null,        // { targetMin, startedAt, elapsedBeforePause, linkedHabitId, running, completedForDay }
+  archivedHabitIds: [],       // array of habit IDs marked archived
+});
+
+// ── HABIT DEPENDENCY CHAINS ──
+// After the trigger habit is completed, the next habit is highlighted as "up next".
+// Chains follow the natural time-block flow so completion feels sequential.
+const habitChains = {
+  // Ashish morning routine chain
+  'a-1':  'a-2',   // Alarm → Hydrate
+  'a-2':  'a-3',   // Hydrate → Meditation
+  'a-3':  'a-4',   // Meditation → Deep Block 1
+  'a-4':  'a-5',   // Deep Block 1 → Ship
+  'a-5':  'a-6',   // Ship → Boxing
+  'a-6':  'a-7',   // Boxing → Stretch
+  'a-7':  'a-8',   // Stretch → Shaarvi Watch
+  'a-8':  'a-9',   // Shaarvi Watch → Cold Shower
+  'a-9':  'a-10',  // Cold → Groom
+  'a-10': 'a-11',  // Groom → Job Start
+  // Work chain
+  'a-11': 'a-12',  // Job Start → Outbound
+  'a-12': 'a-13',  // Outbound → Follow-Ups
+  'a-16': 'a-17',  // Stealth → Pipeline Ideas
+  // Evening chain
+  'a-19': 'a-20',  // Hard Stop → Phone in Drawer
+  'a-20': 'a-21',  // Phone → Family Walk
+  'a-21': 'a-22',  // Walk → Dinner
+  'a-22': 'a-23',  // Dinner → Shaarvi Bedtime
+  'a-23': 'a-24',  // Bedtime → Deep Block 2
+  'a-24': 'a-25',  // Deep Block 2 → Review & Plan
+  'a-25': 'a-26',  // Review → Wind-Down
+  'a-26': 'a-27',  // Wind-Down → Lights Out
+  // Jyoti chain
+  'j-1':  'j-2',   // Sleep → Wake-Up
+  'j-2':  'j-3',
+  'j-3':  'j-4',
+  'j-4':  'j-5',
+  'j-5':  'j-6',
+  'j-14': 'j-15',
+  'j-15': 'j-16',
+};
+
+// ── DEEP WORK TIMER — LINKED HABIT AUTO-COMPLETE ──
+// When a timer completes for a linked habit, that habit is auto-marked for the day.
+const timerHabitOptions = computed(() => {
+  // Focus/work habits that make sense to time-block
+  const preferredIds = isJyoti.value
+    ? ['j-8','j-9','j-27','j-28','j-29']  // work / study
+    : ['a-4','a-11','a-16','a-24','a-39']; // deep blocks, job start, stealth, saturday build
+  const found = localHabits.value.filter(h => preferredIds.includes(h.id) && !(h.archived));
+  if (found.length > 0) return found;
+  // Fallback: any habit worth 2+ points
+  return localHabits.value.filter(h => h.points >= 2 && !h.archived).slice(0, 8);
+});
+
+// ── LIFETIME STATS — cross-month data ──
+const lifetimeData = ref({
+  loaded: false,
+  months: [],           // [{ monthKey: '2026-08', earned, possible, dayTypes, habitCompletions: { [habitId]: [day...] } }]
+  totalXP: 0,           // sum of xp across all months (approximate, uses saved points × completions)
+  totalDaysTracked: 0,  // days with at least 1 completion
+  allTimeBestStreak: { name: '—', days: 0, habitId: null },
+  currentLifetimeStreak: 0, // consecutive days across months where user hit at least 1 habit
 });
 
 // Tier 2: Motivational quotes
@@ -635,7 +708,14 @@ const isWeekendDay = (day) => {
 const flashSuccess = computed(() => page?.props?.flash?.success ?? null);
 const flashError = computed(() => page?.props?.flash?.error ?? null);
 
-const totalHabits = computed(() => localHabits.value.length);
+// Archived habits: kept in localHabits for historical continuity (streaks/XP earned before archiving still count)
+// but hidden from the daily checklist.
+const archivedIdSet = computed(() => new Set((enhancedState.value.archivedHabitIds || [])));
+const isHabitArchived = (habit) => !!habit && (archivedIdSet.value.has(habit.id) || habit.archived === true);
+const visibleHabits = computed(() => localHabits.value.filter((h) => !isHabitArchived(h)));
+const archivedHabits = computed(() => localHabits.value.filter((h) => isHabitArchived(h)));
+
+const totalHabits = computed(() => visibleHabits.value.length);
 const draftHasErrors = computed(
   () => habitsDraft.value.length === 0 || habitsDraft.value.some((h) => !h.name.trim()),
 );
@@ -666,7 +746,7 @@ const normalizeLedgerEntry = (entry, index = 0) => {
   };
 };
 
-const getDayTotal = (day) => localHabits.value.reduce(
+const getDayTotal = (day) => visibleHabits.value.reduce(
   (sum, habit) => sum + (habit.completedDays.includes(day) ? habit.points : 0),
   0,
 );
@@ -685,13 +765,13 @@ const getServerDayTotal = (day) => {
 };
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
-const maxDailyPoints = computed(() => localHabits.value.reduce((sum, habit) => sum + habit.points, 0));
+const maxDailyPoints = computed(() => visibleHabits.value.reduce((sum, habit) => sum + habit.points, 0));
 
 // ── Mobile daily view helpers ──
 const mobileDay = computed(() => Math.max(1, Math.min(mobileSelectedDay.value, props.monthDays)));
 const mobileDayPoints = computed(() => getDayTotal(mobileDay.value));
 const mobileDayCompleted = computed(() =>
-  localHabits.value.filter((h) => h.completedDays.includes(mobileDay.value)).length
+  visibleHabits.value.filter((h) => h.completedDays.includes(mobileDay.value)).length
 );
 const mobileDayLabel = computed(() => {
   const d = new Date(props.year, props.month - 1, mobileDay.value);
@@ -1043,7 +1123,7 @@ const getCategoryLabel = (category) => {
 };
 
 const filteredMobileHabits = computed(() => {
-  let source = localHabits.value;
+  let source = visibleHabits.value;
   // Apply time-slot filter first
   if (activeTimeFilter.value !== 'all') {
     source = source.filter(h => getHabitTimeSlot(h) === activeTimeFilter.value);
@@ -1057,8 +1137,8 @@ const filteredMobileHabits = computed(() => {
 
 // Time-slot based counts and completion for filter pills
 const timeSlotCounts = computed(() => {
-  const counts = { all: localHabits.value.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
-  for (const h of localHabits.value) {
+  const counts = { all: visibleHabits.value.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  for (const h of visibleHabits.value) {
     const slot = getHabitTimeSlot(h);
     if (counts[slot] !== undefined) counts[slot]++;
   }
@@ -1067,7 +1147,7 @@ const timeSlotCounts = computed(() => {
 
 const timeSlotCompleted = computed(() => {
   const comp = { all: 0, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
-  for (const h of localHabits.value) {
+  for (const h of visibleHabits.value) {
     if (hasCompletedDay(h, mobileDay.value)) {
       comp.all++;
       const slot = getHabitTimeSlot(h);
@@ -1629,7 +1709,7 @@ const loadLocalState = async () => {
       };
     }
 
-    // Restore enhanced state (Tiers 1-4)
+    // Restore enhanced state (Tiers 1-4 + extended)
     if (parsed.enhancedState && typeof parsed.enhancedState === 'object') {
       const es = parsed.enhancedState;
       enhancedState.value = {
@@ -1638,6 +1718,11 @@ const loadLocalState = async () => {
         achievements: (es.achievements && typeof es.achievements === 'object') ? { ...es.achievements } : {},
         notificationsEnabled: !!es.notificationsEnabled,
         quoteSeenDate: es.quoteSeenDate || '',
+        morningSetupDate: es.morningSetupDate || '',
+        dailyFocus: (es.dailyFocus && typeof es.dailyFocus === 'object') ? { ...es.dailyFocus } : {},
+        deepWorkTimer: (es.deepWorkTimer && typeof es.deepWorkTimer === 'object') ? { ...es.deepWorkTimer } : null,
+        archivedHabitIds: Array.isArray(es.archivedHabitIds) ? [...es.archivedHabitIds] : [],
+        pushSubscription: es.pushSubscription || null,
       };
     }
 
@@ -1936,15 +2021,23 @@ const clearHabitChecklistProgressLocally = () => {
 // ─── Habit Editor Functions ───────────────────────────────────────────────────
 
 const startEditingHabits = () => {
+  const archived = archivedIdSet.value;
   habitsDraft.value = localHabits.value.map((h) => ({
     id: h.id,
     name: h.name,
     points: h.points,
     completedDays: [...h.completedDays],
     completedToday: h.completedToday,
+    archived: archived.has(h.id) || h.archived === true,
   }));
   habitsEditing.value = true;
   habitSaveStatus.value = 'idle';
+};
+
+const toggleDraftArchive = (index) => {
+  const h = habitsDraft.value[index];
+  if (!h) return;
+  habitsDraft.value[index] = { ...h, archived: !h.archived };
 };
 
 const cancelEditingHabits = () => {
@@ -2025,7 +2118,13 @@ const saveEditedHabits = async () => {
     points: Math.max(1, Math.min(100, Number(h.points) || 1)),
     completedDays: [...h.completedDays],
     completedToday: h.completedToday,
+    archived: !!h.archived,
   }));
+
+  // Sync archivedHabitIds from draft flags
+  enhancedState.value.archivedHabitIds = habitsDraft.value
+    .filter(h => h.archived)
+    .map(h => h.id);
 
   hasCustomHabits.value = true;
   await persistLocalState();
@@ -2129,12 +2228,21 @@ onMounted(async () => {
   applyThemeClass();
   // Re-schedule notifications if previously enabled
   if (enhancedState.value.notificationsEnabled) scheduleReminders();
+  // Load cross-month lifetime data (async, non-blocking for first paint)
+  loadLifetimeData();
+  // Resume active timer tick if a timer was running when tab closed
+  if (enhancedState.value.deepWorkTimer?.running) {
+    ensureTimerTick();
+  }
+  // Show Quick Morning Setup once per day if in current month + morning window
+  maybeShowMorningSetup();
 });
 
 onBeforeUnmount(() => {
   if (typeof document !== 'undefined') {
     document.body.classList.remove('theme-dark');
   }
+  stopTimerTick();
 });
 
 watch(darkMode, () => {
@@ -2630,6 +2738,440 @@ const milestoneBadges = computed(() => {
 const nextMilestone = computed(() => milestoneBadges.value.find(m => !m.earned) || null);
 
 // ══════════════════════════════════════════════════════════════════════════════
+// LIFETIME STATS — CROSS-MONTH ANALYTICS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Parse "YYYY-MM" → { year, month }
+const parseMonthKey = (mk) => {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(mk || ''));
+  if (!m) return null;
+  return { year: Number(m[1]), month: Number(m[2]) };
+};
+
+// Days in a given month (year is 4-digit, month is 1-12)
+const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+
+// Sort month keys chronologically ascending
+const sortMonthKeys = (a, b) => {
+  const pa = parseMonthKey(a); const pb = parseMonthKey(b);
+  if (!pa || !pb) return 0;
+  return (pa.year * 12 + pa.month) - (pb.year * 12 + pb.month);
+};
+
+// Load all months from Supabase, digest into a compact per-habit + per-month structure
+const loadLifetimeData = async () => {
+  if (!props.userId) {
+    lifetimeData.value = { loaded: true, months: [], totalXP: 0, totalDaysTracked: 0, allTimeBestStreak: { name: '—', days: 0, habitId: null }, currentLifetimeStreak: 0 };
+    return;
+  }
+
+  const rows = await loadAllUserMonthlyStates(props.userId);
+  const months = [];
+  const perHabitCompletions = {}; // habitId → [{ year, month, day }] chronologically
+  const habitNames = {};
+
+  // Include current-month unsaved local data by overlaying
+  const nowScope = monthScope.value;
+  let sawCurrentMonth = false;
+
+  rows.sort((a, b) => sortMonthKeys(a.month_key, b.month_key)).forEach((row) => {
+    const parsed = row.state_data;
+    const pm = parseMonthKey(row.month_key);
+    if (!parsed || !pm) return;
+    if (row.month_key === nowScope) sawCurrentMonth = true;
+
+    const habitsInMonth = Array.isArray(parsed.localHabits) ? parsed.localHabits : [];
+    let earned = 0;
+    let possible = 0;
+    const daysWithActivity = new Set();
+
+    habitsInMonth.forEach((h) => {
+      const pts = Number(h.points) || 0;
+      const cd = Array.isArray(h.completedDays) ? h.completedDays : [];
+      earned += pts * cd.length;
+      possible += pts * daysInMonth(pm.year, pm.month);
+      if (!perHabitCompletions[h.id]) perHabitCompletions[h.id] = [];
+      habitNames[h.id] = h.name || habitNames[h.id] || h.id;
+      cd.forEach((d) => {
+        perHabitCompletions[h.id].push({ year: pm.year, month: pm.month, day: d });
+        daysWithActivity.add(`${pm.year}-${pm.month}-${d}`);
+      });
+    });
+
+    months.push({
+      monthKey: row.month_key,
+      year: pm.year,
+      month: pm.month,
+      earned,
+      possible,
+      completionRate: possible > 0 ? Math.round((earned / possible) * 100) : 0,
+      activeDays: daysWithActivity.size,
+    });
+  });
+
+  // Overlay current month with in-memory state (so unsaved changes show up)
+  if (!sawCurrentMonth) {
+    const pm = parseMonthKey(nowScope);
+    if (pm) {
+      let earned = 0, possible = 0;
+      const daysWithActivity = new Set();
+      localHabits.value.forEach((h) => {
+        const pts = h.points || 0;
+        const cd = h.completedDays || [];
+        earned += pts * cd.length;
+        possible += pts * daysInMonth(pm.year, pm.month);
+        cd.forEach((d) => daysWithActivity.add(`${pm.year}-${pm.month}-${d}`));
+      });
+      months.push({
+        monthKey: nowScope, year: pm.year, month: pm.month,
+        earned, possible,
+        completionRate: possible > 0 ? Math.round((earned / possible) * 100) : 0,
+        activeDays: daysWithActivity.size,
+      });
+    }
+  }
+
+  // Merge current in-memory month completions into perHabitCompletions (dedupe by y-m-day)
+  const pmNow = parseMonthKey(nowScope);
+  if (pmNow) {
+    localHabits.value.forEach((h) => {
+      if (!perHabitCompletions[h.id]) perHabitCompletions[h.id] = [];
+      habitNames[h.id] = h.name;
+      const existing = new Set(perHabitCompletions[h.id]
+        .filter(x => x.year === pmNow.year && x.month === pmNow.month)
+        .map(x => x.day));
+      (h.completedDays || []).forEach((d) => {
+        if (!existing.has(d)) perHabitCompletions[h.id].push({ year: pmNow.year, month: pmNow.month, day: d });
+      });
+    });
+  }
+
+  // Compute all-time longest streak per habit
+  const habitStreakSummary = {};
+  let allTimeBest = { name: '—', days: 0, habitId: null };
+  Object.entries(perHabitCompletions).forEach(([habitId, arr]) => {
+    // Convert to sorted absolute day-index (days since epoch, ignoring TZ)
+    const daysAbs = arr.map(({ year, month, day }) => {
+      const dt = new Date(year, month - 1, day);
+      return Math.floor(dt.getTime() / 86400000);
+    }).sort((a, b) => a - b);
+    // Dedupe
+    const unique = [...new Set(daysAbs)];
+    let longest = 0, run = 0, prev = null;
+    for (const d of unique) {
+      if (prev !== null && d === prev + 1) run++; else run = 1;
+      if (run > longest) longest = run;
+      prev = d;
+    }
+    // Current (from today backward)
+    const todayAbs = Math.floor(new Date(props.year, props.month - 1, props.currentDay).getTime() / 86400000);
+    let current = 0;
+    for (let i = unique.length - 1; i >= 0; i--) {
+      if (unique[i] === todayAbs - current) current++;
+      else if (unique[i] < todayAbs - current) break;
+    }
+    habitStreakSummary[habitId] = { longest, current, total: unique.length, name: habitNames[habitId] || habitId };
+    if (longest > allTimeBest.days) {
+      allTimeBest = { name: habitNames[habitId] || habitId, days: longest, habitId };
+    }
+  });
+
+  // Lifetime "at least 1 habit / day" streak
+  const allActiveDays = new Set();
+  Object.values(perHabitCompletions).forEach((arr) => {
+    arr.forEach(({ year, month, day }) => {
+      const dt = new Date(year, month - 1, day);
+      allActiveDays.add(Math.floor(dt.getTime() / 86400000));
+    });
+  });
+  const sortedActive = [...allActiveDays].sort((a, b) => a - b);
+  const todayAbs2 = Math.floor(new Date(props.year, props.month - 1, props.currentDay).getTime() / 86400000);
+  let lifetimeStreak = 0;
+  for (let i = sortedActive.length - 1; i >= 0; i--) {
+    if (sortedActive[i] === todayAbs2 - lifetimeStreak) lifetimeStreak++;
+    else if (sortedActive[i] < todayAbs2 - lifetimeStreak) break;
+  }
+
+  const totalXP = months.reduce((s, m) => s + m.earned, 0);
+  const totalDaysTracked = allActiveDays.size;
+
+  lifetimeData.value = {
+    loaded: true,
+    months: months.sort((a, b) => sortMonthKeys(a.monthKey, b.monthKey)),
+    perHabitStreaks: habitStreakSummary,
+    totalXP,
+    totalDaysTracked,
+    allTimeBestStreak: allTimeBest,
+    currentLifetimeStreak: lifetimeStreak,
+  };
+};
+
+// Month-over-month trend for the chart (last 6 months incl. current)
+const monthTrendData = computed(() => {
+  if (!lifetimeData.value.loaded) return [];
+  const src = [...lifetimeData.value.months];
+  // Keep last 6
+  return src.slice(-6).map((m) => ({
+    label: new Date(m.year, m.month - 1, 1).toLocaleString('en-US', { month: 'short' }),
+    pct: m.completionRate,
+    earned: m.earned,
+  }));
+});
+
+const lifetimeSummary = computed(() => {
+  if (!lifetimeData.value.loaded) {
+    return { totalXP: 0, totalDaysTracked: 0, allTimeBestStreak: { name: '—', days: 0 }, currentLifetimeStreak: 0, monthCount: 0 };
+  }
+  return {
+    totalXP: lifetimeData.value.totalXP,
+    totalDaysTracked: lifetimeData.value.totalDaysTracked,
+    allTimeBestStreak: lifetimeData.value.allTimeBestStreak,
+    currentLifetimeStreak: lifetimeData.value.currentLifetimeStreak,
+    monthCount: lifetimeData.value.months.length,
+  };
+});
+
+// Per-habit history (used by hover / focus mode)
+const historyForHabit = (habitId) => {
+  if (!lifetimeData.value.loaded) return [];
+  const summary = lifetimeData.value.perHabitStreaks?.[habitId];
+  return summary || { longest: 0, current: 0, total: 0 };
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HABIT DEPENDENCY CHAINS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Given a habit ID that was just completed, what should the user do next?
+const nextInChainId = (habitId) => habitChains[habitId] || null;
+
+// Which habits are "up next" — one for each recently-completed chain trigger habit
+const upNextChainHabits = computed(() => {
+  const today = props.currentDay;
+  const upNext = new Set();
+  visibleHabits.value.forEach((h) => {
+    // Check today's completion; if completed, the chain successor is "up next"
+    if (!(h.completedDays || []).includes(today)) return;
+    const nextId = nextInChainId(h.id);
+    if (!nextId) return;
+    const nextHabit = visibleHabits.value.find(x => x.id === nextId);
+    if (!nextHabit) return;
+    if ((nextHabit.completedDays || []).includes(today)) return; // already done, don't highlight
+    upNext.add(nextId);
+  });
+  return upNext;
+});
+
+const isHabitUpNext = (habit) => upNextChainHabits.value.has(habit.id);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ACCOUNTABILITY / DEEP WORK TIMER
+// ══════════════════════════════════════════════════════════════════════════════
+
+const timerTickHandle = ref(null);
+const timerNow = ref(Date.now()); // Reactive clock so elapsed re-renders each tick
+const timerLauncherDuration = ref(50); // Default deep-work slot
+const timerLauncherHabitId = ref('');
+
+const timerState = computed(() => enhancedState.value.deepWorkTimer || null);
+const timerElapsedSec = computed(() => {
+  const t = timerState.value;
+  if (!t) return 0;
+  const base = t.elapsedBeforePause || 0;
+  const live = t.running ? Math.floor((timerNow.value - (t.startedAt || timerNow.value)) / 1000) : 0;
+  return base + live;
+});
+const timerElapsedFormatted = computed(() => {
+  const s = timerElapsedSec.value;
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+});
+const timerTargetSec = computed(() => (timerState.value?.targetMin || 0) * 60);
+const timerProgressPct = computed(() => {
+  const target = timerTargetSec.value;
+  if (target <= 0) return 0;
+  return Math.min(100, Math.round((timerElapsedSec.value / target) * 100));
+});
+const timerLinkedHabit = computed(() => {
+  const id = timerState.value?.linkedHabitId;
+  if (!id) return null;
+  return localHabits.value.find(h => h.id === id) || null;
+});
+
+const startDeepWorkTimer = (targetMin, linkedHabitId) => {
+  if (!Number.isFinite(targetMin) || targetMin <= 0) return;
+  enhancedState.value.deepWorkTimer = {
+    targetMin,
+    linkedHabitId: linkedHabitId || null,
+    startedAt: Date.now(),
+    elapsedBeforePause: 0,
+    running: true,
+    completedForDay: props.currentDay,
+  };
+  ensureTimerTick();
+  persistLocalState();
+};
+
+const pauseDeepWorkTimer = () => {
+  const t = enhancedState.value.deepWorkTimer;
+  if (!t || !t.running) return;
+  const extra = Math.floor((Date.now() - (t.startedAt || Date.now())) / 1000);
+  enhancedState.value.deepWorkTimer = {
+    ...t,
+    elapsedBeforePause: (t.elapsedBeforePause || 0) + extra,
+    running: false,
+    startedAt: null,
+  };
+  stopTimerTick();
+  persistLocalState();
+};
+
+const resumeDeepWorkTimer = () => {
+  const t = enhancedState.value.deepWorkTimer;
+  if (!t || t.running) return;
+  enhancedState.value.deepWorkTimer = { ...t, startedAt: Date.now(), running: true };
+  ensureTimerTick();
+  persistLocalState();
+};
+
+const stopDeepWorkTimer = () => {
+  stopTimerTick();
+  enhancedState.value.deepWorkTimer = null;
+  persistLocalState();
+};
+
+const ensureTimerTick = () => {
+  if (timerTickHandle.value) return;
+  timerTickHandle.value = setInterval(() => {
+    timerNow.value = Date.now();
+    const t = enhancedState.value.deepWorkTimer;
+    if (!t || !t.running) return;
+    // Auto-complete linked habit when target reached
+    if (timerElapsedSec.value >= timerTargetSec.value && t.linkedHabitId && !t._autoCompleted) {
+      const habit = localHabits.value.find(h => h.id === t.linkedHabitId);
+      if (habit && !habit.completedDays.includes(props.currentDay)) {
+        setHabitDayCompletion(habit, props.currentDay, true);
+        if (navigator.vibrate) navigator.vibrate([25, 50, 25, 50, 40]);
+      }
+      enhancedState.value.deepWorkTimer = { ...t, _autoCompleted: true, running: false };
+      stopTimerTick();
+      persistLocalState();
+    }
+  }, 1000);
+};
+
+const stopTimerTick = () => {
+  if (timerTickHandle.value) {
+    clearInterval(timerTickHandle.value);
+    timerTickHandle.value = null;
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// QUICK MORNING SETUP
+// ══════════════════════════════════════════════════════════════════════════════
+
+const morningSetupOpen = ref(false);
+const morningSetupFocus = ref(['', '', '']);
+
+const todayDateKey = computed(() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+});
+
+const morningHabits = computed(() =>
+  visibleHabits.value.filter(h => getHabitTimeSlot(h) === 'morning').slice(0, 6)
+);
+
+const openMorningSetup = () => {
+  // Pre-populate focus with existing values for today
+  const existing = enhancedState.value.dailyFocus?.[props.currentDay] || [];
+  morningSetupFocus.value = [
+    existing[0] || '',
+    existing[1] || '',
+    existing[2] || '',
+  ];
+  morningSetupOpen.value = true;
+};
+
+const closeMorningSetup = () => {
+  morningSetupOpen.value = false;
+};
+
+const saveMorningSetup = () => {
+  // Persist focus intentions
+  if (!enhancedState.value.dailyFocus) enhancedState.value.dailyFocus = {};
+  enhancedState.value.dailyFocus[props.currentDay] = morningSetupFocus.value
+    .map(t => t.trim())
+    .filter(Boolean);
+  enhancedState.value.morningSetupDate = todayDateKey.value;
+  persistLocalState();
+  morningSetupOpen.value = false;
+  if (navigator.vibrate) navigator.vibrate([30]);
+};
+
+// Auto-open on first mount of the day (once per day)
+const maybeShowMorningSetup = () => {
+  if (!props.isCurrentMonth) return;
+  const alreadyShownToday = enhancedState.value.morningSetupDate === todayDateKey.value;
+  if (alreadyShownToday) return;
+  // Only auto-open in the morning window (5am – 11am local)
+  const hour = new Date().getHours();
+  if (hour < 5 || hour >= 12) return;
+  openMorningSetup();
+};
+
+const dailyFocusToday = computed(() => enhancedState.value.dailyFocus?.[props.currentDay] || []);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HABIT ARCHIVE / RESTORE
+// ══════════════════════════════════════════════════════════════════════════════
+
+const archiveHabitById = (id) => {
+  if (!id) return;
+  const list = enhancedState.value.archivedHabitIds || [];
+  if (list.includes(id)) return;
+  enhancedState.value.archivedHabitIds = [...list, id];
+  // Also update draft if editor is open
+  const idx = habitsDraft.value.findIndex(h => h.id === id);
+  if (idx >= 0) habitsDraft.value[idx].archived = true;
+  persistLocalState();
+};
+
+const restoreHabitById = (id) => {
+  enhancedState.value.archivedHabitIds = (enhancedState.value.archivedHabitIds || []).filter(x => x !== id);
+  const idx = habitsDraft.value.findIndex(h => h.id === id);
+  if (idx >= 0) habitsDraft.value[idx].archived = false;
+  persistLocalState();
+};
+
+const addDefaultHabitBack = (defaultHabit) => {
+  // Restore a default habit that was previously deleted
+  const existing = localHabits.value.find(h => h.id === defaultHabit.id);
+  if (existing) {
+    // Just un-archive
+    restoreHabitById(defaultHabit.id);
+    return;
+  }
+  localHabits.value.push({
+    id: defaultHabit.id,
+    name: defaultHabit.name,
+    points: defaultHabit.points,
+    completedDays: [],
+    completedToday: false,
+  });
+  hasCustomHabits.value = true;
+  persistLocalState();
+};
+
+// Which default habits are missing from localHabits entirely (i.e. deleted by user)
+const missingDefaultHabits = computed(() => {
+  const currentIds = new Set(localHabits.value.map(h => h.id));
+  return fallbackHabits.value.filter(h => !currentIds.has(h.id));
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // TIER 4: SOCIAL & EXPORT
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -2872,6 +3414,73 @@ const shareProgress = async () => {
 <template>
   <AppLayout>
     <section class="dashboard-flow" :class="{ 'month-nav-loading': isNavigatingMonth, 'show-all-sections': mobileHeroExpanded }">
+
+      <!-- ══ DEEP WORK TIMER LAUNCHER (when no timer active) ══ -->
+      <details v-if="!timerState && isCurrentMonth" class="deep-timer-launcher">
+        <summary class="deep-timer-launcher__summary">
+          <Timer class="icon-sm" />
+          <span>Start Deep Work Session</span>
+          <span class="deep-timer-launcher__hint">— auto-completes linked habit</span>
+        </summary>
+        <div class="deep-timer-launcher__body">
+          <div class="deep-timer-launcher__row">
+            <label class="deep-timer-launcher__label">Duration</label>
+            <div class="deep-timer-launcher__durations">
+              <button v-for="min in [25, 50, 90, 120]" :key="'dur-' + min"
+                :class="['deep-timer-launcher__dur', timerLauncherDuration === min && 'deep-timer-launcher__dur--active']"
+                @click="timerLauncherDuration = min" type="button">
+                {{ min }}m
+              </button>
+            </div>
+          </div>
+          <div class="deep-timer-launcher__row">
+            <label class="deep-timer-launcher__label">Link to habit (auto-mark on complete)</label>
+            <select v-model="timerLauncherHabitId" class="deep-timer-launcher__select">
+              <option value="">— No linked habit —</option>
+              <option v-for="h in timerHabitOptions" :key="'opt-' + h.id" :value="h.id">
+                {{ h.name }}
+              </option>
+            </select>
+          </div>
+          <button class="btn btn--primary-action deep-timer-launcher__start"
+            @click="startDeepWorkTimer(timerLauncherDuration, timerLauncherHabitId || null)">
+            <Play class="icon-sm" />
+            <span>Start {{ timerLauncherDuration }}-min Timer</span>
+          </button>
+        </div>
+      </details>
+
+      <!-- ══ DEEP WORK TIMER (sticky when active) ══ -->
+      <div v-if="timerState" class="deep-timer" :class="{ 'deep-timer--paused': !timerState.running, 'deep-timer--complete': timerState._autoCompleted }">
+        <div class="deep-timer__ring">
+          <svg viewBox="0 0 40 40" class="deep-timer__ring-svg">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
+            <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="4"
+                    stroke-dasharray="100.53" :stroke-dashoffset="100.53 - (100.53 * timerProgressPct / 100)"
+                    transform="rotate(-90 20 20)" stroke-linecap="round"/>
+          </svg>
+          <span class="deep-timer__pct mono-num">{{ timerProgressPct }}%</span>
+        </div>
+        <div class="deep-timer__body">
+          <div class="deep-timer__top">
+            <span class="deep-timer__label" v-if="timerState._autoCompleted">✓ Done — {{ timerLinkedHabit?.name || 'Session' }} marked</span>
+            <span class="deep-timer__label" v-else-if="timerLinkedHabit">Deep Work · {{ timerLinkedHabit.name }}</span>
+            <span class="deep-timer__label" v-else>Deep Work Session</span>
+            <span class="deep-timer__elapsed mono-num">{{ timerElapsedFormatted }} / {{ timerState.targetMin }}m</span>
+          </div>
+          <div class="deep-timer__actions">
+            <button v-if="!timerState.running && !timerState._autoCompleted" class="deep-timer__btn deep-timer__btn--primary" @click="resumeDeepWorkTimer">
+              <Play class="icon-xs" /> Resume
+            </button>
+            <button v-if="timerState.running" class="deep-timer__btn" @click="pauseDeepWorkTimer">
+              <Pause class="icon-xs" /> Pause
+            </button>
+            <button class="deep-timer__btn deep-timer__btn--danger" @click="stopDeepWorkTimer">
+              <X class="icon-xs" /> Stop
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- ══ MOBILE COMPACT BAR (shown only on mobile, above everything) ══ -->
       <div class="mobile-compact-bar">
@@ -3787,6 +4396,51 @@ const shareProgress = async () => {
           </p>
         </div>
 
+        <!-- ── LIFETIME STATS (cross-month) ── -->
+        <div class="analytics-card analytics-card--lifetime" v-if="lifetimeData.loaded && lifetimeSummary.monthCount > 0">
+          <div class="analytics-card__head">
+            <History class="icon-sm" />
+            <strong>Lifetime Stats</strong>
+            <span class="lifetime-month-count mono-num">{{ lifetimeSummary.monthCount }} mo</span>
+          </div>
+          <div class="lifetime-stats-grid">
+            <div class="lifetime-stat">
+              <div class="lifetime-stat__value mono-num">{{ lifetimeSummary.currentLifetimeStreak }}</div>
+              <div class="lifetime-stat__label">Active-Day Streak</div>
+              <div class="lifetime-stat__sub">across all months</div>
+            </div>
+            <div class="lifetime-stat">
+              <div class="lifetime-stat__value mono-num">{{ lifetimeSummary.allTimeBestStreak.days }}</div>
+              <div class="lifetime-stat__label">All-Time Best</div>
+              <div class="lifetime-stat__sub" :title="lifetimeSummary.allTimeBestStreak.name">{{ lifetimeSummary.allTimeBestStreak.name }}</div>
+            </div>
+            <div class="lifetime-stat">
+              <div class="lifetime-stat__value mono-num">{{ lifetimeSummary.totalXP.toLocaleString() }}</div>
+              <div class="lifetime-stat__label">Total XP</div>
+              <div class="lifetime-stat__sub">earned all-time</div>
+            </div>
+            <div class="lifetime-stat">
+              <div class="lifetime-stat__value mono-num">{{ lifetimeSummary.totalDaysTracked }}</div>
+              <div class="lifetime-stat__label">Active Days</div>
+              <div class="lifetime-stat__sub">≥1 habit done</div>
+            </div>
+          </div>
+
+          <!-- Month-over-Month Trend Bars -->
+          <div class="month-trend" v-if="monthTrendData.length > 1">
+            <div class="month-trend__title">Month-over-Month Completion</div>
+            <div class="month-trend__bars">
+              <div class="month-trend__bar" v-for="(m, i) in monthTrendData" :key="'mtb-' + i">
+                <div class="month-trend__fill" :style="{ height: Math.max(4, m.pct) + '%' }"
+                     :class="{ 'month-trend__fill--current': i === monthTrendData.length - 1 }"
+                     :title="`${m.label}: ${m.pct}% (${m.earned} pts)`"></div>
+                <span class="month-trend__pct mono-num">{{ m.pct }}%</span>
+                <span class="month-trend__label">{{ m.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Category Breakdown -->
         <div class="category-breakdown" v-if="categoryBreakdown.length > 0">
           <div class="category-breakdown__title">Category Performance</div>
@@ -4157,6 +4811,7 @@ const shareProgress = async () => {
               v-for="(habit, index) in habitsDraft"
               :key="habit.id"
               class="habits-editor__row"
+              :class="{ 'habits-editor__row--archived': habit.archived }"
               @touchstart.passive="onHabitSwipeStart(index, $event)"
               @touchend.passive="onHabitSwipeEnd(index, $event)"
             >
@@ -4202,7 +4857,17 @@ const shareProgress = async () => {
               <span class="habits-editor__tier-badge" :class="tierColorClass(getHabitTier(habit.id))" :title="'Current tier: T' + getHabitTier(habit.id)">
                 T{{ getHabitTier(habit.id) }}
               </span>
-              <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Remove habit">
+              <button
+                class="habits-editor__archive"
+                :class="{ 'habits-editor__archive--active': habit.archived }"
+                @click="toggleDraftArchive(index)"
+                :title="habit.archived ? 'Restore from archive' : 'Archive (hide from daily list, keep history)'"
+                type="button"
+              >
+                <RotateCcw v-if="habit.archived" class="icon-sm" />
+                <Archive v-else class="icon-sm" />
+              </button>
+              <button class="habits-editor__delete" @click="removeDraftHabit(index)" title="Permanently remove habit">
                 <Trash2 class="icon-sm" />
               </button>
             </div>
@@ -4212,6 +4877,30 @@ const shareProgress = async () => {
             <Plus class="icon-sm" />
             <span>Add Habit</span>
           </button>
+
+          <!-- Restore Default Habits (if some were removed) -->
+          <div v-if="missingDefaultHabits.length > 0" class="habits-editor__restore-defaults">
+            <div class="habits-editor__restore-title">
+              <RotateCcw class="icon-xs" />
+              <span>Restore from your default {{ isJyoti ? 'Jyoti' : (travelMode ? 'Travel' : 'Ashish') }} preset ({{ missingDefaultHabits.length }} missing):</span>
+            </div>
+            <div class="habits-editor__restore-chips">
+              <button
+                v-for="dh in missingDefaultHabits.slice(0, 12)"
+                :key="'restore-' + dh.id"
+                class="habits-editor__restore-chip"
+                @click="addDefaultHabitBack(dh); habitsDraft.push({ id: dh.id, name: dh.name, points: dh.points, completedDays: [], completedToday: false, archived: false })"
+                type="button"
+                :title="`+${dh.points} pt · ${dh.name}`"
+              >
+                <Plus class="icon-xs" />
+                <span>{{ dh.name.length > 26 ? dh.name.slice(0, 26) + '…' : dh.name }}</span>
+              </button>
+              <span v-if="missingDefaultHabits.length > 12" class="habits-editor__restore-more">
+                +{{ missingDefaultHabits.length - 12 }} more…
+              </span>
+            </div>
+          </div>
 
           <div class="habits-editor__actions">
             <button
@@ -4404,11 +5093,15 @@ const shareProgress = async () => {
                       :class="{
                         'mobile-daily__card--done': hasCompletedDay(habit, mobileDay),
                         'mobile-daily__card--shared': habit.name.startsWith('★'),
+                        'mobile-daily__card--up-next': mobileDayIsToday && isHabitUpNext(habit) && !hasCompletedDay(habit, mobileDay),
                         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
                       }"
                       :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
                       @click="toggleHabitForDay(habit, mobileDay)"
                     >
+                      <span v-if="mobileDayIsToday && isHabitUpNext(habit) && !hasCompletedDay(habit, mobileDay)" class="mobile-daily__up-next-badge">
+                        <Link2 class="icon-xs" /> UP NEXT
+                      </span>
                       <div class="mobile-daily__card-check">
                         <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
                         <span v-else-if="hasCompletedDay(habit, mobileDay)" class="mobile-daily__checkmark">
@@ -4480,7 +5173,7 @@ const shareProgress = async () => {
                 </thead>
 
                 <tbody>
-                  <tr v-for="habit in localHabits" :key="habit.id" class="habit-grid__row">
+                  <tr v-for="habit in visibleHabits" :key="habit.id" class="habit-grid__row">
                     <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★') }">
                       <span class="habit-grid__name-text">{{ habit.name }}</span>
                       <span class="tier-badge tier-badge--grid" :class="tierColorClass(getHabitTier(habit.id))" :title="getTierDescriptions(habit.id)[getHabitTier(habit.id) - 1]">
@@ -4831,6 +5524,101 @@ const shareProgress = async () => {
           }">
         </div>
       </div>
+      <!-- ══ QUICK MORNING SETUP MODAL ══ -->
+      <div v-if="morningSetupOpen" class="morning-setup-overlay" @click.self="closeMorningSetup">
+        <div class="morning-setup-modal" role="dialog" aria-modal="true" aria-labelledby="morning-setup-title">
+          <button class="morning-setup__close" @click="closeMorningSetup" aria-label="Close">
+            <X class="icon-sm" />
+          </button>
+          <div class="morning-setup__hero">
+            <Coffee class="icon-md morning-setup__hero-icon" />
+            <h2 id="morning-setup-title">Good morning, {{ timeGreeting.name }}</h2>
+            <p class="morning-setup__sub">Set your intention in 30 seconds. One screen, three questions.</p>
+          </div>
+
+          <!-- Step 1: Day Type -->
+          <div class="morning-setup__step">
+            <div class="morning-setup__step-num">1</div>
+            <div class="morning-setup__step-body">
+              <div class="morning-setup__step-title">Today's day type</div>
+              <div class="morning-setup__day-pills">
+                <button class="morning-setup__pill" :class="{ 'morning-setup__pill--active': currentDayType === 'full' }" @click="setDayType('full')">
+                  Full <small>1.0×</small>
+                </button>
+                <button class="morning-setup__pill" :class="{ 'morning-setup__pill--active': currentDayType === 'half' }" @click="setDayType('half')">
+                  Half <small>0.6×</small>
+                </button>
+                <button class="morning-setup__pill" :class="{ 'morning-setup__pill--active': currentDayType === 'floor' }" @click="setDayType('floor')">
+                  Floor <small>0.3×</small>
+                </button>
+              </div>
+              <p v-if="suggestedDayType" class="morning-setup__suggest">
+                <Sparkles class="icon-xs" />
+                Suggested: <strong>{{ suggestedDayType.type }}</strong> — {{ suggestedDayType.reason }}
+                <button class="morning-setup__suggest-apply" @click="applySuggestedDayType">Apply</button>
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2: Morning Habits Quick Tap -->
+          <div class="morning-setup__step" v-if="morningHabits.length > 0">
+            <div class="morning-setup__step-num">2</div>
+            <div class="morning-setup__step-body">
+              <div class="morning-setup__step-title">Tap what's already done</div>
+              <div class="morning-setup__habits">
+                <button v-for="h in morningHabits" :key="'ms-' + h.id"
+                  class="morning-setup__habit"
+                  :class="{ 'morning-setup__habit--done': hasCompletedDay(h, props.currentDay) }"
+                  @click="toggleHabitForDay(h, props.currentDay)">
+                  <Check v-if="hasCompletedDay(h, props.currentDay)" class="icon-xs" />
+                  <Circle v-else class="icon-xs" />
+                  <span>{{ h.name.length > 30 ? h.name.slice(0, 30) + '…' : h.name }}</span>
+                  <span class="morning-setup__habit-pts mono-num">+{{ h.points }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Top 3 Focus -->
+          <div class="morning-setup__step">
+            <div class="morning-setup__step-num">3</div>
+            <div class="morning-setup__step-body">
+              <div class="morning-setup__step-title">Top 3 for today</div>
+              <div class="morning-setup__focus-list">
+                <input v-for="(_, i) in morningSetupFocus" :key="'msf-' + i"
+                  v-model="morningSetupFocus[i]"
+                  :placeholder="`Focus ${i + 1}${i === 0 ? ' — the one that would make today feel like a win' : ''}`"
+                  class="morning-setup__focus-input"
+                  maxlength="80"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="morning-setup__actions">
+            <button class="btn btn--secondary" @click="closeMorningSetup">Skip</button>
+            <button class="btn btn--primary-action" @click="saveMorningSetup">
+              <Check class="icon-sm" /> <span>Save &amp; Start Day</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FLOATING BUTTON — Re-open Morning Setup ══ -->
+      <button v-if="!morningSetupOpen && isCurrentMonth && dailyFocusToday.length > 0"
+        class="morning-setup-fab"
+        @click="openMorningSetup"
+        :title="'Today\'s Focus: ' + dailyFocusToday.join(' · ')">
+        <Coffee class="icon-sm" />
+        <span class="morning-setup-fab__count">{{ dailyFocusToday.length }}</span>
+      </button>
+      <button v-else-if="!morningSetupOpen && isCurrentMonth"
+        class="morning-setup-fab morning-setup-fab--empty"
+        @click="openMorningSetup"
+        title="Set today's morning intention">
+        <Coffee class="icon-sm" />
+      </button>
+
     </section>
   </AppLayout>
 </template>
