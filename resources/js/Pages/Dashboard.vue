@@ -2959,13 +2959,33 @@ const currentDayMinutes = ref(new Date().getHours() * 60 + new Date().getMinutes
 // Parse scheduled time in minutes from midnight (e.g. "05:15" -> 315, "18:30" -> 1110)
 const getHabitScheduledMinutes = (habit) => {
   if (!habit || !habit.name) return 9999;
+  const name = habit.name.toLowerCase();
+
+  // 1. Direct match on "HH:MM" in habit name string
   const match = /(\d{1,2}):(\d{2})/.exec(habit.name);
   if (match) {
     const hh = parseInt(match[1], 10);
     const mm = parseInt(match[2], 10);
     return hh * 60 + mm;
   }
-  // Default offsets by time-slot so un-timed habits fit smoothly in sequence
+
+  // 2. Specific keyword-based chronological schedule mapping
+  if (name.includes('breakfast')) return 8 * 60;               // 08:00 AM
+  if (name.includes('outbound')) return 10 * 60;               // 10:00 AM
+  if (name.includes('follow-up')) return 11 * 60;              // 11:00 AM
+  if (name.includes('eye break')) return 12 * 60;              // 12:00 PM
+  if (name.includes('lunch')) return 13 * 60;                  // 01:00 PM
+  if (name.includes('posture') || name.includes('stand')) return 14 * 60; // 02:00 PM
+  if (name.includes('stealth')) return 15 * 60 + 30;           // 03:30 PM
+  if (name.includes('pipeline idea')) return 16 * 60 + 30;     // 04:30 PM
+  if (name.includes('pipeline review') || name.includes('weekly pipeline')) return 17 * 60 + 30; // 05:30 PM
+  if (name.includes('water')) return 17 * 60;                  // 05:00 PM
+  if (name.includes('dinner')) return 19 * 60 + 30;            // 07:30 PM
+  if (name.includes('scalp')) return 21 * 60 + 30;             // 09:30 PM
+  if (name.includes('stress') || name.includes('journal')) return 21 * 60 + 45; // 09:45 PM
+  if (name.includes('sleep duration') || name.includes('track sleep')) return 22 * 60 + 30; // 10:30 PM
+
+  // 3. Fallback offsets by time-slot
   const slot = getHabitTimeSlot(habit);
   if (slot === 'morning') return 7 * 60 + 30; // 07:30
   if (slot === 'work') return 11 * 60;        // 11:00
@@ -3005,13 +3025,13 @@ const upNextChainHabits = computed(() => {
   return upNext;
 });
 
-// Single active UP NEXT activity as per current time of day & sequence
+// Single active UP NEXT activity as per CURRENT TIME OF DAY (not earlier pending items)
 const upNextHabitInfo = computed(() => {
   if (!props.isCurrentMonth) return null;
   const today = props.currentDay;
   const nowMin = currentDayMinutes.value;
 
-  // Filter visible habits uncompleted today
+  // Filter visible habits uncompleted today and sort strictly by scheduled time
   const uncompleted = visibleHabits.value
     .filter(h => !hasCompletedDay(h, today))
     .map(h => ({
@@ -3020,53 +3040,58 @@ const upNextHabitInfo = computed(() => {
     }))
     .sort((a, b) => a.schedMin - b.schedMin);
 
-  if (uncompleted.length === 0) return null; // All done for today!
+  if (uncompleted.length === 0) return null; // All completed for today!
 
-  // 1. If an immediate chain successor is uncompleted, it gets highest active priority
-  for (const item of uncompleted) {
-    if (upNextChainHabits.value.has(item.habit.id)) {
-      const isPast = item.schedMin <= nowMin;
-      return {
-        habit: item.habit,
-        status: isPast ? 'due' : 'upcoming',
-        badgeText: isPast ? 'UP NEXT · DUE NOW' : `UP NEXT · ${formatScheduledTime(item.schedMin)}`,
-        shortBadge: isPast ? 'DUE NOW' : formatScheduledTime(item.schedMin),
-        timeLabel: formatScheduledTime(item.schedMin),
-      };
+  // 1. Strict time-of-day matching: look for uncompleted activities scheduled from current time window onward
+  // Allows a 15-minute grace window in the past (activities currently active / in progress)
+  const currentAndFuture = uncompleted.filter(x => x.schedMin >= nowMin - 15);
+
+  if (currentAndFuture.length > 0) {
+    // If a chain successor of a recently completed habit is scheduled now or in the future today, prioritize it
+    const chainTarget = currentAndFuture.find(x => upNextChainHabits.value.has(x.habit.id));
+    const target = chainTarget || currentAndFuture[0];
+
+    const diff = target.schedMin - nowMin;
+    const isCurrentSlot = diff <= 15 && diff >= -15;
+
+    let badgeText = '';
+    let shortBadge = '';
+
+    if (isCurrentSlot) {
+      badgeText = `UP NEXT · ${formatScheduledTime(target.schedMin)}`;
+      shortBadge = formatScheduledTime(target.schedMin);
+    } else if (diff > 0 && diff <= 60) {
+      badgeText = `UP NEXT · IN ${diff}m`;
+      shortBadge = `IN ${diff}m`;
+    } else {
+      badgeText = `UP NEXT · ${formatScheduledTime(target.schedMin)}`;
+      shortBadge = formatScheduledTime(target.schedMin);
     }
-  }
 
-  // 2. Look for habits that are scheduled for current time or pending from earlier today
-  const dueNow = uncompleted.filter(x => x.schedMin <= nowMin + 15);
-  if (dueNow.length > 0) {
-    // Pick the earliest uncompleted habit that is due/pending
-    const target = dueNow[0];
-    const isVeryOverdue = target.schedMin < nowMin - 45;
     return {
       habit: target.habit,
-      status: 'due',
-      badgeText: isVeryOverdue ? `PENDING · ${formatScheduledTime(target.schedMin)}` : `DUE NOW · ${formatScheduledTime(target.schedMin)}`,
-      shortBadge: isVeryOverdue ? 'PENDING' : 'DUE NOW',
+      status: isCurrentSlot ? 'due' : 'upcoming',
+      badgeText,
+      shortBadge,
       timeLabel: formatScheduledTime(target.schedMin),
     };
   }
 
-  // 3. Otherwise, pick the next upcoming habit in the day
-  const nextUpcoming = uncompleted[0];
-  const diffMin = nextUpcoming.schedMin - nowMin;
-  const inText = (diffMin > 0 && diffMin <= 60) ? `IN ${diffMin}m` : formatScheduledTime(nextUpcoming.schedMin);
+  // 2. Only if ALL current & future activities for today are finished, show the next earlier remaining habit
+  const fallback = uncompleted[uncompleted.length - 1];
   return {
-    habit: nextUpcoming.habit,
+    habit: fallback.habit,
     status: 'upcoming',
-    badgeText: `UP NEXT · ${inText}`,
-    shortBadge: inText,
-    timeLabel: formatScheduledTime(nextUpcoming.schedMin),
+    badgeText: `UP NEXT · ${formatScheduledTime(fallback.schedMin)}`,
+    shortBadge: formatScheduledTime(fallback.schedMin),
+    timeLabel: formatScheduledTime(fallback.schedMin),
   };
 });
 
 const isHabitUpNext = (habit) => {
   return upNextHabitInfo.value?.habit?.id === habit.id;
 };
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ACCOUNTABILITY / DEEP WORK TIMER (ENHANCED)
