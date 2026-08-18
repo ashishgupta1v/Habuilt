@@ -155,105 +155,106 @@ const pendingCells = ref({});
 // ── Progressive Habits: Ashish's Track — Micro-Detail (42 activities, time-sequenced) ──
 const ashishHabits = [
   // ── MORNING 05:00–08:30 (10 micro-steps) ──
-  { id: 'a-1',  name: '05:00 Alarm — Out of Bed',                        points: 1 },
-  { id: 'a-2',  name: '05:05 Hydrate — 500ml Water + Lemon',             points: 1 },
-  { id: 'a-3',  name: '05:10 Breathwork / Meditation (5 min)',            points: 1 },
-  { id: 'a-4',  name: '05:15 Deep Block 1 — Build & Ship (1h45)',        points: 3 },
-  { id: 'a-5',  name: '07:00 Ship Something — Commit & Push',            points: 1 },
-  { id: 'a-6',  name: '07:15 Boxing Training — 30 Min',                  points: 2 },
-  { id: 'a-7',  name: '07:45 Post-Workout Stretch (5 min)',              points: 1 },
-  { id: 'a-8',  name: '07:40 ★ Shaarvi Watch — Abhyanga + Turn-Taking (45 min)', points: 3 },
-  { id: 'a-9',  name: '08:20 Cold Finish Shower',                        points: 1 },
-  { id: 'a-10', name: '08:30 Groom + Skincare',                          points: 1 },
+  { id: 'a-1',  name: '05:00 Alarm — Out of Bed',                        points: 1, hint: 'Feet on the floor by 05:00 sharp. No snooze button. Sit up → stand → drink water → start moving immediately.' },
+  { id: 'a-2',  name: '05:05 Hydrate — 500ml Warm Water + Lemon',       points: 1, hint: 'Drink 500ml of warm water with half a squeezed lemon to rehydrate after sleep and activate digestion.' },
+  { id: 'a-3',  name: '05:10 Breathwork / Meditation (5 min)',            points: 1, hint: '5 minutes of box breathing (inhale 4s, hold 4s, exhale 4s, hold 4s) or quiet mindfulness before touching screens.' },
+  { id: 'a-4',  name: '05:15 Deep Focus Block 1 — Build & Ship (1h45)',  points: 3, hint: '1 hour 45 min of pure uninterrupted building/coding on Habuilt or core projects. Notifications off, zero Slack/email. Produce real output.' },
+  { id: 'a-5',  name: '07:00 Ship Something — Commit & Push',            points: 1, hint: 'Push at least one visible git commit or publish an update. Make tangible, visible progress every morning.' },
+  { id: 'a-6',  name: '07:15 Boxing / Cardio Workout (30 min)',          points: 2, hint: '30 minutes of shadow boxing, heavy bag drills, jump rope, or intense cardio for stamina and mental energy.' },
+  { id: 'a-7',  name: '07:45 Post-Workout Full Body Stretch (5 min)',    points: 1, hint: 'Stretch hamstrings, hips, chest, and shoulders. Hold each stretch 30 seconds to prevent stiffness.' },
+  { id: 'a-8',  name: '07:40 ★ Shaarvi Morning Play & Care (45 min)',    points: 3, hint: 'Give Jyoti protected morning space. Play with Shaarvi: talk to her, name toys/objects, smile, and engage with full attention.' },
+  { id: 'a-9',  name: '08:20 Cold Finish Shower',                        points: 1, hint: 'End your shower with 30–60 seconds of cold water. Builds stress resilience, circulation, and alertness.' },
+  { id: 'a-10', name: '08:30 Grooming & Skincare Routine',                points: 1, hint: 'Cleanse face, apply moisturizer and sunscreen. Style hair and dress sharp for the day.' },
   // ── WORK 08:45–18:30 (8 micro-steps) ──
-  { id: 'a-11', name: '08:45 Job Start — Full Intensity Mode',           points: 2 },
-  { id: 'a-12', name: 'Outbound Touches — 5 Personalized',               points: 2 },
-  { id: 'a-13', name: 'Follow-Ups on Previous Touches',                  points: 1 },
-  { id: 'a-14', name: '20-20-20 Eye Breaks (Every 20 min)',              points: 1 },
-  { id: 'a-15', name: 'Hourly Posture Check + Stand',                    points: 1 },
-  { id: 'a-16', name: 'Stealth Block — 30 min Pipeline',                 points: 2 },
-  { id: 'a-17', name: 'Pipeline Ideas — Note & Research',                points: 1 },
-  { id: 'a-18', name: 'Weekly Pipeline Review Note',                     points: 1 },
+  { id: 'a-11', name: '08:45 Work Start — Plan Top 3 & Deep Dive',       points: 2, hint: 'Start the workday with high focus: list your top 3 priority tasks, clear urgent messages in 20 min, then dive deep.' },
+  { id: 'a-12', name: '10:00 Client Outreach — 5 Direct Messages / Emails', points: 2, hint: 'Send 5 personalized direct messages or emails to prospects, clients, or collaborators (LinkedIn, email, or WhatsApp). Reference their work or specific problems.' },
+  { id: 'a-13', name: '11:00 Lead Follow-Ups — Check & Reply to Prospects', points: 1, hint: 'Review messages sent over the last few days. Respond promptly to interested leads and send a polite follow-up message to those who haven\'t replied yet.' },
+  { id: 'a-14', name: '20-20-20 Eye Breaks (Every 20 min)',              points: 1, hint: 'Every 20 minutes of screen work, look at an object 20 feet (6 meters) away for 20 seconds to prevent eye fatigue and headaches.' },
+  { id: 'a-15', name: 'Hourly Posture Check & 2-Min Walk',                points: 1, hint: 'Stand up every hour: roll shoulders back, unhunch your spine, stretch neck, and walk around for 2 minutes.' },
+  { id: 'a-16', name: '15:30 Business Pipeline Block (30 min)',           points: 2, hint: 'Dedicated 30-minute afternoon slot to grow your business: research potential clients, draft proposals, or plan offers.' },
+  { id: 'a-17', name: '16:30 New Business Ideas & Market Notes',          points: 1, hint: 'Write down 1–2 new ideas for services, product features, or client solutions. Research one quick competitor or market angle.' },
+  { id: 'a-18', name: '17:30 Weekly Deals & Pipeline Review',             points: 1, hint: 'Review status of all active leads, proposals, and deals. Note down clear next actions for each contact.' },
   // ── EVENING 18:30–22:30 (9 micro-steps) ──
-  { id: 'a-19', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2 },
-  { id: 'a-20', name: '18:35 Phone in Drawer',                           points: 1 },
-  { id: 'a-21', name: '★ 19:15 Family Walk (20 min)',                    points: 1 },
-  { id: 'a-22', name: '★ 19:35 Dinner Together — No Phones',             points: 1 },
-  { id: 'a-23', name: '★ 20:30 Shaarvi Bedtime — Diya + Story + Routine', points: 3 },
-  { id: 'a-24', name: '21:15 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
-  { id: 'a-25', name: '22:15 Review & Plan Tomorrow',                    points: 1 },
-  { id: 'a-26', name: '22:00 Wind-Down — No Screens',                    points: 1 },
-  { id: 'a-27', name: '22:30 Lights Out — 7h Sleep Floor',               points: 2 },
+  { id: 'a-19', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2, hint: '18:30 is non-negotiable family time. Shut your laptop lid, log out of work, and transition to evening mode.' },
+  { id: 'a-20', name: '18:35 Phone in Drawer (Digital Detox)',           points: 1, hint: 'Physically store your smartphone inside a drawer or cabinet. Eliminating visual temptation keeps you fully present.' },
+  { id: 'a-21', name: '★ 19:15 Family Walk with Jyoti & Shaarvi (20 min)', points: 1, hint: 'Step outside for an evening stroll together without phones. Enjoy fresh air, conversation, and family bonding.' },
+  { id: 'a-22', name: '★ 19:35 Family Dinner — Phones Away',             points: 1, hint: 'Eat dinner together at the table. Keep all screens off, talk about the day\'s highlights, and enjoy mindful eating.' },
+  { id: 'a-23', name: '★ 20:30 Shaarvi Bedtime Routine — Diya & Stories', points: 3, hint: 'Lead the bedtime ritual: light the diya, recite evening shloka/story, change clothes, and lovingly rock/settle Shaarvi to sleep.' },
+  { id: 'a-24', name: '21:15 Evening Focus Block — Admin & Planning (1h15)', points: 2, hint: 'Quiet time after Shaarvi is asleep: complete pending invoices, reply to key messages, and organize upcoming projects.' },
+  { id: 'a-25', name: '22:15 Plan Tomorrow\'s Top 3 Priorities',          points: 1, hint: 'Write down tomorrow\'s 3 most important tasks before going to bed. Pre-planning removes morning friction.' },
+  { id: 'a-26', name: '22:00 Screen-Free Wind-Down Routine',             points: 1, hint: 'Turn off all monitors and TVs. Read a physical book, write in your journal, or stretch in dim warm lighting.' },
+  { id: 'a-27', name: '22:30 Lights Out — 7+ Hours Sleep Floor',         points: 2, hint: 'In bed with lights out by 22:30. Keep the bedroom cool and dark to ensure at least 7 hours of restorative sleep.' },
   // ── HEALTH & DAILY (9 micro-steps) ──
-  { id: 'a-28', name: 'Breakfast — Protein + Iron',                      points: 1 },
-  { id: 'a-29', name: 'Lunch — Protein + Iron',                          points: 1 },
-  { id: 'a-30', name: 'Dinner — Protein + Iron',                         points: 1 },
-  { id: 'a-31', name: 'Supplements — B12, Omega-3, D3, Mg',             points: 1 },
-  { id: 'a-32', name: 'Scalp Rinse + Hair Protocol',                     points: 1 },
-  { id: 'a-33', name: 'Stress Check-In (5 min journal)',                  points: 1 },
-  { id: 'a-34', name: 'Zero Screens Near Shaarvi',                       points: 2 },
-  { id: 'a-35', name: 'Track Sleep Duration',                            points: 1 },
-  { id: 'a-36', name: '3L Water Intake',                                 points: 1 },
+  { id: 'a-28', name: 'Breakfast — High Protein & Iron Rich',             points: 1, hint: 'Nutritious breakfast with 25g+ protein (e.g. eggs, paneer, sprouts, moong dal) plus iron sources like spinach or seeds.' },
+  { id: 'a-29', name: 'Lunch — Balanced Protein & Vegetables',           points: 1, hint: 'Wholesome lunch: dal, green sabzi, roti/rice, and salad. Eat mindfully away from your computer desk.' },
+  { id: 'a-30', name: 'Dinner — Light Protein & Vegetables',              points: 1, hint: 'Light, easily digestible dinner with protein and fiber. Finish eating at least 2 hours before bedtime.' },
+  { id: 'a-31', name: 'Daily Supplements — B12, Omega-3, D3, Mg',        points: 1, hint: 'Take your daily supplements with food: Vitamin B12, Omega-3 fatty acids, Vitamin D3, and Magnesium.' },
+  { id: 'a-32', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Follow your healthy scalp regimen: gentle shampoo rinse, avoid harsh chemicals, and apply any topical treatments.' },
+  { id: 'a-33', name: '5-Minute Stress & Mindset Journaling',             points: 1, hint: 'Rate your daily stress 1–10. Write down 1 challenge, 1 thing you are grateful for, and 1 positive focus for tomorrow.' },
+  { id: 'a-34', name: 'Zero Screen Time in Front of Shaarvi',            points: 2, hint: 'Never look at phones or tablets while interacting with Shaarvi. Babies learn from direct eye contact and face-to-face attention.' },
+  { id: 'a-35', name: 'Track Sleep Quality & Total Hours',               points: 1, hint: 'Log your bedtime, wake time, and how energized you feel (1–5 scale) to keep your energy optimized.' },
+  { id: 'a-36', name: '3 Litres Water Intake Daily',                     points: 1, hint: 'Drink 3L of water spread throughout the day: morning (500ml), midday (1L), afternoon (1L), evening (500ml).' },
   // ── WEEKLY RITUALS (6 micro-steps) ──
-  { id: 'a-37', name: 'Build-in-Public Post #1',                         points: 1 },
-  { id: 'a-38', name: 'Build-in-Public Post #2 + Engage',                points: 1 },
-  { id: 'a-39', name: 'Saturday Build Marathon (4h)',                     points: 3 },
-  { id: 'a-40', name: '★ Sunday Board Meeting (45 min)',                  points: 3 },
-  { id: 'a-41', name: '10% Tax Transfer',                                points: 1 },
-  { id: 'a-42', name: 'Money Log — Income & Expense',                    points: 1 },
+  { id: 'a-37', name: 'Weekly Build-in-Public Post #1',                  points: 1, hint: 'Share a screenshot, lesson learned, or milestone about Habuilt / your projects on LinkedIn or Twitter.' },
+  { id: 'a-38', name: 'Weekly Build-in-Public Post #2 & Networking',     points: 1, hint: 'Publish your second update of the week and spend 10 minutes leaving thoughtful comments on 5 creator/founder posts.' },
+  { id: 'a-39', name: 'Saturday Build Marathon (4 Hours Focus)',          points: 3, hint: '4 uninterrupted weekend hours dedicated to building major features or launching creative side projects.' },
+  { id: 'a-40', name: '★ Sunday Family Board Meeting (45 min)',           points: 3, hint: 'Weekly structured sync with Jyoti: review weekly budget, celebrate Shaarvi\'s milestones, and plan the upcoming week\'s calendar.' },
+  { id: 'a-41', name: 'Weekly 10% Tax & Savings Transfer',               points: 1, hint: 'Transfer 10% of this week\'s earnings into a separate tax/savings reserve account to ensure financial peace of mind.' },
+  { id: 'a-42', name: 'Weekly Expense & Income Ledger Update',             points: 1, hint: 'Categorize this week\'s spending and income into your budget tracker so finances stay 100% transparent and on track.' },
   // ── PLAN ALIGNMENT: additional habits from household plan ──
-  { id: 'a-43', name: '★ 18:35 Shaarvi Floor Play — Turn-Taking #2 (40 min)', points: 3 },
-  { id: 'a-44', name: '★ Friday Date Night — No Deep Block 2',          points: 2 },
-  { id: 'a-45', name: 'Discovery Calls — 2/Week',                       points: 2 },
-  { id: 'a-46', name: 'Testimonials — Request 2/Week',                  points: 1 },
-  { id: 'a-47', name: 'Spoken Practice — Record Explanation (2/Week)',   points: 1 },
-  { id: 'a-48', name: 'Saturday Admin — Invoices, Pipeline, Prep (45 min)', points: 2 },
-  { id: 'a-49', name: 'Sunday Batch Block — Record & Schedule Posts (2h)', points: 2 },
-  { id: 'a-50', name: '★ Sunday Batch Cooking — Both (2h)',              points: 2 },
+  { id: 'a-43', name: '★ 18:35 Shaarvi Floor Play & Language Time (40 min)', points: 3, hint: 'Get down on the floor with Shaarvi. Play with blocks, describe what she holds, practice new sounds, and make her giggle.' },
+  { id: 'a-44', name: '★ Friday Date Night with Jyoti',                   points: 2, hint: 'No Friday evening work blocks! Dedicate this evening exclusively to Jyoti: cook together, watch a movie, or have special quality time.' },
+  { id: 'a-45', name: 'Client Discovery Calls (2/Week)',                points: 2, hint: 'Conduct 2 high-value video/phone calls with prospective clients or partners to understand their needs and present solutions.' },
+  { id: 'a-46', name: 'Request Client Testimonials (2/Week)',           points: 1, hint: 'Reach out to 2 happy clients or colleagues to request a written testimonial or LinkedIn recommendation.' },
+  { id: 'a-47', name: 'Speak & Record 3-Min Pitch / Concept (2/Week)',    points: 1, hint: 'Record a 3-minute video/voice clip explaining a product idea or technical topic. Refines verbal confidence and presentation skills.' },
+  { id: 'a-48', name: 'Saturday Admin — Invoices, Deals & Next Week Prep (45 min)', points: 2, hint: 'Send out pending client invoices, log payments, review deal pipelines, and organize your calendar for the coming week.' },
+  { id: 'a-49', name: 'Sunday Content Batching — Posts & Videos (2h)',    points: 2, hint: 'Batch-write 3–5 social media posts or record video content in one 2-hour sitting so your outreach runs on autopilot.' },
+  { id: 'a-50', name: '★ Sunday Meal Prep & Batch Cooking with Jyoti (2h)', points: 2, hint: 'Cook healthy base meals together with Jyoti for the upcoming week (dal, vegetables, prepped salads, roti dough) to save weekday time.' },
 ];
 
-// ── Progressive Habits: Jyoti's Track — Micro-Detail (34 activities, time-sequenced) ──
+// ── Progressive Habits: Jyoti's Track — Micro-Detail (35 activities, time-sequenced) ──
 const jyotiHabits = [
-  // ── MORNING 05:00–11:00 (8 micro-steps) ──
-  { id: 'j-1',  name: 'Protected Sleep — 05:00 to 08:00',               points: 2 },
-  { id: 'j-2',  name: '08:00 Wake-Up — Hydrate (500ml)',                 points: 1 },
-  { id: 'j-3',  name: '08:15 Nursing Supplements — B12, DHA, D3',       points: 1 },
-  { id: 'j-4',  name: '08:30 Block A — Deep Work Session 1 (1h)',       points: 2 },
-  { id: 'j-5',  name: '09:30 Block A — Deep Work Session 2 (1h)',       points: 2 },
-  { id: 'j-6',  name: '10:30 Walk — 20 Min Outdoor',                    points: 1 },
-  { id: 'j-7',  name: '10:50 Postpartum Recovery Exercises',            points: 1 },
-  { id: 'j-8',  name: '11:00 Pelvic Floor Work (5 min)',                points: 1 },
+  // ── MORNING 05:00–11:00 (9 micro-steps) ──
+  { id: 'j-1',  name: 'Protected Sleep Window — 05:00 to 08:00',         points: 2, hint: 'Uninterrupted morning sleep while Ashish handles morning routines and Shaarvi. Rest is the foundation of energy and healing.' },
+  { id: 'j-2',  name: '08:00 Morning Wake-Up & 500ml Water',             points: 1, hint: 'Drink 500ml warm water upon waking to rehydrate and support digestion and milk production.' },
+  { id: 'j-3',  name: '08:15 Postnatal Vitamins & Nursing Stack (B12, DHA, D3)', points: 1, hint: 'Take your essential postnatal vitamins with breakfast: Vitamin B12, DHA (for baby brain development), and Vitamin D3.' },
+  { id: 'j-4',  name: '08:30 Block A — Career & Focus Session 1 (1h)',   points: 2, hint: '1 hour of uninterrupted time for your creative or career projects while Ashish watches Shaarvi. Keep notifications silent.' },
+  { id: 'j-5',  name: '09:30 Block A — Career & Focus Session 2 (1h)',   points: 2, hint: 'Second 1-hour focused work block to finish priorities, study new skills, or work on portfolio deliverables.' },
+  { id: 'j-6',  name: '10:30 Refreshing Outdoor Walk (20 min)',          points: 1, hint: 'Enjoy 20 minutes of fresh air, natural sunlight, and relaxed walking to lift your mood and get natural Vitamin D.' },
+  { id: 'j-7',  name: '10:50 Postnatal Gentle Core & Recovery Stretches', points: 1, hint: 'Perform recommended postpartum rehab exercises: gentle core reactivation, diastasis recti safe moves, and upper back stretches.' },
+  { id: 'j-8',  name: '11:00 Pelvic Floor & Breathing Exercises (5 min)', points: 1, hint: '5 minutes of mindful Kegel contractions and deep diaphragmatic breathing to strengthen pelvic floor tone.' },
+  { id: 'j-35', name: '★ Shaarvi Abhyanga — Warm Oil Massage (15 min)',  points: 2, hint: 'Traditional warm oil baby massage for Shaarvi before bath time. Use gentle circular strokes from head to toe to soothe muscles, support digestion, and bond.' },
   // ── MIDDAY 11:00–15:00 (5 micro-steps) ──
-  { id: 'j-9',  name: '★ 11:00 Shaarvi Feed',                           points: 1 },
-  { id: 'j-10', name: '★ 11:30 Shaarvi Floor Play + Naming',            points: 2 },
-  { id: 'j-11', name: '★ 12:00 Shaarvi Milestone Check',                points: 1 },
-  { id: 'j-12', name: '13:00 Block B — Light Work (1h)',                points: 2 },
-  { id: 'j-13', name: '14:00 Skill Application — Practice',             points: 1 },
+  { id: 'j-9',  name: '★ 11:00 Shaarvi Feeding & Burping',               points: 1, hint: 'Nourish Shaarvi calmly in a comfortable posture. Remember to burp her gently and keep a tall glass of water nearby for yourself.' },
+  { id: 'j-10', name: '★ 11:30 Shaarvi Floor Play & Object Naming',      points: 2, hint: 'Sit together on the playmat. Hold up colorful objects, name them clearly, repeat sounds, and encourage reaching and grasping.' },
+  { id: 'j-11', name: '★ 12:00 Shaarvi Milestone Tracking & Observation', points: 1, hint: 'Notice new movements, babbles, eye tracking, or motor milestones. Log any special developmental moments.' },
+  { id: 'j-12', name: '13:00 Block B — Light Tasks & Communications (1h)', points: 2, hint: 'Handle easy tasks: replying to emails, light research, scheduling, or personal organization.' },
+  { id: 'j-13', name: '14:00 Creative Skill Practice & Learning',         points: 1, hint: 'Spend 45–60 minutes learning or practicing design, writing, or professional tools to build long-term career momentum.' },
   // ── EVENING & NIGHT (7 micro-steps) ──
-  { id: 'j-14', name: '★ 18:30 Hard Stop — Floor Play with Shaarvi',    points: 2 },
-  { id: 'j-15', name: '★ 19:00 Developmental Activity with Shaarvi',    points: 1 },
-  { id: 'j-16', name: '★ 19:15 Family Walk (15 min)',                   points: 1 },
-  { id: 'j-17', name: '★ 19:30 Dinner Together — No Phones',            points: 1 },
-  { id: 'j-18', name: '20:30 Night Watch — Feeds & Settling',           points: 2 },
-  { id: 'j-19', name: '21:00 Sleep Log — Track Duration',               points: 1 },
-  { id: 'j-20', name: '22:00 Wind-Down — Lights Out',                   points: 1 },
+  { id: 'j-14', name: '★ 18:30 Hard Stop — Floor Play with Shaarvi',    points: 2, hint: 'Transition away from work. Enjoy relaxed floor time with Shaarvi as Ashish finishes his workday.' },
+  { id: 'j-15', name: '★ 19:00 Developmental Sensory Play with Shaarvi', points: 1, hint: 'Engage Shaarvi with sensory toys, music, high-contrast flashcards, or tummy time for brain development.' },
+  { id: 'j-16', name: '★ 19:15 Family Walk with Ashish & Shaarvi (15 min)', points: 1, hint: 'Evening stroll together around the neighborhood without phones. Great for digestion and calming down before dinner.' },
+  { id: 'j-17', name: '★ 19:30 Family Dinner Together — No Phones',       points: 1, hint: 'Sit down for a warm family meal together. Keep devices off the table and enjoy relaxed conversation.' },
+  { id: 'j-18', name: '20:30 Night Care — Feeding & Calming Routine',     points: 2, hint: 'Comfortable nighttime feeding, diaper change, and soothing lullaby routine to help Shaarvi drift into peaceful sleep.' },
+  { id: 'j-19', name: '21:00 Sleep & Well-Being Log',                     points: 1, hint: 'Quickly jot down sleep duration, energy level, and nursing notes to spot patterns and celebrate good rest.' },
+  { id: 'j-20', name: '22:00 Evening Wind-Down & Lights Out',             points: 1, hint: 'Dim room lights by 22:00. Disconnect from screens, read or listen to calming audio, and get into bed for restorative rest.' },
   // ── NUTRITION & HEALTH (6 micro-steps) ──
-  { id: 'j-21', name: 'Breakfast — Protein + Iron',                      points: 1 },
-  { id: 'j-22', name: 'Lunch — Protein + Iron',                          points: 1 },
-  { id: 'j-23', name: 'Dinner — Protein + Iron',                         points: 1 },
-  { id: 'j-24', name: '3L Water Intake',                                 points: 1 },
-  { id: 'j-25', name: 'No Tea After Meals',                              points: 1 },
-  { id: 'j-26', name: 'Zero Screens Near Shaarvi',                       points: 2 },
+  { id: 'j-21', name: 'Nutritious Breakfast — Protein & Iron Rich',        points: 1, hint: 'Eat a wholesome breakfast with protein and iron (eggs, paneer, chilla, oats, seeds) to sustain energy and recovery.' },
+  { id: 'j-22', name: 'Wholesome Lunch — Protein, Greens & Grains',       points: 1, hint: 'Balanced meal with dal, green leafy vegetables, roti/rice, and curd/salad. Eat in a relaxed setting.' },
+  { id: 'j-23', name: 'Light & Nourishing Dinner',                        points: 1, hint: 'Enjoy a warm, light dinner with easy-to-digest proteins and veggies, eaten at least 2 hours before bed.' },
+  { id: 'j-24', name: '3 Litres Daily Hydration',                         points: 1, hint: 'Drink 3L of water and herbal infusions throughout the day — essential for lactation, energy, and recovery.' },
+  { id: 'j-25', name: 'No Chai/Tea Within 90 Min of Meals',               points: 1, hint: 'Tannins in tea/coffee inhibit iron absorption. Wait at least 90 minutes after eating before having tea.' },
+  { id: 'j-26', name: 'Zero Screen Time in Front of Shaarvi',             points: 2, hint: 'Keep phones out of sight during baby interactions so Shaarvi receives 100% focused eye contact and interaction.' },
   // ── CAREER TRACK (3 micro-steps) ──
-  { id: 'j-27', name: 'Skill Building — Read / Learn (30 min)',          points: 2 },
-  { id: 'j-28', name: 'Track Progress — Portfolio Update',               points: 1 },
-  { id: 'j-29', name: 'Entity — Invoices & Accounts',                    points: 2 },
+  { id: 'j-27', name: 'Daily 30-Min Skill Building & Reading',            points: 2, hint: 'Read articles, watch tutorials, or practice creative exercises to expand your expertise every single day.' },
+  { id: 'j-28', name: 'Portfolio & Progress Showcase Update',             points: 1, hint: 'Add newly completed design files, notes, or case studies to your portfolio collection.' },
+  { id: 'j-29', name: 'Financial Accounts & Invoicing Review',             points: 2, hint: 'Review incoming payments, organize receipts, and send out any client invoices.' },
   // ── WEEKLY RITUALS (5 micro-steps) ──
-  { id: 'j-30', name: 'Saturday Afternoon Block — 3h (Hers)',            points: 3 },
-  { id: 'j-31', name: '★ Sunday Board Meeting (45 min)',                  points: 3 },
-  { id: 'j-32', name: '★ Sunday Batch Cooking (2h)',                      points: 2 },
-  { id: 'j-33', name: 'Week Meal Plan — Prep List',                      points: 1 },
-  { id: 'j-34', name: '★ Shaarvi Monthly Report (29th)',                  points: 2 },
+  { id: 'j-30', name: 'Saturday Afternoon Personal Project Block (3h)',   points: 3, hint: '3 hours of completely protected weekend time for your own projects or pampering while Ashish is fully on baby duty.' },
+  { id: 'j-31', name: '★ Sunday Family Board Meeting (45 min)',           points: 3, hint: 'Weekly structured conversation with Ashish: review goals, finances, Shaarvi milestones, and upcoming weekly schedule.' },
+  { id: 'j-32', name: '★ Sunday Batch Cooking & Meal Prep (2h)',          points: 2, hint: 'Prepare staple sauces, chopped veggies, dal, and healthy snacks with Ashish to make weekday dinners effortless.' },
+  { id: 'j-33', name: 'Weekly Meal & Grocery Plan Prep',                  points: 1, hint: 'Write down lunch/dinner meal ideas for Monday through Saturday and make a quick shopping checklist.' },
+  { id: 'j-34', name: '★ Shaarvi Monthly Growth & Milestone Summary (29th)', points: 2, hint: 'On the 29th of each month, save photos, note down new words/movements, weight/height, and special memories.' },
 ];
 
 // ── Progressive Habits System: Tier Definitions ──
@@ -268,17 +269,17 @@ const ashishTierDescriptions = {
   'a-5':  ['Note what to ship', 'Stage a commit', 'Push code / content', 'Ship + announce'],
   'a-6':  ['10 min movement', '20 min exercise', '30 min boxing', '30 min + sparring drills'],
   'a-7':  ['Quick stretch', '3 min stretch', '5 min full stretch', '5 min + foam roll'],
-  'a-8':  ['10 min play', '20 min turn-taking', '30 min abhyanga + play', '45 min abhyanga + turn-taking + shloka'],
+  'a-8':  ['10 min play', '20 min turn-taking', '30 min turn-taking + shloka', '45 min turn-taking + shloka + milestone check'],
   'a-9':  ['Warm shower', 'Cool rinse finish', 'Cold finish 30s', 'Full cold shower'],
   'a-10': ['Basic hygiene', 'Groom clean', 'Groom + skincare', 'Full skincare routine'],
   'a-11': ['Show up, basics done', 'Meet expectations', 'High intensity', 'Top performer output'],
-  'a-12': ['1 outbound touch', '3 touches', '5 personalized', '5 + tailored follow-ups'],
-  'a-13': ['Check for replies', 'Reply to 1', 'Reply all pending', 'Reply + re-engage cold'],
+  'a-12': ['1 outreach touch', '3 outreach msgs', '5 direct messages', '5 msgs + tailored follow-ups'],
+  'a-13': ['Check for replies', 'Reply to 1 lead', 'Reply all pending leads', 'Reply + re-engage cold leads'],
   'a-14': ['1 eye break/day', '3 breaks/day', 'Every 20 min', 'Every 20 min + 10s rule'],
   'a-15': ['Stand once/day', 'Stand hourly', 'Posture check hourly', '+ standing desk 2h'],
-  'a-16': ['Note 1 pipeline idea', '15 min pipeline', '30 min stealth block', '30 min + metrics'],
+  'a-16': ['Note 1 business idea', '15 min pipeline', '30 min business block', '30 min + metrics'],
   'a-17': ['Jot 1 idea', 'Research 1 lead', 'Note + research 2', 'Full pipeline brief'],
-  'a-18': ['Skim notes', 'Quick review', 'Written review', 'Review + next actions'],
+  'a-18': ['Skim notes', 'Quick review', 'Written deals review', 'Review + next actions'],
   'a-19': ['Stop by 20:00', 'Stop by 19:30', '18:30 hard stop', '18:30 non-negotiable'],
   'a-20': ['Phone on silent', 'Phone face-down', 'Phone in drawer', 'Phone off + drawer'],
   'a-21': ['5 min walk', '10 min walk', '20 min family walk', '20 min + no phones'],
@@ -303,12 +304,12 @@ const ashishTierDescriptions = {
   'a-40': ['Quick sync 15min', '30 min review', '45 min board meeting', '+ OKR tracking'],
   'a-41': ['Note amount', 'Calculate 10%', 'Transfer 10%', 'Transfer + auto-invest'],
   'a-42': ['Glance at bank', 'Log 1 entry', 'Full income/expense log', '+ budget review'],
-  'a-43': ['10 min floor play', '20 min floor play', '40 min turn-taking #2', '40 min + developmental focus'],
+  'a-43': ['10 min floor play', '20 min floor play', '40 min play + language', '40 min + developmental focus'],
   'a-44': ['No work after 20:00 Fri', 'No work after 19:00 Fri', 'No code after 18:30 Fri', 'Date night planned'],
   'a-45': ['Note 1 prospect', '1 call/week', '2 calls/week', '2 calls + follow-ups booked'],
   'a-46': ['Identify 1 past client', 'Draft 1 request', '2 requests sent', '2 sent + follow-ups'],
   'a-47': ['Think through topic', 'Outline verbally', '1 recording/week', '2 recordings + posted'],
-  'a-48': ['Check invoices', 'Update pipeline', 'Full 45-min admin session', '+ week prep done'],
+  'a-48': ['Check invoices', 'Update deals', 'Full 45-min admin session', '+ week prep done'],
   'a-49': ['Draft 1 post', 'Record 1 post', '2h batch session', '2h + scheduled for week'],
   'a-50': ['Help with 1 dish', 'Prep 2 items', '2h full batch cook', '2h + variety + freezer stock'],
 };
@@ -348,48 +349,49 @@ const jyotiTierDescriptions = {
   'j-32': ['Prep 2 meals', 'Prep 3-4 meals', '2h batch cooking', '2h + variety'],
   'j-33': ['List 3 meals', 'Plan 5 meals', 'Full week plan', 'Plan + shopping list'],
   'j-34': ['Quick photo log', 'Note milestones', 'Monthly report (29th)', '+ development assessment'],
+  'j-35': ['Quick oil rub', '10 min massage', '15 min full abhyanga', '15 min + warm bath ritual'],
 };
 
 // ── Ashish Travel Mode (Chandigarh) — Micro-Detail (31 activities, time-sequenced) ──
 // Schedule: leave 06:30, 3h drive, office 09:30-13:00, return 13:00-16:00, home 16:00
 const ashishTravelHabits = [
   // ── PRE-DEPARTURE 05:00–06:30 (6 micro-steps) ──
-  { id: 'at-1',  name: '05:00 Alarm — Out of Bed',                        points: 1 },
-  { id: 'at-2',  name: '05:05 Hydrate — 500ml Water + Lemon',             points: 1 },
-  { id: 'at-3',  name: '05:10 Breathwork (5 min)',                         points: 1 },
-  { id: 'at-4',  name: '05:15 Deep Block 1 — Build & Ship (1h)',          points: 3 },
-  { id: 'at-5',  name: '06:15 ★ Shaarvi Morning — Turn-Taking (15 min)',  points: 3 },
-  { id: 'at-6',  name: '06:30 Leave for Chandigarh',                      points: 1 },
+  { id: 'at-1',  name: '05:00 Alarm — Out of Bed',                        points: 1, hint: 'Feet on floor by 05:00. Travel day = earlier prep. No snooze. Sit up → stand → start moving.' },
+  { id: 'at-2',  name: '05:05 Hydrate — 500ml Warm Water + Lemon',        points: 1, hint: 'Drink 500ml warm water with lemon before departure to stay hydrated during the drive.' },
+  { id: 'at-3',  name: '05:10 Breathwork (5 min)',                         points: 1, hint: 'Box breathing (4-4-4-4) or calm meditation for a clear, centered mindset before travel.' },
+  { id: 'at-4',  name: '05:15 Deep Focus Block 1 — Build & Ship (1h)',    points: 3, hint: '1 hour of intense coding/building before leaving. Ship a clean commit or feature.' },
+  { id: 'at-5',  name: '06:15 ★ Shaarvi Morning Play (15 min)',           points: 3, hint: 'Morning connection with Shaarvi before leaving. Name objects, cuddle, and smile.' },
+  { id: 'at-6',  name: '06:30 Leave for Chandigarh (On Time)',             points: 1, hint: 'Bag packed the night before. Leave by 06:30 sharp. Breakfast eaten or packed.' },
   // ── OUTBOUND DRIVE 06:30–09:30 (2 micro-steps) ──
-  { id: 'at-7',  name: 'Outbound Drive — Audio Learning / Spoken Practice', points: 2 },
-  { id: 'at-8',  name: 'Record Spoken Explanation (5 min)',                 points: 1 },
+  { id: 'at-7',  name: 'Outbound Drive — Audio Learning & Podcasts',       points: 2, hint: 'Use the 3h drive productively: listen to industry audiobooks, podcasts, or practice speech.' },
+  { id: 'at-8',  name: 'Record Spoken Pitch / Idea (5 min)',               points: 1, hint: 'Voice-record yourself explaining a business concept or feature clearly in 3–5 min. Builds verbal agility.' },
   // ── OFFICE 09:30–13:00 (4 micro-steps) ──
-  { id: 'at-9',  name: '09:30 Office — In-Person Intensity',              points: 2 },
-  { id: 'at-10', name: 'Outbound Touches — 5 Personalized',               points: 2 },
-  { id: 'at-11', name: '20-20-20 Eye Breaks + Posture',                   points: 1 },
-  { id: 'at-12', name: 'Coffee Chats — Relationships & Visibility',       points: 1 },
+  { id: 'at-9',  name: '09:30 Office — High-Intensity In-Person Work',    points: 2, hint: 'Maximize office presence: lead discussions, collaborate with colleagues, and execute top priorities.' },
+  { id: 'at-10', name: '10:00 Client Outreach — 5 Direct Messages / Emails', points: 2, hint: 'Send 5 tailored messages/emails to clients or prospects from your desktop. Reference specific solutions.' },
+  { id: 'at-11', name: '20-20-20 Eye Breaks + Posture Stand',             points: 1, hint: 'Every 20 min look 20 feet away for 20 seconds. Stand up and align posture hourly.' },
+  { id: 'at-12', name: 'Coffee Chats — Networking & Relationship Building', points: 1, hint: 'Have at least 1 meaningful one-on-one conversation with a teammate or contact to build strong rapport.' },
   // ── RETURN DRIVE 13:00–16:00 (2 micro-steps) ──
-  { id: 'at-13', name: '13:00 Return Drive — Client Calls / Pipeline',    points: 2 },
-  { id: 'at-14', name: 'Follow-Ups on Previous Touches',                  points: 1 },
+  { id: 'at-13', name: '13:00 Return Drive — Hands-Free Client Calls',    points: 2, hint: 'Use the return drive for scheduled client calls or hands-free business calls.' },
+  { id: 'at-14', name: '14:00 Lead Follow-Ups — Check & Reply to Inquiries', points: 1, hint: 'Check replies received during the day. Reply to active conversations and bump pending inquiries.' },
   // ── EVENING 16:00–21:30 (9 micro-steps) ──
-  { id: 'at-15', name: '16:00 Home — Shower + Decompress',                points: 1 },
-  { id: 'at-16', name: '★ 16:30 Shaarvi Play — Turn-Taking #2 (30 min)', points: 3 },
-  { id: 'at-17', name: '17:00 Deep Block 2 — Pipeline & Admin (1h15)',    points: 2 },
-  { id: 'at-18', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2 },
-  { id: 'at-19', name: '18:35 Phone in Drawer',                           points: 1 },
-  { id: 'at-20', name: '★ 18:45 Family Walk (20 min)',                    points: 1 },
-  { id: 'at-21', name: '★ 19:15 Dinner Together — No Phones',             points: 1 },
-  { id: 'at-22', name: '★ 20:30 Shaarvi Bedtime — Diya + Story',         points: 3 },
-  { id: 'at-23', name: '21:30 Lights Out — Recovery Sleep',               points: 2 },
+  { id: 'at-15', name: '16:00 Home — Shower & Reset',                     points: 1, hint: 'Shower, change clothes, and fully transition from travel mode into family mode.' },
+  { id: 'at-16', name: '★ 16:30 Shaarvi Play & Reconnection (30 min)',   points: 3, hint: 'Compensate for morning travel. Get down on the playmat with Shaarvi for 30 min of joyful, screen-free play.' },
+  { id: 'at-17', name: '17:00 Deep Focus Block 2 — Pipeline & Admin (1h15)', points: 2, hint: 'Evening work block: send invoices, organize code, reply to important correspondence.' },
+  { id: 'at-18', name: '★ 18:30 Hard Stop — Laptop Closed',              points: 2, hint: 'Close laptop lid at 18:30 sharp. Family evening begins. Non-negotiable.' },
+  { id: 'at-19', name: '18:35 Phone in Drawer (Digital Detox)',           points: 1, hint: 'Put smartphone in a drawer. Out of sight = full presence with family.' },
+  { id: 'at-20', name: '★ 18:45 Family Walk with Jyoti & Shaarvi (20 min)', points: 1, hint: 'Fresh air and light movement together to decompress after long driving hours.' },
+  { id: 'at-21', name: '★ 19:15 Family Dinner — Phones Away',             points: 1, hint: 'Sit together for dinner. Phones off the table. Enjoy nourishing food and conversation.' },
+  { id: 'at-22', name: '★ 20:30 Shaarvi Bedtime Routine — Diya & Story',  points: 3, hint: 'Lead bedtime: light diya, recite story/shloka, settle Shaarvi lovingly to sleep.' },
+  { id: 'at-23', name: '21:30 Lights Out — Early Recovery Sleep',         points: 2, hint: 'Travel days require deeper rest. Be in bed with lights off by 21:30 for restorative recovery.' },
   // ── HEALTH & DAILY (8 micro-steps) ──
-  { id: 'at-24', name: 'Breakfast — Protein + Iron (before leaving)',     points: 1 },
-  { id: 'at-25', name: 'Lunch — Protein + Iron (at office)',              points: 1 },
-  { id: 'at-26', name: 'Dinner — Protein + Iron',                         points: 1 },
-  { id: 'at-27', name: 'Supplements — B12, Omega-3, D3, Mg',             points: 1 },
-  { id: 'at-28', name: '3L Water Intake',                                 points: 1 },
-  { id: 'at-29', name: 'Scalp Rinse + Hair Protocol',                     points: 1 },
-  { id: 'at-30', name: 'Zero Screens Near Shaarvi',                       points: 2 },
-  { id: 'at-31', name: 'Track Sleep Duration',                            points: 1 },
+  { id: 'at-24', name: 'Breakfast — High Protein & Iron (Before Leaving)', points: 1, hint: 'Eat a proper protein breakfast before driving. Eggs, paratha with paneer, or a hearty meal.' },
+  { id: 'at-25', name: 'Lunch — Clean Protein & Greens (At Office)',      points: 1, hint: 'Wholesome lunch at office: dal, sabzi, roti. Avoid heavy fast food to prevent afternoon slumps.' },
+  { id: 'at-26', name: 'Dinner — Light Protein & Vegetables',             points: 1, hint: 'Light home-cooked dinner. Finish eating 2 hours before bed for sound digestion.' },
+  { id: 'at-27', name: 'Daily Supplements — B12, Omega-3, D3, Mg',        points: 1, hint: 'Take your full supplement stack with meals. Never skip on travel days.' },
+  { id: 'at-28', name: '3 Litres Water Intake Daily',                     points: 1, hint: 'Keep a water bottle in the car. Drink steadily before, during, and after travel.' },
+  { id: 'at-29', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Perform your scalp rinse protocol during the evening shower.' },
+  { id: 'at-30', name: 'Zero Screen Time in Front of Shaarvi',            points: 2, hint: 'Full eye contact and loving presence with Shaarvi. No phones in hand.' },
+  { id: 'at-31', name: 'Track Sleep Duration & Quality',                  points: 1, hint: 'Log your sleep hours to ensure travel days don\'t create a recovery deficit.' },
 ];
 
 const ashishTravelTierDescriptions = {
@@ -402,13 +404,13 @@ const ashishTravelTierDescriptions = {
   'at-7':  ['Music / podcast', 'Technical audio', 'Spoken practice aloud', 'Practice + record clip'],
   'at-8':  ['Think through topic', 'Outline verbally', 'Record 3-min clip', 'Record 5-min + post notes'],
   'at-9':  ['Show up, basics', 'Meet expectations', 'High intensity in-person', 'Top output + visibility'],
-  'at-10': ['1 outbound touch', '3 touches', '5 personalized', '5 + tailored follow-ups'],
+  'at-10': ['1 outreach touch', '3 outreach msgs', '5 direct messages', '5 msgs + tailored follow-ups'],
   'at-11': ['1 eye break', '3 breaks', 'Every 20 min', 'Every 20 min + standing'],
   'at-12': ['Quick hello', '1 meaningful chat', '2 relationship chats', 'Strategic networking'],
   'at-13': ['Listen to audio', 'Review pipeline notes', 'Client calls scheduled', 'Calls + follow-up notes'],
-  'at-14': ['Check for replies', 'Reply to 1', 'Reply all pending', 'Reply + re-engage cold'],
+  'at-14': ['Check for replies', 'Reply to 1 lead', 'Reply all pending leads', 'Reply + re-engage cold leads'],
   'at-15': ['Quick change', 'Shower + change', 'Full shower + decompress', '+ scalp rinse'],
-  'at-16': ['10 min play', '15 min play', '30 min turn-taking', '30 min + milestone check'],
+  'at-16': ['10 min play', '15 min play', '30 min reconnection', '30 min + milestone check'],
   'at-17': ['15 min admin', '30 min pipeline', '1h15 deep block', '1h15 + follow-ups sent'],
   'at-18': ['Stop by 19:30', 'Stop by 19:00', '18:30 hard stop', '18:30 non-negotiable'],
   'at-19': ['Phone on silent', 'Phone face-down', 'Phone in drawer', 'Phone off + drawer'],
@@ -451,13 +453,13 @@ const travelMode = ref(false);
 // ── Generic starter set for non-seeded users ──
 // Universally-applicable atomic habits — user can add/rename/remove/archive freely.
 const genericStarterHabits = [
-  { id: 'g-1', name: 'Wake up on time',                    points: 1 },
-  { id: 'g-2', name: '500ml water first thing',            points: 1 },
-  { id: 'g-3', name: 'Move for 20 minutes',                points: 2 },
-  { id: 'g-4', name: 'Deep focus block (60 min)',          points: 3 },
-  { id: 'g-5', name: 'Read for 15 minutes',                points: 1 },
-  { id: 'g-6', name: 'Plan tomorrow (5 min)',              points: 1 },
-  { id: 'g-7', name: 'Lights out by target time',          points: 2 },
+  { id: 'g-1', name: 'Wake up on time',                    points: 1, hint: 'Set your target wake time and get up when the alarm rings. No snooze.' },
+  { id: 'g-2', name: '500ml water first thing',            points: 1, hint: 'Drink 500ml water within 10 minutes of waking. Before coffee, before food.' },
+  { id: 'g-3', name: 'Move for 20 minutes',                points: 2, hint: 'Any movement counts: walk, stretch, gym, yoga. 20 min minimum.' },
+  { id: 'g-4', name: 'Deep focus block (60 min)',          points: 3, hint: '60 min of uninterrupted work on your most important task. Phone on silent, notifications off.' },
+  { id: 'g-5', name: 'Read for 15 minutes',                points: 1, hint: 'Read a book (not social media). Fiction or non-fiction, 15 min minimum.' },
+  { id: 'g-6', name: 'Plan tomorrow (5 min)',              points: 1, hint: 'Write down your top 3 priorities for tomorrow. Takes 5 min, saves 30 min of decision-making.' },
+  { id: 'g-7', name: 'Lights out by target time',          points: 2, hint: 'Pick your target bedtime and stick to it. Screens off 30 min before. Room dark and cool.' },
 ];
 
 const fallbackHabits = computed(() => {
@@ -547,12 +549,15 @@ const habitChains = {
   'a-26': 'a-27',  // Wind-Down → Lights Out
   // Jyoti chain
   'j-1':  'j-2',   // Sleep → Wake-Up
-  'j-2':  'j-3',
-  'j-3':  'j-4',
-  'j-4':  'j-5',
-  'j-5':  'j-6',
-  'j-14': 'j-15',
-  'j-15': 'j-16',
+  'j-2':  'j-3',   // Wake → Supplements
+  'j-3':  'j-4',   // Supplements → Deep Work 1
+  'j-4':  'j-5',   // Deep Work 1 → Deep Work 2
+  'j-5':  'j-6',   // Deep Work 2 → Walk
+  'j-6':  'j-7',   // Walk → Postpartum Recovery
+  'j-7':  'j-8',   // Recovery → Pelvic Floor
+  'j-8':  'j-35',  // Pelvic Floor → Abhyanga
+  'j-14': 'j-15',  // Hard Stop → Dev Activity
+  'j-15': 'j-16',  // Dev Activity → Family Walk
 };
 
 // ── DEEP WORK TIMER — LINKED HABIT AUTO-COMPLETE ──
@@ -685,6 +690,7 @@ const mapHabit = (habit) => ({
   id: habit.id,
   name: habit.name,
   points: habit.points,
+  hint: habit.hint || '',
   completedToday: !!habit.completedToday,
   completedDays: Array.isArray(habit.completedDays)
     ? [...habit.completedDays]
@@ -1094,7 +1100,7 @@ const getHabitTimeSlot = (habit) => {
   if (['at-24','at-25','at-26','at-27','at-28','at-29','at-30','at-31'].includes(id)) return 'anytime';
 
   // Jyoti habits by ID (micro-detail: j-1..j-34)
-  if (['j-1','j-2','j-3','j-4','j-5','j-6','j-7','j-8'].includes(id)) return 'morning';
+  if (['j-1','j-2','j-3','j-4','j-5','j-6','j-7','j-8','j-35'].includes(id)) return 'morning';
   if (['j-9','j-10','j-11','j-12','j-13'].includes(id)) return 'midday';
   if (['j-14','j-15','j-16','j-17','j-18','j-19','j-20'].includes(id)) return 'evening';
   if (['j-21','j-22','j-23','j-24','j-25','j-26'].includes(id)) return 'anytime';
@@ -1774,10 +1780,14 @@ const loadLocalState = async () => {
     if (Array.isArray(parsed.localHabits)) {
       if (parsed.hasCustomHabits) {
         // Full restore: custom names, points, AND completion data
+        // Merge hints from default habits (hints are code-only, not persisted)
+        const defaultHintMap = {};
+        fallbackHabits.value.forEach(dh => { if (dh.hint) defaultHintMap[dh.id] = dh.hint; });
         localHabits.value = parsed.localHabits.map((h) => ({
           id: String(h.id || `custom-${Date.now()}-${Math.random()}`),
           name: String(h.name || ''),
           points: Math.max(1, Math.min(100, Number(h.points) || 1)),
+          hint: defaultHintMap[h.id] || h.hint || '',
           completedDays: Array.isArray(h.completedDays) ? [...h.completedDays] : [],
           completedToday: !!h.completedToday,
         }));
@@ -2070,6 +2080,7 @@ const startEditingHabits = () => {
     id: h.id,
     name: h.name,
     points: h.points,
+    hint: h.hint || '',
     completedDays: [...h.completedDays],
     completedToday: h.completedToday,
     archived: archived.has(h.id) || h.archived === true,
@@ -2160,6 +2171,7 @@ const saveEditedHabits = async () => {
     id: h.id,
     name: h.name.trim(),
     points: Math.max(1, Math.min(100, Number(h.points) || 1)),
+    hint: h.hint || '',
     completedDays: [...h.completedDays],
     completedToday: h.completedToday,
     archived: !!h.archived,
@@ -3011,19 +3023,19 @@ const getHabitScheduledMinutes = (habit) => {
 
   // 2. Specific keyword-based chronological schedule mapping
   if (name.includes('breakfast')) return 8 * 60;               // 08:00 AM
-  if (name.includes('outbound')) return 10 * 60;               // 10:00 AM
-  if (name.includes('follow-up')) return 11 * 60;              // 11:00 AM
+  if (name.includes('outreach') || name.includes('outbound') || name.includes('direct message')) return 10 * 60; // 10:00 AM
+  if (name.includes('follow-up') || name.includes('prospects')) return 11 * 60; // 11:00 AM
   if (name.includes('eye break')) return 12 * 60;              // 12:00 PM
   if (name.includes('lunch')) return 13 * 60;                  // 01:00 PM
   if (name.includes('posture') || name.includes('stand')) return 14 * 60; // 02:00 PM
-  if (name.includes('stealth')) return 15 * 60 + 30;           // 03:30 PM
-  if (name.includes('pipeline idea')) return 16 * 60 + 30;     // 04:30 PM
-  if (name.includes('pipeline review') || name.includes('weekly pipeline')) return 17 * 60 + 30; // 05:30 PM
-  if (name.includes('water')) return 17 * 60;                  // 05:00 PM
+  if (name.includes('pipeline') || name.includes('stealth') || name.includes('business block')) return 15 * 60 + 30; // 03:30 PM
+  if (name.includes('business idea') || name.includes('market note') || name.includes('pipeline idea')) return 16 * 60 + 30; // 04:30 PM
+  if (name.includes('pipeline review') || name.includes('deals review') || name.includes('weekly pipeline')) return 17 * 60 + 30; // 05:30 PM
+  if (name.includes('water') || name.includes('hydration')) return 17 * 60; // 05:00 PM
   if (name.includes('dinner')) return 19 * 60 + 30;            // 07:30 PM
   if (name.includes('scalp')) return 21 * 60 + 30;             // 09:30 PM
   if (name.includes('stress') || name.includes('journal')) return 21 * 60 + 45; // 09:45 PM
-  if (name.includes('sleep duration') || name.includes('track sleep')) return 22 * 60 + 30; // 10:30 PM
+  if (name.includes('sleep duration') || name.includes('track sleep') || name.includes('sleep quality')) return 22 * 60 + 30; // 10:30 PM
 
   // 3. Fallback offsets by time-slot
   const slot = getHabitTimeSlot(habit);
@@ -3445,6 +3457,7 @@ const addDefaultHabitBack = (defaultHabit) => {
     id: defaultHabit.id,
     name: defaultHabit.name,
     points: defaultHabit.points,
+    hint: defaultHabit.hint || '',
     completedDays: [],
     completedToday: false,
   });
@@ -3464,6 +3477,7 @@ const restoreAllDefaults = async () => {
     id: h.id,
     name: h.name,
     points: h.points,
+    hint: h.hint || '',
     completedDays: [],
     completedToday: false,
   }));
@@ -5276,7 +5290,7 @@ const shareProgress = async () => {
                 v-for="dh in missingDefaultHabits.slice(0, 12)"
                 :key="'restore-' + dh.id"
                 class="habits-editor__restore-chip"
-                @click="addDefaultHabitBack(dh); habitsDraft.push({ id: dh.id, name: dh.name, points: dh.points, completedDays: [], completedToday: false, archived: false })"
+                @click="addDefaultHabitBack(dh); habitsDraft.push({ id: dh.id, name: dh.name, points: dh.points, hint: dh.hint || '', completedDays: [], completedToday: false, archived: false })"
                 type="button"
                 :title="`+${dh.points} pt · ${dh.name}`"
               >
@@ -5541,13 +5555,20 @@ const shareProgress = async () => {
                         <MessageSquare class="icon-xs" />
                       </button>
                     </button>
-                    <!-- Habit Note Input -->
+                    <!-- Habit Note Input & Clear Guidance -->
                     <div v-if="habitNotesOpen === habit.id + ':' + mobileDay" class="habit-note-input" @click.stop>
+                      <div v-if="habit.hint" class="habit-note-guidance">
+                        <div class="habit-note-guidance__header">
+                          <Sparkles class="icon-xs" />
+                          <span class="habit-note-guidance__title">Instructions & Guidance</span>
+                        </div>
+                        <p class="habit-note-guidance__text">{{ habit.hint }}</p>
+                      </div>
                       <textarea
                         :value="getHabitNote(habit.id, mobileDay)"
                         @input="setHabitNote(habit.id, mobileDay, $event.target.value)"
                         rows="2"
-                        placeholder="Quick note about this habit today..."
+                        :placeholder="'Quick note / log about ' + habit.name + ' today...'"
                       ></textarea>
                     </div>
                   </template>
@@ -5579,7 +5600,7 @@ const shareProgress = async () => {
                 <tbody>
                   <tr v-for="habit in visibleHabits" :key="habit.id" class="habit-grid__row" :class="{ 'habit-grid__row--up-next': props.isCurrentMonth && isHabitUpNext(habit) }">
                     <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★'), 'habit-grid__name--up-next': props.isCurrentMonth && isHabitUpNext(habit) }">
-                      <span class="habit-grid__name-text">{{ habit.name }}</span>
+                      <span class="habit-grid__name-text" :title="habit.hint ? (habit.name + '\n\n💡 Instructions:\n' + habit.hint) : habit.name">{{ habit.name }}</span>
                       <span v-if="props.isCurrentMonth && isHabitUpNext(habit)" class="habit-grid__up-next-pill" :class="{ 'habit-grid__up-next-pill--due': upNextHabitInfo?.status === 'due' }" :title="'Scheduled: ' + (upNextHabitInfo?.timeLabel || '')">
                         <Clock class="icon-xs" /> {{ upNextHabitInfo?.badgeText || 'UP NEXT' }}
                       </span>

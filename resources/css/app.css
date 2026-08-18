@@ -5802,6 +5802,37 @@ body.theme-dark .streak-item__name { color: #e2e8f0; }
 .habit-note-input {
   padding: 8px 12px; margin-bottom: 4px;
 }
+.habit-note-guidance {
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.08), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(200, 164, 86, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+body.theme-dark .habit-note-guidance {
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(99, 102, 241, 0.12));
+  border-color: rgba(200, 164, 86, 0.35);
+}
+.habit-note-guidance__header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--brand-gold, #C8A456);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+.habit-note-guidance__text {
+  font-size: 0.78rem;
+  color: var(--text-color-primary, #334155);
+  line-height: 1.45;
+  margin: 0;
+}
+body.theme-dark .habit-note-guidance__text {
+  color: #cbd5e1;
+}
 .habit-note-input textarea {
   width: 100%; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px;
   padding: 8px; font-size: 12px; resize: none; background: rgba(255, 255, 255, 0.8);
