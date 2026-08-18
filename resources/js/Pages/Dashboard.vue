@@ -2113,6 +2113,10 @@ const toggleHabitForDay = async (habit, day) => {
   try {
     const wasCompleted = hasCompletedDay(habit, day);
     setHabitDayCompletion(habit, day, !wasCompleted);
+    // Haptic feedback — short tap on complete, double-pulse on undo
+    if (navigator.vibrate) {
+      navigator.vibrate(wasCompleted ? [15, 30, 15] : [20]);
+    }
     await persistLocalState();
   } finally {
     delete pendingCells.value[pendingKey];
@@ -2241,7 +2245,43 @@ const enableNotifications = async () => {
     enhancedState.value.notificationsEnabled = true;
     persistLocalState();
     scheduleReminders();
+    // Register push subscription if SW supports it
+    registerPushSubscription();
   }
+};
+
+// Push notification subscription — stores subscription endpoint in Supabase
+// for server-side push delivery. Requires VAPID keys to be configured.
+// Generate VAPID keys: npx web-push generate-vapid-keys
+// Set VITE_VAPID_PUBLIC_KEY in .env for client, store private key on server.
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+
+const registerPushSubscription = async () => {
+  if (!('serviceWorker' in navigator) || !VAPID_PUBLIC_KEY) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return; // Already subscribed
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+
+    // Store subscription in enhanced state (persisted to Supabase)
+    enhancedState.value.pushSubscription = JSON.parse(JSON.stringify(sub));
+    await persistLocalState();
+  } catch (err) {
+    console.warn('Push subscription failed:', err);
+  }
+};
+
+// Helper: convert VAPID base64 key to Uint8Array
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 };
 
 const scheduleReminders = () => {
@@ -2677,27 +2717,155 @@ const importBackup = () => {
   input.click();
 };
 
-// Share progress card — generate shareable text
+// Share progress card — Canvas → PNG → Web Share API
 const shareProgress = async () => {
-  const text = [
-    `🏗 Habuilt — ${monthLabel.value} ${props.year}`,
-    `📊 Score: ${consistencyScore.value}/100 (${consistencyGrade.value.letter})`,
-    `🔥 Completion: ${completionRate.value.toFixed(1)}%`,
-    `⭐ Level ${levelData.value.level} ${levelTitle.value}`,
-    `🏆 ${unlockedCount.value}/${achievementDefs.length} badges unlocked`,
-    `💪 ${totalXP.value} XP earned`,
-    ``,
-    `1% better every day. habuilt.com`,
-  ].join('\n');
+  const W = 1080, H = 1350; // Instagram-story-friendly 4:5
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
 
-  if (navigator.share) {
-    try {
+  // ── Background gradient ──
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0f172a'); bg.addColorStop(1, '#1e293b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // Top accent bar
+  ctx.fillStyle = '#6366f1'; ctx.fillRect(0, 0, W, 6);
+
+  // Helper: rounded rect
+  const rrect = (x, y, w, h, r, fill, stroke) => {
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+  };
+
+  // ── Header ──
+  ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 56px system-ui, -apple-system, sans-serif';
+  ctx.fillText('Habuilt', 60, 90);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '28px system-ui, sans-serif';
+  ctx.fillText(`${monthLabel.value} ${props.year} Progress Report`, 60, 130);
+
+  // ── KPI Cards Row ──
+  const kpis = [
+    { label: 'Score', value: `${consistencyScore.value}`, sub: consistencyGrade.value.letter, color: '#6366f1' },
+    { label: 'Streak', value: `${systemStreak.value.current}d`, sub: `Best: ${systemStreak.value.best}d`, color: '#f59e0b' },
+    { label: 'Level', value: `${levelData.value.level}`, sub: levelTitle.value, color: '#22c55e' },
+    { label: 'XP', value: totalXP.value >= 1000 ? `${(totalXP.value/1000).toFixed(1)}k` : `${totalXP.value}`, sub: 'earned', color: '#a855f7' },
+  ];
+  const cardW = 230, cardH = 140, cardGap = 20, cardStartX = 60;
+  kpis.forEach((k, i) => {
+    const cx = cardStartX + i * (cardW + cardGap);
+    rrect(cx, 170, cardW, cardH, 16, '#1e293b', k.color);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '20px system-ui, sans-serif';
+    ctx.fillText(k.label, cx + 20, 205);
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 44px system-ui, sans-serif';
+    ctx.fillText(k.value, cx + 20, 260);
+    ctx.fillStyle = '#64748b'; ctx.font = '18px system-ui, sans-serif';
+    ctx.fillText(k.sub, cx + 20, 290);
+  });
+
+  // ── Completion Ring ──
+  const ringCx = W / 2, ringCy = 430, ringR = 80;
+  ctx.lineWidth = 14; ctx.lineCap = 'round';
+  ctx.strokeStyle = '#334155';
+  ctx.beginPath(); ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2); ctx.stroke();
+  const pct = completionRate.value / 100;
+  ctx.strokeStyle = pct >= 0.8 ? '#22c55e' : pct >= 0.5 ? '#f59e0b' : '#ef4444';
+  ctx.beginPath(); ctx.arc(ringCx, ringCy, ringR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); ctx.stroke();
+  ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 40px system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`${completionRate.value.toFixed(0)}%`, ringCx, ringCy + 12);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '18px system-ui, sans-serif';
+  ctx.fillText('Completion', ringCx, ringCy + 40);
+  ctx.textAlign = 'left';
+
+  // ── Mini Heatmap ──
+  ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 22px system-ui, sans-serif';
+  ctx.fillText('Monthly Activity', 60, 560);
+  const cellSize = 28, cellGap = 4, hmStartX = 60, hmStartY = 575;
+  const cols = 7;
+  heatmapData.value.forEach((cell, idx) => {
+    const col = idx % cols, row = Math.floor(idx / cols);
+    const x = hmStartX + col * (cellSize + cellGap);
+    const y = hmStartY + row * (cellSize + cellGap);
+    let fill = '#1e293b';
+    if (!cell.isFuture) {
+      if (cell.pct >= 90) fill = '#22c55e';
+      else if (cell.pct >= 65) fill = '#16a34a';
+      else if (cell.pct >= 40) fill = '#4ade80';
+      else if (cell.pct > 0) fill = '#86efac';
+    }
+    rrect(x, y, cellSize, cellSize, 4, fill, null);
+    ctx.fillStyle = cell.isFuture ? '#334155' : '#f8fafc'; ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(`${cell.day}`, x + cellSize / 2, y + cellSize / 2 + 4);
+    ctx.textAlign = 'left';
+  });
+
+  // ── Top Streaks ──
+  const topStreaks = habitStreaks.value.slice().sort((a, b) => b.current - a.current).slice(0, 5);
+  const streakY = 780;
+  ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 22px system-ui, sans-serif';
+  ctx.fillText('Top Streaks', 60, streakY);
+  topStreaks.forEach((s, i) => {
+    const y = streakY + 20 + i * 44;
+    rrect(60, y, W - 120, 38, 8, '#1e293b', null);
+    ctx.fillStyle = '#f8fafc'; ctx.font = '18px system-ui, sans-serif';
+    const name = s.name.length > 30 ? s.name.substring(0, 28) + '…' : s.name;
+    ctx.fillText(name, 80, y + 25);
+    ctx.fillStyle = s.current >= 7 ? '#f59e0b' : '#94a3b8'; ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${s.current}d streak`, W - 80, y + 25);
+    ctx.textAlign = 'left';
+  });
+
+  // ── Milestone Badges ──
+  const badgeY = 1040;
+  ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 22px system-ui, sans-serif';
+  ctx.fillText('Milestones', 60, badgeY);
+  const badges = milestoneBadges.value;
+  const bw = 170, bh = 60, bgap = 18;
+  badges.forEach((m, i) => {
+    const x = 60 + i * (bw + bgap);
+    const fill = m.earned ? '#1e3a5f' : '#1e293b';
+    const border = m.earned ? '#6366f1' : '#334155';
+    rrect(x, badgeY + 15, bw, bh, 10, fill, border);
+    ctx.font = '28px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(m.icon, x + 30, badgeY + 55);
+    ctx.fillStyle = m.earned ? '#f8fafc' : '#475569'; ctx.font = 'bold 16px system-ui, sans-serif';
+    ctx.fillText(m.label, x + 100, badgeY + 45);
+    ctx.fillStyle = m.earned ? '#a5b4fc' : '#334155'; ctx.font = '13px system-ui, sans-serif';
+    ctx.fillText(`${m.threshold} XP`, x + 100, badgeY + 65);
+    ctx.textAlign = 'left';
+  });
+
+  // ── Footer ──
+  ctx.fillStyle = '#475569'; ctx.font = '22px system-ui, sans-serif';
+  ctx.fillText('habuilt.com  •  1% better every day', 60, H - 40);
+  // Bottom accent
+  ctx.fillStyle = '#6366f1'; ctx.fillRect(0, H - 6, W, 6);
+
+  // ── Export & Share ──
+  try {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const file = new File([blob], `habuilt-${monthLabel.value.toLowerCase()}-${props.year}.png`, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `Habuilt — ${monthLabel.value} ${props.year}`,
+        text: `Score: ${consistencyScore.value}/100 | ${systemStreak.value.current}d streak | Level ${levelData.value.level}\n1% better every day. habuilt.com`,
+        files: [file],
+      });
+    } else if (navigator.share) {
+      // Fallback: share text only (desktop browsers)
+      const text = `🏗 Habuilt — ${monthLabel.value} ${props.year}\n📊 Score: ${consistencyScore.value}/100 (${consistencyGrade.value.letter})\n🔥 ${systemStreak.value.current}d streak\n⭐ Level ${levelData.value.level} ${levelTitle.value}\n💪 ${totalXP.value} XP\n\n1% better every day. habuilt.com`;
       await navigator.share({ title: 'My Habuilt Progress', text });
-    } catch { /* user cancelled */ }
-  } else {
-    await navigator.clipboard?.writeText(text);
-    alert('Progress copied to clipboard!');
-  }
+    } else {
+      // Last resort: download the image
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = file.name; a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch { /* user cancelled share dialog */ }
 };
 </script>
 

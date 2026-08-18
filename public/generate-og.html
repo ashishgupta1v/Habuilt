@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0">
+<canvas id="c" width="1200" height="630"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// Background gradient
+const grad = ctx.createLinearGradient(0, 0, 1200, 630);
+grad.addColorStop(0, '#0f172a');
+grad.addColorStop(1, '#1e293b');
+ctx.fillStyle = grad;
+ctx.fillRect(0, 0, 1200, 630);
+
+// Accent bar
+ctx.fillStyle = '#6366f1';
+ctx.fillRect(0, 0, 1200, 6);
+
+// Title
+ctx.fillStyle = '#f8fafc';
+ctx.font = 'bold 72px system-ui, sans-serif';
+ctx.fillText('Habuilt', 80, 200);
+
+// Tagline
+ctx.fillStyle = '#94a3b8';
+ctx.font = '32px system-ui, sans-serif';
+ctx.fillText('Progressive Habit Tracker', 80, 260);
+ctx.fillText('1% better every day.', 80, 310);
+
+// Stats preview
+ctx.fillStyle = '#6366f1';
+ctx.font = 'bold 48px system-ui, sans-serif';
+ctx.fillText('50 habits', 80, 440);
+ctx.fillStyle = '#22c55e';
+ctx.fillText('4 tiers', 340, 440);
+ctx.fillStyle = '#f59e0b';
+ctx.fillText('26 weeks', 580, 440);
+
+// Emoji accents
+ctx.font = '64px sans-serif';
+ctx.fillText('🔥', 1020, 180);
+ctx.fillText('⭐', 1020, 270);
+ctx.fillText('🏆', 1020, 360);
+
+// Footer
+ctx.fillStyle = '#475569';
+ctx.font = '24px system-ui, sans-serif';
+ctx.fillText('habuilt.com', 80, 570);
+</script>
+</body></html>

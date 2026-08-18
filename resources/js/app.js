@@ -58,10 +58,13 @@ if (canBootInertia) {
 }
 
 // Register Service Worker for PWA
+// __BUILD_TIME__ is replaced at build time by Vite's define config,
+// ensuring the browser fetches a fresh SW on each deploy.
+const swUrl = '/sw.js?v=' + (typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : Date.now());
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(swUrl)
       .then((reg) => {
         // Auto-update on new SW
         reg.addEventListener('updatefound', () => {
