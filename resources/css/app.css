@@ -6529,10 +6529,115 @@ body.theme-dark .reward-bar {
   color: var(--text-color-primary, #111827);
   font-size: 0.85rem;
 }
+.deep-timer-launcher__mute-btn {
+  background: transparent;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  color: #6366f1;
+  padding: 3px 6px;
+  margin-left: auto;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.theme-dark .deep-timer-launcher__mute-btn {
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+.deep-timer-launcher__mute-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+.deep-timer-launcher__custom-wrap {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+.deep-timer-launcher__custom-input {
+  width: 72px;
+  padding: 6px 20px 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: transparent;
+  color: var(--text-color-primary, #111827);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+.theme-dark .deep-timer-launcher__custom-input {
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.deep-timer-launcher__custom-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+.deep-timer-launcher__custom-unit {
+  position: absolute;
+  right: 8px;
+  font-size: 0.75rem;
+  color: var(--text-color-secondary, #6b7280);
+  pointer-events: none;
+}
 .deep-timer-launcher__start {
   align-self: flex-start;
   margin-top: 4px;
 }
+
+/* Celebration Auto-Complete Toast */
+.timer-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fff;
+  border: 1px solid rgba(200, 164, 86, 0.4);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 20px rgba(200, 164, 86, 0.25);
+  animation: slide-toast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  max-width: 420px;
+}
+@keyframes slide-toast {
+  from { transform: translateY(-30px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.timer-toast__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.timer-toast__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+.timer-toast__content strong {
+  color: var(--brand-gold, #C8A456);
+  font-size: 0.92rem;
+}
+.timer-toast__content em {
+  color: #60a5fa;
+  font-style: normal;
+  font-weight: 600;
+}
+.timer-toast__close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  margin-left: auto;
+}
+.timer-toast__close:hover { color: #fff; }
 
 /* Active timer widget */
 .deep-timer {
@@ -6557,6 +6662,10 @@ body.theme-dark .reward-bar {
 .deep-timer--complete {
   background: linear-gradient(135deg, #10b981, #059669);
   animation: none;
+}
+.deep-timer--break {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
 }
 @keyframes deep-timer-pulse {
   0%, 100% { box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35); }
@@ -6607,6 +6716,7 @@ body.theme-dark .reward-bar {
 .deep-timer__actions {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .deep-timer__btn {
   padding: 4px 10px;
@@ -6627,6 +6737,14 @@ body.theme-dark .reward-bar {
 .deep-timer__btn--primary:hover { background: #fff; }
 .deep-timer__btn--danger { background: rgba(239, 68, 68, 0.85); border-color: transparent; }
 .deep-timer__btn--danger:hover { background: rgba(239, 68, 68, 1); }
+.deep-timer__btn--break {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.deep-timer__btn--break:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    MORNING SETUP MODAL
@@ -6884,17 +7002,17 @@ body.theme-dark .reward-bar {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   HABIT CHAIN — "UP NEXT" indicator on mobile habit cards
+   TIME-AWARE "UP NEXT" & CHAIN INDICATORS
    ══════════════════════════════════════════════════════════════════════════════ */
 .mobile-daily__card--up-next {
   border-left: 3px solid #6366f1 !important;
-  background: linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, transparent 30%);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.09) 0%, transparent 35%);
   animation: up-next-glow 2s ease-in-out infinite;
   position: relative;
 }
 @keyframes up-next-glow {
   0%, 100% { box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
-  50%      { box-shadow: 0 0 12px rgba(99, 102, 241, 0.25); }
+  50%      { box-shadow: 0 0 14px rgba(99, 102, 241, 0.3); }
 }
 .mobile-daily__up-next-badge {
   position: absolute;
@@ -6902,16 +7020,128 @@ body.theme-dark .reward-bar {
   right: 6px;
   background: #6366f1;
   color: #fff;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   z-index: 2;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
 }
+.mobile-daily__up-next-badge--due {
+  background: #ef4444 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+  animation: pulse-badge 1.8s infinite;
+}
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+/* Mobile Compact Bar Up Next Row */
+.mcb-up-next-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(99, 102, 241, 0.08));
+  border: 1px solid rgba(200, 164, 86, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mcb-up-next-row:hover {
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.2), rgba(99, 102, 241, 0.15));
+}
+.mcb-up-next-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #C8A456;
+  color: #1e293b;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mcb-up-next-tag--due {
+  background: #ef4444;
+  color: #fff;
+  animation: pulse-badge 1.8s infinite;
+}
+.mcb-up-next-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-color-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.theme-dark .mcb-up-next-title {
+  color: #f1f5f9;
+}
+.mcb-up-next-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Desktop Grid Row & Pill Up Next */
+.habit-grid__row--up-next {
+  background: rgba(99, 102, 241, 0.04);
+}
+.theme-dark .habit-grid__row--up-next {
+  background: rgba(99, 102, 241, 0.12);
+}
+.habit-grid__name--up-next {
+  border-left: 3px solid #6366f1 !important;
+}
+.habit-grid__up-next-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.theme-dark .habit-grid__up-next-pill {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+.habit-grid__up-next-pill--due {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.theme-dark .habit-grid__up-next-pill--due {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    HABIT EDITOR — Archive controls & restore-defaults section

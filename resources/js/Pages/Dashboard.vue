@@ -72,6 +72,8 @@ import {
   Pause,
   History,
   Link2,
+  Volume2,
+  VolumeX,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -535,14 +537,16 @@ const habitChains = {
 // ── DEEP WORK TIMER — LINKED HABIT AUTO-COMPLETE ──
 // When a timer completes for a linked habit, that habit is auto-marked for the day.
 const timerHabitOptions = computed(() => {
-  // Focus/work habits that make sense to time-block
-  const preferredIds = isJyoti.value
-    ? ['j-8','j-9','j-27','j-28','j-29']  // work / study
-    : ['a-4','a-11','a-16','a-24','a-39']; // deep blocks, job start, stealth, saturday build
-  const found = localHabits.value.filter(h => preferredIds.includes(h.id) && !(h.archived));
-  if (found.length > 0) return found;
-  // Fallback: any habit worth 2+ points
-  return localHabits.value.filter(h => h.points >= 2 && !h.archived).slice(0, 8);
+  return visibleHabits.value
+    .filter(h => !isHabitArchived(h))
+    .slice()
+    .sort((a, b) => {
+      const isPriorityA = (a.points >= 2 || a.name.toLowerCase().includes('deep') || a.name.toLowerCase().includes('build') || a.name.toLowerCase().includes('stealth'));
+      const isPriorityB = (b.points >= 2 || b.name.toLowerCase().includes('deep') || b.name.toLowerCase().includes('build') || b.name.toLowerCase().includes('stealth'));
+      if (isPriorityA && !isPriorityB) return -1;
+      if (!isPriorityA && isPriorityB) return 1;
+      return b.points - a.points;
+    });
 });
 
 // ── LIFETIME STATS — cross-month data ──
@@ -2228,6 +2232,10 @@ onMounted(async () => {
   applyThemeClass();
   // Re-schedule notifications if previously enabled
   if (enhancedState.value.notificationsEnabled) scheduleReminders();
+  // Update minute clock every 30s for real-time UP NEXT resolution
+  minuteTickTimer = setInterval(() => {
+    currentDayMinutes.value = new Date().getHours() * 60 + new Date().getMinutes();
+  }, 30000);
   // Load cross-month lifetime data (async, non-blocking for first paint)
   loadLifetimeData();
   // Resume active timer tick if a timer was running when tab closed
@@ -2238,10 +2246,13 @@ onMounted(async () => {
   maybeShowMorningSetup();
 });
 
+let minuteTickTimer = null;
+
 onBeforeUnmount(() => {
   if (typeof document !== 'undefined') {
     document.body.classList.remove('theme-dark');
   }
+  if (minuteTickTimer) clearInterval(minuteTickTimer);
   stopTimerTick();
 });
 
@@ -2939,39 +2950,141 @@ const historyForHabit = (habitId) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// HABIT DEPENDENCY CHAINS
+// TIME-AWARE "UP NEXT" RESOLUTION & HABIT CHAINS
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Minute clock for time-aware UI updates (minutes from midnight 0..1439)
+const currentDayMinutes = ref(new Date().getHours() * 60 + new Date().getMinutes());
+
+// Parse scheduled time in minutes from midnight (e.g. "05:15" -> 315, "18:30" -> 1110)
+const getHabitScheduledMinutes = (habit) => {
+  if (!habit || !habit.name) return 9999;
+  const match = /(\d{1,2}):(\d{2})/.exec(habit.name);
+  if (match) {
+    const hh = parseInt(match[1], 10);
+    const mm = parseInt(match[2], 10);
+    return hh * 60 + mm;
+  }
+  // Default offsets by time-slot so un-timed habits fit smoothly in sequence
+  const slot = getHabitTimeSlot(habit);
+  if (slot === 'morning') return 7 * 60 + 30; // 07:30
+  if (slot === 'work') return 11 * 60;        // 11:00
+  if (slot === 'evening') return 19 * 60;     // 19:00
+  if (slot === 'anytime') return 14 * 60;     // 14:00
+  if (slot === 'weekly') return 18 * 60;      // 18:00
+  return 12 * 60;
+};
+
+// Format scheduled minutes to human readable string (e.g. 315 -> "5:15 AM", 1110 -> "6:30 PM")
+const formatScheduledTime = (minutes) => {
+  if (minutes >= 9999) return '';
+  const hh = Math.floor(minutes / 60) % 24;
+  const mm = minutes % 60;
+  const period = hh >= 12 ? 'PM' : 'AM';
+  const displayH = hh % 12 === 0 ? 12 : hh % 12;
+  const displayM = String(mm).padStart(2, '0');
+  return `${displayH}:${displayM} ${period}`;
+};
 
 // Given a habit ID that was just completed, what should the user do next?
 const nextInChainId = (habitId) => habitChains[habitId] || null;
 
-// Which habits are "up next" — one for each recently-completed chain trigger habit
+// Which habits are chain candidates (recently finished parent step)
 const upNextChainHabits = computed(() => {
   const today = props.currentDay;
   const upNext = new Set();
   visibleHabits.value.forEach((h) => {
-    // Check today's completion; if completed, the chain successor is "up next"
     if (!(h.completedDays || []).includes(today)) return;
     const nextId = nextInChainId(h.id);
     if (!nextId) return;
     const nextHabit = visibleHabits.value.find(x => x.id === nextId);
     if (!nextHabit) return;
-    if ((nextHabit.completedDays || []).includes(today)) return; // already done, don't highlight
+    if ((nextHabit.completedDays || []).includes(today)) return;
     upNext.add(nextId);
   });
   return upNext;
 });
 
-const isHabitUpNext = (habit) => upNextChainHabits.value.has(habit.id);
+// Single active UP NEXT activity as per current time of day & sequence
+const upNextHabitInfo = computed(() => {
+  if (!props.isCurrentMonth) return null;
+  const today = props.currentDay;
+  const nowMin = currentDayMinutes.value;
+
+  // Filter visible habits uncompleted today
+  const uncompleted = visibleHabits.value
+    .filter(h => !hasCompletedDay(h, today))
+    .map(h => ({
+      habit: h,
+      schedMin: getHabitScheduledMinutes(h),
+    }))
+    .sort((a, b) => a.schedMin - b.schedMin);
+
+  if (uncompleted.length === 0) return null; // All done for today!
+
+  // 1. If an immediate chain successor is uncompleted, it gets highest active priority
+  for (const item of uncompleted) {
+    if (upNextChainHabits.value.has(item.habit.id)) {
+      const isPast = item.schedMin <= nowMin;
+      return {
+        habit: item.habit,
+        status: isPast ? 'due' : 'upcoming',
+        badgeText: isPast ? 'UP NEXT · DUE NOW' : `UP NEXT · ${formatScheduledTime(item.schedMin)}`,
+        shortBadge: isPast ? 'DUE NOW' : formatScheduledTime(item.schedMin),
+        timeLabel: formatScheduledTime(item.schedMin),
+      };
+    }
+  }
+
+  // 2. Look for habits that are scheduled for current time or pending from earlier today
+  const dueNow = uncompleted.filter(x => x.schedMin <= nowMin + 15);
+  if (dueNow.length > 0) {
+    // Pick the earliest uncompleted habit that is due/pending
+    const target = dueNow[0];
+    const isVeryOverdue = target.schedMin < nowMin - 45;
+    return {
+      habit: target.habit,
+      status: 'due',
+      badgeText: isVeryOverdue ? `PENDING · ${formatScheduledTime(target.schedMin)}` : `DUE NOW · ${formatScheduledTime(target.schedMin)}`,
+      shortBadge: isVeryOverdue ? 'PENDING' : 'DUE NOW',
+      timeLabel: formatScheduledTime(target.schedMin),
+    };
+  }
+
+  // 3. Otherwise, pick the next upcoming habit in the day
+  const nextUpcoming = uncompleted[0];
+  const diffMin = nextUpcoming.schedMin - nowMin;
+  const inText = (diffMin > 0 && diffMin <= 60) ? `IN ${diffMin}m` : formatScheduledTime(nextUpcoming.schedMin);
+  return {
+    habit: nextUpcoming.habit,
+    status: 'upcoming',
+    badgeText: `UP NEXT · ${inText}`,
+    shortBadge: inText,
+    timeLabel: formatScheduledTime(nextUpcoming.schedMin),
+  };
+});
+
+const isHabitUpNext = (habit) => {
+  return upNextHabitInfo.value?.habit?.id === habit.id;
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ACCOUNTABILITY / DEEP WORK TIMER
+// ACCOUNTABILITY / DEEP WORK TIMER (ENHANCED)
 // ══════════════════════════════════════════════════════════════════════════════
 
 const timerTickHandle = ref(null);
 const timerNow = ref(Date.now()); // Reactive clock so elapsed re-renders each tick
 const timerLauncherDuration = ref(50); // Default deep-work slot
+const customTimerMin = ref(null);
 const timerLauncherHabitId = ref('');
+const timerSoundEnabled = ref(true);
+const timerCompleteToast = ref(null); // { name, points }
+
+const onCustomTimerInput = () => {
+  if (customTimerMin.value && customTimerMin.value > 0) {
+    timerLauncherDuration.value = Math.min(300, Math.max(1, Number(customTimerMin.value)));
+  }
+};
 
 const timerState = computed(() => enhancedState.value.deepWorkTimer || null);
 const timerElapsedSec = computed(() => {
@@ -2981,8 +3094,17 @@ const timerElapsedSec = computed(() => {
   const live = t.running ? Math.floor((timerNow.value - (t.startedAt || timerNow.value)) / 1000) : 0;
   return base + live;
 });
+const timerRemainingSec = computed(() => {
+  return Math.max(0, timerTargetSec.value - timerElapsedSec.value);
+});
 const timerElapsedFormatted = computed(() => {
   const s = timerElapsedSec.value;
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+});
+const timerRemainingFormatted = computed(() => {
+  const s = timerRemainingSec.value;
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
   const ss = String(s % 60).padStart(2, '0');
   return `${mm}:${ss}`;
@@ -2999,15 +3121,80 @@ const timerLinkedHabit = computed(() => {
   return localHabits.value.find(h => h.id === id) || null;
 });
 
+// Synthesized 4-tone celebration chime (Web Audio API)
+const playTimerCompleteChime = () => {
+  if (!timerSoundEnabled.value) return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (major chord chime)
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      const startTime = ctx.currentTime + idx * 0.14;
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.18, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.85);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.9);
+    });
+  } catch (e) {
+    console.warn('Audio chime unsupported:', e);
+  }
+};
+
+// Native system notification
+const sendTimerCompleteNotification = (habitName, points) => {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('🎯 Deep Work Session Complete!', {
+        body: habitName ? `Great job! "${habitName}" (+${points} pts) auto-marked complete.` : 'Focus session finished! Time for a short break.',
+        icon: '/icons/icon-192.png',
+        badge: '/favicon.svg',
+      });
+    } catch (e) { /* ignore */ }
+  }
+};
+
+const requestTimerNotificationPermission = async () => {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    try {
+      await Notification.requestPermission();
+    } catch (e) { /* ignore */ }
+  }
+};
+
 const startDeepWorkTimer = (targetMin, linkedHabitId) => {
-  if (!Number.isFinite(targetMin) || targetMin <= 0) return;
+  const min = Math.max(1, Number(targetMin) || 25);
   enhancedState.value.deepWorkTimer = {
-    targetMin,
+    targetMin: min,
     linkedHabitId: linkedHabitId || null,
     startedAt: Date.now(),
     elapsedBeforePause: 0,
     running: true,
+    isBreak: false,
     completedForDay: props.currentDay,
+    _autoCompleted: false,
+  };
+  requestTimerNotificationPermission();
+  ensureTimerTick();
+  persistLocalState();
+};
+
+const startBreakTimer = (breakMin = 5) => {
+  enhancedState.value.deepWorkTimer = {
+    targetMin: breakMin,
+    linkedHabitId: null,
+    startedAt: Date.now(),
+    elapsedBeforePause: 0,
+    running: true,
+    isBreak: true,
+    completedForDay: props.currentDay,
+    _autoCompleted: false,
   };
   ensureTimerTick();
   persistLocalState();
@@ -3038,6 +3225,8 @@ const resumeDeepWorkTimer = () => {
 const stopDeepWorkTimer = () => {
   stopTimerTick();
   enhancedState.value.deepWorkTimer = null;
+  timerCompleteToast.value = null;
+  if (typeof document !== 'undefined') document.title = 'Habuilt';
   persistLocalState();
 };
 
@@ -3047,13 +3236,26 @@ const ensureTimerTick = () => {
     timerNow.value = Date.now();
     const t = enhancedState.value.deepWorkTimer;
     if (!t || !t.running) return;
+
     // Auto-complete linked habit when target reached
-    if (timerElapsedSec.value >= timerTargetSec.value && t.linkedHabitId && !t._autoCompleted) {
-      const habit = localHabits.value.find(h => h.id === t.linkedHabitId);
-      if (habit && !habit.completedDays.includes(props.currentDay)) {
-        setHabitDayCompletion(habit, props.currentDay, true);
-        if (navigator.vibrate) navigator.vibrate([25, 50, 25, 50, 40]);
+    if (timerElapsedSec.value >= timerTargetSec.value && !t._autoCompleted) {
+      if (t.linkedHabitId) {
+        const habit = localHabits.value.find(h => h.id === t.linkedHabitId);
+        if (habit && !habit.completedDays.includes(props.currentDay)) {
+          setHabitDayCompletion(habit, props.currentDay, true);
+          timerCompleteToast.value = {
+            name: habit.name,
+            points: habit.points,
+          };
+          setTimeout(() => { timerCompleteToast.value = null; }, 6000);
+          launchConfetti();
+          sendTimerCompleteNotification(habit.name, habit.points);
+        }
+      } else {
+        sendTimerCompleteNotification(null, 0);
       }
+      playTimerCompleteChime();
+      if (navigator.vibrate) navigator.vibrate([25, 50, 25, 50, 40]);
       enhancedState.value.deepWorkTimer = { ...t, _autoCompleted: true, running: false };
       stopTimerTick();
       persistLocalState();
@@ -3067,6 +3269,26 @@ const stopTimerTick = () => {
     timerTickHandle.value = null;
   }
 };
+
+// Sync browser document title with timer countdown
+watch([() => timerState.value?.running, timerRemainingFormatted, () => timerState.value?._autoCompleted, () => timerState.value?.isBreak], () => {
+  if (typeof document === 'undefined') return;
+  const t = timerState.value;
+  if (!t) {
+    document.title = 'Habuilt';
+    return;
+  }
+  const habitLabel = timerLinkedHabit.value ? timerLinkedHabit.value.name.split('—')[0].trim() : (t.isBreak ? 'Rest Break' : 'Deep Work');
+
+  if (t._autoCompleted) {
+    document.title = `🎉 Done! ${habitLabel} — Habuilt`;
+  } else if (t.running) {
+    document.title = `⏱ (${timerRemainingFormatted.value}) ${habitLabel} — Habuilt`;
+  } else {
+    document.title = `⏸ Paused (${timerRemainingFormatted.value}) — Habuilt`;
+  }
+});
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // QUICK MORNING SETUP
@@ -3415,43 +3637,75 @@ const shareProgress = async () => {
   <AppLayout>
     <section class="dashboard-flow" :class="{ 'month-nav-loading': isNavigatingMonth, 'show-all-sections': mobileHeroExpanded }">
 
+      <!-- ══ CELEBRATION AUTO-COMPLETE TOAST ══ -->
+      <div v-if="timerCompleteToast" class="timer-toast" @click="timerCompleteToast = null">
+        <div class="timer-toast__icon">🎉</div>
+        <div class="timer-toast__content">
+          <strong>Deep Work Complete!</strong>
+          <span>Auto-marked <em>{{ timerCompleteToast.name }}</em> (+{{ timerCompleteToast.points }} pts)</span>
+        </div>
+        <button class="timer-toast__close" aria-label="Close"><X class="icon-xs" /></button>
+      </div>
+
       <!-- ══ DEEP WORK TIMER LAUNCHER (when no timer active) ══ -->
       <details v-if="!timerState && isCurrentMonth" class="deep-timer-launcher">
         <summary class="deep-timer-launcher__summary">
           <Timer class="icon-sm" />
           <span>Start Deep Work Session</span>
           <span class="deep-timer-launcher__hint">— auto-completes linked habit</span>
+          <button
+            type="button"
+            class="deep-timer-launcher__mute-btn"
+            @click.stop="timerSoundEnabled = !timerSoundEnabled"
+            :title="timerSoundEnabled ? 'Chime sound enabled' : 'Chime sound muted'"
+          >
+            <Volume2 v-if="timerSoundEnabled" class="icon-xs" />
+            <VolumeX v-else class="icon-xs" />
+          </button>
         </summary>
         <div class="deep-timer-launcher__body">
           <div class="deep-timer-launcher__row">
             <label class="deep-timer-launcher__label">Duration</label>
             <div class="deep-timer-launcher__durations">
-              <button v-for="min in [25, 50, 90, 120]" :key="'dur-' + min"
-                :class="['deep-timer-launcher__dur', timerLauncherDuration === min && 'deep-timer-launcher__dur--active']"
-                @click="timerLauncherDuration = min" type="button">
+              <button v-for="min in [15, 25, 50, 90, 120]" :key="'dur-' + min"
+                :class="['deep-timer-launcher__dur', timerLauncherDuration === min && !customTimerMin && 'deep-timer-launcher__dur--active']"
+                @click="timerLauncherDuration = min; customTimerMin = null" type="button">
                 {{ min }}m
               </button>
+              <div class="deep-timer-launcher__custom-wrap">
+                <input
+                  v-model.number="customTimerMin"
+                  type="number"
+                  min="1"
+                  max="300"
+                  placeholder="Custom"
+                  class="deep-timer-launcher__custom-input"
+                  @focus="onCustomTimerInput"
+                  @input="onCustomTimerInput"
+                />
+                <span class="deep-timer-launcher__custom-unit">m</span>
+              </div>
             </div>
           </div>
           <div class="deep-timer-launcher__row">
             <label class="deep-timer-launcher__label">Link to habit (auto-mark on complete)</label>
             <select v-model="timerLauncherHabitId" class="deep-timer-launcher__select">
-              <option value="">— No linked habit —</option>
+              <option value="">— No linked habit (general focus) —</option>
               <option v-for="h in timerHabitOptions" :key="'opt-' + h.id" :value="h.id">
-                {{ h.name }}
+                {{ hasCompletedDay(h, props.currentDay) ? '✓ ' : '' }}{{ h.name }} (+{{ h.points }} pt{{ h.points !== 1 ? 's' : '' }})
               </option>
             </select>
           </div>
           <button class="btn btn--primary-action deep-timer-launcher__start"
             @click="startDeepWorkTimer(timerLauncherDuration, timerLauncherHabitId || null)">
             <Play class="icon-sm" />
-            <span>Start {{ timerLauncherDuration }}-min Timer</span>
+            <span>Start {{ timerLauncherDuration }}-min Focus Session</span>
           </button>
         </div>
       </details>
 
       <!-- ══ DEEP WORK TIMER (sticky when active) ══ -->
-      <div v-if="timerState" class="deep-timer" :class="{ 'deep-timer--paused': !timerState.running, 'deep-timer--complete': timerState._autoCompleted }">
+      <div v-if="timerState" class="deep-timer" :class="{ 'deep-timer--paused': !timerState.running, 'deep-timer--complete': timerState._autoCompleted, 'deep-timer--break': timerState.isBreak }">
         <div class="deep-timer__ring">
           <svg viewBox="0 0 40 40" class="deep-timer__ring-svg">
             <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
@@ -3463,13 +3717,28 @@ const shareProgress = async () => {
         </div>
         <div class="deep-timer__body">
           <div class="deep-timer__top">
-            <span class="deep-timer__label" v-if="timerState._autoCompleted">✓ Done — {{ timerLinkedHabit?.name || 'Session' }} marked</span>
-            <span class="deep-timer__label" v-else-if="timerLinkedHabit">Deep Work · {{ timerLinkedHabit.name }}</span>
-            <span class="deep-timer__label" v-else>Deep Work Session</span>
+            <span class="deep-timer__label" v-if="timerState._autoCompleted && timerLinkedHabit">🎉 Done! {{ timerLinkedHabit.name }} marked (+{{ timerLinkedHabit.points }} pts)</span>
+            <span class="deep-timer__label" v-else-if="timerState._autoCompleted">🎉 Session Complete!</span>
+            <span class="deep-timer__label" v-else-if="timerState.isBreak">☕ Rest Break ({{ timerRemainingFormatted }} left)</span>
+            <span class="deep-timer__label" v-else-if="timerLinkedHabit">🎯 Focus · {{ timerLinkedHabit.name }}</span>
+            <span class="deep-timer__label" v-else>🎯 Deep Work Session</span>
             <span class="deep-timer__elapsed mono-num">{{ timerElapsedFormatted }} / {{ timerState.targetMin }}m</span>
           </div>
-          <div class="deep-timer__actions">
-            <button v-if="!timerState.running && !timerState._autoCompleted" class="deep-timer__btn deep-timer__btn--primary" @click="resumeDeepWorkTimer">
+
+          <div v-if="timerState._autoCompleted" class="deep-timer__actions deep-timer__complete-actions">
+            <button class="deep-timer__btn deep-timer__btn--break" @click="startBreakTimer(5)">
+              <Coffee class="icon-xs" /> 5m Break
+            </button>
+            <button class="deep-timer__btn deep-timer__btn--break" @click="startBreakTimer(15)">
+              <Coffee class="icon-xs" /> 15m Break
+            </button>
+            <button class="deep-timer__btn deep-timer__btn--primary" @click="stopDeepWorkTimer">
+              <Check class="icon-xs" /> Finish
+            </button>
+          </div>
+
+          <div v-else class="deep-timer__actions">
+            <button v-if="!timerState.running" class="deep-timer__btn deep-timer__btn--primary" @click="resumeDeepWorkTimer">
               <Play class="icon-xs" /> Resume
             </button>
             <button v-if="timerState.running" class="deep-timer__btn" @click="pauseDeepWorkTimer">
@@ -3501,12 +3770,29 @@ const shareProgress = async () => {
           </div>
           <span class="mcb-progress-label">{{ todayCompletedCount }}/{{ totalHabits }}</span>
         </div>
+
+        <!-- Live Up Next Activity Row on Mobile -->
+        <div v-if="props.isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, props.currentDay)"
+          class="mcb-up-next-row"
+          @click="toggleHabitForDay(upNextHabitInfo.habit, props.currentDay)">
+          <div class="mcb-up-next-tag" :class="{ 'mcb-up-next-tag--due': upNextHabitInfo.status === 'due' }">
+            <Clock class="icon-xs" />
+            <span>{{ upNextHabitInfo.shortBadge }}</span>
+          </div>
+          <span class="mcb-up-next-title">{{ upNextHabitInfo.habit.name }}</span>
+          <span class="mcb-up-next-action">
+            <Check class="icon-xs" />
+            <span>+{{ upNextHabitInfo.habit.points }}pt</span>
+          </span>
+        </div>
+
         <button class="mcb-expand-btn" @click="mobileHeroExpanded = !mobileHeroExpanded">
           {{ mobileHeroExpanded ? 'Hide Dashboard' : 'Show Dashboard' }}
           <ChevronUp v-if="mobileHeroExpanded" class="icon-xs" />
           <ChevronDown v-else class="icon-xs" />
         </button>
       </div>
+
 
       <!-- ── TOP HERO & OVERVIEW ── -->
       <section class="card card--hero" :class="{ 'mobile-hero-collapsed': !mobileHeroExpanded }" id="overview">
@@ -5099,8 +5385,8 @@ const shareProgress = async () => {
                       :disabled="mobileDayIsFuture || !!pendingCells[keyFor(habit.id, mobileDay)]"
                       @click="toggleHabitForDay(habit, mobileDay)"
                     >
-                      <span v-if="mobileDayIsToday && isHabitUpNext(habit) && !hasCompletedDay(habit, mobileDay)" class="mobile-daily__up-next-badge">
-                        <Link2 class="icon-xs" /> UP NEXT
+                      <span v-if="mobileDayIsToday && isHabitUpNext(habit) && !hasCompletedDay(habit, mobileDay)" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextHabitInfo?.status === 'due' }">
+                        <Clock class="icon-xs" /> {{ upNextHabitInfo?.badgeText || 'UP NEXT' }}
                       </span>
                       <div class="mobile-daily__card-check">
                         <span v-if="pendingCells[keyFor(habit.id, mobileDay)]" class="mobile-daily__spinner">…</span>
@@ -5173,9 +5459,12 @@ const shareProgress = async () => {
                 </thead>
 
                 <tbody>
-                  <tr v-for="habit in visibleHabits" :key="habit.id" class="habit-grid__row">
-                    <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★') }">
+                  <tr v-for="habit in visibleHabits" :key="habit.id" class="habit-grid__row" :class="{ 'habit-grid__row--up-next': props.isCurrentMonth && isHabitUpNext(habit) }">
+                    <td class="habit-grid__sticky habit-grid__name" :class="{ 'habit-grid__name--shared': habit.name.startsWith('★'), 'habit-grid__name--up-next': props.isCurrentMonth && isHabitUpNext(habit) }">
                       <span class="habit-grid__name-text">{{ habit.name }}</span>
+                      <span v-if="props.isCurrentMonth && isHabitUpNext(habit)" class="habit-grid__up-next-pill" :class="{ 'habit-grid__up-next-pill--due': upNextHabitInfo?.status === 'due' }" :title="'Scheduled: ' + (upNextHabitInfo?.timeLabel || '')">
+                        <Clock class="icon-xs" /> {{ upNextHabitInfo?.badgeText || 'UP NEXT' }}
+                      </span>
                       <span class="tier-badge tier-badge--grid" :class="tierColorClass(getHabitTier(habit.id))" :title="getTierDescriptions(habit.id)[getHabitTier(habit.id) - 1]">
                         T{{ getHabitTier(habit.id) }}
                       </span>
