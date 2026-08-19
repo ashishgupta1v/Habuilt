@@ -16,6 +16,7 @@ import RewardShop from '@/Components/Rewards/RewardShop.vue';
 import SundayReview from '@/Components/Review/SundayReview.vue';
 import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
+import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 
 // Composables & Data
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
@@ -887,67 +888,17 @@ const toggleTravelMode = () => {
   saveState();
 };
 
-const shareDailyScorecard = async () => {
-  try {
-    const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const user = displayName.value || 'Habuilt Member';
-    const title = levelTitle.value || 'Practitioner';
-    const lvl = levelData.value?.level || 1;
-    const streak = systemStreak.value?.current || 0;
-    const wallet = availableWallet.value || 0;
-    const tier = autoProtocolTier.value?.title || 'Daily Protocol';
-    const pts = todayPoints.value || 0;
-    const done = todayCompletedCount.value || 0;
-    const total = todayScheduledCount.value || (visibleHabits.value?.length || 0);
+const isShareModalOpen = ref(false);
 
-    const text = `⚡ Habuilt Daily Scorecard — ${dateStr}\n👤 ${user} (${title} Lv. ${lvl})\n🔥 Streak: ${streak} Days | 🏆 Wallet: ${wallet} pts\n🎯 Target: ${tier} (${pts}/15 pts)\n✅ ${done}/${total} Habits Done\n#Habuilt #HabitMastery\nhttps://www.habuilt.com`;
+const todayCompletedHabitsList = computed(() => {
+  const targetDay = mobileDayIsToday.value ? props.currentDay : mobileDay.value;
+  return (visibleHabits.value || [])
+    .filter(h => hasCompletedDay(h, targetDay))
+    .map(h => h.name);
+});
 
-    // 1. Web Share API (Mobile Safari, Chrome Android)
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: 'My Habuilt Daily Scorecard',
-          text: text,
-        });
-        showToast('🎉 Scorecard shared!');
-        return;
-      } catch (err) {
-        if (err && (err.name === 'AbortError' || err.message?.includes('cancel') || err.message?.includes('Abort'))) {
-          return;
-        }
-      }
-    }
-
-    // 2. Clipboard API Fallback
-    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast('📋 Scorecard copied to clipboard!');
-        return;
-      } catch (e) {
-        console.warn('Clipboard write failed, using fallback:', e);
-      }
-    }
-
-    // 3. Fallback textarea element
-    const el = document.createElement('textarea');
-    el.value = text;
-    el.setAttribute('readonly', '');
-    el.style.position = 'fixed';
-    el.style.left = '-9999px';
-    document.body.appendChild(el);
-    el.select();
-    const successful = document.execCommand('copy');
-    document.body.removeChild(el);
-    if (successful) {
-      showToast('📋 Scorecard copied to clipboard!');
-    } else {
-      showToast('⚡ Daily scorecard ready!');
-    }
-  } catch (globalErr) {
-    console.error('Share scorecard error:', globalErr);
-    showToast('📋 Scorecard copied!');
-  }
+const shareDailyScorecard = () => {
+  isShareModalOpen.value = true;
 };
 
 const handleAppReload = async () => {
@@ -1666,6 +1617,26 @@ onBeforeUnmount(() => {
           <span>{{ toastMessage }}</span>
         </div>
       </transition>
+
+      <!-- Share Daily Scorecard Modal (Energetic Creative Image Generator) -->
+      <ShareScorecardModal
+        :is-open="isShareModalOpen"
+        :display-name="displayName"
+        :level-title="levelTitle"
+        :level="levelData?.level || 1"
+        :streak="systemStreak?.current || 0"
+        :wallet="availableWallet || 0"
+        :today-points="todayPoints || 0"
+        :today-target="15"
+        :tier-title="autoProtocolTier?.title || 'Daily Protocol'"
+        :completed-count="todayCompletedCount || 0"
+        :total-habits="todayScheduledCount || 0"
+        :performance-grade="performanceGrade"
+        :completed-habits-list="todayCompletedHabitsList"
+        :date-label="mobileDayIsToday ? '' : mobileDayLabel"
+        @close="isShareModalOpen = false"
+        @toast="msg => showToast(msg)"
+      />
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
       <MobileBottomNav
