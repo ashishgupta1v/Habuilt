@@ -270,9 +270,9 @@ const {
   startBreakTimer,
   onCustomTimerInput,
 } = useDeepWorkTimer({
-  allHabits: () => visibleHabits.value,
+  allHabits: () => (localHabits.value || []).filter(h => !enhancedState.value.archivedHabitIds?.includes(h.id) && !h.archived),
   onHabitAutoComplete: (habitId) => {
-    const targetHabit = visibleHabits.value.find(h => h.id === habitId);
+    const targetHabit = (localHabits.value || []).find(h => String(h.id) === String(habitId));
     if (targetHabit && !hasCompletedDay(targetHabit, props.currentDay)) {
       toggleHabitForDay(targetHabit, props.currentDay);
     }

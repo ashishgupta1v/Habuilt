@@ -11,6 +11,7 @@ import {
   Sparkles,
   Zap,
   Clock,
+  ChevronDown,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -46,15 +47,19 @@ const emit = defineEmits([
     <!-- Header Bar -->
     <div class="focus-station-header">
       <div class="focus-station-header__left">
-        <div class="focus-station-icon-glow">
-          <Timer class="icon-md icon-focus-gold" />
+        <div class="focus-station-brand-icon">
+          <div class="focus-station-icon-halo"></div>
+          <Timer class="icon-md icon-focus-gold focus-station-pulse-icon" />
         </div>
-        <div>
+        <div class="focus-station-heading">
           <div class="focus-station-title-row">
             <h2 class="focus-station-title">Deep Work Station</h2>
-            <span class="focus-station-live-badge" v-if="timerState && timerState.running">LIVE SESSION</span>
+            <span class="focus-station-live-badge" v-if="timerState && timerState.running">
+              <span class="focus-station-live-dot"></span>
+              LIVE
+            </span>
           </div>
-          <p class="focus-station-subtitle">Zero-distraction flow state with automatic habit logging</p>
+          <p class="focus-station-subtitle">Zero-distraction flow state &bull; Auto-logs linked habits</p>
         </div>
       </div>
       <button
@@ -67,7 +72,7 @@ const emit = defineEmits([
       >
         <Volume2 v-if="timerSoundEnabled" class="icon-xs" />
         <VolumeX v-else class="icon-xs" />
-        <span>{{ timerSoundEnabled ? 'Chime On' : 'Muted' }}</span>
+        <span>{{ timerSoundEnabled ? 'Chime' : 'Muted' }}</span>
       </button>
     </div>
 
@@ -199,17 +204,20 @@ const emit = defineEmits([
           <Sparkles class="icon-xs" />
           <span>Link Habit (Auto-Completes Upon Finish)</span>
         </label>
-        <select
-          id="focus-select-habit"
-          :value="timerLauncherHabitId"
-          @change="emit('update:timerLauncherHabitId', $event.target.value)"
-          class="focus-station-select"
-        >
-          <option value="">— General Focus Session (No habit linked) —</option>
-          <option v-for="h in timerHabitOptions" :key="'focus-opt-' + h.id" :value="h.id">
-            {{ hasCompletedDay(h, currentDay) ? '✓ ' : '' }}{{ h.name }} (+{{ h.points }} pt{{ h.points !== 1 ? 's' : '' }})
-          </option>
-        </select>
+        <div class="focus-station-select-wrap">
+          <select
+            id="focus-select-habit"
+            :value="timerLauncherHabitId"
+            @change="emit('update:timerLauncherHabitId', $event.target.value)"
+            class="focus-station-select"
+          >
+            <option value="">— General Focus Session (No habit linked) —</option>
+            <option v-for="h in timerHabitOptions" :key="'focus-opt-' + h.id" :value="h.id">
+              {{ hasCompletedDay(h, currentDay) ? '✓ ' : '○ ' }}{{ h.name }} (+{{ h.points }} pt{{ h.points !== 1 ? 's' : '' }})
+            </option>
+          </select>
+          <ChevronDown class="icon-sm focus-station-select-arrow" />
+        </div>
       </div>
 
       <!-- Launch Action Button -->

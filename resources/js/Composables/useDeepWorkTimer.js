@@ -43,50 +43,54 @@ export const playTimerChime = (type = 'complete') => {
   }
 };
 
-// Global timer state across all components
+// Global reactive timer state across all components
 const timerState = ref(null);
 const timerLauncherDuration = ref(25);
 const customTimerMin = ref(null);
 const timerLauncherHabitId = ref('');
 const timerSoundEnabled = ref(true);
 const timerCompleteToast = ref(null);
+const now = ref(Date.now());
 let timerInterval = null;
 
 export function useDeepWorkTimer(options = {}) {
   const { onHabitAutoComplete, allHabits = ref([]) } = options;
 
+  const getHabitsList = () => {
+    if (typeof allHabits === 'function') return allHabits() || [];
+    if (allHabits && typeof allHabits.value === 'function') return allHabits.value() || [];
+    if (allHabits && allHabits.value !== undefined) return allHabits.value || [];
+    return allHabits || [];
+  };
+
+  const timerElapsedSec = computed(() => {
+    if (!timerState.value) return 0;
+    const { startedAt, elapsedBeforePause = 0, running, targetMin } = timerState.value;
+    let sec = elapsedBeforePause;
+    if (running && startedAt) {
+      sec += Math.floor((now.value - startedAt) / 1000);
+    }
+    return Math.min(targetMin * 60, Math.max(0, sec));
+  });
+
   const timerProgressPct = computed(() => {
     if (!timerState.value) return 0;
-    const { targetMin, startedAt, elapsedBeforePause = 0, running } = timerState.value;
-    const totalSec = targetMin * 60;
-    let elapsedSec = elapsedBeforePause;
-    if (running && startedAt) {
-      elapsedSec += Math.floor((Date.now() - startedAt) / 1000);
-    }
-    return Math.min(100, Math.round((elapsedSec / totalSec) * 100));
+    const totalSec = timerState.value.targetMin * 60;
+    if (totalSec <= 0) return 0;
+    return Math.min(100, Math.max(0, Math.round((timerElapsedSec.value / totalSec) * 100)));
   });
 
   const timerElapsedFormatted = computed(() => {
-    if (!timerState.value) return '00:00';
-    const { startedAt, elapsedBeforePause = 0, running } = timerState.value;
-    let elapsedSec = elapsedBeforePause;
-    if (running && startedAt) {
-      elapsedSec += Math.floor((Date.now() - startedAt) / 1000);
-    }
-    const m = Math.floor(elapsedSec / 60);
-    const s = elapsedSec % 60;
+    const sec = timerElapsedSec.value;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   });
 
   const timerRemainingFormatted = computed(() => {
     if (!timerState.value) return '00:00';
-    const { targetMin, startedAt, elapsedBeforePause = 0, running } = timerState.value;
-    const totalSec = targetMin * 60;
-    let elapsedSec = elapsedBeforePause;
-    if (running && startedAt) {
-      elapsedSec += Math.floor((Date.now() - startedAt) / 1000);
-    }
-    const remainingSec = Math.max(0, totalSec - elapsedSec);
+    const totalSec = timerState.value.targetMin * 60;
+    const remainingSec = Math.max(0, totalSec - timerElapsedSec.value);
     const m = Math.floor(remainingSec / 60);
     const s = remainingSec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
@@ -94,20 +98,20 @@ export function useDeepWorkTimer(options = {}) {
 
   const timerLinkedHabit = computed(() => {
     if (!timerState.value?.linkedHabitId) return null;
-    const habitsList = typeof allHabits.value === 'function' ? allHabits.value() : (allHabits.value || []);
-    return habitsList.find(h => h.id === timerState.value.linkedHabitId) || null;
+    const list = getHabitsList();
+    return list.find(h => String(h.id) === String(timerState.value.linkedHabitId)) || null;
   });
 
   const timerHabitOptions = computed(() => {
-    const habitsList = typeof allHabits.value === 'function' ? allHabits.value() : (allHabits.value || []);
-    return habitsList.filter(h => !h.archived);
+    const list = getHabitsList();
+    return (list || []).filter(h => !h.archived);
   });
 
   const checkTimerTick = () => {
     if (!timerState.value || !timerState.value.running) return;
     const { targetMin, startedAt, elapsedBeforePause = 0, linkedHabitId, isBreak } = timerState.value;
     const totalSec = targetMin * 60;
-    const elapsedSec = elapsedBeforePause + Math.floor((Date.now() - startedAt) / 1000);
+    const elapsedSec = elapsedBeforePause + Math.floor((now.value - startedAt) / 1000);
 
     if (elapsedSec >= totalSec) {
       // Completed!
@@ -122,11 +126,26 @@ export function useDeepWorkTimer(options = {}) {
       if (linkedHabitId && !isBreak && onHabitAutoComplete) {
         onHabitAutoComplete(linkedHabitId);
       }
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     }
+  };
+
+  const startInterval = () => {
+    if (timerInterval) clearInterval(timerInterval);
+    now.value = Date.now();
+    timerInterval = setInterval(() => {
+      now.value = Date.now();
+      checkTimerTick();
+    }, 250);
   };
 
   const startDeepWorkTimer = (durationMin, habitId = null) => {
     const finalMin = Number(customTimerMin.value) || Number(durationMin) || 25;
+    now.value = Date.now();
     timerState.value = {
       targetMin: finalMin,
       startedAt: Date.now(),
@@ -136,31 +155,41 @@ export function useDeepWorkTimer(options = {}) {
       isBreak: false,
       _autoCompleted: false,
     };
-    if (!timerInterval) {
-      timerInterval = setInterval(checkTimerTick, 1000);
-    }
+    startInterval();
   };
 
   const pauseDeepWorkTimer = () => {
     if (!timerState.value || !timerState.value.running) return;
-    const elapsedSec = (timerState.value.elapsedBeforePause || 0) + Math.floor((Date.now() - timerState.value.startedAt) / 1000);
+    now.value = Date.now();
+    const elapsedSec = (timerState.value.elapsedBeforePause || 0) + Math.floor((now.value - timerState.value.startedAt) / 1000);
     timerState.value.elapsedBeforePause = elapsedSec;
     timerState.value.running = false;
     timerState.value.startedAt = null;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
   };
 
   const resumeDeepWorkTimer = () => {
     if (!timerState.value || timerState.value.running) return;
+    now.value = Date.now();
     timerState.value.startedAt = Date.now();
     timerState.value.running = true;
+    startInterval();
   };
 
   const stopDeepWorkTimer = () => {
     timerState.value = null;
     customTimerMin.value = null;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
   };
 
   const startBreakTimer = (durationMin = 5) => {
+    now.value = Date.now();
     timerState.value = {
       targetMin: durationMin,
       startedAt: Date.now(),
@@ -170,9 +199,7 @@ export function useDeepWorkTimer(options = {}) {
       isBreak: true,
       _autoCompleted: false,
     };
-    if (!timerInterval) {
-      timerInterval = setInterval(checkTimerTick, 1000);
-    }
+    startInterval();
   };
 
   const onCustomTimerInput = () => {
@@ -183,7 +210,15 @@ export function useDeepWorkTimer(options = {}) {
 
   onMounted(() => {
     if (!timerInterval && timerState.value && timerState.value.running) {
-      timerInterval = setInterval(checkTimerTick, 1000);
+      startInterval();
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && timerState.value?.running) {
+          now.value = Date.now();
+          checkTimerTick();
+        }
+      });
     }
   });
 

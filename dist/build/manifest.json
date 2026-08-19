@@ -1,10 +1,10 @@
 {
   "_app-!~{006}~.js": {
-    "file": "assets/app-BG0k1bId.css",
+    "file": "assets/app-CptfXdGk.css",
     "src": "_app-!~{006}~.js"
   },
-  "_app-lCr16jMF.js": {
-    "file": "assets/app-lCr16jMF.js",
+  "_app-Ds7J4BmO.js": {
+    "file": "assets/app-Ds7J4BmO.js",
     "name": "app",
     "imports": [
       "_vendor-bATAWQba.js",
@@ -12,7 +12,7 @@
       "_vendor-icons-DUsqvCgd.js"
     ],
     "css": [
-      "assets/app-BG0k1bId.css"
+      "assets/app-CptfXdGk.css"
     ]
   },
   "_vendor-bATAWQba.js": {
@@ -34,24 +34,24 @@
     ]
   },
   "index.html": {
-    "file": "assets/preview-BdDYTp2R.js",
+    "file": "assets/preview-Cgkh0MIJ.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_app-lCr16jMF.js",
+      "_app-Ds7J4BmO.js",
       "_vendor-vue-C-QgzfF7.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-DUsqvCgd.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app--VN0IRgQ.js",
+    "file": "assets/app-CbfScDmz.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_app-lCr16jMF.js",
+      "_app-Ds7J4BmO.js",
       "_vendor-vue-C-QgzfF7.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-DUsqvCgd.js"
