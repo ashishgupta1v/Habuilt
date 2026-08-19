@@ -85,7 +85,7 @@ const emit = defineEmits([
         @click="emit('prev-day')"
         aria-label="Previous Day"
       >
-        <ChevronLeft class="icon-md" />
+        <ChevronLeft class="icon-sm" />
       </button>
       <div class="mobile-daily__nav-center">
         <button v-if="!mobileDayIsToday" class="mobile-daily__today-link" @click="emit('go-today')">
@@ -102,7 +102,7 @@ const emit = defineEmits([
         @click="emit('next-day')"
         aria-label="Next Day"
       >
-        <ChevronRight class="icon-md" />
+        <ChevronRight class="icon-sm" />
       </button>
     </div>
 
