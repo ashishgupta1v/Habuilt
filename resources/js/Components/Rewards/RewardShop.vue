@@ -153,9 +153,17 @@ const emit = defineEmits([
       <div class="rewards-catalog-head">
         <div class="rewards-catalog-title">
           <ShoppingBag class="icon-sm icon-catalog-gold" />
-          <span>Rewards Catalog</span>
+          <span>Rewards Catalog ({{ activeRewards.length }})</span>
         </div>
-        <span class="rewards-catalog-subtitle">{{ activeRewards.length }} unlockable items</span>
+        <button
+          type="button"
+          class="reward-vault-edit-btn"
+          @click="emit('start-editing')"
+          title="Edit Rewards Catalog"
+        >
+          <Edit3 class="icon-xs" />
+          <span>Edit Catalog</span>
+        </button>
       </div>
 
       <div class="rewards-grid">

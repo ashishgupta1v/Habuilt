@@ -1036,6 +1036,60 @@ const saveHabits = () => {
   saveState();
 };
 
+// Rewards Editor Handlers
+const startEditingRewards = () => {
+  rewardsDraft.value = (rewards.value || []).map(r => ({
+    id: r.id || `reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: r.type || 'Weekly',
+    item: r.item || '',
+    cost: Number(r.cost) || 10,
+  }));
+  rewardsEditing.value = true;
+};
+
+const cancelEditingRewards = () => {
+  rewardsEditing.value = false;
+};
+
+const saveRewardsCatalog = () => {
+  const sanitized = (rewardsDraft.value || [])
+    .filter(r => r.item && r.item.trim().length > 0)
+    .map(r => ({
+      id: r.id || `reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: r.type ? r.type.trim() : 'Weekly',
+      item: r.item.trim(),
+      cost: Math.max(1, Number(r.cost) || 10),
+    }));
+
+  if (sanitized.length > 0) {
+    rewards.value = sanitized;
+  }
+  rewardsEditing.value = false;
+  saveState();
+};
+
+const restoreDefaultRewards = () => {
+  rewards.value = defaultRewards.map((r, i) => ({
+    id: `default-reward-${i}`,
+    ...r,
+  }));
+  rewardsEditing.value = false;
+  saveState();
+};
+
+const addDraftReward = () => {
+  rewardsDraft.value.push({
+    id: `reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: 'Weekly',
+    item: '',
+    cost: 10,
+  });
+};
+
+const removeDraftReward = (index) => {
+  rewardsDraft.value.splice(index, 1);
+};
+
 // Month Navigation
 const goToPreviousMonth = () => {
   if (!props.canNavigatePrevMonth) return;
@@ -1176,10 +1230,12 @@ onBeforeUnmount(() => {
       :is-ashish="isAshish"
       :travel-mode="travelMode"
       :dark-mode="darkMode"
+      :is-syncing="isSyncingCloud"
       @toggle-up-next="toggleHabitForDay"
       @toggle-theme="toggleTheme"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
+      @reload-app="() => syncCloudState(true)"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
@@ -1486,12 +1542,12 @@ onBeforeUnmount(() => {
           :is-claimed-this-month="() => false"
           :can-afford-reward="r => availableWallet >= r.cost"
           @toggle-expand="() => {}"
-          @start-editing="() => { rewardsDraft = rewards.map(r => ({ ...r })); rewardsEditing = true; }"
-          @cancel-editing="rewardsEditing = false"
-          @save-rewards="() => { rewards = rewardsDraft.map(r => ({ ...r })); rewardsEditing = false; saveState(); }"
-          @restore-default-rewards="() => { rewards = defaultRewards.map(r => ({ ...r })); rewardsEditing = false; saveState(); }"
-          @add-draft-reward="() => rewardsDraft.push({ type: 'Weekly', item: '', cost: 10 })"
-          @remove-draft-reward="idx => rewardsDraft.splice(idx, 1)"
+          @start-editing="startEditingRewards"
+          @cancel-editing="cancelEditingRewards"
+          @save-rewards="saveRewardsCatalog"
+          @restore-default-rewards="restoreDefaultRewards"
+          @add-draft-reward="addDraftReward"
+          @remove-draft-reward="removeDraftReward"
           @redeem-reward="r => { rewardLedger.push({ id: Date.now(), item: r.item, cost: r.cost, claimed_at: new Date().toLocaleDateString() }); saveState(); }"
         />
       </section>

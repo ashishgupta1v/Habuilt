@@ -10,6 +10,7 @@ import {
   Moon,
   Plane,
   Share2,
+  RefreshCw,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -27,6 +28,7 @@ const props = defineProps({
   isAshish: { type: Boolean, default: false },
   travelMode: { type: Boolean, default: false },
   darkMode: { type: Boolean, default: true },
+  isSyncing: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -34,6 +36,7 @@ const emit = defineEmits([
   'toggle-theme',
   'toggle-travel',
   'share-scorecard',
+  'reload-app',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -55,6 +58,18 @@ const autoProtocolBadge = computed(() => {
       </div>
 
       <div class="mcb-actions-group">
+        <!-- Manual Sync / Reload Button -->
+        <button
+          id="mcb-btn-reload"
+          type="button"
+          class="mcb-icon-btn"
+          @click="emit('reload-app')"
+          :title="isSyncing ? 'Syncing...' : 'Reload & Sync Database'"
+          aria-label="Reload and Sync"
+        >
+          <RefreshCw class="icon-xs" :class="{ 'animate-spin': isSyncing }" />
+        </button>
+
         <!-- Travel Mode Toggle (Ashish only) -->
         <button
           v-if="isAshish"
