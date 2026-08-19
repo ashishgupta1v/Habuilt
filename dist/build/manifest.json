@@ -1,31 +1,31 @@
 {
   "_app-!~{003}~.js": {
-    "file": "assets/app-_YVh1Uuq.css",
+    "file": "assets/app-BQ_bjTRB.css",
     "src": "_app-!~{003}~.js"
   },
-  "_app-mn1MJ2Cl.js": {
-    "file": "assets/app-mn1MJ2Cl.js",
+  "_app-CU0VJpdy.js": {
+    "file": "assets/app-CU0VJpdy.js",
     "name": "app",
     "css": [
-      "assets/app-_YVh1Uuq.css"
+      "assets/app-BQ_bjTRB.css"
     ]
   },
   "index.html": {
-    "file": "assets/preview-VFpRTDp6.js",
+    "file": "assets/preview-c-oFf1KP.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_app-mn1MJ2Cl.js"
+      "_app-CU0VJpdy.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CyfG4-Kn.js",
+    "file": "assets/app-ipMy1229.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_app-mn1MJ2Cl.js"
+      "_app-CU0VJpdy.js"
     ]
   }
 }

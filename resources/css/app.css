@@ -215,13 +215,14 @@ button {
   padding: 12px 14px 40px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .app-main-content {
-    padding: 8px 8px 84px;
+    padding: 0 0 calc(84px + env(safe-area-inset-bottom, 0px));
+    max-width: 100%;
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .app-main-content {
     padding: 18px 22px 60px;
   }
@@ -242,6 +243,19 @@ button {
   transition: var(--transition);
 }
 
+@media (max-width: 768px) {
+  .app-nav {
+    top: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid var(--shell-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
 body.theme-dark .app-nav {
   background: rgba(10, 17, 32, 0.88);
   border-color: var(--shell-border);
@@ -255,6 +269,13 @@ body.theme-dark .app-nav {
   padding: 8px 14px;
   min-height: 58px;
   gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .app-nav__container {
+    padding: 8px 12px;
+    min-height: 52px;
+  }
 }
 
 .app-nav__left {
@@ -2801,6 +2822,11 @@ body.theme-dark .milestone-fill {
 @media (max-width: 768px) {
   .mobile-daily {
     display: block;
+    padding: 0 10px;
+  }
+
+  #habits .section-head {
+    padding: 0 10px 6px;
   }
 
   .mobile-daily--hidden {
@@ -9581,23 +9607,30 @@ body.theme-dark .reward-bar {
    ══════════════════════════════════════════════════════════════════════ */
 .mobile-compact-bar {
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 52px;
+  z-index: 90;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 8px 10px;
+  padding: 10px 14px;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  margin-bottom: 10px;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  margin-bottom: 12px;
+  width: 100%;
 }
 body:not(.dark-mode) .mobile-compact-bar {
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 .mcb-row--top {
