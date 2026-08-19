@@ -407,81 +407,6 @@ const showToast = (message, duration = 2800) => {
   }, duration);
 };
 
-const shareDailyScorecard = async () => {
-  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const tierName = autoProtocolTier.value?.title || 'Daily Protocol';
-  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${todayScheduledCount.value} Habits Done\n#Habuilt #HabitMastery\nhttps://www.habuilt.com`;
-
-  // 1. Native Web Share API (Mobile Safari, Chrome Android)
-  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-    try {
-      await navigator.share({
-        title: 'My Habuilt Daily Scorecard',
-        text: text,
-      });
-      showToast('🎉 Scorecard shared!');
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') {
-        return; // User cancelled share sheet
-      }
-    }
-  }
-
-  // 2. Clipboard API Fallback
-  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('📋 Scorecard copied to clipboard!');
-      return;
-    } catch (e) {
-      console.warn('Clipboard write failed, using fallback:', e);
-    }
-  }
-
-  // 3. Document execCommand fallback
-  try {
-    const el = document.createElement('textarea');
-    el.value = text;
-    el.setAttribute('readonly', '');
-    el.style.position = 'fixed';
-    el.style.left = '-9999px';
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    showToast('📋 Scorecard copied to clipboard!');
-  } catch (err) {
-    showToast('⚡ Daily scorecard ready!');
-  }
-};
-
-const handleAppReload = async () => {
-  try {
-    isSyncingCloud.value = true;
-    showToast('🔄 Syncing & Refreshing...');
-
-    // 1. Re-read local storage
-    loadState();
-
-    // 2. Pull remote cloud state if user is logged in
-    if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
-      const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
-      if (remoteData) {
-        applyLoadedState(remoteData, true);
-        lastSyncTimestamp = Date.now();
-      }
-    }
-
-    showToast('✅ App Synced & Refreshed!');
-  } catch (err) {
-    console.warn('Reload sync error:', err);
-    showToast('⚡ Refreshed');
-  } finally {
-    isSyncingCloud.value = false;
-  }
-};
-
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${effectiveUserId.value}.${monthScope.value}`);
 const localStatePrefix = computed(() => `habuilt.dashboard.${effectiveUserId.value}.`);
@@ -761,6 +686,14 @@ const getDayTotal = (day) => visibleHabits.value.reduce((sum, h) => hasCompleted
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 
+const autoProtocolTier = computed(() => {
+  const pts = todayPoints.value;
+  if (pts >= 15) return { title: '🏆 Full Target', tier: 'Full' };
+  if (pts >= 8)  return { title: '⚡ Half Hit', tier: 'Half' };
+  if (pts >= 4)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
+  return { title: '🌱 Building Momentum', tier: 'Base' };
+});
+
 const monthlyTotalEarned = computed(() => {
   let total = 0;
   for (let d = 1; d <= props.monthDays; d++) {
@@ -952,6 +885,95 @@ const toggleTravelMode = () => {
   travelMode.value = !travelMode.value;
   localHabits.value = (travelMode.value ? ashishTravelHabits : ashishHabits).map(h => ({ ...h, completed_days: [] }));
   saveState();
+};
+
+const shareDailyScorecard = async () => {
+  try {
+    const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const user = displayName.value || 'Habuilt Member';
+    const title = levelTitle.value || 'Practitioner';
+    const lvl = levelData.value?.level || 1;
+    const streak = systemStreak.value?.current || 0;
+    const wallet = availableWallet.value || 0;
+    const tier = autoProtocolTier.value?.title || 'Daily Protocol';
+    const pts = todayPoints.value || 0;
+    const done = todayCompletedCount.value || 0;
+    const total = todayScheduledCount.value || (visibleHabits.value?.length || 0);
+
+    const text = `⚡ Habuilt Daily Scorecard — ${dateStr}\n👤 ${user} (${title} Lv. ${lvl})\n🔥 Streak: ${streak} Days | 🏆 Wallet: ${wallet} pts\n🎯 Target: ${tier} (${pts}/15 pts)\n✅ ${done}/${total} Habits Done\n#Habuilt #HabitMastery\nhttps://www.habuilt.com`;
+
+    // 1. Web Share API (Mobile Safari, Chrome Android)
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'My Habuilt Daily Scorecard',
+          text: text,
+        });
+        showToast('🎉 Scorecard shared!');
+        return;
+      } catch (err) {
+        if (err && (err.name === 'AbortError' || err.message?.includes('cancel') || err.message?.includes('Abort'))) {
+          return;
+        }
+      }
+    }
+
+    // 2. Clipboard API Fallback
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('📋 Scorecard copied to clipboard!');
+        return;
+      } catch (e) {
+        console.warn('Clipboard write failed, using fallback:', e);
+      }
+    }
+
+    // 3. Fallback textarea element
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'fixed';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(el);
+    if (successful) {
+      showToast('📋 Scorecard copied to clipboard!');
+    } else {
+      showToast('⚡ Daily scorecard ready!');
+    }
+  } catch (globalErr) {
+    console.error('Share scorecard error:', globalErr);
+    showToast('📋 Scorecard copied!');
+  }
+};
+
+const handleAppReload = async () => {
+  try {
+    isSyncingCloud.value = true;
+    showToast('🔄 Syncing & Refreshing...');
+
+    // 1. Re-read local storage
+    loadState();
+
+    // 2. Pull remote cloud state if user is logged in
+    if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+      const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
+      if (remoteData) {
+        applyLoadedState(remoteData, true);
+        lastSyncTimestamp = Date.now();
+      }
+    }
+
+    showToast('✅ App Synced & Refreshed!');
+  } catch (err) {
+    console.warn('Reload sync error:', err);
+    showToast('⚡ Refreshed');
+  } finally {
+    isSyncingCloud.value = false;
+  }
 };
 
 // ── State Persistence & Automatic Real-Time Cloud Sync ──
