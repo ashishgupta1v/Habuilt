@@ -4,6 +4,8 @@ import {
   Check,
   Clock,
   MessageSquare,
+  Info,
+  FileText,
 } from 'lucide-vue-next';
 import HabitGuidanceCard from './HabitGuidanceCard.vue';
 
@@ -89,19 +91,30 @@ const emit = defineEmits([
         </div>
       </div>
 
-      <span class="mobile-daily__card-pts">
-        +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
-      </span>
+      <!-- Right Meta: Points & Instructions/Note Action -->
+      <div class="mobile-daily__card-right">
+        <span class="mobile-daily__card-pts">
+          +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
+        </span>
 
-      <!-- Habit Note Toggle -->
-      <button
-        class="habit-note-btn"
-        @click.stop="emit('toggle-note')"
-        :class="{ 'habit-note-btn--has': !!noteValue }"
-        title="Add note"
-      >
-        <MessageSquare class="icon-xs" />
-      </button>
+        <!-- Habit Instruction & Note Toggle -->
+        <button
+          type="button"
+          class="habit-note-btn"
+          :class="{
+            'habit-note-btn--has': !!noteValue,
+            'habit-note-btn--open': noteOpen,
+            'habit-note-btn--hint': !!habit.hint
+          }"
+          @click.stop="emit('toggle-note')"
+          :title="habit.hint ? 'View instructions & daily note' : 'Add quick note'"
+          :aria-label="'Instructions and notes for ' + habit.name"
+        >
+          <Info v-if="habit.hint && !noteValue" class="icon-xs habit-note-btn__icon" />
+          <FileText v-else-if="noteValue" class="icon-xs habit-note-btn__icon" />
+          <MessageSquare v-else class="icon-xs habit-note-btn__icon" />
+        </button>
+      </div>
     </div>
 
     <!-- Habit Note Input & Guidance Drawer -->
