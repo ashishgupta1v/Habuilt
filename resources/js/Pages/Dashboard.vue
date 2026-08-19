@@ -1038,11 +1038,12 @@ const saveHabits = () => {
 
 // Rewards Editor Handlers
 const startEditingRewards = () => {
-  rewardsDraft.value = (rewards.value || []).map(r => ({
-    id: r.id || `reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  const source = (rewards.value && rewards.value.length > 0) ? rewards.value : defaultRewards;
+  rewardsDraft.value = source.map((r, idx) => ({
+    id: r.id || `reward-${Date.now()}-${idx}`,
     type: r.type || 'Weekly',
     item: r.item || '',
-    cost: Number(r.cost) || 10,
+    cost: Number(r.cost) !== undefined && !isNaN(Number(r.cost)) ? Number(r.cost) : 10,
   }));
   rewardsEditing.value = true;
 };

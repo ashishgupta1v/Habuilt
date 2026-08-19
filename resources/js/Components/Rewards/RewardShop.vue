@@ -94,39 +94,52 @@ const emit = defineEmits([
       </div>
 
       <div class="rewards-editor-list">
-        <div v-for="(reward, index) in rewardsDraft" :key="`reward-draft-${index}`" class="rewards-editor-row">
-          <input
-            v-model="reward.type"
-            type="text"
-            maxlength="24"
-            placeholder="Tier (Daily/Weekly...)"
-            class="rewards-editor-type-input"
-          />
-          <input
-            v-model="reward.item"
-            type="text"
-            maxlength="100"
-            placeholder="Reward name"
-            class="rewards-editor-name-input"
-          />
-          <div class="rewards-editor-cost-wrap">
+        <div
+          v-for="(reward, index) in rewardsDraft"
+          :key="reward.id || `reward-draft-${index}`"
+          class="rewards-editor-row"
+        >
+          <div class="rewards-editor-row-meta">
             <input
-              v-model.number="reward.cost"
-              type="number"
-              min="1"
-              max="10000"
-              class="rewards-editor-cost-input mono-num"
+              v-model="reward.type"
+              type="text"
+              maxlength="24"
+              placeholder="Tier (Daily, Weekly...)"
+              class="rewards-editor-type-input"
+              aria-label="Reward Tier"
             />
-            <span class="rewards-editor-cost-unit">pts</span>
+            <div class="rewards-editor-cost-wrap">
+              <input
+                v-model.number="reward.cost"
+                type="number"
+                min="1"
+                max="10000"
+                placeholder="Pts"
+                class="rewards-editor-cost-input mono-num"
+                aria-label="Reward Points Cost"
+              />
+              <span class="rewards-editor-cost-unit">pts</span>
+            </div>
+            <button
+              type="button"
+              class="rewards-editor-delete-btn"
+              @click="emit('remove-draft-reward', index)"
+              title="Delete reward"
+              aria-label="Delete reward"
+            >
+              <Trash2 class="icon-xs" />
+            </button>
           </div>
-          <button
-            type="button"
-            class="rewards-editor-delete-btn"
-            @click="emit('remove-draft-reward', index)"
-            title="Delete reward"
-          >
-            <Trash2 class="icon-xs" />
-          </button>
+          <div class="rewards-editor-row-main">
+            <input
+              v-model="reward.item"
+              type="text"
+              maxlength="100"
+              placeholder="Reward item name (e.g. Movie night, Cheat meal...)"
+              class="rewards-editor-name-input"
+              aria-label="Reward Name"
+            />
+          </div>
         </div>
       </div>
 

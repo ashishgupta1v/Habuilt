@@ -1,10 +1,10 @@
 {
   "_app-!~{006}~.js": {
-    "file": "assets/app-BmHnxAI3.css",
+    "file": "assets/app-28lCK30p.css",
     "src": "_app-!~{006}~.js"
   },
-  "_app-1YM8Tag8.js": {
-    "file": "assets/app-1YM8Tag8.js",
+  "_app-Bir4abW5.js": {
+    "file": "assets/app-Bir4abW5.js",
     "name": "app",
     "imports": [
       "_vendor-bATAWQba.js",
@@ -12,7 +12,7 @@
       "_vendor-icons-Dk2EsIEt.js"
     ],
     "css": [
-      "assets/app-BmHnxAI3.css"
+      "assets/app-28lCK30p.css"
     ]
   },
   "_vendor-bATAWQba.js": {
@@ -34,24 +34,24 @@
     ]
   },
   "index.html": {
-    "file": "assets/preview-Bbs43CI5.js",
+    "file": "assets/preview-BSeEu7Pb.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_app-1YM8Tag8.js",
+      "_app-Bir4abW5.js",
       "_vendor-vue-C-QgzfF7.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-Dk2EsIEt.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CQabyJS4.js",
+    "file": "assets/app-Yb_NdSdd.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_app-1YM8Tag8.js",
+      "_app-Bir4abW5.js",
       "_vendor-vue-C-QgzfF7.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-Dk2EsIEt.js"
