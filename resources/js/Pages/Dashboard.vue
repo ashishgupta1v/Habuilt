@@ -915,7 +915,23 @@ const loadLocalState = () => {
     if (raw) {
       const data = JSON.parse(raw);
       if (Array.isArray(data.habits) && data.habits.length > 0) {
-        localHabits.value = data.habits;
+        const fallbackMap = new Map(fallbackHabits.value.map(h => [h.id, h]));
+        localHabits.value = data.habits.map(h => {
+          const fallback = fallbackMap.get(h.id);
+          if (fallback) {
+            return {
+              ...fallback,
+              ...h,
+              name: fallback.name,
+              hint: fallback.hint,
+              daysOfWeek: fallback.daysOfWeek,
+              scheduleLabel: fallback.scheduleLabel,
+              points: fallback.points,
+              completed_days: Array.isArray(h.completed_days) ? h.completed_days : [],
+            };
+          }
+          return h;
+        });
       } else {
         localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
       }

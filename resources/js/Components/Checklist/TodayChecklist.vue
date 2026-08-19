@@ -263,6 +263,7 @@ const emit = defineEmits([
             :tier-detail-expanded="tierDetailHabitId === habit.id"
             :note-open="habitNotesOpen === habit.id + ':' + mobileDay"
             :note-value="getHabitNote(habit.id, mobileDay)"
+            :schedule-filter-mode="scheduleFilterMode"
             @toggle-check="emit('toggle-habit', habit, mobileDay)"
             @toggle-tier-detail="emit('toggle-tier-detail', habit.id)"
             @set-tier="(t) => emit('set-tier', habit.id, t)"

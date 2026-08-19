@@ -24,6 +24,7 @@ const props = defineProps({
   tierDetailExpanded: { type: Boolean, default: false },
   noteOpen: { type: Boolean, default: false },
   noteValue: { type: String, default: '' },
+  scheduleFilterMode: { type: String, default: 'scheduled' },
 });
 
 const emit = defineEmits([
@@ -64,7 +65,7 @@ const emit = defineEmits([
         <span class="mobile-daily__card-name">{{ habit.name }}</span>
         <span class="mobile-daily__card-meta">
           <span class="mobile-daily__card-category">{{ groupMeta.label }}</span>
-          <span v-if="habit.scheduleLabel" class="habit-schedule-badge">
+          <span v-if="habit.scheduleLabel && scheduleFilterMode === 'all'" class="habit-schedule-badge">
             {{ habit.scheduleLabel }}
           </span>
           <span class="tier-badge tier-badge--inline" :class="tierColorClass(tier)" @click.stop="emit('toggle-tier-detail')">
