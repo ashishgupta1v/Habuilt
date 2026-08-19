@@ -19,6 +19,7 @@ const props = defineProps({
   cellTooltip: { type: Function, required: true },
   getDayTotal: { type: Function, required: true },
   mobileViewMode: { type: String, default: 'daily' },
+  isHabitScheduledForDay: { type: Function, default: () => true },
 });
 
 const emit = defineEmits(['toggle-cell']);
@@ -65,6 +66,9 @@ const emit = defineEmits(['toggle-cell']);
             >
               {{ habit.name }}
             </span>
+            <span v-if="habit.scheduleLabel" class="habit-grid__schedule-pill">
+              {{ habit.scheduleLabel }}
+            </span>
             <span
               v-if="isCurrentMonth && isHabitUpNext(habit)"
               class="habit-grid__up-next-pill"
@@ -89,6 +93,7 @@ const emit = defineEmits(['toggle-cell']);
             class="habit-grid__cell"
             :class="[
               hasCompletedDay(habit, day) ? 'habit-grid__cell--done' : '',
+              !isHabitScheduledForDay(habit, day) ? 'habit-grid__cell--off-schedule' : '',
               isCurrentMonth && day === currentDay ? 'habit-grid__cell--current' : '',
               isWeekendDay(day) ? 'habit-grid__cell--weekend' : '',
               isFutureDay(day) ? 'habit-grid__cell--future' : '',
@@ -104,6 +109,7 @@ const emit = defineEmits(['toggle-cell']);
           >
             <span v-if="isPending(habit.id, day)" class="habit-grid__cell-spin">…</span>
             <span v-else-if="hasCompletedDay(habit, day)" class="habit-grid__cell-mark">✓</span>
+            <span v-else-if="!isHabitScheduledForDay(habit, day)" class="habit-grid__cell-dot">·</span>
           </td>
         </tr>
 

@@ -394,7 +394,7 @@ const toastMessage = ref('');
 const shareDailyScorecard = async () => {
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const tierName = autoProtocolTier.value?.title || 'Daily Protocol';
-  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${totalHabits.value} Habits Done\n#Habuilt #HabitMastery`;
+  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${todayScheduledCount.value} Habits Done\n#Habuilt #HabitMastery`;
   
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
@@ -425,19 +425,68 @@ const targetDailyPoints = computed(() => 15);
 
 const isHabitArchived = (habit) => enhancedState.value.archivedHabitIds?.includes(habit.id) || !!habit.archived;
 const visibleHabits = computed(() => (localHabits.value || []).filter(h => !isHabitArchived(h)));
-const totalHabits = computed(() => visibleHabits.value.length);
+const totalHabits = computed(() => visibleHabits.value.length); // MASTER count — every habit the user has, used for the "Master Checklist" toggle only
 const totalPossiblePoints = computed(() => visibleHabits.value.reduce((total, habit) => total + (habit.points * props.monthDays), 0));
-const maxDailyPoints = computed(() => visibleHabits.value.reduce((sum, h) => sum + h.points, 0));
+
+// Schedule Filtering Engine
+const getDayOfWeek = (dayNum) => {
+  return new Date(props.year, props.month - 1, dayNum).getDay();
+};
+
+const isHabitScheduledForDay = (habit, dayNum) => {
+  if (!habit) return true;
+  if (Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
+    const dow = getDayOfWeek(dayNum);
+    return habit.daysOfWeek.includes(dow);
+  }
+  return true;
+};
+
+// Habits actually scheduled for TODAY (props.currentDay) — independent of the mobile checklist's
+// navigated day and independent of the all/scheduled view toggle. This is what "today's" stat
+// badges (top bar, bottom nav, share card) should always divide by, not the full master list.
+const todayScheduledHabits = computed(() => visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay)));
+const todayScheduledCount = computed(() => todayScheduledHabits.value.length);
+
+const scheduleFilterMode = ref('scheduled'); // 'scheduled' (active for this day) | 'all' (all 52 master habits)
+
+// Mobile Day
+const mobileDay = computed(() => Math.min(Math.max(1, mobileSelectedDay.value), props.monthDays));
+const mobileDayIsToday = computed(() => props.isCurrentMonth && mobileDay.value === props.currentDay);
+const mobileDayIsFuture = computed(() => props.isFutureMonth || (props.isCurrentMonth && mobileDay.value > props.currentDay));
+const mobileDayLabel = computed(() => {
+  try {
+    const d = new Date(props.year, props.month - 1, mobileDay.value);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch {
+    return `Day ${mobileDay.value}`;
+  }
+});
+
+const scheduledHabitsForMobileDay = computed(() => {
+  return visibleHabits.value.filter(h => isHabitScheduledForDay(h, mobileDay.value));
+});
+
+const scheduledHabitsCount = computed(() => scheduledHabitsForMobileDay.value.length);
+
+const activeHabitsForMobileDay = computed(() => {
+  if (scheduleFilterMode.value === 'all') {
+    return visibleHabits.value;
+  }
+  return scheduledHabitsForMobileDay.value;
+});
 
 const activeTimeFilter = ref('all');
 const filteredHabits = computed(() => {
-  if (activeTimeFilter.value === 'all') return visibleHabits.value;
-  return visibleHabits.value.filter(h => getTimeSlotForHabit(h.id) === activeTimeFilter.value);
+  const source = activeHabitsForMobileDay.value;
+  if (activeTimeFilter.value === 'all') return source;
+  return source.filter(h => getTimeSlotForHabit(h.id) === activeTimeFilter.value);
 });
 
 const timeSlotCounts = computed(() => {
-  const counts = { all: visibleHabits.value.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
-  visibleHabits.value.forEach(h => {
+  const source = activeHabitsForMobileDay.value;
+  const counts = { all: source.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  source.forEach(h => {
     const slot = getTimeSlotForHabit(h.id);
     if (counts[slot] !== undefined) counts[slot]++;
   });
@@ -446,8 +495,9 @@ const timeSlotCounts = computed(() => {
 
 const timeSlotCompleted = computed(() => {
   const day = mobileDay.value;
+  const source = activeHabitsForMobileDay.value;
   const comp = { all: 0, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
-  visibleHabits.value.forEach(h => {
+  source.forEach(h => {
     if (hasCompletedDay(h, day)) {
       comp.all++;
       const slot = getTimeSlotForHabit(h.id);
@@ -480,20 +530,13 @@ const missingDefaultHabits = computed(() => {
   return fallbackHabits.value.filter(dh => !currentIds.has(dh.id));
 });
 
-// Mobile Day
-const mobileDay = computed(() => Math.min(Math.max(1, mobileSelectedDay.value), props.monthDays));
-const mobileDayIsToday = computed(() => props.isCurrentMonth && mobileDay.value === props.currentDay);
-const mobileDayIsFuture = computed(() => props.isFutureMonth || (props.isCurrentMonth && mobileDay.value > props.currentDay));
-const mobileDayLabel = computed(() => {
-  try {
-    const d = new Date(props.year, props.month - 1, mobileDay.value);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch {
-    return `Day ${mobileDay.value}`;
-  }
-});
-const mobileDayCompleted = computed(() => visibleHabits.value.filter(h => hasCompletedDay(h, mobileDay.value)).length);
-const mobileDayPoints = computed(() => visibleHabits.value.filter(h => hasCompletedDay(h, mobileDay.value)).reduce((s, h) => s + h.points, 0));
+const mobileDayCompleted = computed(() => activeHabitsForMobileDay.value.filter(h => hasCompletedDay(h, mobileDay.value)).length);
+const mobileDayPoints = computed(() => activeHabitsForMobileDay.value.filter(h => hasCompletedDay(h, mobileDay.value)).reduce((s, h) => s + h.points, 0));
+// Denominators for the checklist's own progress bar — scoped to whatever day is being viewed
+// (mobileDay) and respecting the scheduled/all toggle, so a Sunday never gets judged against
+// a weekday's habit count.
+const mobileDayTotalHabits = computed(() => activeHabitsForMobileDay.value.length);
+const maxDailyPoints = computed(() => activeHabitsForMobileDay.value.reduce((sum, h) => sum + h.points, 0));
 
 const mobilePrevDay = () => { if (mobileDay.value > 1) mobileSelectedDay.value = mobileDay.value - 1; };
 const mobileNextDay = () => { if (mobileDay.value < props.monthDays) mobileSelectedDay.value = mobileDay.value + 1; };
@@ -501,6 +544,7 @@ const mobileGoToday = () => { mobileSelectedDay.value = props.currentDay; };
 
 // Up Next Engine
 const habitTimeSchedule = {
+  // ── Ashish home mode ──
   'a-1': { start: '05:00', end: '05:05' }, 'a-2': { start: '05:05', end: '05:15' },
   'a-3': { start: '05:15', end: '05:30' }, 'a-4': { start: '05:30', end: '06:15' },
   'a-5': { start: '05:30', end: '06:15' }, 'a-6': { start: '05:30', end: '06:15' },
@@ -510,6 +554,7 @@ const habitTimeSchedule = {
   'a-13': { start: '10:15', end: '10:30' }, 'a-14': { start: '10:30', end: '12:00' },
   'a-15': { start: '12:00', end: '12:15' }, 'a-16': { start: '14:00', end: '15:30' },
   'a-17': { start: '15:30', end: '15:45' }, 'a-18': { start: '16:00', end: '17:30' },
+  'a-53': { start: '17:30', end: '18:15' },
   'a-19': { start: '18:30', end: '18:35' }, 'a-20': { start: '18:35', end: '19:05' },
   'a-43': { start: '19:05', end: '19:25' }, 'a-21': { start: '19:25', end: '20:15' },
   'a-22': { start: '20:15', end: '20:30' }, 'a-23': { start: '20:45', end: '21:00' },
@@ -518,13 +563,44 @@ const habitTimeSchedule = {
   'a-28': { start: '08:00', end: '09:00' }, 'a-29': { start: '12:30', end: '13:30' },
   'a-30': { start: '19:30', end: '20:30' }, 'a-31': { start: '08:15', end: '09:15' },
   'a-51': { start: '12:45', end: '13:45' }, 'a-52': { start: '21:00', end: '22:00' },
+
+  // ── Jyoti ──
+  'j-1': { start: '05:00', end: '08:00' }, 'j-2': { start: '08:00', end: '08:15' },
+  'j-3': { start: '08:15', end: '08:30' }, 'j-4': { start: '08:30', end: '09:30' },
+  'j-5': { start: '09:30', end: '10:30' }, 'j-6': { start: '10:30', end: '10:50' },
+  'j-7': { start: '10:50', end: '11:00' }, 'j-8': { start: '11:00', end: '11:05' },
+  'j-35': { start: '11:05', end: '11:25' }, 'j-9': { start: '11:30', end: '12:30' },
+  'j-10': { start: '12:30', end: '13:15' }, 'j-11': { start: '13:15', end: '13:30' },
+  'j-12': { start: '13:30', end: '13:45' }, 'j-13': { start: '13:45', end: '14:30' },
+  'j-14': { start: '14:30', end: '15:15' }, 'j-15': { start: '16:00', end: '17:00' },
+  'j-16': { start: '17:00', end: '17:20' }, 'j-17': { start: '17:30', end: '18:35' },
+  'j-18': { start: '18:35', end: '19:25' }, 'j-19': { start: '19:25', end: '20:15' },
+  'j-20': { start: '20:15', end: '20:30' }, 'j-21': { start: '20:45', end: '21:30' },
+  'j-22': { start: '21:30', end: '23:59' },
+
+  // ── Ashish travel mode (Chandigarh) ──
+  'at-1': { start: '05:00', end: '05:05' }, 'at-2': { start: '05:05', end: '05:15' },
+  'at-3': { start: '05:15', end: '05:40' }, 'at-4': { start: '05:40', end: '06:00' },
+  'at-5': { start: '06:00', end: '06:15' }, 'at-6': { start: '06:15', end: '06:30' },
+  'at-7': { start: '06:30', end: '07:30' }, 'at-8': { start: '07:30', end: '09:30' },
+  'at-9': { start: '09:30', end: '09:45' }, 'at-10': { start: '09:45', end: '11:15' },
+  'at-11': { start: '11:15', end: '11:30' }, 'at-12': { start: '11:30', end: '13:00' },
+  'at-13': { start: '13:00', end: '14:30' }, 'at-14': { start: '14:30', end: '16:00' },
+  'at-15': { start: '16:00', end: '16:30' }, 'at-16': { start: '16:30', end: '17:00' },
+  'at-17': { start: '17:00', end: '18:00' }, 'at-18': { start: '18:00', end: '18:35' },
+  'at-19': { start: '18:35', end: '19:25' }, 'at-20': { start: '19:25', end: '20:15' },
+  'at-21': { start: '20:15', end: '21:00' }, 'at-22': { start: '21:00', end: '21:30' },
+  'at-23': { start: '21:30', end: '23:59' },
+  'at-24': { start: '05:00', end: '06:30' }, 'at-25': { start: '12:00', end: '13:00' },
+  'at-26': { start: '19:25', end: '20:15' }, 'at-27': { start: '05:00', end: '06:30' },
+  'at-32': { start: '12:00', end: '13:00' }, 'at-33': { start: '21:00', end: '21:30' },
 };
 
 const upNextHabitInfo = computed(() => {
   if (!props.isCurrentMonth) return null;
   const now = new Date();
   const currentMins = now.getHours() * 60 + now.getMinutes();
-  const uncompleted = visibleHabits.value.filter(h => !hasCompletedDay(h, props.currentDay));
+  const uncompleted = visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay) && !hasCompletedDay(h, props.currentDay));
   if (uncompleted.length === 0) return null;
 
   for (const habit of uncompleted) {
@@ -617,7 +693,7 @@ const cellAriaLabel = (habit, day) => {
 const getDayTotal = (day) => visibleHabits.value.reduce((sum, h) => hasCompletedDay(h, day) ? sum + h.points : sum, 0);
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
-const todayCompletedCount = computed(() => visibleHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
+const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 
 const monthlyTotalEarned = computed(() => {
   let total = 0;
@@ -703,8 +779,9 @@ const levelTitle = computed(() => {
 // Heatmap Data
 const heatmapData = computed(() => {
   return days.value.map(day => {
-    const completed = visibleHabits.value.filter(h => hasCompletedDay(h, day)).length;
-    const total = totalHabits.value;
+    const scheduledForDay = visibleHabits.value.filter(h => isHabitScheduledForDay(h, day));
+    const completed = scheduledForDay.filter(h => hasCompletedDay(h, day)).length;
+    const total = scheduledForDay.length;
     const points = getDayTotal(day);
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     let level = 0;
@@ -976,7 +1053,7 @@ onBeforeUnmount(() => {
       :available-wallet="availableWallet"
       :today-points="todayPoints"
       :today-completed-count="todayCompletedCount"
-      :total-habits="totalHabits"
+      :total-habits="todayScheduledCount"
       :is-current-month="props.isCurrentMonth"
       :current-day="props.currentDay"
       :up-next-habit-info="upNextHabitInfo"
@@ -1165,12 +1242,15 @@ onBeforeUnmount(() => {
           :is-ashish="isAshish"
           :travel-mode="travelMode"
           :mobile-day-completed="mobileDayCompleted"
-          :total-habits="totalHabits"
+          :total-habits="mobileDayTotalHabits"
           :mobile-day-points="mobileDayPoints"
           :max-daily-points="maxDailyPoints"
           :visible-habits="visibleHabits"
           :missing-default-habits="missingDefaultHabits"
           :timeline-grouped-habits="timelineGroupedHabits"
+          :schedule-filter-mode="scheduleFilterMode"
+          :scheduled-habits-count="scheduledHabitsCount"
+          :total-master-habits-count="totalHabits"
           :is-slot-collapsed="isSlotCollapsed"
           :is-habit-up-next="isHabitUpNext"
           :up-next-habit-info="upNextHabitInfo"
@@ -1190,6 +1270,7 @@ onBeforeUnmount(() => {
           @next-day="mobileNextDay"
           @go-today="mobileGoToday"
           @update:active-time-filter="val => activeTimeFilter = val"
+          @toggle-schedule-filter="scheduleFilterMode = (scheduleFilterMode === 'scheduled' ? 'all' : 'scheduled')"
           @toggle-travel="toggleTravelMode"
           @start-editing="startEditingHabits"
           @restore-defaults="restoreDefaultHabits"
@@ -1208,6 +1289,7 @@ onBeforeUnmount(() => {
           :current-day="props.currentDay"
           :is-current-month="props.isCurrentMonth"
           :is-weekend-day="isWeekendDay"
+          :is-habit-scheduled-for-day="isHabitScheduledForDay"
           :is-habit-up-next="isHabitUpNext"
           :up-next-habit-info="upNextHabitInfo"
           :get-habit-tier="getHabitTier"
@@ -1329,7 +1411,7 @@ onBeforeUnmount(() => {
       <MobileBottomNav
         v-model:active-tab="activeMobileTab"
         :today-completed-count="todayCompletedCount"
-        :total-habits="totalHabits"
+        :total-habits="todayScheduledCount"
         :timer-running="timerState && timerState.running"
       />
     </div>

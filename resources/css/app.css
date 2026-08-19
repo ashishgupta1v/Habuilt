@@ -9749,4 +9749,140 @@ body:not(.dark-mode) .habuilt-floating-toast {
   transform: translate(-50%, 15px);
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   DYNAMIC DAY-OF-WEEK SCHEDULING CHIPS & BADGES
+   ══════════════════════════════════════════════════════════════════════ */
+.schedule-mode-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.4rem 0 0.6rem;
+  padding: 0 0.5rem;
+}
+
+.schedule-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  user-select: none;
+}
+
+.schedule-mode-chip:hover {
+  color: #f8fafc;
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(212, 160, 62, 0.4);
+  transform: translateY(-1px);
+}
+
+.schedule-mode-chip--active {
+  color: #D4A03E;
+  background: rgba(212, 160, 62, 0.12);
+  border-color: rgba(212, 160, 62, 0.45);
+}
+
+.schedule-mode-chip strong {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.schedule-mode-chip--active strong {
+  color: #D4B36A;
+}
+
+body:not(.dark-mode) .schedule-mode-chip {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body:not(.dark-mode) .schedule-mode-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+body:not(.dark-mode) .schedule-mode-chip--active {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+body:not(.dark-mode) .schedule-mode-chip strong {
+  color: #0f172a;
+}
+
+body:not(.dark-mode) .schedule-mode-chip--active strong {
+  color: #713f12;
+}
+
+/* Habit Card Schedule Badge */
+.habit-schedule-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+body:not(.dark-mode) .habit-schedule-badge {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+/* Month Grid Schedule Badge */
+.habit-grid__schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  vertical-align: middle;
+}
+
+body:not(.dark-mode) .habit-grid__schedule-pill {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+/* Month Grid Off-Schedule Cell */
+.habit-grid__cell--off-schedule {
+  background: rgba(0, 0, 0, 0.12);
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+body:not(.dark-mode) .habit-grid__cell--off-schedule {
+  background: rgba(0, 0, 0, 0.02);
+  opacity: 0.5;
+}
+
+.habit-grid__cell-dot {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #64748b;
+  opacity: 0.5;
+}
+
 

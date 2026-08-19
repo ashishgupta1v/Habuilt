@@ -48,6 +48,9 @@ const props = defineProps({
   getHabitNote: { type: Function, required: true },
   onTouchStart: { type: Function, required: true },
   onTouchEnd: { type: Function, required: true },
+  scheduleFilterMode: { type: String, default: 'scheduled' },
+  scheduledHabitsCount: { type: Number, default: 0 },
+  totalMasterHabitsCount: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -64,6 +67,7 @@ const emit = defineEmits([
   'set-tier',
   'toggle-note',
   'set-note',
+  'toggle-schedule-filter',
 ]);
 </script>
 
@@ -99,6 +103,21 @@ const emit = defineEmits([
         aria-label="Next Day"
       >
         <ChevronRight class="icon-md" />
+      </button>
+    </div>
+
+    <!-- Day-Specific Schedule Mode Bar -->
+    <div class="schedule-mode-bar">
+      <button
+        type="button"
+        class="schedule-mode-chip"
+        :class="{ 'schedule-mode-chip--active': scheduleFilterMode === 'scheduled' }"
+        @click="emit('toggle-schedule-filter')"
+        :title="scheduleFilterMode === 'scheduled' ? 'Showing habits scheduled specifically for today. Tap to show all habits.' : 'Showing all habits. Tap to show only today\'s scheduled routine.'"
+      >
+        <Sparkles class="icon-xs" />
+        <span v-if="scheduleFilterMode === 'scheduled'">{{ mobileDayLabel.split(',')[0] }} Schedule: <strong>{{ scheduledHabitsCount }} habits</strong></span>
+        <span v-else>Master Checklist: <strong>{{ totalMasterHabitsCount }} habits</strong></span>
       </button>
     </div>
 

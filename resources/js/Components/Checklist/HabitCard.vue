@@ -64,6 +64,9 @@ const emit = defineEmits([
         <span class="mobile-daily__card-name">{{ habit.name }}</span>
         <span class="mobile-daily__card-meta">
           <span class="mobile-daily__card-category">{{ groupMeta.label }}</span>
+          <span v-if="habit.scheduleLabel" class="habit-schedule-badge">
+            {{ habit.scheduleLabel }}
+          </span>
           <span class="tier-badge tier-badge--inline" :class="tierColorClass(tier)" @click.stop="emit('toggle-tier-detail')">
             T{{ tier }}
           </span>
