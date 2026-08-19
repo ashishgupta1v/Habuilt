@@ -9513,25 +9513,25 @@ body.theme-dark .reward-bar {
   gap: 24px;
 }
 
-/* Grand Gold Wallet Card */
+/* Sleek Compact Gold Wallet Card */
 .reward-vault-hero-card {
   position: relative;
-  border-radius: 20px;
-  padding: 26px;
+  border-radius: 16px;
+  padding: 16px 18px;
   background: linear-gradient(135deg, #131622 0%, #0d0f18 100%);
   border: 1px solid rgba(200, 164, 86, 0.25);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   overflow: hidden;
   color: #f8fafc;
 }
 .reward-vault-hero-bg-glow {
   position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 220px;
-  height: 220px;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(200, 164, 86, 0.25) 0%, rgba(200, 164, 86, 0) 70%);
+  background: radial-gradient(circle, rgba(200, 164, 86, 0.22) 0%, rgba(200, 164, 86, 0) 70%);
   pointer-events: none;
 }
 .reward-vault-hero-content {
@@ -9539,7 +9539,7 @@ body.theme-dark .reward-bar {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
 .reward-vault-hero-top {
   display: flex;
@@ -9549,23 +9549,23 @@ body.theme-dark .reward-bar {
 .reward-vault-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
+  gap: 5px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--brand-gold, #C8A456);
 }
 .reward-vault-edit-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f8fafc;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -9577,54 +9577,56 @@ body.theme-dark .reward-bar {
 .reward-vault-balance-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
 .reward-vault-balance-group {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
 .reward-vault-balance-num {
-  font-size: 3.2rem;
+  font-size: 2.1rem;
   font-weight: 900;
   line-height: 1;
   color: #ffffff;
-  text-shadow: 0 0 24px rgba(200, 164, 86, 0.4);
+  text-shadow: 0 0 16px rgba(200, 164, 86, 0.35);
 }
 .reward-vault-balance-unit {
-  font-size: 1.1rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--brand-gold, #C8A456);
 }
 .reward-vault-stats-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding-top: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-@media (max-width: 600px) {
-  .reward-vault-stats-strip {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
 }
 .reward-vault-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
 }
 .reward-vault-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .reward-vault-stat-val {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 800;
   color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Rewards Catalog Section */
