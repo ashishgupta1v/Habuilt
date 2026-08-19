@@ -133,6 +133,13 @@ const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email |
 const isAshish = computed(() => resolvedEmail.value === 'ashishgupta1v@gmail.com');
 const isJyoti = computed(() => resolvedEmail.value === 'goyaljyoti007@gmail.com');
 const displayName = computed(() => isJyoti.value ? 'Jyoti' : isAshish.value ? 'Ashish' : (props.userId || 'User'));
+const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
+
+// Reactive real-time clock ticker
+const currentClock = ref(new Date());
+const updateCurrentClock = () => {
+  currentClock.value = new Date();
+};
 
 const travelMode = ref(false);
 const localHabits = ref([]);
@@ -197,7 +204,7 @@ const isSlotCollapsed = (slotKey, slotHabits, dayNum) => {
   if (!slotHabits || slotHabits.length === 0) return false;
   const completedCount = slotHabits.filter(h => hasCompletedDay(h, dayNum)).length;
   const isFullyDone = completedCount === slotHabits.length;
-  const currentBlock = getCurrentTimeBlock();
+  const currentBlock = getCurrentTimeBlock(currentClock.value);
   const slotOrder = timeSlotOrder[slotKey] ?? 99;
   const currentOrder = timeSlotOrder[currentBlock] ?? 99;
   if (isFullyDone && slotOrder < currentOrder) {
@@ -417,8 +424,8 @@ const shareDailyScorecard = async () => {
 };
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
-const localStateKey = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.${monthScope.value}`);
-const localStatePrefix = computed(() => `habuilt.dashboard.${props.userId || 'guest'}.`);
+const localStateKey = computed(() => `habuilt.dashboard.${effectiveUserId.value}.${monthScope.value}`);
+const localStatePrefix = computed(() => `habuilt.dashboard.${effectiveUserId.value}.`);
 const monthLabel = computed(() => new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(props.year, props.month - 1, 1)));
 const days = computed(() => Array.from({ length: props.monthDays }, (_, index) => index + 1));
 const targetDailyPoints = computed(() => 15);
@@ -598,7 +605,7 @@ const habitTimeSchedule = {
 
 const upNextHabitInfo = computed(() => {
   if (!props.isCurrentMonth) return null;
-  const now = new Date();
+  const now = currentClock.value;
   const currentMins = now.getHours() * 60 + now.getMinutes();
   const uncompleted = visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay) && !hasCompletedDay(h, props.currentDay));
   if (uncompleted.length === 0) return null;
@@ -843,7 +850,7 @@ const setDayType = (type) => {
 };
 
 const timeGreeting = computed(() => {
-  const now = new Date();
+  const now = currentClock.value;
   const h = now.getHours();
   let salute = 'Good morning';
   if (h >= 12 && h < 17) salute = 'Good afternoon';
@@ -888,7 +895,57 @@ const toggleTravelMode = () => {
   saveState();
 };
 
-// State Persistence
+// ── State Persistence & Automatic Real-Time Cloud Sync ──
+const isSyncingCloud = ref(false);
+let lastSyncTimestamp = 0;
+
+const applyLoadedState = (data, isRemote = false) => {
+  if (!data) return;
+  if (Array.isArray(data.habits) && data.habits.length > 0) {
+    const fallbackMap = new Map(fallbackHabits.value.map(h => [h.id, h]));
+    localHabits.value = data.habits.map(h => {
+      const fallback = fallbackMap.get(h.id);
+      if (fallback) {
+        return {
+          ...fallback,
+          ...h,
+          name: fallback.name,
+          hint: fallback.hint,
+          daysOfWeek: fallback.daysOfWeek,
+          scheduleLabel: fallback.scheduleLabel,
+          points: fallback.points,
+          completed_days: Array.isArray(h.completed_days) ? h.completed_days : [],
+        };
+      }
+      return h;
+    });
+  } else if (!isRemote) {
+    localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+  }
+
+  if (Array.isArray(data.rewards)) rewards.value = data.rewards;
+  if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
+  if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
+  if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
+  if (data.travelMode !== undefined) travelMode.value = data.travelMode;
+  if (data.darkMode !== undefined) darkMode.value = data.darkMode;
+
+  if (isRemote) {
+    try {
+      localStorage.setItem(localStateKey.value, JSON.stringify({
+        habits: localHabits.value,
+        rewards: rewards.value,
+        rewardLedger: rewardLedger.value,
+        progressiveSettings: progressiveSettings.value,
+        enhancedState: enhancedState.value,
+        travelMode: travelMode.value,
+        darkMode: darkMode.value,
+        updated_at: new Date().toISOString(),
+      }));
+    } catch { /* offline fallback */ }
+  }
+};
+
 const saveState = async () => {
   try {
     const payload = {
@@ -899,10 +956,11 @@ const saveState = async () => {
       enhancedState: enhancedState.value,
       travelMode: travelMode.value,
       darkMode: darkMode.value,
+      updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
-    if (props.userId) {
-      await saveUserMonthlyState(props.userId, monthScope.value, payload);
+    if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+      await saveUserMonthlyState(effectiveUserId.value, monthScope.value, payload);
     }
   } catch (err) {
     console.warn('Failed to save dashboard state:', err);
@@ -913,39 +971,31 @@ const loadLocalState = () => {
   try {
     const raw = localStorage.getItem(localStateKey.value);
     if (raw) {
-      const data = JSON.parse(raw);
-      if (Array.isArray(data.habits) && data.habits.length > 0) {
-        const fallbackMap = new Map(fallbackHabits.value.map(h => [h.id, h]));
-        localHabits.value = data.habits.map(h => {
-          const fallback = fallbackMap.get(h.id);
-          if (fallback) {
-            return {
-              ...fallback,
-              ...h,
-              name: fallback.name,
-              hint: fallback.hint,
-              daysOfWeek: fallback.daysOfWeek,
-              scheduleLabel: fallback.scheduleLabel,
-              points: fallback.points,
-              completed_days: Array.isArray(h.completed_days) ? h.completed_days : [],
-            };
-          }
-          return h;
-        });
-      } else {
-        localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
-      }
-      if (Array.isArray(data.rewards)) rewards.value = data.rewards;
-      if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
-      if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
-      if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
-      if (data.travelMode !== undefined) travelMode.value = data.travelMode;
-      if (data.darkMode !== undefined) darkMode.value = data.darkMode;
+      applyLoadedState(JSON.parse(raw), false);
     } else {
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
     }
   } catch {
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+  }
+};
+
+const syncCloudState = async (force = false) => {
+  const now = Date.now();
+  if (!force && now - lastSyncTimestamp < 10000) return;
+  if (!effectiveUserId.value || effectiveUserId.value === 'guest') return;
+
+  try {
+    isSyncingCloud.value = true;
+    const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
+    if (remoteData) {
+      applyLoadedState(remoteData, true);
+      lastSyncTimestamp = Date.now();
+    }
+  } catch (err) {
+    console.warn('Cloud sync on open failed:', err);
+  } finally {
+    isSyncingCloud.value = false;
   }
 };
 
@@ -1015,14 +1065,63 @@ const handlePopState = (e) => {
   }
 };
 
+let clockInterval = null;
+let cloudSyncInterval = null;
+
+const handleAppResume = () => {
+  // 1. Immediately update clock time
+  updateCurrentClock();
+
+  // 2. Check if date rolled over midnight
+  const now = new Date();
+  const currentActualDay = now.getDate();
+  const currentActualMonth = now.getMonth() + 1;
+  const currentActualYear = now.getFullYear();
+
+  if (props.isCurrentMonth && (props.month === currentActualMonth && props.year === currentActualYear)) {
+    if (mobileDayIsToday.value || mobileSelectedDay.value === props.currentDay) {
+      mobileSelectedDay.value = currentActualDay;
+    }
+  }
+
+  // 3. Immediately pull latest synced database updates
+  syncCloudState(false);
+};
+
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    handleAppResume();
+  }
+};
+
 onMounted(() => {
   loadLocalState();
   syncTabWithUrl();
+  syncCloudState(true);
+
+  // High-efficiency reactive clock heartbeat (every 10s)
+  clockInterval = setInterval(updateCurrentClock, 10000);
+  // Periodic background cloud sync (every 60s)
+  cloudSyncInterval = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      syncCloudState(false);
+    }
+  }, 60000);
+
   window.addEventListener('popstate', handlePopState);
+  window.addEventListener('focus', handleAppResume);
+  window.addEventListener('pageshow', handleAppResume);
+  window.addEventListener('online', () => syncCloudState(true));
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onBeforeUnmount(() => {
+  if (clockInterval) clearInterval(clockInterval);
+  if (cloudSyncInterval) clearInterval(cloudSyncInterval);
   window.removeEventListener('popstate', handlePopState);
+  window.removeEventListener('focus', handleAppResume);
+  window.removeEventListener('pageshow', handleAppResume);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
 

@@ -351,8 +351,8 @@ export function getHabitCategory(habit) {
   return 'ops';
 }
 
-export function getCurrentTimeBlock() {
-  const now = new Date();
+export function getCurrentTimeBlock(targetDate = new Date()) {
+  const now = targetDate instanceof Date ? targetDate : new Date(targetDate);
   const mins = now.getHours() * 60 + now.getMinutes();
   if (mins < 8 * 60 + 30) return 'morning';  // 00:00–08:30
   if (mins < 18 * 60 + 30) return 'work';    // 08:30–18:30
