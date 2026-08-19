@@ -3,7 +3,8 @@ import { ref, onMounted, computed } from 'vue';
 import { supabase } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
-import { LogOut, LayoutDashboard, User, Download, Share2 } from 'lucide-vue-next';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
+import { LogOut, Download, Share2 } from 'lucide-vue-next';
 
 const activeUser = ref(null);
 const authLoading = ref(true);
@@ -39,7 +40,7 @@ window.addEventListener('appinstalled', () => {
 
 const handleInstall = async () => {
   if (isIOS.value) {
-    showIOSInstructions.value = !showIOSInstructions.value;
+    showIOSInstructions.value = true;
     return;
   }
   if (!deferredPrompt.value) return;
@@ -123,10 +124,7 @@ onMounted(async () => {
 <template>
   <div v-if="authLoading" class="app-loading">
     <div class="app-spinner">
-      <svg class="spinner-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="spinner-fill" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
+      <HabuiltLogo size="xl" animated />
       <div class="loading-text">Loading Habuilt Workspace...</div>
     </div>
   </div>
@@ -138,13 +136,7 @@ onMounted(async () => {
         <nav class="app-nav">
           <div class="app-nav__container">
             <div class="app-nav__left">
-              <div class="app-nav__logo-icon">
-                <LayoutDashboard class="icon-brand" />
-              </div>
-              <div class="app-nav__brand-info">
-                <span class="app-nav__brand-text">Habuilt</span>
-                <span class="app-nav__brand-tag">PRO</span>
-              </div>
+              <HabuiltLogo size="md" :with-text="true" />
             </div>
 
             <div class="app-nav__right">

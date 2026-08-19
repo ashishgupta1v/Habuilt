@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 import { supabase } from '@/lib/supabase';
-import { Mail, Lock, ArrowRight, ShieldCheck, Activity, Target } from 'lucide-vue-next';
+import { Mail, Lock, ArrowRight, ShieldCheck, Target } from 'lucide-vue-next';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
 const email = ref('');
 const password = ref('');
@@ -63,7 +64,7 @@ const handleGoogleSignIn = async () => {
 
       <div class="auth-panel__content-wrapper">
         <div class="auth-panel__icon-container">
-          <Activity class="icon-brand-large" />
+          <HabuiltLogo size="lg" animated />
         </div>
         <h1 class="auth-panel__title">
           Build habits that <span class="text-gradient">actually stick.</span>
@@ -91,9 +92,7 @@ const handleGoogleSignIn = async () => {
         
         <!-- Mobile Logo Fallback -->
         <div class="auth-mobile-logo">
-           <div class="auth-mobile-logo__box">
-             <Activity class="icon-brand" />
-           </div>
+          <HabuiltLogo size="md" :with-text="true" />
         </div>
 
         <div class="auth-header">
