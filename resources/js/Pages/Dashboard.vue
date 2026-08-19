@@ -1223,7 +1223,7 @@ onBeforeUnmount(() => {
             </h2>
             <small>Core Leading Indicators — day-based completion matrix</small>
           </div>
-          <button v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits" title="Customize Habits">
+          <button id="habits-btn-edit" v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits" title="Customize Habits">
             <Edit3 class="icon-sm" /> <span>Edit Habits</span>
           </button>
         </div>

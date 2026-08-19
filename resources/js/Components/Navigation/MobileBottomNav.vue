@@ -8,10 +8,11 @@ const props = defineProps({
   timerRunning: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:activeTab']);
+const emit = defineEmits(['update:activeTab', 'update:active-tab']);
 
 const setTab = (tab) => {
   emit('update:activeTab', tab);
+  emit('update:active-tab', tab);
   // Update browser URL query parameter without page reload
   try {
     const url = new URL(window.location.href);
@@ -32,6 +33,7 @@ const setTab = (tab) => {
 <template>
   <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
     <button
+      id="mobile-nav-today"
       type="button"
       class="mobile-bottom-nav__item"
       :class="{ 'mobile-bottom-nav__item--active': activeTab === 'today' }"
@@ -46,6 +48,7 @@ const setTab = (tab) => {
     </button>
 
     <button
+      id="mobile-nav-focus"
       type="button"
       class="mobile-bottom-nav__item"
       :class="{ 'mobile-bottom-nav__item--active': activeTab === 'focus' }"
@@ -60,6 +63,7 @@ const setTab = (tab) => {
     </button>
 
     <button
+      id="mobile-nav-stats"
       type="button"
       class="mobile-bottom-nav__item"
       :class="{ 'mobile-bottom-nav__item--active': activeTab === 'stats' }"
@@ -73,6 +77,7 @@ const setTab = (tab) => {
     </button>
 
     <button
+      id="mobile-nav-rewards"
       type="button"
       class="mobile-bottom-nav__item"
       :class="{ 'mobile-bottom-nav__item--active': activeTab === 'rewards' }"

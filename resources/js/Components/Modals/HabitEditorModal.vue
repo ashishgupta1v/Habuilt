@@ -79,39 +79,41 @@ const emit = defineEmits([
           :disabled="habit.archived"
         />
 
-        <label class="habits-editor__pts-label" title="Points earned when completed">
-          <input
-            v-model.number="habit.points"
-            type="number"
-            min="1"
-            max="100"
-            class="habits-editor__pts-input"
-            :disabled="habit.archived"
-          />
-          <span class="habits-editor__pts-unit">pts</span>
-        </label>
+        <div class="habits-editor__row-meta">
+          <label class="habits-editor__pts-label" title="Points earned when completed">
+            <input
+              v-model.number="habit.points"
+              type="number"
+              min="1"
+              max="100"
+              class="habits-editor__pts-input"
+              :disabled="habit.archived"
+            />
+            <span class="habits-editor__pts-unit">pts</span>
+          </label>
 
-        <div class="habits-editor__row-actions">
-          <button
-            class="habits-editor__archive-btn"
-            :class="{ 'habits-editor__archive-btn--active': habit.archived }"
-            @click="emit('toggle-archive', habit)"
-            :title="habit.archived ? 'Restore habit to active checklist' : 'Archive habit (hide from daily checklist)'"
-            type="button"
-          >
-            <RotateCcw v-if="habit.archived" class="icon-xs" />
-            <Archive v-else class="icon-xs" />
-          </button>
+          <div class="habits-editor__row-actions">
+            <button
+              class="habits-editor__archive-btn"
+              :class="{ 'habits-editor__archive-btn--active': habit.archived }"
+              @click="emit('toggle-archive', habit)"
+              :title="habit.archived ? 'Restore habit to active checklist' : 'Archive habit (hide from daily checklist)'"
+              type="button"
+            >
+              <RotateCcw v-if="habit.archived" class="icon-xs" />
+              <Archive v-else class="icon-xs" />
+            </button>
 
-          <button
-            class="habits-editor__delete-btn"
-            @click="emit('remove-draft-habit', index)"
-            title="Delete habit"
-            type="button"
-            aria-label="Delete habit"
-          >
-            <Trash2 class="icon-xs" />
-          </button>
+            <button
+              class="habits-editor__delete-btn"
+              @click="emit('remove-draft-habit', index)"
+              title="Delete habit"
+              type="button"
+              aria-label="Delete habit"
+            >
+              <Trash2 class="icon-xs" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -143,19 +145,20 @@ const emit = defineEmits([
     <!-- Actions toolbar -->
     <div class="habits-editor__actions">
       <div class="habits-editor__actions-left">
-        <button class="btn btn--secondary" @click="emit('add-draft-habit')" type="button">
+        <button id="habit-editor-btn-add" class="btn btn--secondary" @click="emit('add-draft-habit')" type="button">
           <Plus class="icon-sm" />
           <span>Add Habit</span>
         </button>
-        <button class="btn btn--secondary" @click="emit('restore-defaults')" type="button">
+        <button id="habit-editor-btn-restore" class="btn btn--secondary" @click="emit('restore-defaults')" type="button">
           <RotateCcw class="icon-sm" />
           <span>Restore All Defaults</span>
         </button>
       </div>
 
       <div class="habits-editor__actions-right">
-        <button class="btn btn--secondary" @click="emit('cancel')" type="button">Cancel</button>
+        <button id="habit-editor-btn-cancel" class="btn btn--secondary" @click="emit('cancel')" type="button">Cancel</button>
         <button
+          id="habit-editor-btn-save"
           class="btn btn--primary-action"
           :disabled="draftHasErrors || habitSaveStatus === 'saving'"
           @click="emit('save')"

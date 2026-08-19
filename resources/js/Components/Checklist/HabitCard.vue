@@ -38,16 +38,21 @@ const emit = defineEmits([
 
 <template>
   <div>
-    <button
+    <div
       class="mobile-daily__card"
       :class="{
         'mobile-daily__card--done': isDone,
         'mobile-daily__card--shared': habit.name.startsWith('★'),
         'mobile-daily__card--up-next': mobileDayIsToday && isUpNext && !isDone,
+        'mobile-daily__card--disabled': mobileDayIsFuture || isPending,
         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
       }"
-      :disabled="mobileDayIsFuture || isPending"
-      @click="emit('toggle-check')"
+      :tabindex="mobileDayIsFuture || isPending ? -1 : 0"
+      role="button"
+      :aria-disabled="mobileDayIsFuture || isPending"
+      @click="!mobileDayIsFuture && !isPending && emit('toggle-check')"
+      @keydown.enter.prevent="!mobileDayIsFuture && !isPending && emit('toggle-check')"
+      @keydown.space.prevent="!mobileDayIsFuture && !isPending && emit('toggle-check')"
     >
       <span v-if="mobileDayIsToday && isUpNext && !isDone" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }">
         <Clock class="icon-xs" /> {{ upNextInfo?.badgeText || 'UP NEXT' }}
@@ -97,7 +102,7 @@ const emit = defineEmits([
       >
         <MessageSquare class="icon-xs" />
       </button>
-    </button>
+    </div>
 
     <!-- Habit Note Input & Guidance Drawer -->
     <div v-if="noteOpen" class="habit-note-input" @click.stop>

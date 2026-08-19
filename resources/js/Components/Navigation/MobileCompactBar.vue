@@ -58,6 +58,7 @@ const autoProtocolBadge = computed(() => {
         <!-- Travel Mode Toggle (Ashish only) -->
         <button
           v-if="isAshish"
+          id="mcb-btn-travel"
           type="button"
           class="mcb-icon-btn mcb-icon-btn--travel"
           :class="{ 'mcb-icon-btn--travel-active': travelMode }"
@@ -70,6 +71,7 @@ const autoProtocolBadge = computed(() => {
 
         <!-- Share Scorecard Button -->
         <button
+          id="mcb-btn-share"
           type="button"
           class="mcb-icon-btn"
           @click="emit('share-scorecard')"
@@ -81,6 +83,7 @@ const autoProtocolBadge = computed(() => {
 
         <!-- Dark / Light Mode Switcher -->
         <button
+          id="mcb-btn-theme"
           type="button"
           class="mcb-icon-btn mcb-icon-btn--theme"
           @click="emit('toggle-theme')"
@@ -117,6 +120,7 @@ const autoProtocolBadge = computed(() => {
     <!-- Live Up Next Activity Strip on Mobile -->
     <div
       v-if="isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, currentDay)"
+      id="mcb-btn-upnext"
       class="mcb-up-next-row"
       @click="emit('toggle-up-next', upNextHabitInfo.habit, currentDay)"
       title="Tap to mark done"

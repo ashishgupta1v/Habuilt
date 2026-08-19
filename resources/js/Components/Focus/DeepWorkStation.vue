@@ -58,6 +58,7 @@ const emit = defineEmits([
         </div>
       </div>
       <button
+        id="focus-btn-sound"
         type="button"
         class="focus-station-sound-toggle"
         :class="{ 'focus-station-sound-toggle--muted': !timerSoundEnabled }"
@@ -100,28 +101,25 @@ const emit = defineEmits([
           </defs>
         </svg>
 
-        <!-- Digital Center Display -->
+        <!-- Center Clock Face -->
         <div class="focus-station-center-content">
-          <span class="focus-station-clock mono-num">{{ timerElapsedFormatted }}</span>
-          <span class="focus-station-target mono-num">Target: {{ timerState.targetMin }} min</span>
-          <div class="focus-station-pct-pill mono-num">
-            <span>{{ timerProgressPct }}%</span>
-          </div>
+          <span class="focus-station-clock mono-num">{{ timerRemainingFormatted }}</span>
+          <span class="focus-station-target mono-num">Target: {{ timerState.targetMin }}m</span>
         </div>
       </div>
 
-      <!-- Linked Habit Status Tag -->
-      <div class="focus-station-habit-tag-wrap">
-        <div v-if="timerLinkedHabit" class="focus-station-linked-pill">
-          <Sparkles class="icon-xs" />
-          <span>Auto-logging: <strong>{{ timerLinkedHabit.name }}</strong> (+{{ timerLinkedHabit.points }} pts)</span>
+      <!-- Linked Habit Info Badge -->
+      <div class="focus-station-linked-info">
+        <div v-if="timerLinkedHabit" class="focus-station-linked-chip">
+          <Zap class="icon-xs icon-focus-gold" />
+          <span>Linked: <strong>{{ timerLinkedHabit.name }}</strong> (+{{ timerLinkedHabit.points }}pt)</span>
         </div>
-        <div v-else-if="timerState.isBreak" class="focus-station-linked-pill focus-station-linked-pill--break">
+        <div v-else-if="timerState.isBreak" class="focus-station-linked-chip focus-station-linked-chip--break">
           <Coffee class="icon-xs" />
-          <span>Recovery Rest Break • {{ timerRemainingFormatted }} remaining</span>
+          <span>Rest &amp; Recover (Break Time)</span>
         </div>
-        <div v-else class="focus-station-linked-pill focus-station-linked-pill--general">
-          <Zap class="icon-xs" />
+        <div v-else class="focus-station-linked-chip focus-station-linked-chip--general">
+          <Clock class="icon-xs" />
           <span>General Flow State Block</span>
         </div>
       </div>
@@ -133,26 +131,26 @@ const emit = defineEmits([
           <span class="focus-station-complete-sub">Great work. Take a quick rest before your next sprint.</span>
         </div>
         <div class="focus-station-btn-group">
-          <button type="button" class="btn btn--secondary focus-station-btn" @click="emit('start-break', 5)">
+          <button id="focus-btn-break-5" type="button" class="btn btn--secondary focus-station-btn" @click="emit('start-break', 5)">
             <Coffee class="icon-sm" /> 5m Break
           </button>
-          <button type="button" class="btn btn--secondary focus-station-btn" @click="emit('start-break', 15)">
+          <button id="focus-btn-break-15" type="button" class="btn btn--secondary focus-station-btn" @click="emit('start-break', 15)">
             <Coffee class="icon-sm" /> 15m Break
           </button>
-          <button type="button" class="btn btn--primary-action focus-station-btn focus-station-btn--finish" @click="emit('stop-timer')">
+          <button id="focus-btn-finish" type="button" class="btn btn--primary-action focus-station-btn focus-station-btn--finish" @click="emit('stop-timer')">
             <Check class="icon-sm" /> Finish &amp; Log
           </button>
         </div>
       </div>
 
       <div v-else class="focus-station-actions-bar">
-        <button v-if="!timerState.running" type="button" class="btn btn--primary-action focus-station-btn" @click="emit('resume-timer')">
+        <button id="focus-btn-resume" v-if="!timerState.running" type="button" class="btn btn--primary-action focus-station-btn" @click="emit('resume-timer')">
           <Play class="icon-sm" /> Resume Session
         </button>
-        <button v-if="timerState.running" type="button" class="btn btn--secondary focus-station-btn" @click="emit('pause-timer')">
+        <button id="focus-btn-pause" v-if="timerState.running" type="button" class="btn btn--secondary focus-station-btn" @click="emit('pause-timer')">
           <Pause class="icon-sm" /> Pause
         </button>
-        <button type="button" class="btn btn--danger focus-station-btn" @click="emit('stop-timer')">
+        <button id="focus-btn-stop" type="button" class="btn btn--danger focus-station-btn" @click="emit('stop-timer')">
           <X class="icon-sm" /> End Early
         </button>
       </div>
@@ -170,6 +168,7 @@ const emit = defineEmits([
           <button
             v-for="min in [15, 25, 50, 90, 120]"
             :key="'focus-dur-' + min"
+            :id="'focus-dur-btn-' + min"
             type="button"
             class="focus-preset-chip"
             :class="{ 'focus-preset-chip--active': timerLauncherDuration === min && !customTimerMin }"
@@ -180,6 +179,7 @@ const emit = defineEmits([
           </button>
           <div class="focus-custom-chip" :class="{ 'focus-custom-chip--active': !!customTimerMin }">
             <input
+              id="focus-custom-input"
               :value="customTimerMin"
               @input="emit('update:customTimerMin', $event.target.value ? Number($event.target.value) : null)"
               type="number"
@@ -200,6 +200,7 @@ const emit = defineEmits([
           <span>Link Habit (Auto-Completes Upon Finish)</span>
         </label>
         <select
+          id="focus-select-habit"
           :value="timerLauncherHabitId"
           @change="emit('update:timerLauncherHabitId', $event.target.value)"
           class="focus-station-select"
@@ -213,6 +214,7 @@ const emit = defineEmits([
 
       <!-- Launch Action Button -->
       <button
+        id="focus-btn-start"
         type="button"
         class="btn btn--primary-action focus-station-launch-btn"
         @click="emit('start-timer', customTimerMin || timerLauncherDuration, timerLauncherHabitId || null)"
