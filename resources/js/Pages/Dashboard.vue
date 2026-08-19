@@ -397,29 +397,88 @@ onMounted(() => {
 
 const weeklyReviewExpanded = ref(false);
 const toastMessage = ref('');
+let toastTimeoutId = null;
+
+const showToast = (message, duration = 2800) => {
+  toastMessage.value = message;
+  if (toastTimeoutId) clearTimeout(toastTimeoutId);
+  toastTimeoutId = setTimeout(() => {
+    toastMessage.value = '';
+  }, duration);
+};
 
 const shareDailyScorecard = async () => {
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const tierName = autoProtocolTier.value?.title || 'Daily Protocol';
-  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${todayScheduledCount.value} Habits Done\n#Habuilt #HabitMastery`;
-  
-  if (typeof navigator !== 'undefined' && navigator.share) {
+  const text = `⚡ Habuilt Daily Protocol — ${dateStr}\n👤 ${displayName.value} (${levelTitle.value} Lv. ${levelData.value?.level || 1})\n🔥 Streak: ${systemStreak.value?.current || 0} Days | 🏆 Wallet: ${availableWallet.value} pts\n🎯 Protocol: ${tierName} (${todayPoints.value}/15 pts)\n✅ ${todayCompletedCount.value}/${todayScheduledCount.value} Habits Done\n#Habuilt #HabitMastery\nhttps://www.habuilt.com`;
+
+  // 1. Native Web Share API (Mobile Safari, Chrome Android)
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {
-      await navigator.share({ title: 'My Habuilt Scorecard', text });
+      await navigator.share({
+        title: 'My Habuilt Daily Scorecard',
+        text: text,
+      });
+      showToast('🎉 Scorecard shared!');
       return;
-    } catch (e) {
-      // Fallback if cancelled
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        return; // User cancelled share sheet
+      }
     }
   }
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+
+  // 2. Clipboard API Fallback
+  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     try {
       await navigator.clipboard.writeText(text);
-      toastMessage.value = '📋 Daily Scorecard copied to clipboard!';
-      setTimeout(() => { toastMessage.value = ''; }, 2500);
+      showToast('📋 Scorecard copied to clipboard!');
+      return;
     } catch (e) {
-      toastMessage.value = 'Scorecard ready to share!';
-      setTimeout(() => { toastMessage.value = ''; }, 2500);
+      console.warn('Clipboard write failed, using fallback:', e);
     }
+  }
+
+  // 3. Document execCommand fallback
+  try {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'fixed';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('📋 Scorecard copied to clipboard!');
+  } catch (err) {
+    showToast('⚡ Daily scorecard ready!');
+  }
+};
+
+const handleAppReload = async () => {
+  try {
+    isSyncingCloud.value = true;
+    showToast('🔄 Syncing & Refreshing...');
+
+    // 1. Re-read local storage
+    loadState();
+
+    // 2. Pull remote cloud state if user is logged in
+    if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+      const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
+      if (remoteData) {
+        applyLoadedState(remoteData, true);
+        lastSyncTimestamp = Date.now();
+      }
+    }
+
+    showToast('✅ App Synced & Refreshed!');
+  } catch (err) {
+    console.warn('Reload sync error:', err);
+    showToast('⚡ Refreshed');
+  } finally {
+    isSyncingCloud.value = false;
   }
 };
 
@@ -1182,6 +1241,13 @@ onBeforeUnmount(() => {
 
 <template>
   <AppLayout :title="appName">
+    <!-- Global Floating Action Feedback Toast -->
+    <transition name="toast-fade">
+      <div v-if="toastMessage" class="global-toast-banner" role="status" aria-live="polite">
+        <span class="global-toast-text">{{ toastMessage }}</span>
+      </div>
+    </transition>
+
     <!-- Pinned Top Deep Work Timer Bar -->
     <div v-if="timerState && activeMobileTab !== 'focus'" class="deep-timer" :class="{ 'deep-timer--running': timerState.running }">
       <div class="deep-timer__bar">
@@ -1236,7 +1302,7 @@ onBeforeUnmount(() => {
       @toggle-theme="toggleTheme"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
-      @reload-app="() => syncCloudState(true)"
+      @reload-app="handleAppReload"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
