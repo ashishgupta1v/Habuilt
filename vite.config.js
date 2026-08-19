@@ -21,10 +21,24 @@ export default defineConfig({
     }),
   ],
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: {
         app: 'resources/js/app.js',
         preview: 'index.html',
+      },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-vue-next')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('vue') || id.includes('@inertiajs')) {
+              return 'vendor-vue';
+            }
+            return 'vendor';
+          }
+        },
       },
     },
   },
