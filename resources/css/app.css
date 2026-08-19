@@ -7687,13 +7687,17 @@ body.theme-dark .reward-bar {
 }
 
 
-  /* ══ FIXED GLASS BOTTOM NAVIGATION BAR ══ */
+  /* ══ FIXED GLASS BOTTOM NAVIGATION BAR (Strict Zero Horizontal Overflow) ══ */
   .mobile-bottom-nav {
     display: flex !important;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
     height: calc(60px + env(safe-area-inset-bottom, 0px));
     padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
     background: rgba(15, 23, 42, 0.92);
@@ -7718,12 +7722,16 @@ body.theme-dark .reward-bar {
     justify-content: center;
     background: none;
     border: none;
-    padding: 6px 12px;
+    padding: 6px 2px;
     color: #94a3b8;
     cursor: pointer;
     position: relative;
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 25%;
     min-height: 48px;
+    box-sizing: border-box;
+    overflow: hidden;
     transition: color 0.18s ease, transform 0.18s ease;
   }
   body:not(.theme-dark) .mobile-bottom-nav__item {
@@ -7754,6 +7762,11 @@ body.theme-dark .reward-bar {
     font-size: 0.68rem;
     letter-spacing: 0.02em;
     margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
   }
   .mobile-bottom-nav__badge-dot {
     position: absolute;
@@ -9403,10 +9416,12 @@ body.theme-dark .reward-bar {
 /* Milestone Badges (2-Column Grid on all viewports, Zero Horizontal Overflow) */
 .analytics-milestones-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 .analytics-milestone-card {
   display: flex;
