@@ -861,8 +861,18 @@ const mobileHeroExpanded = ref(false);
 
 // Toggle Habit Check
 const toggleHabitForDay = (habit, day) => {
-  if (isFutureDay(day)) return;
   const numDay = Number(day);
+
+  // If user tapped on a future day, smoothly jump to Today and show Toast
+  if (isFutureDay(numDay)) {
+    mobileGoToday();
+    showToast(`📅 Switched to Today (${mobileDayLabel.value})! Tap to mark "${habit.name}" done.`, 3000);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(20);
+    }
+    return;
+  }
+
   const key = keyFor(habit.id, numDay);
   const currentlyDone = hasCompletedDay(habit, numDay);
   const nextDone = !currentlyDone;
@@ -1325,6 +1335,9 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(() => {
+  if (props.isCurrentMonth) {
+    mobileSelectedDay.value = props.currentDay;
+  }
   loadLocalState();
   syncTabWithUrl();
   syncCloudState(true);

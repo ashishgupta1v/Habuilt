@@ -106,6 +106,15 @@ const emit = defineEmits([
       </button>
     </div>
 
+    <!-- Future Day Interactive Alert Banner -->
+    <div v-if="mobileDayIsFuture" class="future-day-alert-banner" @click="emit('go-today')">
+      <div class="future-alert-left">
+        <Sparkles class="icon-sm icon-gold" />
+        <span>Viewing Future Day ({{ mobileDayLabel }}). Tap to <strong>Jump to Today</strong> to log habits</span>
+      </div>
+      <button type="button" class="btn-jump-today">Jump to Today</button>
+    </div>
+
     <!-- Day-Specific Schedule Mode Bar -->
     <div class="schedule-mode-bar">
       <button

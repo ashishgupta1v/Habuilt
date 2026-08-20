@@ -46,15 +46,16 @@ const emit = defineEmits([
         'mobile-daily__card--done': isDone,
         'mobile-daily__card--shared': habit.name.startsWith('★'),
         'mobile-daily__card--up-next': mobileDayIsToday && isUpNext && !isDone,
-        'mobile-daily__card--disabled': mobileDayIsFuture || isPending,
+        'mobile-daily__card--future': mobileDayIsFuture,
+        'mobile-daily__card--pending': isPending,
         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
       }"
-      :tabindex="mobileDayIsFuture || isPending ? -1 : 0"
+      tabindex="0"
       role="button"
-      :aria-disabled="mobileDayIsFuture || isPending"
-      @click="!mobileDayIsFuture && !isPending && emit('toggle-check')"
-      @keydown.enter.prevent="!mobileDayIsFuture && !isPending && emit('toggle-check')"
-      @keydown.space.prevent="!mobileDayIsFuture && !isPending && emit('toggle-check')"
+      :aria-disabled="isPending"
+      @click="!isPending && emit('toggle-check')"
+      @keydown.enter.prevent="!isPending && emit('toggle-check')"
+      @keydown.space.prevent="!isPending && emit('toggle-check')"
     >
       <span v-if="mobileDayIsToday && isUpNext && !isDone" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }">
         <Clock class="icon-xs" /> {{ upNextInfo?.badgeText || 'UP NEXT' }}
