@@ -288,11 +288,11 @@ self.addEventListener('notificationclick', (event) => {
           }));
         } catch { /* cache fallback */ }
 
-        // Show instant celebratory confirmation toast on Android
+        // 3. Show instant celebratory confirmation toast on Android
         await self.registration.showNotification('🎉 Habit Completed!', {
-          body: `"${data.habitName}" (+${data.points} pts) marked done without opening app!`,
+          body: `"${data.habitName || 'Habit'}" (+${data.points || 1} pts) marked done!`,
           icon: '/icons/icon-192x192.png',
-          badge: '/icons/icon-96x96.png',
+          badge: '/icons/badge-monochrome-96.png',
           tag: 'habuilt-completion-toast',
           renotify: false,
           data: { url: '/' },
@@ -300,8 +300,10 @@ self.addEventListener('notificationclick', (event) => {
 
         // Auto-dismiss confirmation after 3.5s
         setTimeout(async () => {
-          const successNotifs = await self.registration.getNotifications({ tag: 'habuilt-completion-toast' });
-          for (const s of successNotifs) s.close();
+          try {
+            const successNotifs = await self.registration.getNotifications({ tag: 'habuilt-completion-toast' });
+            for (const s of successNotifs) s.close();
+          } catch { /* ignore */ }
         }, 3500);
       })()
     );

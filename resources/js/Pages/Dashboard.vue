@@ -660,9 +660,11 @@ const toggleHabitNote = (habitId, day) => {
 // Points & Check-in Logic
 const keyFor = (habitId, day) => `${habitId}-${day}`;
 const hasCompletedDay = (habit, day) => {
-  const cellKey = keyFor(habit.id, day);
+  if (!habit) return false;
+  const numDay = Number(day);
+  const cellKey = keyFor(habit.id, numDay);
   if (pendingCells.value[cellKey] !== undefined) return pendingCells.value[cellKey];
-  return Array.isArray(habit.completed_days) && habit.completed_days.includes(day);
+  return Array.isArray(habit.completed_days) && habit.completed_days.some(d => Number(d) === numDay);
 };
 const isPending = (habitId, day) => !!pendingCells.value[keyFor(habitId, day)];
 const isFutureDay = (day) => props.isFutureMonth || (props.isCurrentMonth && day > props.currentDay);
@@ -859,20 +861,23 @@ const mobileHeroExpanded = ref(false);
 // Toggle Habit Check
 const toggleHabitForDay = (habit, day) => {
   if (isFutureDay(day)) return;
-  const key = keyFor(habit.id, day);
-  const currentlyDone = hasCompletedDay(habit, day);
+  const numDay = Number(day);
+  const key = keyFor(habit.id, numDay);
+  const currentlyDone = hasCompletedDay(habit, numDay);
   const nextDone = !currentlyDone;
   pendingCells.value[key] = nextDone;
 
-  const habitRef = (localHabits.value || []).find(h => h.id === habit.id);
-  if (habitRef) {
-    if (!Array.isArray(habitRef.completed_days)) habitRef.completed_days = [];
-    if (nextDone && !habitRef.completed_days.includes(day)) {
-      habitRef.completed_days.push(day);
-    } else if (!nextDone) {
-      habitRef.completed_days = habitRef.completed_days.filter(d => d !== day);
+  localHabits.value = (localHabits.value || []).map(h => {
+    if (h.id === habit.id) {
+      const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+      let newCd = cd.filter(d => d !== numDay);
+      if (nextDone) {
+        newCd.push(numDay);
+      }
+      return { ...h, completed_days: newCd };
     }
-  }
+    return h;
+  });
 
   delete pendingCells.value[key];
   saveState();
@@ -880,6 +885,55 @@ const toggleHabitForDay = (habit, day) => {
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(nextDone ? [15, 30, 15] : [20]);
+  }
+};
+
+// Direct complete habit handler from background notification action
+const markHabitCompletedDirectly = (habitId, day) => {
+  const numDay = Number(day);
+  const key = keyFor(habitId, numDay);
+  delete pendingCells.value[key];
+
+  let found = false;
+  localHabits.value = (localHabits.value || []).map(h => {
+    if (h.id === habitId) {
+      found = true;
+      const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+      if (!cd.includes(numDay)) {
+        return { ...h, completed_days: [...cd, numDay] };
+      }
+    }
+    return h;
+  });
+
+  // Direct fallback patch to localStorage for offline persistence
+  try {
+    const raw = localStorage.getItem(localStateKey.value);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.habits)) {
+        parsed.habits = parsed.habits.map(h => {
+          if (h.id === habitId) {
+            const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+            if (!cd.includes(numDay)) {
+              return { ...h, completed_days: [...cd, numDay] };
+            }
+          }
+          return h;
+        });
+        localStorage.setItem(localStateKey.value, JSON.stringify(parsed));
+      }
+    }
+  } catch { /* ignore */ }
+
+  saveState();
+  syncDueNowNotification?.();
+
+  const habitObj = (localHabits.value || []).find(h => h.id === habitId);
+  const habitName = habitObj ? habitObj.name : 'Habit';
+  showToast(`✅ "${habitName}" marked done!`);
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([15, 30, 15]);
   }
 };
 
@@ -900,28 +954,13 @@ const {
   toggleNotifications: toggleDueNowNotifications,
   syncDueNowNotification,
   dismissDueNowNotification,
+  drainQueuedCompletions,
 } = useDueNowNotifications({
   upNextHabitInfo,
   currentDay: computed(() => props.currentDay),
   isCurrentMonth: computed(() => props.isCurrentMonth),
   hasCompletedDay,
-  onCompleteHabit: (habitId, day) => {
-    const numDay = Number(day);
-    const habit = (localHabits.value || []).find(h => h.id === habitId);
-    if (habit) {
-      if (!Array.isArray(habit.completed_days)) habit.completed_days = [];
-      const alreadyDone = habit.completed_days.some(d => Number(d) === numDay);
-      if (!alreadyDone) {
-        habit.completed_days.push(numDay);
-        saveState();
-        syncDueNowNotification?.();
-        showToast(`✅ "${habit.name}" marked done!`);
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([15, 30, 15]);
-        }
-      }
-    }
-  },
+  onCompleteHabit: markHabitCompletedDirectly,
   habitTimeSchedule,
 });
 
@@ -1022,6 +1061,11 @@ const applyLoadedState = (data, isRemote = false) => {
       }));
     } catch { /* offline fallback */ }
   }
+
+  // Drain any queued background actions from notifications once habits are loaded
+  setTimeout(() => {
+    drainQueuedCompletions?.();
+  }, 50);
 };
 
 const saveState = async () => {
@@ -1056,6 +1100,7 @@ const loadLocalState = () => {
   } catch {
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
+  drainQueuedCompletions?.();
 };
 
 const syncCloudState = async (force = false) => {
