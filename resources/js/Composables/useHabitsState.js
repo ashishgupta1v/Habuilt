@@ -1,25 +1,30 @@
 import { ref, computed } from 'vue';
 
-// ── Progressive Habits: Ashish's Track — Micro-Detail (53 activities, time-sequenced) ──
+// ── Progressive Habits: Ashish's Track — Micro-Detail (58 activities, time-sequenced) ──
 export const ashishHabits = [
-  // ── MORNING 05:00–08:30 (10 micro-steps) ──
+  // ── MORNING 05:00–08:30 — Full MOVERS Protocol (17 micro-steps) ──
   { id: 'a-1',  name: '05:00 Alarm — Out of Bed',                        points: 1, hint: 'Feet on the floor by 05:00 sharp. No snooze button. Sit up → stand → drink water → start moving immediately.' },
-  { id: 'a-2',  name: '05:05 500ml Warm Water + 10g Plant Protein',      points: 1, hint: 'Drink 500ml warm water with 10g plant protein to rehydrate and kickstart morning metabolism before physical movement.' },
-  { id: 'a-3',  name: '05:15 Outdoor Sunlight & Fresh Air (10 min)',     points: 1, hint: 'Step onto balcony or outside for natural light exposure within 30 min of waking. Sets your circadian rhythm and boosts alertness.' },
-  { id: 'a-4',  name: '05:30 45-Min Strength Workout',                   points: 2, daysOfWeek: [1, 3, 5], scheduleLabel: 'Mon, Wed, Fri', hint: 'Full 45-min strength training session (upper/lower/core). Warm up 5 min, focus on progressive overload, cool down.' },
-  { id: 'a-5',  name: '05:30 45-Min Cardio Workout',                     points: 2, daysOfWeek: [2, 4], scheduleLabel: 'Tue, Thu', hint: 'Zone 2 cardio or interval running/cycling. Build cardiovascular endurance and burn morning energy.' },
-  { id: 'a-6',  name: '05:30 45-Min Long Run Workout',                   points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Steady-state outdoor long run. Pace yourself comfortably, maintain steady breathing, enjoy the distance.' },
-  { id: 'a-7',  name: '06:15 5-Min Post-Workout Stretch & Foam Roll',    points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Cool down stretches: calves, quads, hamstrings, back, shoulders. Reduces soreness and prevents injury.' },
-  { id: 'a-8',  name: '06:20 Whey Shake + 5g Creatine Post-Workout',     points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: '1 scoop whey isolate + 5g creatine monohydrate in cold water within 30 min post-workout for muscle protein synthesis.' },
-  { id: 'a-9',  name: '06:30 Cold Shower & Morning Grooming',            points: 1, hint: 'End shower with 60–90 seconds cold water. Combines alertness, dopamine boost, and disciplined grooming protocol.' },
-  { id: 'a-10', name: '07:00 Take Shaarvi (07:00–08:30 Baby Duty)',      points: 2, hint: '100% focused daddy-daughter time. Diaper change, feed, tummy time, baby songs. Give Jyoti uninterrupted time.' },
+  { id: 'a-2',  name: '05:05 500ml Warm Water (5 min)',                  points: 1, hint: 'Drink 500ml warm water to rehydrate after sleep before anything else. Protein comes later with your post-workout shake.' },
+  { id: 'a-54', name: '05:10 MOVERS: Meditation (10 min)',               points: 1, hint: 'Sit quietly, eyes closed, focus on breath. Any style works — guided app or silent. This is the "M" in MOVERS: settle the mind before the day starts.' },
+  { id: 'a-55', name: '05:20 MOVERS: Oxygenation — Breathwork (5 min)',  points: 1, hint: 'Structured breathwork: box breathing, Wim Hof rounds, or alternate nostril breathing. The "O" in MOVERS — floods the body with oxygen and lowers stress before the day begins.' },
+  { id: 'a-56', name: '05:25 MOVERS: Visualization (5 min)',             points: 1, hint: 'Close your eyes and mentally rehearse today going exactly as you want it to — the wins, the hard conversations, how you want to show up. The "V" in MOVERS.' },
+  { id: 'a-57', name: '05:30 MOVERS: Reading (10 min)',                  points: 1, hint: 'Read something that grows you — business, craft, or personal development. Not news, not social feeds. The "R" in MOVERS.' },
+  { id: 'a-58', name: '05:40 MOVERS: Scribing — Journal (10 min)',       points: 1, hint: 'Write by hand: what you\'re grateful for, your intention for today, and 1 insight from your reading. The "S" in MOVERS — different from the evening stress check-in, this one sets the tone for the day rather than reviewing it.' },
+  { id: 'a-3',  name: '05:50 Outdoor Sunlight & Fresh Air (5 min)',      points: 1, hint: 'Step onto balcony or outside for natural light exposure before your workout. Sets your circadian rhythm and boosts alertness.' },
+  { id: 'a-4',  name: '05:55 45-Min Strength Workout',                   points: 2, daysOfWeek: [1, 3, 5], scheduleLabel: 'Mon, Wed, Fri', hint: 'Full 45-min strength training session (upper/lower/core). Warm up 5 min, focus on progressive overload, cool down. The "E" in MOVERS — exercise closes out the protocol.' },
+  { id: 'a-5',  name: '05:55 45-Min Cardio Workout',                     points: 2, daysOfWeek: [2, 4], scheduleLabel: 'Tue, Thu', hint: 'Zone 2 cardio or interval running/cycling. Build cardiovascular endurance and burn morning energy. The "E" in MOVERS.' },
+  { id: 'a-6',  name: '05:55 45-Min Long Run Workout',                   points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Steady-state outdoor long run. Pace yourself comfortably, maintain steady breathing, enjoy the distance. The "E" in MOVERS.' },
+  { id: 'a-7',  name: '06:40 5-Min Post-Workout Stretch & Foam Roll',    points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Cool down stretches: calves, quads, hamstrings, back, shoulders. Reduces soreness and prevents injury.' },
+  { id: 'a-8',  name: '06:45 Whey Protein + Muesli, Milk & Banana',      points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Post-workout refuel: 1 scoop whey isolate blended or shaken, plus a bowl of muesli with milk and a banana. Protein + carbs within 30 min of finishing your workout.' },
+  { id: 'a-9',  name: '06:55 Cold Shower & Morning Grooming',            points: 1, hint: 'End shower with 60–90 seconds cold water. Combines alertness, dopamine boost, and disciplined grooming protocol.' },
+  { id: 'a-10', name: '07:05 Take Shaarvi (07:05–08:30 Baby Duty)',      points: 2, hint: '100% focused daddy-daughter time. Diaper change, feed, tummy time, baby songs. Give Jyoti her protected 08:05–09:05 career hour. Hands off cleanly at 08:30 for deep work.' },
 
   // ── WORK HOURS 08:30–18:30 (8 micro-steps) ──
   { id: 'a-11', name: '08:30 Daily 3-Tier Priority Definition (5 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Write down: 1 Must-Do (T1), 2 Should-Do (T2), 2 Nice-to-Do (T3). Never open email or Slack before writing these down.' },
   { id: 'a-12', name: '08:45 Block 1 — Deep Architecture / Code (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Pure deep work on core product code/system architecture. Phone on silent in another room. Zero tabs except repo.' },
   { id: 'a-13', name: '10:15 10-Min Walk + 300ml Hydration Break',       points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Step away from screen. Walk around, stretch eyes by looking 20ft away, drink 300ml water.' },
-  { id: 'a-14', name: '10:30 Block 2 — High-Leverage Deliverables (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Second deep work block: product features, PR reviews, critical client deliverables. Focused uninterrupted execution.' },
-  { id: 'a-15', name: '12:00 15-Min Pipeline & Outreach Action',         points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Send 3 high-value outbound messages or follow up with active enterprise leads. Keep the sales pipeline warm daily.' },
+  { id: 'a-14', name: '11:00 Block 2 — High-Leverage Deliverables (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Second deep work block: product features, PR reviews, critical client deliverables. Starts after your 10:30 breakfast break, not before — protects the meal from getting skipped.' },
+  { id: 'a-15', name: '12:30 15-Min Pipeline & Outreach Action',         points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Send 3 high-value outbound messages or follow up with active enterprise leads. Keep the sales pipeline warm daily.' },
   { id: 'a-16', name: '14:00 Block 3 — Technical Execution / PRs (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Afternoon build block: code implementations, bug fixes, automated test writing, code review merging.' },
   { id: 'a-17', name: '15:30 10-Min Walk + Green Tea / Black Coffee',    points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Afternoon break: 10 min stroll outside or around home. Enjoy green tea or black coffee. No sugary snacks.' },
   { id: 'a-18', name: '16:00 Block 4 — Pipeline / Ops / Client Work (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Operations, client communications, system monitoring, and documentation. Tie up all loose work threads.' },
@@ -38,11 +43,11 @@ export const ashishHabits = [
   { id: 'a-27', name: '22:00 In Bed — Lights Out (7h Sleep Target)',     points: 2, hint: 'In bed with lights out by 22:00 to ensure a full 7 hours of restorative sleep before the 05:00 wake-up.' },
 
   // ── HEALTH, NUTRITION & MINDSET — ALL DAY (11 habits) ──
-  { id: 'a-28', name: 'Breakfast — High Protein & Iron Rich',             points: 1, hint: 'Nutritious breakfast with 25g+ protein (e.g. eggs, paneer, sprouts, moong dal) plus iron sources like spinach or seeds.' },
-  { id: 'a-29', name: 'Lunch — Balanced Protein & Vegetables',           points: 1, hint: 'Wholesome lunch: dal, green sabzi, roti/rice, and salad. Eat mindfully away from your computer desk.' },
+  { id: 'a-28', name: '10:30 Breakfast — High Protein & Iron Rich',      points: 1, hint: 'Nutritious breakfast with 25g+ protein (e.g. eggs, paneer, sprouts, moong dal) plus iron sources like spinach or seeds. Sits between Block 1 and Block 2 — a real sit-down meal, not a rushed bite.' },
+  { id: 'a-29', name: '13:00 Lunch — Balanced Protein & Vegetables',     points: 1, hint: 'Wholesome lunch: dal, green sabzi, roti/rice, and salad. Eat mindfully away from your computer desk, in the gap between Block 2 and Block 3.' },
   { id: 'a-30', name: 'Dinner — Light Protein & Vegetables',              points: 1, hint: 'Light, easily digestible dinner with protein and fiber. Finish eating at least 2 hours before bedtime.' },
-  { id: 'a-31', name: 'Morning Supplement — B12 (with Breakfast)',       points: 1, hint: 'Take right after breakfast (a-28). B12 supports energy metabolism and nerve health — take it consistently every morning with food.' },
-  { id: 'a-51', name: 'Midday Supplement — D3 + Omega-3 (with Lunch)',   points: 1, hint: 'Take both right after lunch (a-29) — usually your meal with the most fat (dal + ghee/oil). D3 and Omega-3 are fat-soluble, so they absorb far better with a fatty meal. Taking them at lunch, not dinner, also avoids fishy burps disrupting sleep.' },
+  { id: 'a-31', name: '10:30 Morning Supplement — B12 (with Breakfast)', points: 1, hint: 'Take right alongside breakfast (a-28) at 10:30. B12 supports energy metabolism and nerve health — take it consistently every morning with food.' },
+  { id: 'a-51', name: '13:00 Midday Supplement — D3 + Omega-3 (with Lunch)', points: 1, hint: 'Take both right after your 13:00 lunch (a-29) — usually your meal with the most fat (dal + ghee/oil). D3 and Omega-3 are fat-soluble, so they absorb far better with a fatty meal. Taking them at lunch, not dinner, also avoids fishy burps disrupting sleep.' },
   { id: 'a-52', name: 'Night Supplement — Magnesium (Before Bed)',       points: 1, hint: 'Take 30–60 min before lights-out (~21:00–21:30), with a light snack if it upsets an empty stomach. Magnesium relaxes muscles and the nervous system — it helps you fall asleep faster and sleep deeper, which directly supports your 7h floor.' },
   { id: 'a-32', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Follow your healthy scalp regimen: gentle shampoo rinse, avoid harsh chemicals, and apply any topical treatments.' },
   { id: 'a-33', name: '5-Minute Stress & Mindset Journaling',             points: 1, hint: 'Rate your daily stress 1–10. Write down 1 challenge, 1 thing you are grateful for, and 1 positive focus for tomorrow.' },
@@ -66,26 +71,19 @@ export const ashishHabits = [
   { id: 'a-50', name: 'Shaarvi Weekend Sensory & Nature Outing (1h)',     points: 2, daysOfWeek: [0, 6], scheduleLabel: 'Sat–Sun', hint: 'Take Shaarvi to a botanical garden, park, or scenic outdoor spot. Let her touch grass, feel the breeze, and explore.' },
 ];
 
-// ── Jyoti's Track (35 activities) ──
+// ── Jyoti's Track (30 activities) ──
 export const jyotiHabits = [
-  // ── MORNING 05:00–11:00 (9 micro-steps) ──
+  // ── MORNING & MIDDAY 05:00–14:45 (9 micro-steps) ──
   { id: 'j-1',  name: 'Protected Sleep Window — 05:00 to 08:00',         points: 2, hint: 'Uninterrupted morning sleep while Ashish handles morning routines and Shaarvi. Rest is the foundation of energy and healing.' },
-  { id: 'j-2',  name: '08:00 Morning Wake-Up & 500ml Water',             points: 1, hint: 'Drink 500ml warm water upon waking to rehydrate and support digestion and milk production.' },
-  { id: 'j-3',  name: '08:15 Postnatal Vitamins & Nursing Stack (B12, DHA, D3)', points: 1, hint: 'Take with or right after breakfast, not on an empty stomach. D3 and DHA are fat-soluble and absorb much better alongside food that has some fat in it (eggs, ghee, nuts). B12 is fine either way but pairs naturally with the same routine.' },
-  { id: 'j-4',  name: '08:30 Block A — Career & Focus Session 1 (1h)',   points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: '1 hour of uninterrupted time for your creative or career projects while Ashish watches Shaarvi. Keep notifications silent.' },
-  { id: 'j-5',  name: '09:30 Block A — Career & Focus Session 2 (1h)',   points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Second 1-hour focused work block to finish priorities, study new skills, or work on portfolio deliverables.' },
-  { id: 'j-6',  name: '10:30 Refreshing Outdoor Walk (20 min)',          points: 1, hint: 'Enjoy 20 minutes of fresh air, natural sunlight, and relaxed walking to lift your mood and get natural Vitamin D.' },
-  { id: 'j-7',  name: '10:50 Warm Herbal Tea & Mindfulness Break',       points: 1, hint: 'Sip a warm cup of herbal tea (chamomile/fennel/ginger) with 5 minutes of mindful relaxation before baby routine.' },
-  { id: 'j-8',  name: '11:00 Take Over Shaarvi Duty from Ashish',        points: 1, hint: 'Seamless transition: take over baby care with loving energy while Ashish transitions into his afternoon focus blocks.' },
-  { id: 'j-35', name: '11:05 Shaarvi Abhyanga — Oil Massage & Bath (20m)', points: 2, hint: 'Gentle warm sesame/coconut oil massage for Shaarvi followed by a warm bath. Fits the gap right after taking over from Ashish (j-8) and before her 11:30 feed. Promotes baby muscle tone, blood circulation, and deep restful sleep.' },
-
-  // ── MIDDAY 11:00–16:00 (6 micro-steps) ──
-  { id: 'j-9',  name: '11:30 Shaarvi Morning Feed & Play Session',       points: 1, hint: 'Feed Shaarvi in a calm environment, then engage in interactive sensory toys, songs, and gentle motor practice.' },
-  { id: 'j-10', name: '12:30 High-Protein & Galactagogue Lunch',         points: 1, hint: 'Nutrient-rich lunch with protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils).' },
-  { id: 'j-11', name: '13:15 500ml Water Hydration Check',               points: 1, hint: 'Drink 500ml water right after lunch. Hydration directly influences energy levels and breast milk volume.' },
-  { id: 'j-12', name: '13:30 Shaarvi Afternoon Nap Window',              points: 1, hint: 'Settle Shaarvi into her crib/bed with white noise and gentle rocking for her core midday sleep.' },
-  { id: 'j-13', name: '13:45 Mother Rest Window (Nap / Reading 45m)',    points: 2, hint: 'Lie down, rest your eyes, read a book, or take a power nap while baby sleeps. Prioritize your recovery.' },
-  { id: 'j-14', name: '14:30 Creative Project / Personal Development',   points: 1, hint: 'Spend 30–45 minutes on self-directed creative projects, learning, journaling, or relaxing hobbies.' },
+  { id: 'j-2',  name: '08:00 Wake-Up & 500ml Water (5 min)',             points: 1, hint: 'Drink 500ml warm water upon waking to rehydrate and support digestion and milk production.' },
+  { id: 'j-4',  name: '08:05 Career & Focus Session (1h)',               points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Ashish has Shaarvi from 07:05–08:30 (active care, then she\'s usually napping/content for the second half). Use this protected hour for your creative or career projects. Keep notifications silent.' },
+  { id: 'j-9',  name: '09:05 Shaarvi Bath — Abhyanga, Exercises & Play (40 min)', points: 3, hint: 'Your full hands-on block with Shaarvi: warm oil abhyanga massage, her bath, gentle exercises, plus interaction, communication and play. One combined session — no need to split it up.' },
+  { id: 'j-10', name: '09:45 Breakfast & Multivitamins (30 min)',        points: 1, hint: 'Sit down for your own breakfast and take your multivitamins (B12, DHA, D3) together, right after Shaarvi\'s bath. Eating with food helps the fat-soluble ones (DHA, D3) absorb properly.' },
+  { id: 'j-36', name: '10:15 Wash Shaarvi\'s Clothes (30 min)',          points: 1, hint: 'Laundry for the day — wash, and get a load started or hung to dry. Wraps up the active morning block by 11:00.' },
+  { id: 'j-11', name: '11:00 Settle Shaarvi for Nap (15 min)',           points: 1, hint: 'Wind her down and settle her into her crib/bed with white noise and gentle rocking for her midday sleep.' },
+  { id: 'j-12', name: '11:15 Own Bath & Room Cleanup (1h45m)',           points: 2, hint: 'While Shaarvi naps: take your own bath and tidy/clean the room. No rush — this block runs through to 13:00, matching how long her nap actually gives you.' },
+  { id: 'j-6',  name: '13:00 Lunch (45 min)',                            points: 1, hint: 'Nutrient-rich lunch with protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils). Right after your own bath/cleanup block ends.' },
+  { id: 'j-14', name: '13:45 Creative Project / Personal Development (1h)', points: 1, hint: 'Spend this hour on self-directed creative projects, learning, journaling, or relaxing hobbies — Shaarvi is likely still settled from her nap.' },
 
   // ── AFTERNOON & EVENING 16:00–21:30 (8 micro-steps) ──
   { id: 'j-15', name: '16:00 Shaarvi Afternoon Feed & Stroller Walk',    points: 1, hint: 'Afternoon feeding session followed by fresh air stroll in the stroller around the neighborhood.' },
@@ -223,23 +221,23 @@ export const ashishTierDescriptions = {
   'a-51': ['Skip today', 'Take sometimes', 'D3 + Omega-3 with lunch', 'D3 + Omega-3 with lunch + track levels'],
   'a-52': ['Skip today', 'Take sometimes', 'Magnesium before bed', 'Magnesium 30-60min pre-sleep + track quality'],
   'a-53': ['1 quick call', '2 calls', '45 min calls/sync block', '45 min + notes logged for follow-up'],
+  'a-54': ['1 min sit', '5 min meditation', '10 min meditation', '10 min + breath awareness log'],
+  'a-55': ['A few deep breaths', '3 min breathwork', '5 min structured breathwork', '5 min + heart rate calmed'],
+  'a-56': ['Think of 1 goal', '3 min visualize', '5 min full visualization', '5 min + written down'],
+  'a-57': ['Skim 1 page', '5 min reading', '10 min reading', '10 min + 1 key insight noted'],
+  'a-58': ['1 sentence', '5 min journal', '10 min full journal entry', '10 min + gratitude + intention set'],
 };
 
 export const jyotiTierDescriptions = {
   'j-1':  ['Rest until 7:00', 'Sleep until 7:30', 'Sleep until 8:00 protected', 'Full 8:00 rest + energized start'],
   'j-2':  ['Drink 250ml', '500ml water', '500ml warm water', '500ml + morning hydration routine'],
-  'j-3':  ['Take 1 vitamin', 'B12 + DHA', 'Full postnatal stack', 'Full stack + iron check'],
-  'j-4':  ['30 min focus', '45 min focus', '60 min Career Session 1', '60 min + project deliverable done'],
-  'j-5':  ['30 min focus', '45 min focus', '60 min Career Session 2', '60 min + study goals achieved'],
-  'j-6':  ['10 min walk', '15 min walk', '20 min outdoor walk', '20 min + natural sunlight absorbed'],
-  'j-7':  ['Quick tea', '5 min tea break', 'Herbal tea + mindfulness', 'Tea + breathing meditation'],
-  'j-8':  ['11:30 takeover', '11:15 takeover', '11:00 sharp takeover', '11:00 smooth baby transition'],
-  'j-9':  ['Feed only', 'Feed + 10m play', 'Feed + full play session', 'Feed + sensory development play'],
-  'j-10': ['Eat lunch', 'Add protein', 'High-protein galactagogue meal', 'Nourishing meal + hydration'],
-  'j-11': ['Drink 250ml', '500ml water', '500ml tracked', '500ml + electrolytes'],
-  'j-12': ['30 min nap window', '45 min nap window', 'Full afternoon nap routine', 'Peaceful crib transition'],
-  'j-13': ['20 min rest', '30 min rest', '45 min rest/reading', '45 min deep recovery nap'],
-  'j-14': ['15 min creative', '30 min creative', '45 min project time', '45 min + portfolio progress'],
+  'j-4':  ['30 min focus', '45 min focus', '60 min Career Session', '60 min + project deliverable done'],
+  'j-6':  ['15 min lunch', '30 min lunch', '45 min proper lunch', '45 min + galactagogue foods included'],
+  'j-9':  ['10 min quick bath', '20 min bath + massage', '30 min bath + abhyanga + play', '40 min full bath + abhyanga + exercises + play'],
+  'j-10': ['Eat something', 'Breakfast eaten', 'Breakfast + multivitamins', 'Breakfast + multivitamins + hydration'],
+  'j-11': ['Rock to sleep', 'Settle in 10 min', 'Settled + white noise', 'Smooth 15-min settle, no fuss'],
+  'j-12': ['30 min bath/tidy', '1h bath/tidy', 'Full bath + room reset', '1h45 bath + deep room clean'],
+  'j-14': ['15 min creative', '30 min creative', '45 min project time', '60 min + portfolio progress'],
   'j-15': ['Feed only', 'Feed + short walk', 'Feed + full stroller stroll', 'Feed + nature exploration'],
   'j-16': ['5 min stretching', '10 min pelvic exercises', '20 min full postpartum movement', '20 min + core recovery routine'],
   'j-17': ['Drink water', 'Fruit snack', 'Fruit + nuts + water', 'Whole nutrition snack + hydration'],
@@ -260,7 +258,7 @@ export const jyotiTierDescriptions = {
   'j-32': ['Note 1 achievement', 'Write 2 memories', 'Full weekly milestone log', 'Log + baby photos saved'],
   'j-33': ['30 min practice', '60 min output', '2h creative session', '2h + completed creative work'],
   'j-34': ['Short trip', '30 min outdoor time', '1h sensory outing with Shaarvi', '1h + new sensory stimuli explored'],
-  'j-35': ['Quick oil rub', '10 min massage', '15 min abhyanga + bath', '20 min full abhyanga + warm bath ritual'],
+  'j-36': ['Quick rinse', 'Wash 1 load', 'Wash + hang full load', 'Wash + hang + fold ahead'],
 };
 
 export const ashishTravelTierDescriptions = {
@@ -316,8 +314,8 @@ export const timeSlotOrder = {
 };
 
 export function getTimeSlotForHabit(id) {
-  // Ashish core habits (micro-detail: a-1..a-52)
-  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10'].includes(id)) return 'morning';
+  // Ashish core habits (micro-detail: a-1..a-58)
+  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10','a-54','a-55','a-56','a-57','a-58'].includes(id)) return 'morning';
   if (['a-11','a-12','a-13','a-14','a-15','a-16','a-17','a-18','a-53'].includes(id)) return 'work';
   if (['a-19','a-20','a-21','a-22','a-23','a-24','a-25','a-26','a-27','a-43'].includes(id)) return 'evening';
   if (['a-28','a-29','a-30','a-31','a-32','a-33','a-34','a-35','a-36','a-51','a-52'].includes(id)) return 'anytime';
@@ -329,9 +327,9 @@ export function getTimeSlotForHabit(id) {
   if (['at-15','at-16','at-17','at-18','at-19','at-20','at-21','at-22','at-23'].includes(id)) return 'evening';
   if (['at-24','at-25','at-26','at-27','at-28','at-29','at-30','at-31','at-32','at-33'].includes(id)) return 'anytime';
 
-  // Jyoti habits by ID (micro-detail: j-1..j-35)
-  if (['j-1','j-2','j-3','j-4','j-5','j-6','j-7','j-8','j-35'].includes(id)) return 'morning';
-  if (['j-9','j-10','j-11','j-12','j-13','j-14'].includes(id)) return 'work';
+  // Jyoti habits by ID (micro-detail: j-1..j-36)
+  if (['j-1','j-2','j-4','j-9','j-10','j-36'].includes(id)) return 'morning';
+  if (['j-11','j-12','j-6','j-14'].includes(id)) return 'work';
   if (['j-15','j-16','j-17','j-18','j-19','j-20','j-21','j-22'].includes(id)) return 'evening';
   if (['j-23','j-24','j-25','j-26','j-27','j-28'].includes(id)) return 'anytime';
   if (['j-29','j-30','j-31','j-32','j-33','j-34'].includes(id)) return 'weekly';
@@ -344,10 +342,10 @@ export function getHabitCategory(habit) {
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
   if (['a-4','a-5','a-6','a-7','j-16','at-3'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch')) return 'fitness';
-  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','j-3','j-10','j-24','j-28','at-2','at-24','at-25','at-26','at-27','at-31','at-32','at-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement')) return 'nutrition';
-  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','j-5','at-10','at-12','at-17'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority')) return 'work';
-  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','j-8','j-9','j-15','j-18','j-21','j-26','j-27','j-30','j-35','at-6','at-15','at-19','at-20','at-21','at-30'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga')) return 'family';
-  if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','j-1','j-2','j-7','j-13','j-22','j-25','j-31','at-1','at-4','at-16','at-18','at-22','at-23','at-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp')) return 'rest';
+  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','j-10','j-24','j-28','at-2','at-24','at-25','at-26','at-27','at-31','at-32','at-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin')) return 'nutrition';
+  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','at-10','at-12','at-17'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career')) return 'work';
+  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-36','at-6','at-15','at-19','at-20','at-21','at-30'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga')) return 'family';
+  if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','a-54','a-55','a-56','a-57','a-58','j-1','j-2','j-12','j-22','j-25','j-31','at-1','at-4','at-16','at-18','at-22','at-23','at-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp') || name.includes('meditation') || name.includes('breathwork') || name.includes('visualization') || name.includes('scribing') || name.includes('reading') || name.includes('bath')) return 'rest';
   return 'ops';
 }
 
