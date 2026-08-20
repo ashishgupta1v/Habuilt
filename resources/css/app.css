@@ -3164,16 +3164,13 @@ body.theme-dark .milestone-fill {
     box-sizing: border-box;
   }
 
-  .mobile-daily__card:active:not(:disabled):not(.mobile-daily__card--disabled) {
+  .mobile-daily__card:active {
     transform: scale(0.985);
     background: var(--muted-bg);
   }
 
-  .mobile-daily__card:disabled,
   .mobile-daily__card--disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    pointer-events: none;
+    opacity: 0.55;
   }
 
   .mobile-daily__card--done {

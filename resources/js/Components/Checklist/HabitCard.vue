@@ -36,6 +36,11 @@ const emit = defineEmits([
   'toggle-note',
   'update-note',
 ]);
+
+const handleCardClick = () => {
+  if (props.isPending) return;
+  emit('toggle-check');
+};
 </script>
 
 <template>
@@ -47,21 +52,20 @@ const emit = defineEmits([
         'mobile-daily__card--shared': habit.name.startsWith('★'),
         'mobile-daily__card--up-next': mobileDayIsToday && isUpNext && !isDone,
         'mobile-daily__card--future': mobileDayIsFuture,
-        'mobile-daily__card--pending': isPending,
         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
       }"
       tabindex="0"
       role="button"
-      :aria-disabled="isPending"
-      @click="!isPending && emit('toggle-check')"
-      @keydown.enter.prevent="!isPending && emit('toggle-check')"
-      @keydown.space.prevent="!isPending && emit('toggle-check')"
+      style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+      @click="handleCardClick"
+      @keydown.enter.prevent="handleCardClick"
+      @keydown.space.prevent="handleCardClick"
     >
       <span v-if="mobileDayIsToday && isUpNext && !isDone" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }">
         <Clock class="icon-xs" /> {{ upNextInfo?.badgeText || 'UP NEXT' }}
       </span>
 
-      <div class="mobile-daily__card-check">
+      <div class="mobile-daily__card-check" @click.stop="handleCardClick">
         <span v-if="isPending" class="mobile-daily__spinner">…</span>
         <span v-else-if="isDone" class="mobile-daily__checkmark">
           <Check class="icon-check-mobile" />
@@ -69,7 +73,7 @@ const emit = defineEmits([
         <span v-else class="mobile-daily__circle"></span>
       </div>
 
-      <div class="mobile-daily__card-body">
+      <div class="mobile-daily__card-body" @click.stop="handleCardClick">
         <span class="mobile-daily__card-name">{{ habit.name }}</span>
         <span class="mobile-daily__card-meta">
           <span class="mobile-daily__card-category">{{ groupMeta.label }}</span>

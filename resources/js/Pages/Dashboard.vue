@@ -861,7 +861,8 @@ const mobileHeroExpanded = ref(false);
 
 // Toggle Habit Check
 const toggleHabitForDay = (habit, day) => {
-  const numDay = Number(day);
+  if (!habit) return;
+  const numDay = Number(day || mobileDay.value || props.currentDay || new Date().getDate());
 
   // If user tapped on a future day, smoothly jump to Today and show Toast
   if (isFutureDay(numDay)) {
@@ -873,14 +874,19 @@ const toggleHabitForDay = (habit, day) => {
     return;
   }
 
-  const key = keyFor(habit.id, numDay);
-  const currentlyDone = hasCompletedDay(habit, numDay);
-  const nextDone = !currentlyDone;
-  pendingCells.value[key] = nextDone;
+  if (!localHabits.value || localHabits.value.length === 0) {
+    localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+  }
 
-  localHabits.value = (localHabits.value || []).map(h => {
-    if (h.id === habit.id) {
+  let found = false;
+  let nextDone = false;
+
+  localHabits.value = localHabits.value.map(h => {
+    if (String(h.id) === String(habit.id)) {
+      found = true;
       const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+      const isCurrentlyDone = cd.includes(numDay);
+      nextDone = !isCurrentlyDone;
       let newCd = cd.filter(d => d !== numDay);
       if (nextDone) {
         newCd.push(numDay);
@@ -890,7 +896,14 @@ const toggleHabitForDay = (habit, day) => {
     return h;
   });
 
-  delete pendingCells.value[key];
+  if (!found) {
+    nextDone = true;
+    localHabits.value.push({
+      ...habit,
+      completed_days: [numDay],
+    });
+  }
+
   saveState();
   syncDueNowNotification?.();
 
