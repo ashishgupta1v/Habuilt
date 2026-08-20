@@ -1,7 +1,5 @@
 // Habuilt Service Worker — auto-versioned cache with stale-while-revalidate for hashed assets
 // Version is bumped by registration query string (?v=timestamp) from app.js
-// Vite-hashed assets (app-BLn_uBPn.js) are inherently unique, so we use a single
-// rolling cache and let the activate handler prune entries older than 7 days.
 
 const CACHE_NAME = 'habuilt-cache';
 const SHELL_ASSETS = [
@@ -25,10 +23,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // Delete any legacy versioned caches (habuilt-v1, habuilt-v2, etc.)
       const names = await caches.keys();
       await Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+        names.filter((n) => n !== CACHE_NAME && n !== 'habuilt-action-queue').map((n) => caches.delete(n))
       );
       await self.clients.claim();
     })()
@@ -60,8 +57,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed assets (Vite output like app-BLn_uBPn.js) — cache first, they're immutable
-  // Non-hashed assets — stale-while-revalidate (serve cache, update in background)
+  // Hashed assets — cache first, immutable
   const isHashedAsset = /\/assets\/[^/]+-[a-zA-Z0-9]{8}\.\w+$/.test(url.pathname);
 
   if (
@@ -70,7 +66,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/icons/')
   ) {
     if (isHashedAsset) {
-      // Immutable — cache first, network fallback
       event.respondWith(
         caches.match(request).then((cached) =>
           cached || fetch(request).then((response) => {
@@ -81,7 +76,6 @@ self.addEventListener('fetch', (event) => {
         )
       );
     } else {
-      // Stale-while-revalidate — serve cache, refresh in background
       event.respondWith(
         caches.match(request).then((cached) => {
           const networkFetch = fetch(request)
@@ -99,10 +93,93 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Listen for skip-waiting message from the app
+// ══════════════════════════════════════════════════════════════════════
+// DUE NOW NOTIFICATION & AUTO-REMOVAL ACTION ENGINE
+// ══════════════════════════════════════════════════════════════════════
+
+let activeExpiryTimer = null;
+
+const dismissDueNowNotifications = async () => {
+  try {
+    const notifications = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
+    for (const notif of notifications) {
+      notif.close();
+    }
+  } catch (err) {
+    console.warn('Error dismissing due-now notifications:', err);
+  }
+};
+
+// Check for expired due-now notifications and auto-remove them
+const checkAndPurgeExpiredNotifications = async () => {
+  try {
+    const notifications = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
+    const now = Date.now();
+    for (const notif of notifications) {
+      if (notif.data?.expiryTimestamp && now >= notif.data.expiryTimestamp) {
+        notif.close();
+      }
+    }
+  } catch { /* ignore */ }
+};
+
+// Listen for messages from client app
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') {
+  const data = event.data;
+  if (!data) return;
+
+  if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  // Show interactive Due Now notification
+  if (data.type === 'SHOW_DUE_NOW_NOTIFICATION') {
+    const p = data.payload;
+    if (!p || !p.habitId) return;
+
+    if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
+
+    const title = `⚡ Due Now: ${p.habitName}`;
+    const options = {
+      body: `⏰ ${p.timeLabel || 'Current Routine'} • +${p.points} pts\nTap [Mark Done] to complete without opening app.`,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
+      tag: 'habuilt-due-now',
+      renotify: true,
+      requireInteraction: true,
+      data: {
+        habitId: p.habitId,
+        habitName: p.habitName,
+        points: p.points,
+        day: p.day,
+        expiryTimestamp: p.expiryTimestamp,
+        url: '/',
+      },
+      actions: [
+        { action: 'mark-done', title: '✅ Mark Done' },
+        { action: 'open-dashboard', title: '🚀 Open Dashboard' },
+      ],
+    };
+
+    self.registration.showNotification(title, options);
+
+    // Auto-remove notification as soon as the task window finishes!
+    if (p.expiryTimestamp && p.expiryTimestamp > Date.now()) {
+      const delay = p.expiryTimestamp - Date.now();
+      activeExpiryTimer = setTimeout(() => {
+        checkAndPurgeExpiredNotifications();
+      }, delay + 500);
+    }
+  }
+
+  // Dismiss notification when habit is completed or timing is over
+  if (data.type === 'DISMISS_DUE_NOW_NOTIFICATION') {
+    if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
+    dismissDueNowNotifications();
+  }
+
+  if (data.type === 'CHECK_EXPIRED_NOTIFICATIONS') {
+    checkAndPurgeExpiredNotifications();
   }
 });
 
@@ -137,28 +214,100 @@ self.addEventListener('push', (event) => {
       renotify: payload.renotify,
       data: payload.data,
       actions: [
-        { action: 'open', title: 'Open Habuilt' },
+        { action: 'open-dashboard', title: '🚀 Open Dashboard' },
         { action: 'dismiss', title: 'Dismiss' },
       ],
     })
   );
 });
 
-// Notification click — open the app
+// ══════════════════════════════════════════════════════════════════════
+// NOTIFICATION CLICK — INTERACTIVE 1-TAP [MARK DONE] & [OPEN DASHBOARD]
+// ══════════════════════════════════════════════════════════════════════
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  if (event.action === 'dismiss') return;
+  const action = event.action;
+  const notif = event.notification;
+  const data = notif.data || {};
 
-  const url = event.notification.data?.url || '/';
+  notif.close();
+
+  if (action === 'dismiss') return;
+
+  // 1. Background 1-Tap Mark Done (Zero App Opening Required)
+  if (action === 'mark-done') {
+    event.waitUntil(
+      (async () => {
+        // Broadcast completion to all active client tabs
+        try {
+          const channel = new BroadcastChannel('habuilt-channel');
+          channel.postMessage({
+            type: 'HABIT_COMPLETED_VIA_NOTIFICATION',
+            habitId: data.habitId,
+            habitName: data.habitName,
+            points: data.points,
+            day: data.day,
+          });
+          channel.close();
+        } catch { /* channel fallback */ }
+
+        const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of allClients) {
+          client.postMessage({
+            type: 'HABIT_COMPLETED_VIA_NOTIFICATION',
+            habitId: data.habitId,
+            habitName: data.habitName,
+            points: data.points,
+            day: data.day,
+          });
+        }
+
+        // Queue completion in persistent cache in case app is currently closed
+        try {
+          const cache = await caches.open('habuilt-action-queue');
+          const existing = await cache.match('/queued-completions');
+          let list = [];
+          if (existing) {
+            try { list = await existing.json(); } catch { list = []; }
+          }
+          list.push({
+            habitId: data.habitId,
+            day: data.day,
+            timestamp: Date.now(),
+          });
+          await cache.put('/queued-completions', new Response(JSON.stringify(list), {
+            headers: { 'Content-Type': 'application/json' },
+          }));
+        } catch { /* cache fallback */ }
+
+        // Show instant celebratory confirmation toast on Android
+        await self.registration.showNotification('🎉 Habit Completed!', {
+          body: `"${data.habitName}" (+${data.points} pts) marked done without opening app!`,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-96x96.png',
+          tag: 'habuilt-completion-toast',
+          renotify: false,
+          data: { url: '/' },
+        });
+
+        // Auto-dismiss confirmation after 3.5s
+        setTimeout(async () => {
+          const successNotifs = await self.registration.getNotifications({ tag: 'habuilt-completion-toast' });
+          for (const s of successNotifs) s.close();
+        }, 3500);
+      })()
+    );
+    return;
+  }
+
+  // 2. Open Dashboard Action or Direct Body Click
+  const url = data.url || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Focus existing tab if open
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           return client.focus();
         }
       }
-      // Otherwise open new tab
       return self.clients.openWindow(url);
     })
   );

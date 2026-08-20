@@ -11,6 +11,8 @@ import {
   Plane,
   Share2,
   RefreshCw,
+  Bell,
+  BellOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +31,8 @@ const props = defineProps({
   travelMode: { type: Boolean, default: false },
   darkMode: { type: Boolean, default: true },
   isSyncing: { type: Boolean, default: false },
+  notificationsSupported: { type: Boolean, default: false },
+  dueNowNotificationsEnabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -37,6 +41,7 @@ const emit = defineEmits([
   'toggle-travel',
   'share-scorecard',
   'reload-app',
+  'toggle-notifications',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -58,6 +63,21 @@ const autoProtocolBadge = computed(() => {
       </div>
 
       <div class="mcb-actions-group">
+        <!-- Due Now Lockscreen Notification Actions Toggle -->
+        <button
+          v-if="notificationsSupported"
+          id="mcb-btn-notifications"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--notif"
+          :class="{ 'mcb-icon-btn--notif-active': dueNowNotificationsEnabled }"
+          @click="emit('toggle-notifications')"
+          :title="dueNowNotificationsEnabled ? 'Due Now Lockscreen Actions Active (Tap to pause)' : 'Enable Due Now 1-Tap Lockscreen Actions'"
+          aria-label="Due Now Lockscreen Notifications"
+        >
+          <Bell v-if="dueNowNotificationsEnabled" class="icon-xs icon-gold" />
+          <BellOff v-else class="icon-xs" />
+        </button>
+
         <!-- Manual Sync / Reload Button -->
         <button
           id="mcb-btn-reload"

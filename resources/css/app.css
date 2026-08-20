@@ -10167,6 +10167,12 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
   border-color: var(--brand-gold, #C8A456) !important;
   color: var(--brand-gold, #C8A456) !important;
 }
+.mcb-icon-btn--notif-active {
+  background: rgba(200, 164, 86, 0.18) !important;
+  border-color: var(--brand-gold, #C8A456) !important;
+  color: var(--brand-gold, #C8A456) !important;
+  box-shadow: 0 0 10px rgba(200, 164, 86, 0.35);
+}
 .mcb-travel-label {
   font-size: 0.68rem;
   font-weight: 700;

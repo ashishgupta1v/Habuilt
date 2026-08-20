@@ -20,6 +20,7 @@ import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 
 // Composables & Data
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
+import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
 import {
   ashishHabits,
   jyotiHabits,
@@ -875,6 +876,7 @@ const toggleHabitForDay = (habit, day) => {
 
   delete pendingCells.value[key];
   saveState();
+  syncDueNowNotification?.();
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(nextDone ? [15, 30, 15] : [20]);
@@ -886,6 +888,42 @@ const toggleTravelMode = () => {
   travelMode.value = !travelMode.value;
   localHabits.value = (travelMode.value ? ashishTravelHabits : ashishHabits).map(h => ({ ...h, completed_days: [] }));
   saveState();
+  syncDueNowNotification?.();
+};
+
+// ── PWA Due Now Notification & Background 1-Tap Action Hook ──
+const {
+  isSupported: notificationsSupported,
+  permissionState: notificationPermission,
+  notificationsEnabled: dueNowNotificationsEnabled,
+  requestPermission: requestDueNowNotifications,
+  toggleNotifications: toggleDueNowNotifications,
+  syncDueNowNotification,
+  dismissDueNowNotification,
+} = useDueNowNotifications({
+  upNextHabitInfo,
+  currentDay: computed(() => props.currentDay),
+  isCurrentMonth: computed(() => props.isCurrentMonth),
+  hasCompletedDay,
+  onCompleteHabit: (habitId, day) => {
+    const habit = (localHabits.value || []).find(h => h.id === habitId);
+    if (habit) {
+      if (!hasCompletedDay(habit, day)) {
+        toggleHabitForDay(habit, day);
+        showToast(`✅ "${habit.name}" marked done from notification!`);
+      }
+    }
+  },
+  habitTimeSchedule,
+});
+
+const handleToggleDueNowNotifications = async () => {
+  const enabled = await toggleDueNowNotifications();
+  if (enabled) {
+    showToast('🔔 Due Now Lockscreen Actions active!');
+  } else {
+    showToast('🔕 Lockscreen notifications paused');
+  }
 };
 
 const isShareModalOpen = ref(false);
@@ -1271,11 +1309,14 @@ onBeforeUnmount(() => {
       :travel-mode="travelMode"
       :dark-mode="darkMode"
       :is-syncing="isSyncingCloud"
+      :notifications-supported="notificationsSupported"
+      :due-now-notifications-enabled="dueNowNotificationsEnabled"
       @toggle-up-next="toggleHabitForDay"
       @toggle-theme="toggleTheme"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
+      @toggle-notifications="handleToggleDueNowNotifications"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
