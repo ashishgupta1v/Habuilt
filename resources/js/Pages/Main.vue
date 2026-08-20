@@ -118,6 +118,14 @@ if (!initialUser && isGuestActive.value) {
 }
 const activeUser = ref(initialUser);
 
+const enterGuestMode = (guestUser) => {
+  const user = guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  isGuestActive.value = true;
+  activeUser.value = user;
+};
+
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
   localStorage.removeItem('habuilt_cached_user');
@@ -127,6 +135,11 @@ const handleSignOut = async () => {
 };
 
 onMounted(async () => {
+  // Listen for guest auth events
+  window.addEventListener('habuilt-guest-auth', (e) => {
+    enterGuestMode(e?.detail);
+  });
+
   // Configure Native Status Bar
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
@@ -293,6 +306,6 @@ onMounted(async () => {
       </main>
     </div>
     
-    <Auth v-else />
+    <Auth v-else @guest-login="enterGuestMode" />
   </template>
 </template>

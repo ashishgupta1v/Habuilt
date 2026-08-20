@@ -222,7 +222,7 @@ button {
 
 @media (max-width: 768px) {
   .app-main-content {
-    padding: max(14px, env(safe-area-inset-top, 32px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
+    padding: max(10px, env(safe-area-inset-top, 24px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
   }
 }
@@ -400,7 +400,7 @@ body.theme-dark .user-track-pill--jyoti {
 @media (max-width: 640px) {
   .app-nav {
     border-radius: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
   }
   .app-nav__container {
     padding: 4px 8px;

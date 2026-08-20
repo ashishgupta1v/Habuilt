@@ -177,8 +177,8 @@ const autoProtocolBadge = computed(() => {
 .mobile-compact-bar {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: max(8px, env(safe-area-inset-top, 8px)) 10px 8px;
+  gap: 4px;
+  padding: 4px 10px 6px;
   background: rgba(9, 13, 22, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
