@@ -188,12 +188,19 @@ onMounted(async () => {
           const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
+          const code = parsed.searchParams.get('code') || hashParams.get('code');
 
           if (accessToken && refreshToken) {
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
+            if (data?.user) {
+              activeUser.value = data.user;
+              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
+            }
+          } else if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
             if (data?.user) {
               activeUser.value = data.user;
               localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
@@ -211,13 +218,35 @@ onMounted(async () => {
   // ── Web-to-Native App Automatic Handoff Bridge ──
   if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
     const hash = window.location.hash;
+    const search = window.location.search;
     if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
         try {
-          // Immediately hand off authentication tokens to the native Habuilt APK
           window.location.href = `habuilt://auth/callback${hash}`;
         } catch { /* ignore */ }
+      }
+    } else if (search && search.includes('code=')) {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        try {
+          window.location.href = `habuilt://auth/callback${search}`;
+        } catch { /* ignore */ }
+      } else {
+        const params = new URLSearchParams(search);
+        const code = params.get('code');
+        if (code) {
+          try {
+            const { data } = await supabase.auth.exchangeCodeForSession(code);
+            if (data?.user) {
+              activeUser.value = data.user;
+              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          } catch (e) {
+            console.warn('Error exchanging web OAuth code:', e);
+          }
+        }
       }
     }
   }
