@@ -1,0 +1,82 @@
+name: Build Android APK & Home Screen Widget
+
+on:
+  push:
+    branches:
+      - main
+      - HB-AG-01
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Native Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: ☕ Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📦 Install Node Dependencies
+        run: npm install
+
+      - name: ⚡ Build Web Assets (Vite + Dist)
+        run: npm run build:vercel
+
+      - name: 🔄 Sync Capacitor Android Platform
+        run: npx cap sync android
+
+      - name: 🔑 Grant Execute Permissions for Gradlew
+        run: chmod +x android/gradlew
+
+      - name: 🏗️ Compile Android Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: 🚀 Upload APK Artifact (Downloadable in GitHub Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Habuilt-DueNow-Widget-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: 🏷️ Publish Rolling Release APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest-build
+          name: "Habuilt Android APK (with Due Now Home Screen Widget)"
+          body: |
+            ## 📱 Habuilt Android Native APK with Home Screen Widget
+            
+            ### ✨ Features in this build:
+            - **⚡ Live Due Now Widget**: 4x2 / 4x1 home screen widget displaying active routine task, time slot, and streak.
+            - **✓ 1-Tap [Mark Done]**: Complete tasks directly from your home screen with haptic feedback without opening the app.
+            - **🔄 Supabase Cloud Sync**: Instant background persistence of completed habits.
+            - **🚀 Fast Local Cache**: 0ms latency widget updates.
+            
+            ### 📲 How to Install:
+            1. Download `app-debug.apk` below directly onto your Android phone.
+            2. Tap to Install (*allow "Install from Unknown Sources" if prompted*).
+            3. Long-press on your phone's home screen wallpaper → **Widgets** → **Habuilt** → Place the **Due Now** widget!
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
