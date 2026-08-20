@@ -906,11 +906,19 @@ const {
   isCurrentMonth: computed(() => props.isCurrentMonth),
   hasCompletedDay,
   onCompleteHabit: (habitId, day) => {
+    const numDay = Number(day);
     const habit = (localHabits.value || []).find(h => h.id === habitId);
     if (habit) {
-      if (!hasCompletedDay(habit, day)) {
-        toggleHabitForDay(habit, day);
-        showToast(`✅ "${habit.name}" marked done from notification!`);
+      if (!Array.isArray(habit.completed_days)) habit.completed_days = [];
+      const alreadyDone = habit.completed_days.some(d => Number(d) === numDay);
+      if (!alreadyDone) {
+        habit.completed_days.push(numDay);
+        saveState();
+        syncDueNowNotification?.();
+        showToast(`✅ "${habit.name}" marked done!`);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([15, 30, 15]);
+        }
       }
     }
   },

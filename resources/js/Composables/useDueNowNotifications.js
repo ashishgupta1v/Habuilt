@@ -16,9 +16,10 @@ export function useDueNowNotifications({
     typeof localStorage !== 'undefined' && localStorage.getItem('habuilt.dueNowNotifications.enabled') === 'true'
   );
 
-  const activeNotifiedHabitId = ref(null);
+  const activeNotifiedHabitSessionKey = ref(null);
   let channel = null;
   let heartbeatInterval = null;
+  let queueDrainInterval = null;
 
   // Request Notification Permission
   const requestPermission = async () => {
@@ -64,7 +65,6 @@ export function useDueNowNotifications({
   // Helper: compute timestamp when habit time window ends
   const calculateExpiryTimestamp = (habitId) => {
     if (!habitTimeSchedule || !habitTimeSchedule[habitId]) {
-      // Default expiry: 45 minutes from now
       return Date.now() + 45 * 60 * 1000;
     }
     const sched = habitTimeSchedule[habitId];
@@ -89,7 +89,7 @@ export function useDueNowNotifications({
     }
 
     const habit = info.habit;
-    const day = currentDay?.value || new Date().getDate();
+    const day = Number(currentDay?.value || new Date().getDate());
 
     // If already completed today, dismiss notification immediately
     if (hasCompletedDay && hasCompletedDay(habit, day)) {
@@ -109,7 +109,7 @@ export function useDueNowNotifications({
     const currentSessionKey = `${habit.id}:${day}:${info.status}`;
 
     // STRICT GUARD: If we already dispatched notification for this exact habit and day, DO NOT send again!
-    if (activeNotifiedHabitId.value === currentSessionKey) {
+    if (activeNotifiedHabitSessionKey.value === currentSessionKey) {
       return;
     }
 
@@ -126,7 +126,7 @@ export function useDueNowNotifications({
           expiryTimestamp: expiryTimestamp,
         },
       });
-      activeNotifiedHabitId.value = currentSessionKey;
+      activeNotifiedHabitSessionKey.value = currentSessionKey;
     }
   };
 
@@ -138,7 +138,7 @@ export function useDueNowNotifications({
         type: 'DISMISS_DUE_NOW_NOTIFICATION',
       });
     }
-    activeNotifiedHabitId.value = null;
+    activeNotifiedHabitSessionKey.value = null;
   };
 
   // Check and process any queued completions from background actions when offline/closed
@@ -152,7 +152,7 @@ export function useDueNowNotifications({
         if (Array.isArray(queue) && queue.length > 0) {
           for (const item of queue) {
             if (item.habitId && item.day && onCompleteHabit) {
-              onCompleteHabit(item.habitId, item.day);
+              onCompleteHabit(item.habitId, Number(item.day));
             }
           }
           // Clear processed queue
@@ -162,11 +162,16 @@ export function useDueNowNotifications({
     } catch { /* ignore */ }
   };
 
+  const handleVisibilityOrFocus = () => {
+    drainQueuedCompletions();
+    syncDueNowNotification();
+  };
+
   // Setup communication channels
   onMounted(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Drain any offline completions
+    // 1. Immediate drain of offline completions
     drainQueuedCompletions();
 
     // 2. BroadcastChannel for real-time background notification completion
@@ -177,7 +182,7 @@ export function useDueNowNotifications({
           if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
             const { habitId, day } = event.data;
             if (habitId && day && onCompleteHabit) {
-              onCompleteHabit(habitId, day);
+              onCompleteHabit(habitId, Number(day));
             }
           }
         };
@@ -190,13 +195,22 @@ export function useDueNowNotifications({
         if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
           const { habitId, day } = event.data;
           if (habitId && day && onCompleteHabit) {
-            onCompleteHabit(habitId, day);
+            onCompleteHabit(habitId, Number(day));
           }
         }
       });
     }
 
-    // 4. Initial Sync & Heartbeat every 30s to check timing & auto-remove when task finishes
+    // 4. Listen on window focus and visibility change
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    // 5. Continuous check loop (every 1.5s) to guarantee instantaneous sync of any background action
+    queueDrainInterval = setInterval(() => {
+      drainQueuedCompletions();
+    }, 1500);
+
+    // 6. Heartbeat every 30s to check timing & auto-remove when task finishes
     syncDueNowNotification();
     heartbeatInterval = setInterval(() => {
       syncDueNowNotification();
@@ -206,6 +220,11 @@ export function useDueNowNotifications({
   onUnmounted(() => {
     if (channel) channel.close();
     if (heartbeatInterval) clearInterval(heartbeatInterval);
+    if (queueDrainInterval) clearInterval(queueDrainInterval);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    }
   });
 
   // Watch for changes in upNextHabitInfo or currentDay
