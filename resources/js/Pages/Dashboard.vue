@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
 
@@ -195,8 +197,27 @@ const partnerViewOpen = ref(false);
 const partnerData = ref(null);
 const partnerLoading = ref(false);
 
-// ── MOBILE PWA SPA 4-TAB ROUTING ──
+// ── MOBILE PWA SPA 4-TAB ROUTING & DAY NAV ──
 const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
+
+const mobilePrevDay = () => {
+  if (mobileSelectedDay.value > 1) {
+    mobileSelectedDay.value--;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+  }
+};
+
+const mobileNextDay = () => {
+  if (mobileSelectedDay.value < props.monthDays && (!props.isCurrentMonth || mobileSelectedDay.value < props.currentDay)) {
+    mobileSelectedDay.value++;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+  }
+};
+
+const mobileGoToday = () => {
+  mobileSelectedDay.value = props.currentDay || new Date().getDate();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
+};
 
 // ── SMART AUTO-ACCORDION SLOTS ──
 const userToggledSlots = ref({});
@@ -531,10 +552,6 @@ const mobileDayPoints = computed(() => activeHabitsForMobileDay.value.filter(h =
 // a weekday's habit count.
 const mobileDayTotalHabits = computed(() => activeHabitsForMobileDay.value.length);
 const maxDailyPoints = computed(() => activeHabitsForMobileDay.value.reduce((sum, h) => sum + h.points, 0));
-
-const mobilePrevDay = () => { if (mobileDay.value > 1) mobileSelectedDay.value = mobileDay.value - 1; };
-const mobileNextDay = () => { if (mobileDay.value < props.monthDays) mobileSelectedDay.value = mobileDay.value + 1; };
-const mobileGoToday = () => { mobileSelectedDay.value = props.currentDay; };
 
 // Up Next Engine
 const habitTimeSchedule = {
@@ -1369,6 +1386,70 @@ onMounted(() => {
   window.addEventListener('pageshow', handleAppResume);
   window.addEventListener('online', () => syncCloudState(true));
   document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  // ── Native Android Hardware / Gesture Back Button Handler ──
+  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    let lastBackPressTime = 0;
+    try {
+      App.addListener('backButton', () => {
+        // 1. Close any open modal dialogs
+        if (isMorningSetupOpen.value) {
+          isMorningSetupOpen.value = false;
+          return;
+        }
+        if (isHabitEditorOpen.value) {
+          isHabitEditorOpen.value = false;
+          return;
+        }
+        if (isShareModalOpen.value) {
+          isShareModalOpen.value = false;
+          return;
+        }
+        if (weeklyReviewExpanded.value) {
+          weeklyReviewExpanded.value = false;
+          return;
+        }
+        if (tierDetailHabitId.value) {
+          tierDetailHabitId.value = null;
+          return;
+        }
+        if (Object.values(habitNotesOpen.value).some(Boolean)) {
+          habitNotesOpen.value = {};
+          return;
+        }
+        if (mobileHeroExpanded.value) {
+          mobileHeroExpanded.value = false;
+          return;
+        }
+
+        // 2. If viewing another mobile tab (Focus, Stats, Rewards), return to Today tab
+        if (activeMobileTab.value !== 'today') {
+          activeMobileTab.value = 'today';
+          return;
+        }
+
+        // 3. If navigated to a past day in the checklist, return to Today
+        if (props.isCurrentMonth && mobileSelectedDay.value !== props.currentDay) {
+          mobileGoToday();
+          return;
+        }
+
+        // 4. On root Today screen: Double-tap back button within 2 seconds to exit app
+        const now = Date.now();
+        if (now - lastBackPressTime < 2000) {
+          App.exitApp();
+        } else {
+          lastBackPressTime = now;
+          showToast('Press back again to exit Habuilt', 2000);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Native back button registration:', e);
+    }
+  }
 });
 
 onBeforeUnmount(() => {

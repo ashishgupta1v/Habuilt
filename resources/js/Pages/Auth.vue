@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { supabase } from '@/lib/supabase';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { Mail, Lock, ArrowRight, ShieldCheck, Target, KeyRound, ArrowLeft } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
@@ -20,6 +22,22 @@ onMounted(() => {
     const hash = window.location.hash;
     if (hash && (hash.includes('type=recovery') || hash.includes('access_token'))) {
       mode.value = 'reset';
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        App.addListener('backButton', () => {
+          if (mode.value !== 'login') {
+            mode.value = 'login';
+            error.value = '';
+            successMessage.value = '';
+          } else {
+            App.exitApp();
+          }
+        });
+      } catch (e) {
+        console.warn('Auth back button note:', e);
+      }
     }
   }
 });
