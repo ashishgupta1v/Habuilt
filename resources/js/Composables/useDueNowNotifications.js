@@ -4,6 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 export function useDueNowNotifications({
   upNextHabitInfo,
+  habits,
   currentDay,
   isCurrentMonth,
   hasCompletedDay,
@@ -13,10 +14,12 @@ export function useDueNowNotifications({
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
   const isWebSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
   const isSupported = isNative || isWebSupported;
-  
+
   const permissionState = ref('prompt');
   const notificationsEnabled = ref(
-    typeof localStorage !== 'undefined' && localStorage.getItem('habuilt.dueNowNotifications.enabled') === 'true'
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('habuilt.dueNowNotifications.enabled') !== 'false'
+      : true
   );
 
   const activeNotifiedHabitSessionKey = ref(null);
@@ -24,61 +27,35 @@ export function useDueNowNotifications({
   let heartbeatInterval = null;
   let queueDrainInterval = null;
 
-  // Creative Copy Generator based on habit category & context
-  const getCreativeNotificationCopy = (habit, sched, timeLabel) => {
+  // Initialize Android High-Importance Channel
+  const initNotificationChannel = async () => {
+    if (!isNative) return;
+    try {
+      await LocalNotifications.createChannel({
+        id: 'habuilt_reminders',
+        name: 'Habuilt Habit Reminders',
+        description: 'Time-block alerts and habit action reminders',
+        importance: 5, // High importance (heads-up banner, vibration, sound)
+        visibility: 1, // Public on lockscreen
+        vibration: true,
+        sound: 'default',
+      });
+    } catch (e) {
+      console.warn('Channel creation warning:', e);
+    }
+  };
+
+  // Notification Copy with exact task instruction
+  const getNotificationCopy = (habit, sched, timeLabel) => {
     const name = habit.name || 'Habit';
     const pts = habit.points || 1;
-    const lowerName = name.toLowerCase();
+    const instruction = habit.hint || '';
 
-    // 1. Deep Work & Focus Blocks
-    if (lowerName.includes('deep work') || lowerName.includes('focus') || lowerName.includes('sprint') || lowerName.includes('dev')) {
-      return {
-        title: `⚡ Deep Work Sprint: ${name}`,
-        body: `🎯 ${timeLabel || 'Active Window'} (+${pts} pts). Protect your focus & build unstoppable momentum!`,
-        actionTitle: '✓ Mark Block Done',
-      };
-    }
-
-    // 2. Morning Anchor & Alarm
-    if (lowerName.includes('alarm') || lowerName.includes('sunlight') || lowerName.includes('water') || lowerName.includes('morning')) {
-      return {
-        title: `☀️ Morning Anchor: ${name}`,
-        body: `🌱 Win the morning (+${pts} pt). Set your baseline strong today!`,
-        actionTitle: '✓ Complete Anchor',
-      };
-    }
-
-    // 3. Health, Walk, Workout & Nutrition
-    if (lowerName.includes('walk') || lowerName.includes('workout') || lowerName.includes('gym') || lowerName.includes('protein') || lowerName.includes('meal')) {
-      return {
-        title: `🏃 Energy & Vitality: ${name}`,
-        body: `💪 Active window: ${timeLabel || 'Now'} (+${pts} pts). Step away, recharge, and hit your target!`,
-        actionTitle: '✓ Log Activity',
-      };
-    }
-
-    // 4. Family, Shaarvi, Connection
-    if (lowerName.includes('shaarvi') || lowerName.includes('family') || lowerName.includes('call') || lowerName.includes('connect')) {
-      return {
-        title: `❤️ Quality Time: ${name}`,
-        body: `✨ ${timeLabel || 'Scheduled'}. Be 100% present with loved ones (+${pts} pts).`,
-        actionTitle: '✓ Mark Done',
-      };
-    }
-
-    // 5. Evening Wind-down & Floor Protocol
-    if (lowerName.includes('reading') || lowerName.includes('sleep') || lowerName.includes('journal') || lowerName.includes('night') || lowerName.includes('wind')) {
-      return {
-        title: `🌙 Evening Recovery: ${name}`,
-        body: `🛡️ Lock in your daily Floor Protocol & protect your streak (+${pts} pt).`,
-        actionTitle: '✓ Lock In Protocol',
-      };
-    }
-
-    // Default creative fallback
     return {
-      title: `⚡ Due Now: ${name}`,
-      body: `🎯 Scheduled: ${timeLabel || 'Now'} • Tap to earn +${pts} pts and advance your streak!`,
+      title: `⚡ ${name} (+${pts} pts)`,
+      body: instruction
+        ? `${instruction} • (${timeLabel || 'Scheduled'})`
+        : `Scheduled: ${timeLabel || 'Now'} • Tap to mark done and advance your streak.`,
       actionTitle: '✓ Mark Done',
     };
   };
@@ -99,7 +76,7 @@ export function useDueNowNotifications({
               },
               {
                 id: 'OPEN_APP',
-                title: 'Open Station',
+                title: 'Open Dashboard',
                 foreground: true,
               },
             ],
@@ -115,9 +92,17 @@ export function useDueNowNotifications({
   const checkInitialPermission = async () => {
     if (isNative) {
       try {
-        const res = await LocalNotifications.checkPermissions();
+        let res = await LocalNotifications.checkPermissions();
+        if (res.display !== 'granted') {
+          res = await LocalNotifications.requestPermissions();
+        }
         permissionState.value = res.display;
-      } catch {
+        if (res.display === 'granted') {
+          notificationsEnabled.value = true;
+          localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
+        }
+      } catch (err) {
+        console.warn('Native permission check note:', err);
         permissionState.value = 'granted';
       }
     } else if (isWebSupported) {
@@ -135,6 +120,7 @@ export function useDueNowNotifications({
         if (res.display === 'granted') {
           notificationsEnabled.value = true;
           localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
+          await initNotificationChannel();
           await registerNativeActionTypes();
           syncDueNowNotification();
           return true;
@@ -177,25 +163,86 @@ export function useDueNowNotifications({
     }
   };
 
-  // Helper: compute timestamp when habit time window ends
-  const calculateExpiryTimestamp = (habitId) => {
-    if (!habitTimeSchedule || !habitTimeSchedule[habitId]) {
-      return Date.now() + 45 * 60 * 1000;
+  // Helper: hash habit ID to a stable integer for notification ID
+  const hashHabitId = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
     }
-    const sched = habitTimeSchedule[habitId];
-    const [eh, em] = sched.end.split(':').map(Number);
-    const now = new Date();
-    const expiry = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em, 0);
-    return expiry.getTime();
+    return Math.abs(hash % 900000) + 1000;
   };
 
-  // Send creative notification
+  // Schedule upcoming habit alerts for the entire day
+  const scheduleDailyHabitAlerts = async () => {
+    if (!isNative || !notificationsEnabled.value || permissionState.value !== 'granted') return;
+    if (!isCurrentMonth?.value) return;
+
+    try {
+      const now = new Date();
+      const day = Number(currentDay?.value || now.getDate());
+      const habitList = habits?.value || [];
+      const notifsToSchedule = [];
+
+      for (const h of habitList) {
+        // Skip if already done today
+        if (hasCompletedDay && hasCompletedDay(h, day)) continue;
+
+        const sched = habitTimeSchedule?.[h.id];
+        if (!sched || !sched.start) continue;
+
+        const [sh, sm] = sched.start.split(':').map(Number);
+        const [eh, em] = (sched.end || '23:59').split(':').map(Number);
+        const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0);
+        const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em, 0);
+
+        // If start time is in the future today
+        if (startTime.getTime() > now.getTime()) {
+          const copy = getNotificationCopy(h, sched, `${sched.start} – ${sched.end}`);
+          notifsToSchedule.push({
+            id: hashHabitId(h.id),
+            title: copy.title,
+            body: copy.body,
+            channelId: 'habuilt_reminders',
+            actionTypeId: 'HABUILT_HABIT_ACTION',
+            extra: {
+              habitId: h.id,
+              day: day,
+            },
+            schedule: { at: startTime },
+            sound: 'default',
+            smallIcon: 'ic_launcher_round',
+            iconColor: '#10B981',
+          });
+        }
+      }
+
+      if (notifsToSchedule.length > 0) {
+        // Cancel existing and schedule fresh upcoming list
+        const idsToCancel = notifsToSchedule.map(n => ({ id: n.id }));
+        try {
+          await LocalNotifications.cancel({ notifications: idsToCancel });
+        } catch { /* ignore */ }
+
+        await LocalNotifications.schedule({
+          notifications: notifsToSchedule,
+        });
+      }
+    } catch (e) {
+      console.warn('Error scheduling daily habit alerts:', e);
+    }
+  };
+
+  // Sync Immediate Due Now Notification
   const syncDueNowNotification = async () => {
     if (!isSupported || !notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) {
       dismissDueNowNotification();
       return;
     }
+
+    // Also update daily upcoming schedule
+    scheduleDailyHabitAlerts();
 
     const info = upNextHabitInfo?.value;
     if (!info || info.status !== 'due' || !info.habit) {
@@ -206,16 +253,8 @@ export function useDueNowNotifications({
     const habit = info.habit;
     const day = Number(currentDay?.value || new Date().getDate());
 
-    // If already completed today, dismiss notification immediately
+    // If already completed today, dismiss immediately
     if (hasCompletedDay && hasCompletedDay(habit, day)) {
-      dismissDueNowNotification();
-      return;
-    }
-
-    const expiryTimestamp = calculateExpiryTimestamp(habit.id);
-    const now = Date.now();
-
-    if (now >= expiryTimestamp) {
       dismissDueNowNotification();
       return;
     }
@@ -226,7 +265,7 @@ export function useDueNowNotifications({
     }
 
     const sched = habitTimeSchedule?.[habit.id];
-    const creativeCopy = getCreativeNotificationCopy(habit, sched, info.timeLabel);
+    const copy = getNotificationCopy(habit, sched, info.timeLabel);
 
     // 1. Native Android Local Notification
     if (isNative) {
@@ -236,14 +275,15 @@ export function useDueNowNotifications({
           notifications: [
             {
               id: 1001,
-              title: creativeCopy.title,
-              body: creativeCopy.body,
+              title: copy.title,
+              body: copy.body,
+              channelId: 'habuilt_reminders',
               actionTypeId: 'HABUILT_HABIT_ACTION',
               extra: {
                 habitId: habit.id,
                 day: day,
               },
-              schedule: { at: new Date(Date.now() + 200) },
+              schedule: { at: new Date(Date.now() + 500) },
               sound: 'default',
               smallIcon: 'ic_launcher_round',
               iconColor: '#10B981',
@@ -261,12 +301,11 @@ export function useDueNowNotifications({
         type: 'SHOW_DUE_NOW_NOTIFICATION',
         payload: {
           habitId: habit.id,
-          habitName: creativeCopy.title,
+          habitName: copy.title,
           points: habit.points,
           timeLabel: info.timeLabel || '',
           day: day,
-          expiryTimestamp: expiryTimestamp,
-          customBody: creativeCopy.body,
+          customBody: copy.body,
         },
       });
       activeNotifiedHabitSessionKey.value = currentSessionKey;
@@ -288,7 +327,7 @@ export function useDueNowNotifications({
     activeNotifiedHabitSessionKey.value = null;
   };
 
-  // Check and process queued background actions
+  // Drain queued background completions
   const drainQueuedCompletions = async () => {
     if (typeof caches === 'undefined') return;
     try {
@@ -317,6 +356,7 @@ export function useDueNowNotifications({
   onMounted(async () => {
     if (typeof window === 'undefined') return;
 
+    await initNotificationChannel();
     await checkInitialPermission();
     await registerNativeActionTypes();
     drainQueuedCompletions();
@@ -387,7 +427,7 @@ export function useDueNowNotifications({
   });
 
   watch(
-    () => upNextHabitInfo?.value,
+    () => [upNextHabitInfo?.value, habits?.value],
     () => {
       syncDueNowNotification();
     },

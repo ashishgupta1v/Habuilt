@@ -998,6 +998,7 @@ const {
   drainQueuedCompletions,
 } = useDueNowNotifications({
   upNextHabitInfo,
+  habits: visibleHabits,
   currentDay: computed(() => props.currentDay),
   isCurrentMonth: computed(() => props.isCurrentMonth),
   hasCompletedDay,

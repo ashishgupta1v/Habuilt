@@ -63,7 +63,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 var targetHabitName = "🎯 Morning Focus Block (90 min)"
                 var targetTimeLabel = "⏰ 08:30 AM – 10:00 AM"
                 var targetPoints = 3
-                var targetHint = "💡 Silence all notifications & execute highest leverage tasks."
+                var targetInstruction = "Feet on the floor by 05:00 sharp. No snooze button. Sit up → stand → drink water → start moving immediately."
                 var isDueNow = true
                 var allDone = false
 
@@ -119,25 +119,12 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                             targetPoints = chosen.optInt("points", 1)
                             isDueNow = (foundDue != null)
 
+                            // Actual task instruction directly from the app data
                             val explicitHint = chosen.optString("hint", "")
-                            if (explicitHint.isNotBlank()) {
-                                targetHint = "💡 $explicitHint"
+                            targetInstruction = if (explicitHint.isNotBlank()) {
+                                explicitHint
                             } else {
-                                val lower = targetHabitName.lowercase()
-                                targetHint = when {
-                                    lower.contains("focus") || lower.contains("deep work") || lower.contains("dev") ->
-                                        "💡 Silence distractions & enter deep flow state."
-                                    lower.contains("alarm") || lower.contains("water") || lower.contains("morning") ->
-                                        "💡 Win the morning anchor to establish daily momentum."
-                                    lower.contains("walk") || lower.contains("workout") || lower.contains("protein") ->
-                                        "💡 Active energy window. Step away, recharge & move."
-                                    lower.contains("reading") || lower.contains("sleep") || lower.contains("wind") ->
-                                        "💡 Lock in your daily Floor Protocol & protect your streak."
-                                    lower.contains("shaarvi") || lower.contains("family") || lower.contains("dinner") ->
-                                        "💡 Be 100% present with family and loved ones."
-                                    else ->
-                                        "💡 Tap Mark Done to log +$targetPoints pts for today."
-                                }
+                                targetHabitName
                             }
 
                             if (scheduleObj.has(targetHabitId)) {
@@ -160,7 +147,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                     views.setTextViewText(R.id.tv_widget_status_pill, "COMPLETED")
                     views.setTextViewText(R.id.tv_widget_habit_name, "🎉 All Habits Crushed Today!")
                     views.setTextViewText(R.id.tv_widget_schedule, "🌟 ${todayPoints} pts secured")
-                    views.setTextViewText(R.id.tv_widget_guidance, "🏆 Target Protocol achieved! Outstanding consistency.")
+                    views.setTextViewText(R.id.tv_widget_guidance, "Target Protocol achieved! Outstanding daily consistency.")
                     views.setViewVisibility(R.id.tv_widget_points, View.GONE)
                     views.setViewVisibility(R.id.btn_widget_mark_done, View.GONE)
                 } else {
@@ -170,7 +157,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                     views.setTextViewText(R.id.tv_widget_habit_name, targetHabitName)
                     views.setTextViewText(R.id.tv_widget_schedule, targetTimeLabel)
                     views.setTextViewText(R.id.tv_widget_points, "+$targetPoints pts")
-                    views.setTextViewText(R.id.tv_widget_guidance, targetHint)
+                    views.setTextViewText(R.id.tv_widget_guidance, targetInstruction)
                 }
 
                 // 1. Mark Done PendingIntent
