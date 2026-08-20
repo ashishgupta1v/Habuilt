@@ -15,8 +15,8 @@ import java.util.Locale
 
 object SupabaseSyncClient {
     private const val TAG = "HabuiltSupabase"
-    private const val SUPABASE_URL = "https://wixfgckjeyomxydxwhhn.supabase.co"
-    private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpeGZnY2tqZXlvbXh5ZHh3aGhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTY3NzEsImV4cCI6MjA4NzIzMjc3MX0.y7Kek12-uGzW-260oKqT865_8N1l-5007w7X0n51zG4"
+    private const val SUPABASE_URL = "https://eefrpxxcztapatyqokpv.supabase.co"
+    private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c"
 
     fun syncCompletionToSupabase(context: Context, habitId: String, day: Int) {
         Thread {

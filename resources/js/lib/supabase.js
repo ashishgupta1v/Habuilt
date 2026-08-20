@@ -1,22 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const defaultSupabaseUrl = 'https://eefrpxxcztapatyqokpv.supabase.co';
+const defaultSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('CRITICAL: Supabase URL or Anon Key is missing from environment variables.');
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultSupabaseUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultSupabaseAnonKey;
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : {
-      auth: {
-        getSession: async () => ({ data: { session: null } }),
-        onAuthStateChange: () => {},
-        signInWithPassword: async () => ({ error: new Error('Supabase is not configured.') }),
-        signUp: async () => ({ error: new Error('Supabase is not configured.') }),
-      }
-    };
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Fetches the user monthly state document.
