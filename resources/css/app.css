@@ -233,18 +233,15 @@ button {
   }
 }
 
-/* ── TOP FLOATING NAVIGATION BAR ──────────────────────────────── */
+/* ── TOP FLOATING NAVIGATION BAR (Scrolls away naturally) ── */
 .app-nav {
-  position: sticky;
-  top: max(6px, env(safe-area-inset-top, 6px));
-  z-index: 100;
+  position: relative;
+  z-index: 10;
   margin-bottom: 10px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--shell-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   transition: var(--transition);
 }
 

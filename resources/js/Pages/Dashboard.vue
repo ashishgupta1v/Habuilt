@@ -975,14 +975,14 @@ const handleToggleDueNowNotifications = async () => {
 };
 
 // ── Native Android Home Screen Widget Sync Hook ──
-const { syncNativeWidget } = useNativeWidget();
+const { syncNativeWidget, getNativeWidgetData } = useNativeWidget();
 const pushToNativeWidget = () => {
   try {
     syncNativeWidget({
       userId: effectiveUserId.value,
       habits: localHabits.value,
       schedule: habitTimeSchedule,
-      streak: systemStreak.value?.current ?? 14,
+      streak: systemStreak.value?.current ?? 0,
       todayPoints: todayPoints.value ?? 0,
     });
   } catch (e) {
@@ -1269,7 +1269,7 @@ const handlePopState = (e) => {
 let clockInterval = null;
 let cloudSyncInterval = null;
 
-const handleAppResume = () => {
+const handleAppResume = async () => {
   // 1. Immediately update clock time
   updateCurrentClock();
 
@@ -1285,7 +1285,36 @@ const handleAppResume = () => {
     }
   }
 
-  // 3. Immediately pull latest synced database updates
+  // 3. Sync completions from Home Screen Widget if marked while app was in background
+  try {
+    const widgetData = await getNativeWidgetData();
+    if (widgetData?.habitsJson) {
+      const widgetHabits = JSON.parse(widgetData.habitsJson);
+      if (Array.isArray(widgetHabits) && widgetHabits.length > 0) {
+        let changed = false;
+        const currentMap = new Map((localHabits.value || []).map(h => [h.id, h]));
+        widgetHabits.forEach(wh => {
+          const lh = currentMap.get(wh.id);
+          if (lh && Array.isArray(wh.completed_days)) {
+            const currentCds = new Set(lh.completed_days || []);
+            wh.completed_days.forEach(d => {
+              if (!currentCds.has(d)) {
+                lh.completed_days.push(d);
+                changed = true;
+              }
+            });
+          }
+        });
+        if (changed) {
+          saveState();
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Widget sync resume warning:', e);
+  }
+
+  // 4. Immediately pull latest synced database updates
   syncCloudState(false);
 };
 

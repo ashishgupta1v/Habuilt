@@ -47,7 +47,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
 
                 val rawHabits = prefs.getString("habits_json", null)
                 val rawSchedule = prefs.getString("schedule_json", null)
-                val streak = prefs.getInt("streak", 14)
+                val streak = prefs.getInt("streak", 0)
                 val todayPoints = prefs.getInt("today_points", 0)
 
                 // Current day & time
