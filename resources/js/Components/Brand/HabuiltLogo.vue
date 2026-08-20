@@ -178,8 +178,26 @@ body.theme-dark .habuilt-logo-brand__text {
   padding: 2px 6px;
   border-radius: 6px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(14, 165, 233, 0.15));
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--accent-strong, #10b981);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+@media (max-width: 640px) {
+  .habuilt-logo-brand {
+    gap: 6px;
+  }
+  .habuilt-logo-brand__icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px;
+  }
+  .habuilt-logo-brand__text {
+    font-size: 16px;
+  }
+  .habuilt-logo-brand__tag {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
 }
 
 .habuilt-logo-brand--lg .habuilt-logo-brand__text {

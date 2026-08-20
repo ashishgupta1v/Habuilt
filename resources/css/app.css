@@ -222,7 +222,7 @@ button {
 
 @media (max-width: 768px) {
   .app-main-content {
-    padding: 0 0 calc(75px + env(safe-area-inset-bottom, 0px));
+    padding: max(14px, env(safe-area-inset-top, 32px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
   }
 }
@@ -237,7 +237,7 @@ button {
 .app-nav {
   position: relative;
   z-index: 10;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--shell-border);
   border-radius: var(--radius-md);
@@ -246,8 +246,8 @@ button {
 }
 
 body.theme-dark .app-nav {
-  background: rgba(9, 13, 22, 0.94);
-  border-color: var(--shell-border);
+  background: rgba(13, 20, 36, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow-md);
 }
 
@@ -255,9 +255,9 @@ body.theme-dark .app-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  min-height: 58px;
-  gap: 10px;
+  padding: 6px 12px;
+  min-height: 48px;
+  gap: 8px;
 }
 
 .app-nav__left {
@@ -398,24 +398,32 @@ body.theme-dark .user-track-pill--jyoti {
 }
 
 @media (max-width: 640px) {
+  .app-nav {
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .app-nav__container {
+    padding: 4px 8px;
+    min-height: 42px;
+  }
   .user-badge__text,
   .user-track-pill {
     display: none;
   }
-  
   .user-badge {
-    padding: 3px;
+    padding: 2px;
+    background: transparent;
+    border: none;
   }
-  
   .logout-text {
     display: none;
   }
-  
   .btn--logout {
-    padding: 8px 10px;
-    min-height: 42px;
-    min-width: 42px;
+    padding: 6px 8px;
+    min-height: 32px;
+    min-width: 32px;
     justify-content: center;
+    border-radius: 8px;
   }
 }
 
