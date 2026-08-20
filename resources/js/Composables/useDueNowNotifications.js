@@ -1,4 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export function useDueNowNotifications({
   upNextHabitInfo,
@@ -8,10 +10,11 @@ export function useDueNowNotifications({
   onCompleteHabit,
   habitTimeSchedule,
 }) {
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
-  const permissionState = ref(isSupported ? Notification.permission : 'denied');
+  const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  const isWebSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+  const isSupported = isNative || isWebSupported;
   
-  // Persisted user preference
+  const permissionState = ref('prompt');
   const notificationsEnabled = ref(
     typeof localStorage !== 'undefined' && localStorage.getItem('habuilt.dueNowNotifications.enabled') === 'true'
   );
@@ -21,23 +24,135 @@ export function useDueNowNotifications({
   let heartbeatInterval = null;
   let queueDrainInterval = null;
 
-  // Request Notification Permission
+  // Creative Copy Generator based on habit category & context
+  const getCreativeNotificationCopy = (habit, sched, timeLabel) => {
+    const name = habit.name || 'Habit';
+    const pts = habit.points || 1;
+    const lowerName = name.toLowerCase();
+
+    // 1. Deep Work & Focus Blocks
+    if (lowerName.includes('deep work') || lowerName.includes('focus') || lowerName.includes('sprint') || lowerName.includes('dev')) {
+      return {
+        title: `⚡ Deep Work Sprint: ${name}`,
+        body: `🎯 ${timeLabel || 'Active Window'} (+${pts} pts). Protect your focus & build unstoppable momentum!`,
+        actionTitle: '✓ Mark Block Done',
+      };
+    }
+
+    // 2. Morning Anchor & Alarm
+    if (lowerName.includes('alarm') || lowerName.includes('sunlight') || lowerName.includes('water') || lowerName.includes('morning')) {
+      return {
+        title: `☀️ Morning Anchor: ${name}`,
+        body: `🌱 Win the morning (+${pts} pt). Set your baseline strong today!`,
+        actionTitle: '✓ Complete Anchor',
+      };
+    }
+
+    // 3. Health, Walk, Workout & Nutrition
+    if (lowerName.includes('walk') || lowerName.includes('workout') || lowerName.includes('gym') || lowerName.includes('protein') || lowerName.includes('meal')) {
+      return {
+        title: `🏃 Energy & Vitality: ${name}`,
+        body: `💪 Active window: ${timeLabel || 'Now'} (+${pts} pts). Step away, recharge, and hit your target!`,
+        actionTitle: '✓ Log Activity',
+      };
+    }
+
+    // 4. Family, Shaarvi, Connection
+    if (lowerName.includes('shaarvi') || lowerName.includes('family') || lowerName.includes('call') || lowerName.includes('connect')) {
+      return {
+        title: `❤️ Quality Time: ${name}`,
+        body: `✨ ${timeLabel || 'Scheduled'}. Be 100% present with loved ones (+${pts} pts).`,
+        actionTitle: '✓ Mark Done',
+      };
+    }
+
+    // 5. Evening Wind-down & Floor Protocol
+    if (lowerName.includes('reading') || lowerName.includes('sleep') || lowerName.includes('journal') || lowerName.includes('night') || lowerName.includes('wind')) {
+      return {
+        title: `🌙 Evening Recovery: ${name}`,
+        body: `🛡️ Lock in your daily Floor Protocol & protect your streak (+${pts} pt).`,
+        actionTitle: '✓ Lock In Protocol',
+      };
+    }
+
+    // Default creative fallback
+    return {
+      title: `⚡ Due Now: ${name}`,
+      body: `🎯 Scheduled: ${timeLabel || 'Now'} • Tap to earn +${pts} pts and advance your streak!`,
+      actionTitle: '✓ Mark Done',
+    };
+  };
+
+  // Initialize Native Action Types
+  const registerNativeActionTypes = async () => {
+    if (!isNative) return;
+    try {
+      await LocalNotifications.registerActionTypes({
+        types: [
+          {
+            id: 'HABUILT_HABIT_ACTION',
+            actions: [
+              {
+                id: 'MARK_DONE',
+                title: '✓ Mark Done (+pts)',
+                foreground: false,
+              },
+              {
+                id: 'OPEN_APP',
+                title: 'Open Station',
+                foreground: true,
+              },
+            ],
+          },
+        ],
+      });
+    } catch (e) {
+      console.warn('Native action registration note:', e);
+    }
+  };
+
+  // Check initial permission
+  const checkInitialPermission = async () => {
+    if (isNative) {
+      try {
+        const res = await LocalNotifications.checkPermissions();
+        permissionState.value = res.display;
+      } catch {
+        permissionState.value = 'granted';
+      }
+    } else if (isWebSupported) {
+      permissionState.value = Notification.permission;
+    }
+  };
+
+  // Request Permission
   const requestPermission = async () => {
     if (!isSupported) return false;
     try {
-      const perm = await Notification.requestPermission();
-      permissionState.value = perm;
-      if (perm === 'granted') {
-        notificationsEnabled.value = true;
-        localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
-        syncDueNowNotification();
-        return true;
-      } else {
-        notificationsEnabled.value = false;
-        localStorage.setItem('habuilt.dueNowNotifications.enabled', 'false');
-        dismissDueNowNotification();
-        return false;
+      if (isNative) {
+        const res = await LocalNotifications.requestPermissions();
+        permissionState.value = res.display;
+        if (res.display === 'granted') {
+          notificationsEnabled.value = true;
+          localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
+          await registerNativeActionTypes();
+          syncDueNowNotification();
+          return true;
+        }
+      } else if (isWebSupported) {
+        const perm = await Notification.requestPermission();
+        permissionState.value = perm;
+        if (perm === 'granted') {
+          notificationsEnabled.value = true;
+          localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
+          syncDueNowNotification();
+          return true;
+        }
       }
+      notificationsEnabled.value = false;
+      localStorage.setItem('habuilt.dueNowNotifications.enabled', 'false');
+      dismissDueNowNotification();
+      return false;
     } catch (err) {
       console.warn('Notification permission error:', err);
       return false;
@@ -74,8 +189,8 @@ export function useDueNowNotifications({
     return expiry.getTime();
   };
 
-  // Send message to Service Worker to display or update the Due Now notification
-  const syncDueNowNotification = () => {
+  // Send creative notification
+  const syncDueNowNotification = async () => {
     if (!isSupported || !notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) {
       dismissDueNowNotification();
@@ -100,39 +215,71 @@ export function useDueNowNotifications({
     const expiryTimestamp = calculateExpiryTimestamp(habit.id);
     const now = Date.now();
 
-    // If time window has already expired, dismiss and don't show
     if (now >= expiryTimestamp) {
       dismissDueNowNotification();
       return;
     }
 
     const currentSessionKey = `${habit.id}:${day}:${info.status}`;
-
-    // STRICT GUARD: If we already dispatched notification for this exact habit and day, DO NOT send again!
     if (activeNotifiedHabitSessionKey.value === currentSessionKey) {
       return;
     }
 
-    // Post to service worker
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    const sched = habitTimeSchedule?.[habit.id];
+    const creativeCopy = getCreativeNotificationCopy(habit, sched, info.timeLabel);
+
+    // 1. Native Android Local Notification
+    if (isNative) {
+      try {
+        await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 1001,
+              title: creativeCopy.title,
+              body: creativeCopy.body,
+              actionTypeId: 'HABUILT_HABIT_ACTION',
+              extra: {
+                habitId: habit.id,
+                day: day,
+              },
+              schedule: { at: new Date(Date.now() + 200) },
+              sound: 'default',
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#10B981',
+            },
+          ],
+        });
+        activeNotifiedHabitSessionKey.value = currentSessionKey;
+      } catch (e) {
+        console.warn('Native local notification dispatch warning:', e);
+      }
+    } 
+    // 2. Web / Service Worker fallback
+    else if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'SHOW_DUE_NOW_NOTIFICATION',
         payload: {
           habitId: habit.id,
-          habitName: habit.name,
+          habitName: creativeCopy.title,
           points: habit.points,
           timeLabel: info.timeLabel || '',
           day: day,
           expiryTimestamp: expiryTimestamp,
+          customBody: creativeCopy.body,
         },
       });
       activeNotifiedHabitSessionKey.value = currentSessionKey;
     }
   };
 
-  // Dismiss Due Now Notification
-  const dismissDueNowNotification = () => {
-    if (!isSupported) return;
+  // Dismiss Notification
+  const dismissDueNowNotification = async () => {
+    if (isNative) {
+      try {
+        await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+      } catch { /* cancel fallback */ }
+    }
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'DISMISS_DUE_NOW_NOTIFICATION',
@@ -141,7 +288,7 @@ export function useDueNowNotifications({
     activeNotifiedHabitSessionKey.value = null;
   };
 
-  // Check and process any queued completions from background actions when offline/closed
+  // Check and process queued background actions
   const drainQueuedCompletions = async () => {
     if (typeof caches === 'undefined') return;
     try {
@@ -155,7 +302,6 @@ export function useDueNowNotifications({
               onCompleteHabit(item.habitId, Number(item.day));
             }
           }
-          // Clear processed queue
           await cache.delete('/queued-completions');
         }
       }
@@ -167,14 +313,31 @@ export function useDueNowNotifications({
     syncDueNowNotification();
   };
 
-  // Setup communication channels
-  onMounted(() => {
+  // Setup communication channels and listeners
+  onMounted(async () => {
     if (typeof window === 'undefined') return;
 
-    // 1. Immediate drain of offline completions
+    await checkInitialPermission();
+    await registerNativeActionTypes();
     drainQueuedCompletions();
 
-    // 2. BroadcastChannel for real-time background notification completion
+    // Native Action Listener (Android Tray [Mark Done])
+    if (isNative) {
+      try {
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+          const habitId = action.notification.extra?.habitId;
+          const day = action.notification.extra?.day || new Date().getDate();
+          if (action.actionId === 'MARK_DONE' && habitId && onCompleteHabit) {
+            onCompleteHabit(habitId, Number(day));
+            dismissDueNowNotification();
+          }
+        });
+      } catch (e) {
+        console.warn('Local notification action listener error:', e);
+      }
+    }
+
+    // Web BroadcastChannel & ServiceWorker message listener
     if ('BroadcastChannel' in window) {
       try {
         channel = new BroadcastChannel('habuilt-channel');
@@ -189,7 +352,6 @@ export function useDueNowNotifications({
       } catch { /* channel fallback */ }
     }
 
-    // 3. Service Worker message listener
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
@@ -201,16 +363,13 @@ export function useDueNowNotifications({
       });
     }
 
-    // 4. Listen on window focus and visibility change
     window.addEventListener('focus', handleVisibilityOrFocus);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
-    // 5. Continuous check loop (every 1.5s) to guarantee instantaneous sync of any background action
     queueDrainInterval = setInterval(() => {
       drainQueuedCompletions();
     }, 1500);
 
-    // 6. Heartbeat every 30s to check timing & auto-remove when task finishes
     syncDueNowNotification();
     heartbeatInterval = setInterval(() => {
       syncDueNowNotification();
@@ -227,7 +386,6 @@ export function useDueNowNotifications({
     }
   });
 
-  // Watch for changes in upNextHabitInfo or currentDay
   watch(
     () => upNextHabitInfo?.value,
     () => {
@@ -244,5 +402,6 @@ export function useDueNowNotifications({
     toggleNotifications,
     syncDueNowNotification,
     dismissDueNowNotification,
+    drainQueuedCompletions,
   };
 }
