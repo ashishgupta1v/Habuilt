@@ -31,15 +31,14 @@
                 <data android:scheme="com.habuilt.app" />
             </intent-filter>
 
-            <!-- ── Web App Link (https://www.habuilt.com/auth/callback) ── -->
+            <!-- ── Web App Links (https://habuilt.vercel.app, https://www.habuilt.com, https://habuilt.com) ── -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="www.habuilt.com"
-                    android:pathPrefix="/auth" />
+                <data android:scheme="https" android:host="habuilt.vercel.app" />
+                <data android:scheme="https" android:host="www.habuilt.com" />
+                <data android:scheme="https" android:host="habuilt.com" />
             </intent-filter>
 
         </activity>

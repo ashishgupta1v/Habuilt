@@ -68,6 +68,15 @@ const handleGoogleSignIn = async () => {
 
 const handleGuestAccess = () => {
   localStorage.setItem('habuilt_guest_mode', 'true');
+  localStorage.setItem('habuilt_direct_user', JSON.stringify({ id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } }));
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth'));
+};
+
+const handleDirectProfile = (userEmail, fullName) => {
+  const userId = userEmail.includes('jyoti') ? 'jyoti-profile' : 'ashish-profile';
+  const profileData = { id: userId, email: userEmail, user_metadata: { full_name: fullName } };
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  localStorage.setItem('habuilt_direct_user', JSON.stringify(profileData));
   window.dispatchEvent(new CustomEvent('habuilt-guest-auth'));
 };
 </script>
@@ -124,15 +133,34 @@ const handleGuestAccess = () => {
           </p>
         </div>
 
-        <!-- ⚡ 1-Tap Instant In-App Entry -->
-        <button 
-          @click="handleGuestAccess"
-          type="button" 
-          class="btn-guest-primary"
-          style="width: 100%; padding: 12px 16px; margin-bottom: 14px; background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,78,59,0.35)); border: 1.5px solid #10b981; border-radius: 12px; color: #34d399; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s ease;"
-        >
-          ⚡ Open Workspace Directly (100% In-App)
-        </button>
+        <!-- ⚡ 1-Tap Instant In-App Workspace Entry -->
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button 
+              @click="handleDirectProfile('ashish@habuilt.com', 'Ashish Gupta')" 
+              type="button" 
+              style="flex: 1; padding: 12px 10px; background: linear-gradient(135deg, rgba(16,185,129,0.22), rgba(6,78,59,0.4)); border: 1.5px solid #10b981; border-radius: 12px; color: #34d399; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
+            >
+              👑 Ashish (PRO)
+            </button>
+            <button 
+              @click="handleDirectProfile('jyoti@habuilt.com', 'Jyoti Gupta')" 
+              type="button" 
+              style="flex: 1; padding: 12px 10px; background: linear-gradient(135deg, rgba(236,72,153,0.22), rgba(131,24,67,0.4)); border: 1.5px solid #ec4899; border-radius: 12px; color: #f472b6; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
+            >
+              🌸 Jyoti (Track)
+            </button>
+          </div>
+          
+          <button 
+            @click="handleGuestAccess"
+            type="button" 
+            class="btn-guest-primary"
+            style="width: 100%; padding: 10px 14px; background: rgba(30,41,59,0.6); border: 1px solid #334155; border-radius: 10px; color: #94a3b8; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;"
+          >
+            ⚡ Open as Guest Workspace
+          </button>
+        </div>
 
         <!-- Google OAuth Button -->
         <button 

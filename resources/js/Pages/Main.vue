@@ -105,9 +105,28 @@ const handleNavigateMonth = (monthOffset) => {
 };
 
 const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+const isNativePlatform = ref(typeof window !== 'undefined' && Boolean(window.Capacitor?.isNativePlatform?.()));
+const isMobileDevice = ref(typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+
+const getStoredDirectUser = () => {
+  try {
+    const raw = localStorage.getItem('habuilt_direct_user');
+    return raw ? JSON.parse(raw) : { id: 'ashish-profile', email: 'ashish@habuilt.com', user_metadata: { full_name: 'Ashish Gupta' } };
+  } catch {
+    return { id: 'ashish-profile', email: 'ashish@habuilt.com', user_metadata: { full_name: 'Ashish Gupta' } };
+  }
+};
+
+const openNativeApp = () => {
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash || '';
+    window.location.href = `habuilt://auth/callback${hash}`;
+  }
+};
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
+  localStorage.removeItem('habuilt_direct_user');
   isGuestActive.value = false;
   await supabase.auth.signOut();
 };
@@ -117,7 +136,7 @@ onMounted(async () => {
   if (session?.user) {
     activeUser.value = session.user;
   } else if (isGuestActive.value) {
-    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+    activeUser.value = getStoredDirectUser();
   } else {
     activeUser.value = null;
   }
@@ -127,10 +146,15 @@ onMounted(async () => {
     if (session?.user) {
       activeUser.value = session.user;
     } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
-      activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+      activeUser.value = getStoredDirectUser();
     } else {
       activeUser.value = null;
     }
+  });
+
+  window.addEventListener('habuilt-guest-auth', () => {
+    isGuestActive.value = true;
+    activeUser.value = getStoredDirectUser();
   });
 
   // ── Native Deep Link Handler for OAuth Callback ──
@@ -198,6 +222,27 @@ onMounted(async () => {
 
   <template v-else>
     <div v-if="activeUser" class="app-root">
+      <!-- ⚡ Web-to-Native App Handoff Banner (Shown ONLY when viewing inside Mobile Web / Chrome Custom Tab) -->
+      <div 
+        v-if="!isNativePlatform && isMobileDevice" 
+        class="native-app-handoff-banner"
+        style="position: sticky; top: 0; left: 0; right: 0; z-index: 999999; background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%); border-bottom: 2px solid #10b981; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.6);"
+      >
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <span style="font-size: 20px; filter: drop-shadow(0 0 8px #10b981); flex-shrink: 0;">⚡</span>
+          <div style="min-width: 0;">
+            <div style="font-size: 13px; font-weight: 800; color: #34d399; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">HABUILT ANDROID APP</div>
+            <div style="font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tap to switch to full native viewport & widget</div>
+          </div>
+        </div>
+        <button 
+          @click="openNativeApp" 
+          style="background: #10b981; color: #022c22; font-weight: 800; font-size: 12px; padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 0 12px rgba(16,185,129,0.5); flex-shrink: 0;"
+        >
+          OPEN APP ➔
+        </button>
+      </div>
+
       <!-- Dashboard + Top Header Wrapper -->
       <main class="app-main-content">
         <nav class="app-nav">
