@@ -115,6 +115,16 @@ const handleGuestAccess = () => {
           </p>
         </div>
 
+        <!-- ⚡ 1-Tap Instant In-App Entry -->
+        <button 
+          @click="handleGuestAccess"
+          type="button" 
+          class="btn-guest-primary"
+          style="width: 100%; padding: 12px 16px; margin-bottom: 14px; background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,78,59,0.35)); border: 1.5px solid #10b981; border-radius: 12px; color: #34d399; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s ease;"
+        >
+          ⚡ Open Workspace Directly (100% In-App)
+        </button>
+
         <!-- Google OAuth Button -->
         <button 
           @click="handleGoogleSignIn"
