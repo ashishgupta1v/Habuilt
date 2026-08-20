@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <!-- ── Header Row (App Brand + Due Status + Streak) ── -->
+    <!-- ── Header Row (App Brand + Due Status + Today Total Points + Streak) ── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -27,11 +27,11 @@
             android:id="@+id/tv_widget_status_pill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="5dp"
             android:background="@drawable/widget_pill_emerald"
-            android:paddingStart="6dp"
+            android:paddingStart="5dp"
             android:paddingTop="2dp"
-            android:paddingEnd="6dp"
+            android:paddingEnd="5dp"
             android:paddingBottom="2dp"
             android:text="DUE NOW"
             android:textColor="#34D399"
@@ -43,18 +43,35 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- Today Achieved Points Pill -->
+        <TextView
+            android:id="@+id/tv_widget_today_pts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_pill_emerald"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:text="⭐ 0 pts"
+            android:textColor="#34D399"
+            android:textSize="9.5sp"
+            android:textStyle="bold" />
+
+        <!-- Streak Pill -->
         <TextView
             android:id="@+id/tv_widget_streak"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
             android:background="@drawable/widget_pill_gold"
             android:paddingStart="6dp"
             android:paddingTop="2dp"
             android:paddingEnd="6dp"
             android:paddingBottom="2dp"
-            android:text="🔥 14d"
+            android:text="🔥 0d"
             android:textColor="#C8A456"
-            android:textSize="10sp"
+            android:textSize="9.5sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -62,8 +79,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="6dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
         android:background="#243049" />
 
     <!-- ── Habit Name ── -->
@@ -75,14 +92,14 @@
         android:maxLines="2"
         android:text="🎯 Morning Focus Block (90 min)"
         android:textColor="#F8FAFC"
-        android:textSize="14sp"
+        android:textSize="13.5sp"
         android:textStyle="bold" />
 
     <!-- ── Schedule & Points Meta Row ── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -92,13 +109,13 @@
             android:layout_height="wrap_content"
             android:text="⏰ 08:30 AM – 10:00 AM"
             android:textColor="#94A3B8"
-            android:textSize="11sp" />
+            android:textSize="10.5sp" />
 
         <TextView
             android:id="@+id/tv_widget_points"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:background="@drawable/widget_pill_gold"
             android:paddingStart="5dp"
             android:paddingTop="1dp"
@@ -110,6 +127,18 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- ── Instruction & Guidance Hint ── -->
+    <TextView
+        android:id="@+id/tv_widget_guidance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="💡 Silence all notifications &amp; execute your highest leverage task."
+        android:textColor="#CBD5E1"
+        android:textSize="10.5sp" />
+
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -118,7 +147,7 @@
     <!-- ── 1-Tap Action Buttons Row ── -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="38dp"
+        android:layout_height="36dp"
         android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
@@ -134,7 +163,7 @@
             android:gravity="center"
             android:text="✓ MARK DONE"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"
+            android:textSize="11.5sp"
             android:textStyle="bold" />
 
         <TextView
@@ -149,7 +178,7 @@
             android:gravity="center"
             android:text="Open Dashboard"
             android:textColor="#E2E8F0"
-            android:textSize="11sp" />
+            android:textSize="10.5sp" />
     </LinearLayout>
 
 </LinearLayout>

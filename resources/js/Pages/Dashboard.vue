@@ -1020,9 +1020,9 @@ const pushToNativeWidget = () => {
   try {
     syncNativeWidget({
       userId: effectiveUserId.value,
-      habits: localHabits.value,
-      schedule: habitTimeSchedule,
-      streak: systemStreak.value?.current ?? 0,
+      habits: localHabits.value || [],
+      schedule: habitTimeSchedule || {},
+      streak: systemStreak.value?.currentStreak || systemStreak.value?.current || 0,
       todayPoints: todayPoints.value ?? 0,
     });
   } catch (e) {
@@ -1030,7 +1030,7 @@ const pushToNativeWidget = () => {
   }
 };
 
-watch(localHabits, () => {
+watch([localHabits, todayPoints, systemStreak], () => {
   pushToNativeWidget();
 }, { deep: true });
 
