@@ -170,6 +170,20 @@ onMounted(async () => {
     // Non-native fallback
   }
 
+  // ── Web-to-Native App Automatic Handoff Bridge ──
+  if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
+    const hash = window.location.hash;
+    if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        try {
+          // Immediately hand off authentication tokens to the native Habuilt APK
+          window.location.href = `habuilt://auth/callback${hash}`;
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
   checkIOS();
 });
 </script>
