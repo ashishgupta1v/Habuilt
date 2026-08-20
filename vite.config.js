@@ -33,7 +33,7 @@ export default defineConfig({
             if (id.includes('lucide-vue-next')) {
               return 'vendor-icons';
             }
-            if (id.includes('vue') || id.includes('@inertiajs')) {
+            if (id.includes('vue') || id.includes('@vue') || id.includes('@inertiajs')) {
               return 'vendor-vue';
             }
             return 'vendor';
