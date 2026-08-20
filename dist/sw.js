@@ -143,9 +143,9 @@ self.addEventListener('message', (event) => {
     const options = {
       body: `⏰ ${p.timeLabel || 'Current Routine'} • +${p.points} pts\nTap [Mark Done] to complete without opening app.`,
       icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-96x96.png',
+      badge: '/icons/badge-monochrome-96.png',
       tag: 'habuilt-due-now',
-      renotify: true,
+      renotify: false, // Prevents buzzing/chiming repeatedly for the same task
       requireInteraction: true,
       data: {
         habitId: p.habitId,
@@ -161,7 +161,16 @@ self.addEventListener('message', (event) => {
       ],
     };
 
-    self.registration.showNotification(title, options);
+    // Check if notification for this habit is already shown; if so, do not re-show
+    event.waitUntil(
+      (async () => {
+        const existing = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
+        if (existing.length > 0 && existing[0].data?.habitId === p.habitId) {
+          return;
+        }
+        await self.registration.showNotification(title, options);
+      })()
+    );
 
     // Auto-remove notification as soon as the task window finishes!
     if (p.expiryTimestamp && p.expiryTimestamp > Date.now()) {

@@ -106,6 +106,13 @@ export function useDueNowNotifications({
       return;
     }
 
+    const currentSessionKey = `${habit.id}:${day}:${info.status}`;
+
+    // STRICT GUARD: If we already dispatched notification for this exact habit and day, DO NOT send again!
+    if (activeNotifiedHabitId.value === currentSessionKey) {
+      return;
+    }
+
     // Post to service worker
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
@@ -119,7 +126,7 @@ export function useDueNowNotifications({
           expiryTimestamp: expiryTimestamp,
         },
       });
-      activeNotifiedHabitId.value = habit.id;
+      activeNotifiedHabitId.value = currentSessionKey;
     }
   };
 

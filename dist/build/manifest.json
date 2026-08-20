@@ -3,8 +3,8 @@
     "file": "assets/app-7YRpXfgh.css",
     "src": "_app-!~{006}~.js"
   },
-  "_app-qJ-JOFdX.js": {
-    "file": "assets/app-qJ-JOFdX.js",
+  "_app-BIxMts2h.js": {
+    "file": "assets/app-BIxMts2h.js",
     "name": "app",
     "imports": [
       "_vendor-bATAWQba.js",
@@ -34,24 +34,24 @@
     ]
   },
   "index.html": {
-    "file": "assets/preview-DLkUoVfY.js",
+    "file": "assets/preview-DtYcQuA4.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_app-qJ-JOFdX.js",
+      "_app-BIxMts2h.js",
       "_vendor-vue-bpHUpZJC.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-CaIWhABq.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DHEyBkJC.js",
+    "file": "assets/app-DRfRjxLn.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_app-qJ-JOFdX.js",
+      "_app-BIxMts2h.js",
       "_vendor-vue-bpHUpZJC.js",
       "_vendor-bATAWQba.js",
       "_vendor-icons-CaIWhABq.js"
