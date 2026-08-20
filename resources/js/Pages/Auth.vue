@@ -41,19 +41,28 @@ const handleAuth = async () => {
 
 const handleGoogleSignIn = async () => {
   error.value = '';
+  loading.value = true;
   try {
     const isCapacitor = typeof window !== 'undefined' && (window.Capacitor?.isNativePlatform?.() || window.location.origin.includes('localhost'));
-    const redirectUrl = isCapacitor ? 'https://www.habuilt.com/auth/callback' : `${window.location.origin}/auth/callback`;
+    const redirectUrl = isCapacitor ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`;
     
-    const { error: err } = await supabase.auth.signInWithOAuth({
+    const { data, error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
+        skipBrowserRedirect: isCapacitor,
       },
     });
     if (err) throw err;
+
+    if (isCapacitor && data?.url) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: data.url, windowName: '_self' });
+    }
   } catch (err) {
     error.value = err.message;
+  } finally {
+    loading.value = false;
   }
 };
 

@@ -133,10 +133,42 @@ onMounted(async () => {
     }
   });
 
-  window.addEventListener('habuilt-guest-auth', () => {
-    isGuestActive.value = true;
-    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-  });
+  // ── Native Deep Link Handler for OAuth Callback ──
+  try {
+    const { App } = await import('@capacitor/app');
+    const { Browser } = await import('@capacitor/browser');
+    
+    App.addListener('appUrlOpen', async (event) => {
+      try {
+        await Browser.close();
+      } catch { /* ignore */ }
+
+      if (event.url) {
+        // Handle habuilt://auth/callback#access_token=... or ?code=...
+        const rawUrl = event.url.replace('habuilt://', 'https://habuilt.com/').replace('com.habuilt.app://', 'https://habuilt.com/');
+        try {
+          const parsed = new URL(rawUrl);
+          const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (data?.user) {
+              activeUser.value = data.user;
+            }
+          }
+        } catch (e) {
+          console.warn('Error parsing deep link auth:', e);
+        }
+      }
+    });
+  } catch {
+    // Non-native fallback
+  }
 
   checkIOS();
 });

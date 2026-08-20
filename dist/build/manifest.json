@@ -1,60 +1,69 @@
 {
   "_app-!~{006}~.js": {
-    "file": "assets/app-CGWm2sWW.css",
+    "file": "assets/app-C11-2NT6.css",
     "src": "_app-!~{006}~.js"
   },
-  "_app-BHaeBTf6.js": {
-    "file": "assets/app-BHaeBTf6.js",
+  "_app-CFuxy6vv.js": {
+    "file": "assets/app-CFuxy6vv.js",
     "name": "app",
     "imports": [
-      "_vendor-RfJiFBG8.js",
-      "_vendor-vue-BrrnWNc2.js",
-      "_vendor-icons-BG-ccQpw.js"
+      "_vendor-vue-DRXQ2pSF.js",
+      "_vendor-CZGPevPp.js",
+      "_vendor-icons-ctloUFx4.js"
+    ],
+    "dynamicImports": [
+      "_vendor-CZGPevPp.js",
+      "_vendor-CZGPevPp.js",
+      "_vendor-CZGPevPp.js"
     ],
     "css": [
-      "assets/app-CGWm2sWW.css"
+      "assets/app-C11-2NT6.css"
     ]
   },
-  "_vendor-RfJiFBG8.js": {
-    "file": "assets/vendor-RfJiFBG8.js",
-    "name": "vendor"
+  "_vendor-CZGPevPp.js": {
+    "file": "assets/vendor-CZGPevPp.js",
+    "name": "vendor",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vendor-vue-DRXQ2pSF.js"
+    ]
   },
-  "_vendor-icons-BG-ccQpw.js": {
-    "file": "assets/vendor-icons-BG-ccQpw.js",
+  "_vendor-icons-ctloUFx4.js": {
+    "file": "assets/vendor-icons-ctloUFx4.js",
     "name": "vendor-icons",
     "imports": [
-      "_vendor-vue-BrrnWNc2.js"
+      "_vendor-vue-DRXQ2pSF.js"
     ]
   },
-  "_vendor-vue-BrrnWNc2.js": {
-    "file": "assets/vendor-vue-BrrnWNc2.js",
+  "_vendor-vue-DRXQ2pSF.js": {
+    "file": "assets/vendor-vue-DRXQ2pSF.js",
     "name": "vendor-vue",
     "imports": [
-      "_vendor-RfJiFBG8.js"
+      "_vendor-CZGPevPp.js"
     ]
   },
   "index.html": {
-    "file": "assets/preview-mhx9gXGi.js",
+    "file": "assets/preview-CIFwLDOA.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_app-BHaeBTf6.js",
-      "_vendor-vue-BrrnWNc2.js",
-      "_vendor-RfJiFBG8.js",
-      "_vendor-icons-BG-ccQpw.js"
+      "_app-CFuxy6vv.js",
+      "_vendor-vue-DRXQ2pSF.js",
+      "_vendor-CZGPevPp.js",
+      "_vendor-icons-ctloUFx4.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CPCpndXK.js",
+    "file": "assets/app-BOIGIIHm.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_app-BHaeBTf6.js",
-      "_vendor-vue-BrrnWNc2.js",
-      "_vendor-RfJiFBG8.js",
-      "_vendor-icons-BG-ccQpw.js"
+      "_app-CFuxy6vv.js",
+      "_vendor-vue-DRXQ2pSF.js",
+      "_vendor-CZGPevPp.js",
+      "_vendor-icons-ctloUFx4.js"
     ]
   }
 }
