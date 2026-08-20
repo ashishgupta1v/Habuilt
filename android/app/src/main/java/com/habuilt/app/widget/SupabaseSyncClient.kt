@@ -24,15 +24,15 @@ object SupabaseSyncClient {
                 val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
                 val userId = prefs.getString("user_id", "guest") ?: "guest"
                 if (userId == "guest" || userId.isEmpty()) {
-                    Log.d(TAG, "Guest user or no auth - state saved locally only.")
+                    Log.d(TAG, "Guest user - saved to local widget preferences.")
                     return@Thread
                 }
 
                 val now = Date()
-                val monthScope = SimpleDateFormat("yyyy-MM", Locale.US).format(now)
+                val monthKey = SimpleDateFormat("yyyy-MM", Locale.US).format(now)
 
                 // 1. Fetch current monthly state from Supabase
-                val fetchUrl = URL("$SUPABASE_URL/rest/v1/user_monthly_states?user_id=eq.$userId&month_scope=eq.$monthScope&select=*")
+                val fetchUrl = URL("$SUPABASE_URL/rest/v1/user_monthly_states?user_id=eq.$userId&month_key=eq.$monthKey&select=*")
                 val getConn = fetchUrl.openConnection() as HttpURLConnection
                 getConn.requestMethod = "GET"
                 getConn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
@@ -49,11 +49,9 @@ object SupabaseSyncClient {
 
                     val jsonArray = JSONArray(responseStr)
                     var stateObj = JSONObject()
-                    var existingRecordId: String? = null
 
                     if (jsonArray.length() > 0) {
                         val record = jsonArray.getJSONObject(0)
-                        existingRecordId = record.optString("id")
                         if (record.has("state_data")) {
                             val rawState = record.get("state_data")
                             stateObj = if (rawState is JSONObject) rawState else JSONObject(rawState.toString())
@@ -98,7 +96,7 @@ object SupabaseSyncClient {
 
                         val payload = JSONObject().apply {
                             put("user_id", userId)
-                            put("month_scope", monthScope)
+                            put("month_key", monthKey)
                             put("state_data", stateObj)
                             put("updated_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
                         }

@@ -977,14 +977,22 @@ const handleToggleDueNowNotifications = async () => {
 // ── Native Android Home Screen Widget Sync Hook ──
 const { syncNativeWidget } = useNativeWidget();
 const pushToNativeWidget = () => {
-  syncNativeWidget({
-    userId: effectiveUserId.value,
-    habits: localHabits.value,
-    schedule: habitTimeSchedule,
-    streak: systemStreak.value,
-    todayPoints: todayPoints.value,
-  });
+  try {
+    syncNativeWidget({
+      userId: effectiveUserId.value,
+      habits: localHabits.value,
+      schedule: habitTimeSchedule,
+      streak: systemStreak.value?.current ?? 14,
+      todayPoints: todayPoints.value ?? 0,
+    });
+  } catch (e) {
+    console.warn('Widget sync error:', e);
+  }
 };
+
+watch(localHabits, () => {
+  pushToNativeWidget();
+}, { deep: true });
 
 const isShareModalOpen = ref(false);
 

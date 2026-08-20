@@ -172,3 +172,218 @@ const autoProtocolBadge = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.mobile-compact-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: max(8px, env(safe-area-inset-top, 8px)) 10px 8px;
+  background: rgba(9, 13, 22, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mcb-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mcb-row--top {
+  justify-content: space-between;
+}
+
+.mcb-user-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mcb-greeting {
+  font-size: clamp(0.72rem, 3.2vw, 0.88rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffffff;
+  min-width: 0;
+}
+
+.mcb-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.mcb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f8fafc;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.mcb-icon-btn--travel {
+  width: auto;
+  min-width: auto;
+  padding: 0 5px;
+  gap: 2px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.mcb-travel-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.mcb-row--stats {
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.mcb-stats-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.mcb-streak, .mcb-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: clamp(0.64rem, 2.7vw, 0.72rem);
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.mcb-streak {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.mcb-wallet {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.mcb-progress-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mcb-auto-badge {
+  font-size: clamp(0.6rem, 2.5vw, 0.68rem);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.mcb-progress-track {
+  width: clamp(28px, 7vw, 44px);
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mcb-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  transition: width 0.3s ease;
+}
+
+.mcb-progress-label {
+  font-size: clamp(0.6rem, 2.4vw, 0.68rem);
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.mcb-up-next-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  margin-top: 2px;
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(99, 102, 241, 0.08));
+  border: 1px solid rgba(200, 164, 86, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mcb-up-next-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #C8A456;
+  color: #1e293b;
+  font-size: clamp(0.58rem, 2.3vw, 0.65rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mcb-up-next-tag--due {
+  background: #ef4444;
+  color: #fff;
+}
+
+.mcb-up-next-title {
+  font-size: clamp(0.68rem, 2.8vw, 0.76rem);
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.mcb-up-next-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: clamp(0.62rem, 2.5vw, 0.7rem);
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+</style>

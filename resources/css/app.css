@@ -236,20 +236,20 @@ button {
 /* ── TOP FLOATING NAVIGATION BAR ──────────────────────────────── */
 .app-nav {
   position: sticky;
-  top: 12px;
+  top: max(6px, env(safe-area-inset-top, 6px));
   z-index: 100;
-  margin-bottom: 14px;
-  background: rgba(255, 255, 255, 0.88);
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--shell-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   transition: var(--transition);
 }
 
 body.theme-dark .app-nav {
-  background: rgba(10, 17, 32, 0.88);
+  background: rgba(9, 13, 22, 0.94);
   border-color: var(--shell-border);
   box-shadow: var(--shadow-md);
 }
