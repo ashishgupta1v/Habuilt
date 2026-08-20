@@ -104,17 +104,38 @@ const handleNavigateMonth = (monthOffset) => {
   window.location.search = `?month=${newMonth}&year=${newYear}`;
 };
 
+const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+
 const handleSignOut = async () => {
+  localStorage.removeItem('habuilt_guest_mode');
+  isGuestActive.value = false;
   await supabase.auth.signOut();
 };
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession();
-  activeUser.value = session?.user || null;
+  if (session?.user) {
+    activeUser.value = session.user;
+  } else if (isGuestActive.value) {
+    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+  } else {
+    activeUser.value = null;
+  }
   authLoading.value = false;
 
   supabase.auth.onAuthStateChange((_event, session) => {
-    activeUser.value = session?.user || null;
+    if (session?.user) {
+      activeUser.value = session.user;
+    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
+      activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+    } else {
+      activeUser.value = null;
+    }
+  });
+
+  window.addEventListener('habuilt-guest-auth', () => {
+    isGuestActive.value = true;
+    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
   });
 
   checkIOS();

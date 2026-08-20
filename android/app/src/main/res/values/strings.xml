@@ -4,4 +4,6 @@
     <string name="title_activity_main">Habuilt</string>
     <string name="package_name">com.habuilt.app</string>
     <string name="custom_url_scheme">com.habuilt.app</string>
+    <string name="widget_name">Habuilt Due Now</string>
+    <string name="widget_description">Live routine tracker with 1-tap completion</string>
 </resources>

@@ -22,6 +22,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- ── Custom Scheme Deep Link (habuilt:// and com.habuilt.app://) ── -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="habuilt" />
+                <data android:scheme="com.habuilt.app" />
+            </intent-filter>
+
+            <!-- ── Web App Link (https://www.habuilt.com/auth/callback) ── -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="www.habuilt.com"
+                    android:pathPrefix="/auth" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -36,9 +56,9 @@
 
         <!-- ── Habuilt Due Now Home Screen Widget Receiver ── -->
         <receiver
-            android:name=".widget.HabuiltDueNowWidget"
+            android:name="com.habuilt.app.widget.HabuiltDueNowWidget"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -49,7 +69,7 @@
 
         <!-- ── 1-Tap [Mark Done] Background Action Receiver ── -->
         <receiver
-            android:name=".widget.HabitActionReceiver"
+            android:name="com.habuilt.app.widget.HabitActionReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.habuilt.app.ACTION_MARK_DONE" />
@@ -62,5 +82,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
 </manifest>

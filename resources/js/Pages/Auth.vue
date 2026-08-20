@@ -42,13 +42,24 @@ const handleAuth = async () => {
 const handleGoogleSignIn = async () => {
   error.value = '';
   try {
+    const isCapacitor = typeof window !== 'undefined' && (window.Capacitor?.isNativePlatform?.() || window.location.origin.includes('localhost'));
+    const redirectUrl = isCapacitor ? 'https://www.habuilt.com/auth/callback' : `${window.location.origin}/auth/callback`;
+    
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+      },
     });
     if (err) throw err;
   } catch (err) {
     error.value = err.message;
   }
+};
+
+const handleGuestAccess = () => {
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth'));
 };
 </script>
 
@@ -209,6 +220,18 @@ const handleGoogleSignIn = async () => {
               {{ mode === 'login' ? "Sign up for free" : 'Log in here' }}
             </button>
           </p>
+        </div>
+
+        <!-- Direct Guest Mode Access -->
+        <div class="auth-guest-mode" style="margin-top: 18px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+          <button 
+            type="button" 
+            @click="handleGuestAccess" 
+            class="btn-guest-link"
+            style="background: none; border: none; font-size: 13px; font-weight: 600; color: #34d399; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+          >
+            ⚡ Enter Workspace as Guest (Instant Access)
+          </button>
         </div>
 
       </div>
