@@ -6,9 +6,16 @@
     "dev": "vite",
     "build": "vite build",
     "build:vercel": "vite build && node scripts/prepare-vercel-dist.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:add": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:build": "npm run build:vercel && cap sync android",
+    "cap:open": "cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@inertiajs/vue3": "^3.0.0",
     "@supabase/supabase-js": "^2.101.1",
     "lucide-vue-next": "^0.577.0",

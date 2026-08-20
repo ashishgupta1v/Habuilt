@@ -21,6 +21,7 @@ import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 // Composables & Data
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
 import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
+import { useNativeWidget } from '@/Composables/useNativeWidget';
 import {
   ashishHabits,
   jyotiHabits,
@@ -973,6 +974,18 @@ const handleToggleDueNowNotifications = async () => {
   }
 };
 
+// ── Native Android Home Screen Widget Sync Hook ──
+const { syncNativeWidget } = useNativeWidget();
+const pushToNativeWidget = () => {
+  syncNativeWidget({
+    userId: effectiveUserId.value,
+    habits: localHabits.value,
+    schedule: habitTimeSchedule,
+    streak: systemStreak.value,
+    todayPoints: todayPoints.value,
+  });
+};
+
 const isShareModalOpen = ref(false);
 
 const todayCompletedHabitsList = computed(() => {
@@ -1065,6 +1078,7 @@ const applyLoadedState = (data, isRemote = false) => {
   // Drain any queued background actions from notifications once habits are loaded
   setTimeout(() => {
     drainQueuedCompletions?.();
+    pushToNativeWidget();
   }, 50);
 };
 
@@ -1081,6 +1095,7 @@ const saveState = async () => {
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
+    pushToNativeWidget();
     if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
       await saveUserMonthlyState(effectiveUserId.value, monthScope.value, payload);
     }
