@@ -1,6 +1,23 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+def getBuildVersionCode() {
+    def runNum = System.getenv("GITHUB_RUN_NUMBER")
+    if (runNum != null && !runNum.isEmpty()) {
+        try {
+            return 100 + Integer.parseInt(runNum)
+        } catch (Exception e) {
+            return 100
+        }
+    }
+    return 100
+}
+
+def getBuildVersionName() {
+    def runNum = System.getenv("GITHUB_RUN_NUMBER") ?: "100"
+    return "1.0." + runNum
+}
+
 android {
     namespace = "com.habuilt.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,8 +25,8 @@ android {
         applicationId "com.habuilt.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode getBuildVersionCode()
+        versionName getBuildVersionName()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -17,8 +34,27 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        releaseKey {
+            def keystoreFile = file('habuilt-release.keystore')
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword 'habuilt123'
+                keyAlias 'habuilt'
+                keyPassword 'habuilt123'
+            }
+        }
+    }
     buildTypes {
+        debug {
+            if (file('habuilt-release.keystore').exists()) {
+                signingConfig signingConfigs.releaseKey
+            }
+        }
         release {
+            if (file('habuilt-release.keystore').exists()) {
+                signingConfig signingConfigs.releaseKey
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
