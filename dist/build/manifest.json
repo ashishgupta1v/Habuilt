@@ -1,44 +1,15 @@
 {
-  "_vendor-CS6A9dCr.js": {
-    "file": "assets/vendor-CS6A9dCr.js",
-    "name": "vendor",
-    "isDynamicEntry": true
+  "_app-!~{006}~.js": {
+    "file": "assets/app-Ddx4xS_B.css",
+    "src": "_app-!~{006}~.js"
   },
-  "_vendor-icons-BTnlb2OF.js": {
-    "file": "assets/vendor-icons-BTnlb2OF.js",
-    "name": "vendor-icons",
-    "imports": [
-      "_vendor-vue-CX7Fkw2I.js"
-    ]
-  },
-  "_vendor-vue-CX7Fkw2I.js": {
-    "file": "assets/vendor-vue-CX7Fkw2I.js",
-    "name": "vendor-vue",
-    "imports": [
-      "_vendor-CS6A9dCr.js"
-    ]
-  },
-  "index.html": {
-    "file": "assets/preview-Cr1eqy3n.js",
-    "name": "preview",
-    "src": "index.html",
-    "isEntry": true,
-    "imports": [
-      "resources/js/app.js",
-      "_vendor-CS6A9dCr.js",
-      "_vendor-vue-CX7Fkw2I.js",
-      "_vendor-icons-BTnlb2OF.js"
-    ]
-  },
-  "resources/js/app.js": {
-    "file": "assets/app-C-Y0hVTQ.js",
+  "_app-Cp1sfISg.js": {
+    "file": "assets/app-Cp1sfISg.js",
     "name": "app",
-    "src": "resources/js/app.js",
-    "isEntry": true,
     "imports": [
       "_vendor-CS6A9dCr.js",
-      "_vendor-vue-CX7Fkw2I.js",
-      "_vendor-icons-BTnlb2OF.js"
+      "_vendor-vue-CzVxt29B.js",
+      "_vendor-icons-D4cHTic4.js"
     ],
     "dynamicImports": [
       "_vendor-CS6A9dCr.js",
@@ -48,6 +19,49 @@
     ],
     "css": [
       "assets/app-Ddx4xS_B.css"
+    ]
+  },
+  "_vendor-CS6A9dCr.js": {
+    "file": "assets/vendor-CS6A9dCr.js",
+    "name": "vendor",
+    "isDynamicEntry": true
+  },
+  "_vendor-icons-D4cHTic4.js": {
+    "file": "assets/vendor-icons-D4cHTic4.js",
+    "name": "vendor-icons",
+    "imports": [
+      "_vendor-vue-CzVxt29B.js"
+    ]
+  },
+  "_vendor-vue-CzVxt29B.js": {
+    "file": "assets/vendor-vue-CzVxt29B.js",
+    "name": "vendor-vue",
+    "imports": [
+      "_vendor-CS6A9dCr.js"
+    ]
+  },
+  "index.html": {
+    "file": "assets/preview-BTIoVnyP.js",
+    "name": "preview",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_app-Cp1sfISg.js",
+      "_vendor-vue-CzVxt29B.js",
+      "_vendor-CS6A9dCr.js",
+      "_vendor-icons-D4cHTic4.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-B2Fq4dBG.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_app-Cp1sfISg.js",
+      "_vendor-vue-CzVxt29B.js",
+      "_vendor-CS6A9dCr.js",
+      "_vendor-icons-D4cHTic4.js"
     ]
   }
 }
