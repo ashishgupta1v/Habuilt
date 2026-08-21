@@ -15,6 +15,7 @@ import {
   Award,
   Info,
   X,
+  Smartphone,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -41,6 +42,7 @@ const emit = defineEmits([
   'next-month',
   'toggle-theme',
   'set-tab',
+  'open-apk-modal',
 ]);
 
 const showLevelInfo = ref(false);
@@ -112,6 +114,17 @@ const showLevelInfo = ref(false);
     </nav>
 
     <div class="hero-command-bar__right">
+      <!-- Android App Install / Download Modal Button -->
+      <button
+        type="button"
+        class="hero-apk-btn"
+        @click="emit('open-apk-modal')"
+        title="Download Native Android APK (with Due Now Home Screen Widget)"
+      >
+        <Smartphone class="icon-xs" />
+        <span>Get Android App</span>
+      </button>
+
       <!-- Travel Mode Button (Aligned Icon + Text) -->
       <button
         v-if="isAshish"

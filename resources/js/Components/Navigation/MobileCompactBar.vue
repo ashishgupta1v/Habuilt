@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Bell,
   BellOff,
+  Smartphone,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -33,6 +34,7 @@ const props = defineProps({
   isSyncing: { type: Boolean, default: false },
   notificationsSupported: { type: Boolean, default: false },
   dueNowNotificationsEnabled: { type: Boolean, default: false },
+  isNative: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -42,6 +44,7 @@ const emit = defineEmits([
   'share-scorecard',
   'reload-app',
   'toggle-notifications',
+  'open-apk-modal',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -114,6 +117,19 @@ const autoProtocolBadge = computed(() => {
           aria-label="Share Daily Scorecard"
         >
           <Share2 class="icon-xs" />
+        </button>
+
+        <!-- Android App Install Modal Button (visible on Web Browser) -->
+        <button
+          v-if="!isNative"
+          id="mcb-btn-apk"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--apk"
+          @click="emit('open-apk-modal')"
+          title="Download Native Android APK & Widget"
+          aria-label="Download Android App"
+        >
+          <Smartphone class="icon-xs" />
         </button>
 
         <!-- Dark / Light Mode Switcher -->
