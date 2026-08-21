@@ -3,8 +3,20 @@ import { ref, onMounted } from 'vue';
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { Mail, Lock, ArrowRight, ShieldCheck, Target, KeyRound, ArrowLeft } from 'lucide-vue-next';
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
+  Target,
+  KeyRound,
+  ArrowLeft,
+  Smartphone,
+  Download,
+  QrCode,
+} from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
+import AndroidInstallModal from '@/Components/Modals/AndroidInstallModal.vue';
 
 const emit = defineEmits(['guest-login']);
 
@@ -15,6 +27,7 @@ const mode = ref('login'); // 'login' | 'signup' | 'forgot' | 'reset'
 const loading = ref(false);
 const error = ref('');
 const successMessage = ref('');
+const isApkModalOpen = ref(false);
 
 // Check if user reached here via a password reset recovery link
 onMounted(() => {
@@ -155,6 +168,38 @@ const handleGuestAccess = () => {
           <div class="feature-chip">
             <ShieldCheck class="feature-chip__icon feature-chip__icon--emerald" />
             <span class="feature-chip__text">Secure, persistent progression</span>
+          </div>
+        </div>
+
+        <!-- Android App Promotional Card -->
+        <div class="auth-android-card">
+          <div class="auth-android-card__header">
+            <div class="auth-android-card__icon">
+              <Smartphone class="icon-sm" />
+            </div>
+            <div class="auth-android-card__info">
+              <span class="auth-android-card__title">Habuilt for Android</span>
+              <span class="auth-android-card__desc">Includes Live Due Now Home Screen Widget</span>
+            </div>
+          </div>
+          <div class="auth-android-card__actions">
+            <a
+              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/app-debug.apk"
+              class="btn-auth-apk-download"
+              title="Download Latest Android APK (app-debug.apk)"
+            >
+              <Download class="icon-xs" />
+              <span>Download APK</span>
+            </a>
+            <button
+              type="button"
+              @click="isApkModalOpen = true"
+              class="btn-auth-apk-qr"
+              title="Scan QR Code with Phone Camera"
+            >
+              <QrCode class="icon-xs" />
+              <span>Scan QR / Guide</span>
+            </button>
           </div>
         </div>
       </div>
@@ -360,8 +405,41 @@ const handleGuestAccess = () => {
           </button>
         </div>
 
+        <!-- Landing Page Android APK Access -->
+        <div class="auth-landing-apk-bar">
+          <div class="auth-landing-apk-bar__text">
+            <Smartphone class="icon-xs icon-emerald" />
+            <span>Habuilt Android App & Home Widget</span>
+          </div>
+          <div class="auth-landing-apk-bar__buttons">
+            <a
+              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/app-debug.apk"
+              class="auth-landing-apk-link"
+              title="Direct APK Download"
+            >
+              <Download class="icon-xs" />
+              <span>Download APK</span>
+            </a>
+            <button
+              type="button"
+              @click="isApkModalOpen = true"
+              class="auth-landing-apk-btn-qr"
+              title="Scan Phone QR Code"
+            >
+              <QrCode class="icon-xs" />
+              <span>QR Code</span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
+
+    <!-- Native Android App & Widget Download Modal -->
+    <AndroidInstallModal
+      :is-open="isApkModalOpen"
+      @close="isApkModalOpen = false"
+    />
   </div>
 </template>
 

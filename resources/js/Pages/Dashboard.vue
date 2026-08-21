@@ -19,7 +19,6 @@ import SundayReview from '@/Components/Review/SundayReview.vue';
 import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
-import AndroidInstallModal from '@/Components/Modals/AndroidInstallModal.vue';
 
 // Composables & Data
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
@@ -430,7 +429,6 @@ onMounted(() => {
 });
 
 const weeklyReviewExpanded = ref(false);
-const isApkModalOpen = ref(false);
 const isNative = computed(() => typeof window !== 'undefined' && Capacitor.isNativePlatform());
 const toastMessage = ref('');
 let toastTimeoutId = null;
@@ -1585,14 +1583,12 @@ onBeforeUnmount(() => {
       :is-syncing="isSyncingCloud"
       :notifications-supported="notificationsSupported"
       :due-now-notifications-enabled="dueNowNotificationsEnabled"
-      :is-native="isNative"
       @toggle-up-next="toggleHabitForDay"
       @toggle-theme="toggleTheme"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
       @toggle-notifications="handleToggleDueNowNotifications"
-      @open-apk-modal="isApkModalOpen = true"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
@@ -1623,7 +1619,6 @@ onBeforeUnmount(() => {
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
           @toggle-theme="toggleTheme"
-          @open-apk-modal="isApkModalOpen = true"
         />
 
         <!-- Greeting & Automatic Protocol Status -->
@@ -1953,13 +1948,6 @@ onBeforeUnmount(() => {
         :completed-habits-list="todayCompletedHabitsList"
         :date-label="mobileDayIsToday ? '' : mobileDayLabel"
         @close="isShareModalOpen = false"
-        @toast="msg => showToast(msg)"
-      />
-
-      <!-- Native Android App & Widget Download Modal -->
-      <AndroidInstallModal
-        :is-open="isApkModalOpen"
-        @close="isApkModalOpen = false"
         @toast="msg => showToast(msg)"
       />
 

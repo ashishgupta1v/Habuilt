@@ -4834,6 +4834,186 @@ body.theme-dark .auth-toggle__btn {
   color: #34d399;
 }
 
+/* ── Auth Landing Page Android APK Elements ── */
+.auth-android-card {
+  margin-top: 28px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.auth-android-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-android-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #34d399;
+}
+
+.auth-android-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-android-card__title {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.auth-android-card__desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.auth-android-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-auth-apk-download {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s ease;
+}
+
+.btn-auth-apk-download:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+.btn-auth-apk-qr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-auth-apk-qr:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+/* Right Form Android APK Bar */
+.auth-landing-apk-bar {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--card-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.auth-landing-apk-bar__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.auth-landing-apk-bar__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.auth-landing-apk-link {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.auth-landing-apk-link:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+body.theme-dark .auth-landing-apk-link {
+  color: #34d399;
+}
+
+body.theme-dark .auth-landing-apk-link:hover {
+  color: #6ee7b7;
+}
+
+.auth-landing-apk-btn-qr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--muted-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-landing-apk-btn-qr:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
 /* ══════════════════════════════════════════════════════════════════
    PROGRESSIVE SYSTEM — Tier Badges, Day-Type Selector, Phase Tracker
    ══════════════════════════════════════════════════════════════════ */
