@@ -99,11 +99,15 @@ self.addEventListener('fetch', (event) => {
 
 let activeExpiryTimer = null;
 
-const dismissDueNowNotifications = async () => {
+const dismissDueNowNotifications = async (targetHabitId = null) => {
   try {
-    const notifications = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
+    const notifications = await self.registration.getNotifications();
     for (const notif of notifications) {
-      notif.close();
+      if (notif.tag && (notif.tag === 'habuilt-due-now' || notif.tag.startsWith('habuilt-habit-'))) {
+        if (!targetHabitId || notif.data?.habitId === targetHabitId) {
+          notif.close();
+        }
+      }
     }
   } catch (err) {
     console.warn('Error dismissing due-now notifications:', err);
@@ -113,11 +117,13 @@ const dismissDueNowNotifications = async () => {
 // Check for expired due-now notifications and auto-remove them
 const checkAndPurgeExpiredNotifications = async () => {
   try {
-    const notifications = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
+    const notifications = await self.registration.getNotifications();
     const now = Date.now();
     for (const notif of notifications) {
-      if (notif.data?.expiryTimestamp && now >= notif.data.expiryTimestamp) {
-        notif.close();
+      if (notif.tag && (notif.tag === 'habuilt-due-now' || notif.tag.startsWith('habuilt-habit-'))) {
+        if (notif.data?.expiryTimestamp && now >= notif.data.expiryTimestamp) {
+          notif.close();
+        }
       }
     }
   } catch { /* ignore */ }
@@ -139,12 +145,13 @@ self.addEventListener('message', (event) => {
 
     if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
 
+    const habitTag = `habuilt-habit-${p.habitId}-${p.day || ''}`;
     const title = `⚡ Due Now: ${p.habitName}`;
     const options = {
-      body: `⏰ ${p.timeLabel || 'Current Routine'} • +${p.points} pts\nTap [Mark Done] to complete without opening app.`,
+      body: p.customBody || `⏰ ${p.timeLabel || 'Current Routine'} • +${p.points} pts\nTap [Mark Done] to complete without opening app.`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/badge-monochrome-96.png',
-      tag: 'habuilt-due-now',
+      tag: habitTag,
       renotify: false, // Prevents buzzing/chiming repeatedly for the same task
       requireInteraction: true,
       data: {
@@ -164,8 +171,8 @@ self.addEventListener('message', (event) => {
     // Check if notification for this habit is already shown; if so, do not re-show
     event.waitUntil(
       (async () => {
-        const existing = await self.registration.getNotifications({ tag: 'habuilt-due-now' });
-        if (existing.length > 0 && existing[0].data?.habitId === p.habitId) {
+        const existing = await self.registration.getNotifications({ tag: habitTag });
+        if (existing.length > 0) {
           return;
         }
         await self.registration.showNotification(title, options);
@@ -184,7 +191,7 @@ self.addEventListener('message', (event) => {
   // Dismiss notification when habit is completed or timing is over
   if (data.type === 'DISMISS_DUE_NOW_NOTIFICATION') {
     if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
-    dismissDueNowNotifications();
+    dismissDueNowNotifications(data.payload?.habitId);
   }
 
   if (data.type === 'CHECK_EXPIRED_NOTIFICATIONS') {

@@ -163,6 +163,51 @@ export function useDueNowNotifications({
     }
   };
 
+  // ── Persistent Notification Registry ──
+  // Guarantees that each activity notification appears AT MOST ONCE per day.
+  const getTodayKey = (day) => {
+    const d = day || currentDay?.value || new Date().getDate();
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+
+  const getNotifiedRegistry = (day) => {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const key = `habuilt.notified_habits.${getTodayKey(day)}`;
+      return JSON.parse(localStorage.getItem(key) || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const isHabitNotifiedToday = (habitId, day) => {
+    if (!habitId) return false;
+    const reg = getNotifiedRegistry(day);
+    return Boolean(reg[habitId]);
+  };
+
+  const markHabitNotifiedToday = (habitId, day) => {
+    if (typeof localStorage === 'undefined' || !habitId) return;
+    try {
+      const dateKey = getTodayKey(day);
+      const storageKey = `habuilt.notified_habits.${dateKey}`;
+      const reg = getNotifiedRegistry(day);
+      reg[habitId] = Date.now();
+      localStorage.setItem(storageKey, JSON.stringify(reg));
+
+      // Clean up older date keys (keep only last 3 days)
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('habuilt.notified_habits.') && k !== storageKey) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch (e) {
+      console.warn('Error recording notification registry:', e);
+    }
+  };
+
   // Helper: hash habit ID to a stable integer for notification ID
   const hashHabitId = (str) => {
     let hash = 0;
@@ -173,14 +218,22 @@ export function useDueNowNotifications({
     return Math.abs(hash % 900000) + 1000;
   };
 
-  // Schedule upcoming habit alerts for the entire day
-  const scheduleDailyHabitAlerts = async () => {
+  // Schedule upcoming habit alerts for the entire day (Runs once per day/schedule load)
+  const scheduleDailyHabitAlerts = async (force = false) => {
     if (!isNative || !notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) return;
 
+    const day = Number(currentDay?.value || new Date().getDate());
+    const dateKey = getTodayKey(day);
+    const lastSchedKey = 'habuilt.last_scheduled_date';
+
+    // If already scheduled for today and not forced, skip to avoid spamming OS alarm manager
+    if (!force && typeof localStorage !== 'undefined' && localStorage.getItem(lastSchedKey) === dateKey) {
+      return;
+    }
+
     try {
       const now = new Date();
-      const day = Number(currentDay?.value || now.getDate());
       const habitList = habits?.value || [];
       const notifsToSchedule = [];
 
@@ -188,16 +241,18 @@ export function useDueNowNotifications({
         // Skip if already done today
         if (hasCompletedDay && hasCompletedDay(h, day)) continue;
 
+        // Skip if already notified today
+        if (isHabitNotifiedToday(h.id, day)) continue;
+
         const sched = habitTimeSchedule?.[h.id];
         if (!sched || !sched.start) continue;
 
         const [sh, sm] = sched.start.split(':').map(Number);
         const [eh, em] = (sched.end || '23:59').split(':').map(Number);
         const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0);
-        const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em, 0);
 
-        // If start time is in the future today
-        if (startTime.getTime() > now.getTime()) {
+        // If start time is in the future today (at least 15 seconds from now)
+        if (startTime.getTime() > now.getTime() + 15000) {
           const copy = getNotificationCopy(h, sched, `${sched.start} – ${sched.end}`);
           notifsToSchedule.push({
             id: hashHabitId(h.id),
@@ -218,7 +273,6 @@ export function useDueNowNotifications({
       }
 
       if (notifsToSchedule.length > 0) {
-        // Cancel existing and schedule fresh upcoming list
         const idsToCancel = notifsToSchedule.map(n => ({ id: n.id }));
         try {
           await LocalNotifications.cancel({ notifications: idsToCancel });
@@ -228,12 +282,16 @@ export function useDueNowNotifications({
           notifications: notifsToSchedule,
         });
       }
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(lastSchedKey, dateKey);
+      }
     } catch (e) {
       console.warn('Error scheduling daily habit alerts:', e);
     }
   };
 
-  // Sync Immediate Due Now Notification
+  // Sync Immediate Due Now Notification (when user has app open or task transitions to due)
   const syncDueNowNotification = async () => {
     if (!isSupported || !notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) {
@@ -241,7 +299,7 @@ export function useDueNowNotifications({
       return;
     }
 
-    // Also update daily upcoming schedule
+    // Attempt daily schedule once per day
     scheduleDailyHabitAlerts();
 
     const info = upNextHabitInfo?.value;
@@ -253,28 +311,29 @@ export function useDueNowNotifications({
     const habit = info.habit;
     const day = Number(currentDay?.value || new Date().getDate());
 
-    // If already completed today, dismiss immediately
+    // If already completed today, dismiss immediately and do not notify
     if (hasCompletedDay && hasCompletedDay(habit, day)) {
-      dismissDueNowNotification();
+      dismissDueNowNotification(habit.id);
       return;
     }
 
-    const currentSessionKey = `${habit.id}:${day}:${info.status}`;
-    if (activeNotifiedHabitSessionKey.value === currentSessionKey) {
+    // STRICT CHECK: If this habit has ALREADY been notified today, DO NOT send again!
+    if (isHabitNotifiedToday(habit.id, day)) {
       return;
     }
 
+    const notifId = hashHabitId(habit.id);
     const sched = habitTimeSchedule?.[habit.id];
     const copy = getNotificationCopy(habit, sched, info.timeLabel);
 
     // 1. Native Android Local Notification
     if (isNative) {
       try {
-        await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+        await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
         await LocalNotifications.schedule({
           notifications: [
             {
-              id: 1001,
+              id: notifId,
               title: copy.title,
               body: copy.body,
               channelId: 'habuilt_reminders',
@@ -290,7 +349,7 @@ export function useDueNowNotifications({
             },
           ],
         });
-        activeNotifiedHabitSessionKey.value = currentSessionKey;
+        markHabitNotifiedToday(habit.id, day);
       } catch (e) {
         console.warn('Native local notification dispatch warning:', e);
       }
@@ -308,23 +367,26 @@ export function useDueNowNotifications({
           customBody: copy.body,
         },
       });
-      activeNotifiedHabitSessionKey.value = currentSessionKey;
+      markHabitNotifiedToday(habit.id, day);
     }
   };
 
   // Dismiss Notification
-  const dismissDueNowNotification = async () => {
+  const dismissDueNowNotification = async (habitId = null) => {
     if (isNative) {
       try {
-        await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+        const targetId = habitId ? hashHabitId(habitId) : null;
+        if (targetId) {
+          await LocalNotifications.cancel({ notifications: [{ id: targetId }] });
+        }
       } catch { /* cancel fallback */ }
     }
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'DISMISS_DUE_NOW_NOTIFICATION',
+        payload: { habitId },
       });
     }
-    activeNotifiedHabitSessionKey.value = null;
   };
 
   // Drain queued background completions
@@ -368,8 +430,9 @@ export function useDueNowNotifications({
           const habitId = action.notification.extra?.habitId;
           const day = action.notification.extra?.day || new Date().getDate();
           if (action.actionId === 'MARK_DONE' && habitId && onCompleteHabit) {
+            markHabitNotifiedToday(habitId, Number(day));
             onCompleteHabit(habitId, Number(day));
-            dismissDueNowNotification();
+            dismissDueNowNotification(habitId);
           }
         });
       } catch (e) {
@@ -385,7 +448,9 @@ export function useDueNowNotifications({
           if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
             const { habitId, day } = event.data;
             if (habitId && day && onCompleteHabit) {
+              markHabitNotifiedToday(habitId, Number(day));
               onCompleteHabit(habitId, Number(day));
+              dismissDueNowNotification(habitId);
             }
           }
         };
@@ -397,7 +462,9 @@ export function useDueNowNotifications({
         if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
           const { habitId, day } = event.data;
           if (habitId && day && onCompleteHabit) {
+            markHabitNotifiedToday(habitId, Number(day));
             onCompleteHabit(habitId, Number(day));
+            dismissDueNowNotification(habitId);
           }
         }
       });
