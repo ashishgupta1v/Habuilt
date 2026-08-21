@@ -546,6 +546,18 @@ const timelineGroupedHabits = computed(() => {
     if (groupMap[slot]) groupMap[slot].push(h);
     else groupMap.anytime.push(h);
   });
+
+  // Strict chronological sorting inside timed routine slots
+  groups.forEach(g => {
+    if (g.slot === 'morning' || g.slot === 'work' || g.slot === 'evening') {
+      g.habits.sort((a, b) => {
+        const timeA = habitTimeSchedule[a.id]?.start || '99:99';
+        const timeB = habitTimeSchedule[b.id]?.start || '99:99';
+        return timeA.localeCompare(timeB);
+      });
+    }
+  });
+
   return groups.filter(g => g.habits.length > 0);
 });
 
@@ -1178,7 +1190,7 @@ const saveState = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-08-21-v4';
+const PRESET_VERSION = '2026-08-21-v5';
 
 const loadLocalState = () => {
   try {
