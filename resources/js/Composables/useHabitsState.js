@@ -17,7 +17,7 @@ export const ashishHabits = [
   { id: 'a-7',  name: '06:40 5-Min Post-Workout Stretch & Foam Roll',    points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Cool down stretches: calves, quads, hamstrings, back, shoulders. Reduces soreness and prevents injury.' },
   { id: 'a-8',  name: '06:45 Whey Protein + Muesli, Milk & Banana',      points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Post-workout refuel: 1 scoop whey isolate blended or shaken, plus a bowl of muesli with milk and a banana. Protein + carbs within 30 min of finishing your workout.' },
   { id: 'a-9',  name: '06:55 Cold Shower & Morning Grooming',            points: 1, hint: 'End shower with 60–90 seconds cold water. Combines alertness, dopamine boost, and disciplined grooming protocol.' },
-  { id: 'a-10', name: '07:05 Take Shaarvi (07:05–08:30 Baby Duty)',      points: 2, hint: '100% focused daddy-daughter time. Diaper change, feed, tummy time, baby songs. Give Jyoti her protected 08:05–09:05 career hour. Hands off cleanly at 08:30 for deep work.' },
+  { id: 'a-10', name: '07:05 Take Shaarvi (07:05–08:30 Baby Duty)',      points: 2, hint: '100% focused daddy-daughter time. Diaper change, feed, tummy time, baby songs. Gives Jyoti her protected 08:05–09:05 career hour (Ashish solo 08:05–08:30). Hands off cleanly at 08:30 for deep work.' },
 
   // ── WORK HOURS 08:30–18:30 (8 micro-steps) ──
   { id: 'a-11', name: '08:30 Daily 3-Tier Priority Definition (5 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Write down: 1 Must-Do (T1), 2 Should-Do (T2), 2 Nice-to-Do (T3). Never open email or Slack before writing these down.' },
@@ -76,13 +76,13 @@ export const jyotiHabits = [
   // ── MORNING & MIDDAY 05:00–14:45 (9 micro-steps) ──
   { id: 'j-1',  name: 'Protected Sleep Window — 05:00 to 08:00',         points: 2, hint: 'Uninterrupted morning sleep while Ashish handles morning routines and Shaarvi. Rest is the foundation of energy and healing.' },
   { id: 'j-2',  name: '08:00 Wake-Up & 500ml Water (5 min)',             points: 1, hint: 'Drink 500ml warm water upon waking at 08:00 to rehydrate and support digestion and milk production.' },
-  { id: 'j-4',  name: '08:05 Career & Focus Session (1h)',               points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Ashish has Shaarvi from 07:15–08:30 (active care, then content playtime). Use this protected 1-hour session for your career, skill building, and professional projects.' },
-  { id: 'j-9',  name: '09:05 Shaarvi Bath — Abhyanga, Exercises, Play & Bath (60m)', points: 3, hint: 'Complete hands-on routine with Shaarvi: warm oil abhyanga massage, developmental exercises, vocal interaction & communication, gentle playing, and a soothing warm bath.' },
-  { id: 'j-10', name: '10:05 Breakfast & Multivitamins (30 min)',        points: 1, hint: 'Nourishing breakfast along with your daily multivitamins (B12, DHA, D3, iron). Fuel and support postpartum vitality right after Shaarvi is dressed.' },
-  { id: 'j-36', name: '10:35 Wash Shaarvi\'s Clothes (25 min)',          points: 1, hint: 'Wash and hang Shaarvi\'s clothes and essentials. Completes all active morning baby chores by 11:00 AM sharp.' },
-  { id: 'j-11', name: '11:00 Settle Shaarvi for Midday Nap (30 min)',    points: 2, hint: 'Settle Shaarvi into her crib/bed with gentle rocking, white noise, and cozy sleep environment for her midday rest.' },
-  { id: 'j-12', name: '11:30 Own Bath & Room Cleanup (1h30m)',           points: 2, hint: 'While Shaarvi naps: take your own relaxed warm bath, personal grooming, and tidy up the room. Completed calmly by 13:00.' },
-  { id: 'j-6',  name: '13:00 Lunch — Nourishing Meal (45 min)',          points: 1, hint: 'Nutrient-rich lunch with protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils). Right after your bath/cleanup block.' },
+  { id: 'j-4',  name: '08:05 Career & Focus Session (1h)',               points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Ashish has Shaarvi solo 08:05–08:30 (she is typically settled/napping the rest of that hour). Use this protected 1-hour session for your career, skill building, and professional projects.' },
+  { id: 'j-9',  name: '09:05 Shaarvi Bath — Abhyanga, Exercises & Play (40 min)', points: 3, hint: 'Hands-on routine with Shaarvi: warm oil abhyanga massage, developmental exercises, vocal interaction & communication, gentle playing, and a soothing warm bath.' },
+  { id: 'j-10', name: '09:45 Breakfast & Multivitamins (30 min)',        points: 1, hint: 'Nourishing breakfast along with your daily multivitamins (B12, DHA, D3, iron). Fuel and support postpartum vitality right after Shaarvi is dressed.' },
+  { id: 'j-36', name: '10:15 Wash Shaarvi\'s Clothes (45 min)',          points: 1, hint: 'Wash and hang Shaarvi\'s clothes and essentials. Completes all active morning baby chores by 11:00 AM sharp.' },
+  { id: 'j-11', name: '11:00 Settle Shaarvi for Nap (15 min)',           points: 2, hint: 'Settle Shaarvi into her crib/bed with gentle rocking, white noise, and cozy sleep environment for her midday rest.' },
+  { id: 'j-12', name: '11:15 Own Bath & Room Cleanup (1h45m)',           points: 2, hint: 'While Shaarvi naps: take your own relaxed warm bath, personal grooming, and tidy up the room till 13:00.' },
+  { id: 'j-6',  name: '13:00 Lunch (45 min)',                            points: 1, hint: 'Nutrient-rich lunch with protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils). Right after your bath/cleanup block.' },
   { id: 'j-14', name: '13:45 Creative Project / Personal Development (1h)', points: 1, hint: 'Spend this hour on self-directed creative projects, learning, journaling, or relaxing hobbies while the afternoon is quiet.' },
 
   // ── AFTERNOON & EVENING 16:00–21:30 (8 micro-steps) ──
