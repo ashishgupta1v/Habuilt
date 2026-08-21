@@ -25,17 +25,17 @@ export const ashishHabits = [
   { id: 'a-13', name: '10:15 10-Min Walk + 300ml Hydration Break',       points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Step away from screen. Walk around, stretch eyes by looking 20ft away, drink 300ml water.' },
   { id: 'a-14', name: '11:00 Block 2 — High-Leverage Deliverables (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Second deep work block: product features, PR reviews, critical client deliverables. Starts after your 10:30 breakfast break, not before — protects the meal from getting skipped.' },
   { id: 'a-15', name: '12:30 15-Min Pipeline & Outreach Action',         points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Send 3 high-value outbound messages or follow up with active enterprise leads. Keep the sales pipeline warm daily.' },
-  { id: 'a-16', name: '14:00 Block 3 — Technical Execution / PRs (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Afternoon build block: code implementations, bug fixes, automated test writing, code review merging.' },
-  { id: 'a-17', name: '15:30 10-Min Walk + Green Tea / Black Coffee',    points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Afternoon break: 10 min stroll outside or around home. Enjoy green tea or black coffee. No sugary snacks.' },
-  { id: 'a-18', name: '16:00 Block 4 — Pipeline / Ops / Client Work (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Operations, client communications, system monitoring, and documentation. Tie up all loose work threads.' },
-  { id: 'a-53', name: '17:30 Client Calls & Team Sync (45m)',              points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Live calls, standups, and check-ins — video/phone conversations that don\'t fit inside a heads-down deep work block. Closes the gap between Block 4 and shutdown, ending 18:15 with a clean 15-min buffer before hard stop.' },
+  { id: 'a-16', name: '12:45 Block 3 — Technical Execution / PRs (75m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Afternoon build block: code implementations, bug fixes, automated test writing, code review merging. Runs 12:45–14:00 right before lunch.' },
+  { id: 'a-17', name: '15:00 10-Min Walk + Green Tea / Black Coffee',    points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'After-lunch stroll: 10 min stroll outside or around home. Enjoy green tea or black coffee. No sugary snacks.' },
+  { id: 'a-18', name: '15:15 Block 4 — Pipeline / Ops / Client Work (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Operations, client communications, system monitoring, and documentation. Tie up all loose work threads.' },
+  { id: 'a-53', name: '17:00 Client Calls & Team Sync (60m)',              points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Live calls, standups, and check-ins — video/phone conversations that don\'t fit inside a heads-down deep work block. Ends at 18:00 with a clean 30-min buffer before shutdown.' },
 
   // ── EVENING & SHUTDOWN 18:30–22:00 (10 micro-steps) ──
   { id: 'a-19', name: '18:30 Work Day Shutdown Ritual (5 min)',          points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Close all work browser tabs. Review completed tasks. Log tomorrow top 3 items in notebook. Officially disconnect.' },
-  { id: 'a-20', name: '18:35 Walk Shaarvi in Stroller (30 min)',        points: 2, hint: 'Outdoor stroller walk with Shaarvi. Point out trees, birds, vehicles. Fresh evening air for both of you.' },
+  { id: 'a-20', name: '18:35 Joint Family Stroller Walk with Jyoti (30 min)', points: 2, hint: 'Outdoor stroller walk together with Jyoti & Shaarvi. Fresh evening air and quality family time.' },
   { id: 'a-43', name: '19:05 Shaarvi Floor Play & Language Time (20m)',  points: 2, hint: 'Interactive floor play: read baby board books, practice sounds and clapping, stacking toys. Zero phones around.' },
-  { id: 'a-21', name: '19:25 Dinner Preparation / Kitchen Support',     points: 1, hint: 'Help Jyoti with dinner setup, table setting, or kitchen prep. Teamwork makes evenings smooth and connected.' },
-  { id: 'a-22', name: '20:15 Post-Dinner Family Walk (15 min)',         points: 1, hint: 'Relaxed post-dinner walk with Jyoti & Shaarvi. Aids digestion, lowers blood sugar spike, encourages conversation.' },
+  { id: 'a-21', name: '19:25 Dinner Preparation & Shared Family Dinner', points: 1, hint: 'Help Jyoti with dinner setup, cooking support, and enjoy a nourishing meal together. Teamwork makes evenings smooth.' },
+  { id: 'a-22', name: '20:15 Post-Dinner Stroll with Jyoti (15 min)',    points: 1, hint: 'Relaxed post-dinner walk with Jyoti & Shaarvi. Aids digestion, lowers blood sugar spike, encourages peaceful conversation.' },
   { id: 'a-23', name: '20:45 Kitchen Reset & Counter Clean (15 min)',   points: 1, hint: 'Wash dishes, wipe counters, start dishwasher/dryer, prepare coffee/water station for morning. Zero dirty dishes.' },
   { id: 'a-24', name: '21:00 Day Journaling & 3 Wins Log (5 min)',       points: 1, hint: 'Write 3 specific wins from today, 1 lesson learned, and 1 moment of gratitude. Solidifies progress mindset.' },
   { id: 'a-25', name: '21:05 Tomorrow Preparation (Clothes, Workspace)', points: 1, hint: 'Lay out workout clothes, fill water bottle, clear desk. Tomorrow is won tonight through frictionless morning setup.' },
@@ -44,10 +44,10 @@ export const ashishHabits = [
 
   // ── HEALTH, NUTRITION & MINDSET — ALL DAY (11 habits) ──
   { id: 'a-28', name: '10:30 Breakfast — High Protein & Iron Rich',      points: 1, hint: 'Nutritious breakfast with 25g+ protein (e.g. eggs, paneer, sprouts, moong dal) plus iron sources like spinach or seeds. Sits between Block 1 and Block 2 — a real sit-down meal, not a rushed bite.' },
-  { id: 'a-29', name: '13:00 Lunch — Balanced Protein & Vegetables',     points: 1, hint: 'Wholesome lunch: dal, green sabzi, roti/rice, and salad. Eat mindfully away from your computer desk, in the gap between Block 2 and Block 3.' },
+  { id: 'a-29', name: '14:00 Lunch with Jyoti — Balanced Protein & Veg (45m)', points: 1, hint: 'Wholesome shared lunch with Jyoti at 2:00 PM: dal, green sabzi, roti/rice, and salad. Eat mindfully together away from work screens.' },
   { id: 'a-30', name: 'Dinner — Light Protein & Vegetables',              points: 1, hint: 'Light, easily digestible dinner with protein and fiber. Finish eating at least 2 hours before bedtime.' },
   { id: 'a-31', name: '10:30 Morning Supplement — B12 (with Breakfast)', points: 1, hint: 'Take right alongside breakfast (a-28) at 10:30. B12 supports energy metabolism and nerve health — take it consistently every morning with food.' },
-  { id: 'a-51', name: '13:00 Midday Supplement — D3 + Omega-3 (with Lunch)', points: 1, hint: 'Take both right after your 13:00 lunch (a-29) — usually your meal with the most fat (dal + ghee/oil). D3 and Omega-3 are fat-soluble, so they absorb far better with a fatty meal. Taking them at lunch, not dinner, also avoids fishy burps disrupting sleep.' },
+  { id: 'a-51', name: '14:00 Midday Supplement — D3 + Omega-3 (with Lunch)', points: 1, hint: 'Take both right after your 14:00 lunch (a-29) — usually your meal with the most fat (dal + ghee/oil). D3 and Omega-3 are fat-soluble, so they absorb far better with a fatty meal.' },
   { id: 'a-52', name: 'Night Supplement — Magnesium (Before Bed)',       points: 1, hint: 'Take 30–60 min before lights-out (~21:00–21:30), with a light snack if it upsets an empty stomach. Magnesium relaxes muscles and the nervous system — it helps you fall asleep faster and sleep deeper, which directly supports your 7h floor.' },
   { id: 'a-32', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Follow your healthy scalp regimen: gentle shampoo rinse, avoid harsh chemicals, and apply any topical treatments.' },
   { id: 'a-33', name: '5-Minute Stress & Mindset Journaling',             points: 1, hint: 'Rate your daily stress 1–10. Write down 1 challenge, 1 thing you are grateful for, and 1 positive focus for tomorrow.' },
@@ -56,7 +56,7 @@ export const ashishHabits = [
   { id: 'a-36', name: 'No Refined Sugar / Junk Food Today',              points: 1, hint: 'Zero candy, sodas, fried snacks, or bakery sweets. Fuel your body with clean, whole, nutrient-dense nutrition.' },
 
   // ── WEEKLY RECURRING (14 habits) ──
-  { id: 'a-37', name: '★ Board Meeting — Weekly Review (60 min)',        points: 3, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Comprehensive Sunday strategic review: review weekly metrics, celebrate wins, plan next week top 3 goals with Jyoti.' },
+  { id: 'a-37', name: '★ Board Meeting with Jyoti — Weekly Review (60m)', points: 3, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Comprehensive Sunday strategic review: review weekly metrics, celebrate wins, plan next week top 3 goals with Jyoti.' },
   { id: 'a-38', name: 'Meal Prep (2h Batch Cooking)',                     points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Cook 2–3 staple bases (boiled legumes, roasted veggies, grilled proteins) to save 4 hours of cooking on weekdays.' },
   { id: 'a-39', name: 'Full House Declutter & Laundry (60 min)',          points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Clean all rooms, fold all laundry, organize desks, and take out recycling. Clean environment = clear mind.' },
   { id: 'a-40', name: 'Weekly Strategy & Goal Review (30 min)',           points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Review monthly and quarterly OKRs. Are we on track with revenue, health targets, and family milestones?' },
@@ -82,16 +82,16 @@ export const jyotiHabits = [
   { id: 'j-36', name: '10:15 Wash Shaarvi\'s Clothes (45 min)',          points: 1, hint: 'Wash and hang Shaarvi\'s clothes and essentials. Completes all active morning baby chores by 11:00 AM sharp.' },
   { id: 'j-11', name: '11:00 Settle Shaarvi for Nap (15 min)',           points: 2, hint: 'Settle Shaarvi into her crib/bed with gentle rocking, white noise, and cozy sleep environment for her midday rest.' },
   { id: 'j-12', name: '11:15 Own Bath & Room Cleanup (1h45m)',           points: 2, hint: 'While Shaarvi naps: take your own relaxed warm bath, personal grooming, and tidy up the room till 13:00.' },
-  { id: 'j-6',  name: '13:00 Lunch (45 min)',                            points: 1, hint: 'Nutrient-rich lunch with protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils). Right after your bath/cleanup block.' },
-  { id: 'j-14', name: '13:45 Creative Project / Personal Development (1h)', points: 1, hint: 'Spend this hour on self-directed creative projects, learning, journaling, or relaxing hobbies while the afternoon is quiet.' },
+  { id: 'j-14', name: '13:00 Creative Project / Personal Development (1h)', points: 1, hint: 'Spend this quiet hour on self-directed creative projects, learning, journaling, or relaxing hobbies while the afternoon is quiet, leading into 14:00 lunch.' },
+  { id: 'j-6',  name: '14:00 Lunch with Ashish — Nourishing Meal (45 min)', points: 1, hint: 'Nutrient-rich lunch with Ashish at 2:00 PM: protein, healthy fats (ghee/nuts), and lactogenic foods (oats, methi, fennel, lentils). Relax and enjoy a shared mindful meal.' },
 
   // ── AFTERNOON & EVENING 16:00–21:30 (8 micro-steps) ──
   { id: 'j-15', name: '16:00 Shaarvi Afternoon Feed & Stroller Walk',    points: 1, hint: 'Afternoon feeding session followed by fresh air stroll in the stroller around the neighborhood.' },
   { id: 'j-16', name: '17:00 20-Min Postpartum Pelvic & Core Movement',  points: 2, hint: 'Gentle postpartum yoga, kegels, diaphragmatic breathing, and gentle core rehab exercises.' },
   { id: 'j-17', name: '17:30 Fresh Fruit & Hydration Snack',             points: 1, hint: 'Eat a fresh seasonal fruit (apple, papaya, berries) with handful of almonds/walnuts and 300ml water.' },
-  { id: 'j-18', name: '18:35 Joint Family Stroller Walk with Ashish',     points: 1, hint: 'Evening family walk together. Connect with Ashish and let Shaarvi enjoy the evening sights and sounds.' },
-  { id: 'j-19', name: '19:25 Dinner Preparation & Family Meal',          points: 1, hint: 'Enjoy a light, nourishing home-cooked dinner with Ashish. Unwind from the day together.' },
-  { id: 'j-20', name: '20:15 Post-Dinner Stroll with Ashish (15 min)',   points: 1, hint: 'Short 15-minute relaxed walk after dinner to aid digestion and spend peaceful time together.' },
+  { id: 'j-18', name: '18:35 Joint Family Stroller Walk with Ashish',     points: 1, hint: 'Evening family walk together with Ashish & Shaarvi. Connect and enjoy the evening sights and sounds.' },
+  { id: 'j-19', name: '19:25 Dinner Preparation & Shared Family Dinner',  points: 1, hint: 'Enjoy a light, nourishing home-cooked dinner with Ashish. Unwind and team up in the kitchen together.' },
+  { id: 'j-20', name: '20:15 Post-Dinner Stroll with Ashish (15 min)',   points: 1, hint: 'Short 15-minute relaxed walk after dinner to aid digestion and spend peaceful couple time together.' },
   { id: 'j-21', name: '20:45 Shaarvi Bedtime Routine (Lullaby, Feed)',   points: 2, hint: 'Dim the room lights, sing lullabies, swaddle/sleep sack, final night feed, and put Shaarvi to sleep.' },
   { id: 'j-22', name: '21:30 Lights Out & Sleep (Target 7h Floor)',      points: 2, hint: 'Screens away, room cool and dark. Get into bed early to maximize deep sleep cycles before morning.' },
 
@@ -298,6 +298,51 @@ export const ashishTravelTierDescriptions = {
   'at-33': ['Skip today', 'Take sometimes', 'Magnesium before bed', 'Magnesium 30min pre-sleep + track quality'],
 };
 
+export const sharedCoupleHabits = {
+  // Shared Lunch (14:00)
+  'a-29': { partnerId: 'j-6', type: 'meal', badge: '👫 Shared Lunch (2 PM)', partnerName: 'Jyoti', partnerAction: 'Shared mindful meal together at 14:00' },
+  'j-6':  { partnerId: 'a-29', type: 'meal', badge: '👫 Shared Lunch (2 PM)', partnerName: 'Ashish', partnerAction: 'Shared mindful meal together at 14:00' },
+
+  // Joint Family Stroller Walk (18:35)
+  'a-20': { partnerId: 'j-18', type: 'family', badge: '👨‍👩‍👧 Family Stroller Walk', partnerName: 'Jyoti & Shaarvi', partnerAction: 'Joint evening stroller walk outdoors' },
+  'j-18': { partnerId: 'a-20', type: 'family', badge: '👨‍👩‍👧 Family Stroller Walk', partnerName: 'Ashish & Shaarvi', partnerAction: 'Joint evening stroller walk outdoors' },
+
+  // Dinner Prep & Family Meal (19:25)
+  'a-21': { partnerId: 'j-19', type: 'meal', badge: '🍽️ Shared Dinner Prep', partnerName: 'Jyoti', partnerAction: 'Kitchen teamwork & dinner setup together' },
+  'j-19': { partnerId: 'a-21', type: 'meal', badge: '🍽️ Shared Dinner Prep', partnerName: 'Ashish', partnerAction: 'Kitchen teamwork & dinner setup together' },
+  'a-30': { partnerId: 'j-19', type: 'meal', badge: '🍽️ Shared Dinner', partnerName: 'Jyoti', partnerAction: 'Nourishing home-cooked dinner together' },
+
+  // Post-Dinner Walk (20:15)
+  'a-22': { partnerId: 'j-20', type: 'couple', badge: '🌙 Post-Dinner Walk', partnerName: 'Jyoti', partnerAction: '15-min relaxing couple walk' },
+  'j-20': { partnerId: 'a-22', type: 'couple', badge: '🌙 Post-Dinner Walk', partnerName: 'Ashish', partnerAction: '15-min relaxing couple walk' },
+
+  // Daily Appreciation / Connection
+  'a-35': { partnerId: 'j-27', type: 'couple', badge: '💖 Couple Connection', partnerName: 'Jyoti', partnerAction: 'Daily genuine verbal appreciation & check-in' },
+  'j-27': { partnerId: 'a-35', type: 'couple', badge: '💖 Couple Connection', partnerName: 'Ashish', partnerAction: 'Daily genuine verbal appreciation & check-in' },
+
+  // Sunday Board Meeting (★)
+  'a-37': { partnerId: 'j-29', type: 'strategic', badge: '★ Board Meeting', partnerName: 'Jyoti', partnerAction: 'Sunday alignment & strategic review' },
+  'j-29': { partnerId: 'a-37', type: 'strategic', badge: '★ Board Meeting', partnerName: 'Ashish', partnerAction: 'Sunday alignment & strategic review' },
+
+  // Friday Date Night (★)
+  'a-44': { partnerId: 'j-30', type: 'date', badge: '★ Couple Date Night', partnerName: 'Jyoti', partnerAction: '2-hour uninterrupted date window' },
+  'j-30': { partnerId: 'a-44', type: 'date', badge: '★ Couple Date Night', partnerName: 'Ashish', partnerAction: '2-hour uninterrupted date window' },
+
+  // Weekend Sensory Nature Outing
+  'a-50': { partnerId: 'j-34', type: 'family', badge: '🌿 Nature Outing', partnerName: 'Jyoti & Shaarvi', partnerAction: 'Weekend park & sensory exploration' },
+  'j-34': { partnerId: 'a-50', type: 'family', badge: '🌿 Nature Outing', partnerName: 'Ashish & Shaarvi', partnerAction: 'Weekend park & sensory exploration' },
+
+  // Travel Mode Counterparts
+  'at-19': { partnerId: 'j-18', type: 'family', badge: '👨‍👩‍👧 Family Stroller Walk', partnerName: 'Jyoti & Shaarvi', partnerAction: 'Evening walk after return' },
+  'at-20': { partnerId: 'j-19', type: 'meal', badge: '🍽️ Shared Dinner Prep', partnerName: 'Jyoti', partnerAction: 'Dinner teamwork after travel' },
+  'at-21': { partnerId: 'j-20', type: 'couple', badge: '🌙 Post-Dinner Walk', partnerName: 'Jyoti', partnerAction: 'Post-dinner walk together' },
+};
+
+export function getSharedHabitInfo(habitId) {
+  if (!habitId) return null;
+  return sharedCoupleHabits[habitId] || null;
+}
+
 export const timeSlotDefinitions = {
   morning: { label: 'Morning Routine',  time: '05:00–08:30', emoji: '🌅', color: '#D4A03E' },
   work:    { label: 'Deep Work & Ops',   time: '08:30–18:30', emoji: '⚡', color: '#D4B36A' },
@@ -317,20 +362,20 @@ export const timeSlotOrder = {
 export function getTimeSlotForHabit(id) {
   // Ashish core habits (micro-detail: a-1..a-58)
   if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10','a-54','a-55','a-56','a-57','a-58'].includes(id)) return 'morning';
-  if (['a-11','a-12','a-13','a-14','a-15','a-16','a-17','a-18','a-53'].includes(id)) return 'work';
+  if (['a-11','a-12','a-13','a-14','a-15','a-16','a-17','a-18','a-29','a-51','a-53'].includes(id)) return 'work';
   if (['a-19','a-20','a-21','a-22','a-23','a-24','a-25','a-26','a-27','a-43'].includes(id)) return 'evening';
-  if (['a-28','a-29','a-30','a-31','a-32','a-33','a-34','a-35','a-36','a-51','a-52'].includes(id)) return 'anytime';
+  if (['a-28','a-30','a-31','a-32','a-33','a-34','a-35','a-36','a-52'].includes(id)) return 'anytime';
   if (['a-37','a-38','a-39','a-40','a-41','a-42','a-44','a-45','a-46','a-47','a-48','a-49','a-50'].includes(id)) return 'weekly';
 
   // Ashish travel habits (micro-detail: at-1..at-33)
   if (['at-1','at-2','at-3','at-4','at-5','at-6'].includes(id)) return 'morning';
-  if (['at-7','at-8','at-9','at-10','at-11','at-12','at-13','at-14'].includes(id)) return 'work';
+  if (['at-7','at-8','at-9','at-10','at-11','at-12','at-13','at-14','at-25','at-32'].includes(id)) return 'work';
   if (['at-15','at-16','at-17','at-18','at-19','at-20','at-21','at-22','at-23'].includes(id)) return 'evening';
-  if (['at-24','at-25','at-26','at-27','at-28','at-29','at-30','at-31','at-32','at-33'].includes(id)) return 'anytime';
+  if (['at-24','at-26','at-27','at-28','at-29','at-30','at-31','at-33'].includes(id)) return 'anytime';
 
   // Jyoti habits by ID (micro-detail: j-1..j-36)
   if (['j-1','j-2','j-4','j-9','j-10','j-36'].includes(id)) return 'morning';
-  if (['j-11','j-12','j-6','j-14'].includes(id)) return 'work';
+  if (['j-11','j-12','j-14','j-6'].includes(id)) return 'work';
   if (['j-15','j-16','j-17','j-18','j-19','j-20','j-21','j-22'].includes(id)) return 'evening';
   if (['j-23','j-24','j-25','j-26','j-27','j-28'].includes(id)) return 'anytime';
   if (['j-29','j-30','j-31','j-32','j-33','j-34'].includes(id)) return 'weekly';
@@ -343,8 +388,8 @@ export function getHabitCategory(habit) {
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
   if (['a-4','a-5','a-6','a-7','j-16','at-3'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch')) return 'fitness';
-  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','j-10','j-24','j-28','at-2','at-24','at-25','at-26','at-27','at-31','at-32','at-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin')) return 'nutrition';
-  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','at-10','at-12','at-17'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career')) return 'work';
+  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','j-10','j-24','j-28','j-6','at-2','at-24','at-25','at-26','at-27','at-31','at-32','at-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin')) return 'nutrition';
+  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','j-14','at-10','at-12','at-17'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career')) return 'work';
   if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-36','at-6','at-15','at-19','at-20','at-21','at-30'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga')) return 'family';
   if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','a-54','a-55','a-56','a-57','a-58','j-1','j-2','j-12','j-22','j-25','j-31','at-1','at-4','at-16','at-18','at-22','at-23','at-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp') || name.includes('meditation') || name.includes('breathwork') || name.includes('visualization') || name.includes('scribing') || name.includes('reading') || name.includes('bath')) return 'rest';
   return 'ops';

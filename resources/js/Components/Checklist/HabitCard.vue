@@ -8,6 +8,7 @@ import {
   FileText,
 } from 'lucide-vue-next';
 import HabitGuidanceCard from './HabitGuidanceCard.vue';
+import { getSharedHabitInfo } from '../../Composables/useHabitsState.js';
 
 const props = defineProps({
   habit: { type: Object, required: true },
@@ -37,6 +38,9 @@ const emit = defineEmits([
   'update-note',
 ]);
 
+const sharedInfo = computed(() => getSharedHabitInfo(props.habit?.id));
+const isSharedActivity = computed(() => !!sharedInfo.value || (props.habit?.name || '').startsWith('★'));
+
 const handleCardClick = () => {
   if (props.isPending) return;
   emit('toggle-check');
@@ -49,7 +53,7 @@ const handleCardClick = () => {
       class="mobile-daily__card"
       :class="{
         'mobile-daily__card--done': isDone,
-        'mobile-daily__card--shared': habit.name.startsWith('★'),
+        'mobile-daily__card--shared': isSharedActivity,
         'mobile-daily__card--up-next': mobileDayIsToday && isUpNext && !isDone,
         'mobile-daily__card--future': mobileDayIsFuture,
         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
@@ -77,6 +81,9 @@ const handleCardClick = () => {
         <span class="mobile-daily__card-name">{{ habit.name }}</span>
         <span class="mobile-daily__card-meta">
           <span class="mobile-daily__card-category">{{ groupMeta.label }}</span>
+          <span v-if="sharedInfo" class="habit-shared-badge" :title="'Aligned with ' + sharedInfo.partnerName + ': ' + sharedInfo.partnerAction">
+            {{ sharedInfo.badge }}
+          </span>
           <span v-if="habit.scheduleLabel && scheduleFilterMode === 'all'" class="habit-schedule-badge">
             {{ habit.scheduleLabel }}
           </span>
@@ -124,6 +131,13 @@ const handleCardClick = () => {
 
     <!-- Habit Note Input & Guidance Drawer -->
     <div v-if="noteOpen" class="habit-note-input" @click.stop>
+      <div v-if="sharedInfo" class="habit-shared-partner-notice">
+        <span class="habit-shared-partner-notice__icon">👫</span>
+        <div class="habit-shared-partner-notice__content">
+          <strong>Couple Alignment: {{ sharedInfo.partnerName }}</strong>
+          <p>{{ sharedInfo.partnerAction }}</p>
+        </div>
+      </div>
       <HabitGuidanceCard :hint="habit.hint" />
       <textarea
         :value="noteValue"
