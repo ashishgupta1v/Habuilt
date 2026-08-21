@@ -135,8 +135,17 @@ const props = defineProps({
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email || '').toLowerCase().trim());
-const isAshish = computed(() => resolvedEmail.value === 'ashishgupta1v@gmail.com');
-const isJyoti = computed(() => resolvedEmail.value === 'goyaljyoti007@gmail.com');
+const isJyoti = computed(() => {
+  const email = resolvedEmail.value;
+  const uid = (props.userId || '').toLowerCase();
+  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti') || uid.includes('jyoti');
+});
+const isAshish = computed(() => {
+  if (isJyoti.value) return false;
+  const email = resolvedEmail.value;
+  const uid = (props.userId || '').toLowerCase();
+  return email === 'ashishgupta1v@gmail.com' || email.includes('ashish') || uid.includes('ashish') || !email || email === 'guest';
+});
 const displayName = computed(() => isJyoti.value ? 'Jyoti' : isAshish.value ? 'Ashish' : (props.userId || 'User'));
 const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
 
@@ -1081,27 +1090,39 @@ let lastSyncTimestamp = 0;
 
 const applyLoadedState = (data, isRemote = false) => {
   if (!data) return;
-  if (Array.isArray(data.habits) && data.habits.length > 0) {
-    const fallbackMap = new Map(fallbackHabits.value.map(h => [h.id, h]));
-    localHabits.value = data.habits.map(h => {
-      const fallback = fallbackMap.get(h.id);
-      if (fallback) {
-        return {
-          ...fallback,
-          ...h,
-          name: fallback.name,
-          hint: fallback.hint,
-          daysOfWeek: fallback.daysOfWeek,
-          scheduleLabel: fallback.scheduleLabel,
-          points: fallback.points,
-          completed_days: Array.isArray(h.completed_days) ? h.completed_days : [],
-        };
-      }
-      return h;
-    });
-  } else if (!isRemote) {
-    localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
-  }
+
+  const currentFallbacks = fallbackHabits.value || [];
+  const systemHabitIds = new Set(currentFallbacks.map(h => String(h.id)));
+  const savedHabitList = Array.isArray(data.habits) ? data.habits : [];
+  const savedHabitMap = new Map(savedHabitList.map(h => [String(h.id), h]));
+
+  // 1. Reconcile system habits against latest code definitions (MOVERS, exact timings, names, points, hints)
+  // Preserving any checked-off completed_days and custom notes/archived state from user data
+  const mergedSystemHabits = currentFallbacks.map(fallback => {
+    const saved = savedHabitMap.get(String(fallback.id));
+    if (saved) {
+      return {
+        ...fallback,
+        completed_days: Array.isArray(saved.completed_days) ? saved.completed_days.map(Number) : [],
+        archived: saved.archived || false,
+        notes: saved.notes || '',
+      };
+    }
+    return {
+      ...fallback,
+      completed_days: [],
+    };
+  });
+
+  // 2. Preserve any custom user-added habits (e.g. starting with 'c-' or not in default system list)
+  const customHabits = savedHabitList
+    .filter(h => h && h.id && !systemHabitIds.has(String(h.id)))
+    .map(h => ({
+      ...h,
+      completed_days: Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [],
+    }));
+
+  localHabits.value = [...mergedSystemHabits, ...customHabits];
 
   if (Array.isArray(data.rewards)) rewards.value = data.rewards;
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
@@ -1110,20 +1131,19 @@ const applyLoadedState = (data, isRemote = false) => {
   if (data.travelMode !== undefined) travelMode.value = data.travelMode;
   if (data.darkMode !== undefined) darkMode.value = data.darkMode;
 
-  if (isRemote) {
-    try {
-      localStorage.setItem(localStateKey.value, JSON.stringify({
-        habits: localHabits.value,
-        rewards: rewards.value,
-        rewardLedger: rewardLedger.value,
-        progressiveSettings: progressiveSettings.value,
-        enhancedState: enhancedState.value,
-        travelMode: travelMode.value,
-        darkMode: darkMode.value,
-        updated_at: new Date().toISOString(),
-      }));
-    } catch { /* offline fallback */ }
-  }
+  try {
+    const payload = {
+      habits: localHabits.value,
+      rewards: rewards.value,
+      rewardLedger: rewardLedger.value,
+      progressiveSettings: progressiveSettings.value,
+      enhancedState: enhancedState.value,
+      travelMode: travelMode.value,
+      darkMode: darkMode.value,
+      updated_at: new Date().toISOString(),
+    };
+    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
+  } catch { /* offline fallback */ }
 
   // Drain any queued background actions from notifications once habits are loaded
   setTimeout(() => {
@@ -1168,6 +1188,12 @@ const loadLocalState = () => {
   drainQueuedCompletions?.();
 };
 
+watch(fallbackHabits, (newFallbacks) => {
+  if (Array.isArray(newFallbacks) && newFallbacks.length > 0) {
+    applyLoadedState({ habits: localHabits.value }, false);
+  }
+}, { deep: true });
+
 const syncCloudState = async (force = false) => {
   const now = Date.now();
   if (!force && now - lastSyncTimestamp < 10000) return;
@@ -1210,9 +1236,14 @@ const toggleArchiveHabit = (habit) => {
   saveState();
 };
 const restoreDefaultHabits = () => {
-  localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+  const currentCompletedMap = new Map((localHabits.value || []).map(h => [h.id, h.completed_days]));
+  localHabits.value = fallbackHabits.value.map(h => ({
+    ...h,
+    completed_days: Array.isArray(currentCompletedMap.get(h.id)) ? currentCompletedMap.get(h.id) : [],
+  }));
   habitsEditing.value = false;
   saveState();
+  showToast('✨ Updated to latest routine preset!');
 };
 const restoreSingleDefaultHabit = (dh) => {
   localHabits.value.push({ ...dh, completed_days: [] });
