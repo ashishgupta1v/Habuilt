@@ -1064,8 +1064,8 @@ const handleAppReload = async () => {
     isSyncingCloud.value = true;
     showToast('🔄 Syncing & Refreshing...');
 
-    // 1. Re-read local storage
-    loadState();
+    // 1. Re-read and reconcile local storage
+    loadLocalState();
 
     // 2. Pull remote cloud state if user is logged in
     if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
@@ -1075,6 +1075,9 @@ const handleAppReload = async () => {
         lastSyncTimestamp = Date.now();
       }
     }
+
+    // 3. Save reconciled state to ensure latest presets are synced
+    await saveState();
 
     showToast('✅ App Synced & Refreshed!');
   } catch (err) {
@@ -1175,13 +1178,23 @@ const saveState = async () => {
   }
 };
 
+const PRESET_VERSION = '2026-08-21-v4';
+
 const loadLocalState = () => {
   try {
     const raw = localStorage.getItem(localStateKey.value);
+    const lastVersion = localStorage.getItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`);
     if (raw) {
-      applyLoadedState(JSON.parse(raw), false);
+      const parsed = JSON.parse(raw);
+      applyLoadedState(parsed, false);
+      if (lastVersion !== PRESET_VERSION) {
+        localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
+        saveState();
+      }
     } else {
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+      localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
+      saveState();
     }
   } catch {
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
