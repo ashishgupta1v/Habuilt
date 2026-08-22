@@ -531,39 +531,16 @@ npm run build
 php artisan test
 ```
 
-## Netlify Deployment Compatibility
+## Vercel Cloud Deployment
 
-This repository is a Laravel + Inertia application.
+This repository is built as a high-performance Vue 3 SPA powered by Supabase Cloud and optimized for Vercel.
 
-Important: Netlify does not provide a native long-running PHP runtime for serving Laravel routes and controllers directly. That means full-stack deployment of this repo on Netlify alone is not compatible without additional architecture changes.
+### Vercel Deployment Setup
 
-### What Was Updated
-
-- Removed legacy static entry file `index.html`.
-- Removed legacy `_redirects` rules that forced traffic to `/index.html`.
-- Updated `netlify.toml` to:
-  - run `npm ci && npm run build`
-  - publish `public/build`
-  - add long-cache headers for built assets
-
-### What Still Needs To Be In Place Before Production Deploy
-
-1. Host Laravel backend on a PHP-capable platform (for example: Laravel Forge/VPS, Render, Railway, Fly.io, or similar).
-2. Point Netlify site to frontend/static assets only, or migrate to a separate SPA frontend that calls your hosted API.
-3. Set production environment variables on the backend (`APP_KEY`, database credentials, queue/cache/session config, etc.).
-4. Confirm CORS and auth/session strategy if frontend and backend are on different domains.
-
-### Recommended Deployment Paths
-
-- Path A (recommended for current codebase):
-  - Deploy Laravel app to a PHP host.
-  - Use Netlify only for frontend/static distribution as needed.
-
-- Path B (requires refactor):
-  - Convert this into a true API + standalone SPA architecture.
-  - Deploy SPA to Netlify and API to PHP host.
-
-If you want full Laravel routing/server rendering in one place, choose a PHP-native host instead of Netlify-only.
+- Configured via `vercel.json` with automated SPA client-side routing.
+- Uses `npm run build:vercel` with optimized static bundle output in `dist/`.
+- Automatic long-term asset caching headers for fast global edge delivery.
+- Built-in PWA service worker and Web App Manifest support.
 
 ## Current Validation Status
 
