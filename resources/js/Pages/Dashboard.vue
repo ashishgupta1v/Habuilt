@@ -132,6 +132,8 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
+const emit = defineEmits(['sign-out']);
+
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email || '').toLowerCase().trim());
@@ -1646,6 +1648,7 @@ onBeforeUnmount(() => {
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
       @toggle-notifications="handleToggleDueNowNotifications"
+      @sign-out="emit('sign-out')"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->

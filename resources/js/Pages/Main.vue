@@ -267,7 +267,7 @@ onMounted(async () => {
     <div v-if="activeUser" class="app-root">
       <!-- Dashboard + Top Header Wrapper -->
       <main class="app-main-content">
-        <nav class="app-nav">
+        <nav class="app-nav app-nav--desktop-only">
           <div class="app-nav__container">
             <div class="app-nav__left">
               <HabuiltLogo size="md" :with-text="true" />
@@ -331,6 +331,7 @@ onMounted(async () => {
           :canNavigateNextMonth="true"
           :previousMonth="previousMonth"
           :nextMonth="nextMonth"
+          @sign-out="handleSignOut"
         />
       </main>
     </div>

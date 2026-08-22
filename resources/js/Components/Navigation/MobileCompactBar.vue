@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Flame,
   Award,
@@ -13,7 +14,7 @@ import {
   RefreshCw,
   Bell,
   BellOff,
-  Target,
+  LogOut,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -43,6 +44,7 @@ const emit = defineEmits([
   'share-scorecard',
   'reload-app',
   'toggle-notifications',
+  'sign-out',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -56,9 +58,12 @@ const autoProtocolBadge = computed(() => {
 
 <template>
   <div class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
-    <!-- Top Row: User Identity & Action Icons (Clean single brand presentation) -->
+    <!-- Top Row: Brand, User Identity & Action Icons (Unified Single Mobile Navigation Bar) -->
     <div class="mcb-row mcb-row--top">
-      <div class="mcb-user-group">
+      <div class="mcb-brand-user-group">
+        <HabuiltLogo size="xs" :with-text="true" class="mcb-brand-logo" />
+        <span class="mcb-pro-tag">PRO</span>
+        <div class="mcb-divider-dot"></div>
         <span class="mcb-user-name">{{ isAshish ? 'Ashish' : (timeGreeting?.name || 'User') }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
@@ -129,10 +134,22 @@ const autoProtocolBadge = computed(() => {
           <Sun v-if="darkMode" class="icon-xs icon-sun" />
           <Moon v-else class="icon-xs icon-moon" />
         </button>
+
+        <!-- Sign Out Button -->
+        <button
+          id="mcb-btn-logout"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--logout"
+          @click="emit('sign-out')"
+          title="Sign out of Habuilt"
+          aria-label="Sign Out"
+        >
+          <LogOut class="icon-xs" />
+        </button>
       </div>
     </div>
 
-    <!-- Middle Row: High-Density KPI Metrics Capsule -->
+    <!-- Middle Row: High-Density Mission Control Stats Capsule -->
     <div class="mcb-row mcb-row--stats">
       <div class="mcb-stats-pills">
         <span class="mcb-streak" :title="`Current streak: ${systemStreak.current} days`">
@@ -183,8 +200,8 @@ const autoProtocolBadge = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px;
-  background: rgba(255, 255, 255, 0.94);
+  padding: max(8px, env(safe-area-inset-top, 0px)) 10px 6px;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -194,13 +211,14 @@ const autoProtocolBadge = computed(() => {
   z-index: 80;
   box-sizing: border-box;
   width: 100%;
+  margin-top: 0;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .mobile-compact-bar.mcb--dark {
-  background: rgba(9, 14, 26, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(6, 11, 22, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 @media (min-width: 769px) {
@@ -221,22 +239,42 @@ const autoProtocolBadge = computed(() => {
   justify-content: space-between;
 }
 
-.mcb-user-group {
+.mcb-brand-user-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
+  flex-shrink: 1;
+}
+
+.mcb-brand-logo {
   flex-shrink: 0;
 }
 
-.mcb-logo {
-  cursor: pointer;
+.mcb-pro-tag {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(200, 164, 86, 0.18);
+  color: #D4B36A;
+  border: 1px solid rgba(200, 164, 86, 0.35);
+  flex-shrink: 0;
+}
+
+.mcb-divider-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.4);
+  flex-shrink: 0;
 }
 
 .mcb-user-name {
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: #0f172a;
   white-space: nowrap;
 }
@@ -246,15 +284,16 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb-grade {
-  font-size: 0.68rem;
-  padding: 2px 6px;
+  font-size: 0.65rem;
+  padding: 1px 5px;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .mcb-actions-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
@@ -262,12 +301,12 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.07);
   color: #334155;
   cursor: pointer;
   padding: 0;
@@ -280,52 +319,68 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb--dark .mcb-icon-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.mcb--dark .mcb-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .mcb-icon-btn--travel {
   width: auto;
   min-width: auto;
-  padding: 0 8px;
+  padding: 0 7px;
   gap: 3px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 750;
-  border-radius: 10px;
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.25);
-  color: #6366f1;
+  border-radius: 8px;
+  background: rgba(200, 164, 86, 0.12);
+  border-color: rgba(200, 164, 86, 0.28);
+  color: #D4B36A;
 }
 
 .mcb-icon-btn--travel-active {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.18), rgba(99, 102, 241, 0.18));
-  border-color: rgba(236, 72, 153, 0.4);
-  color: #ec4899;
+  background: rgba(200, 164, 86, 0.25);
+  border-color: #C8A456;
+  color: #F6D380;
 }
 
 .mcb-travel-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
 }
 
 .mcb-icon-btn--notif-active {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(200, 164, 86, 0.16);
+  border-color: rgba(200, 164, 86, 0.4);
+  color: #D4B36A;
+}
+
+.mcb-icon-btn--logout {
+  color: #94a3b8;
+}
+
+.mcb--dark .mcb-icon-btn--logout:hover {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
 }
 
 .mcb-row--stats {
   justify-content: space-between;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 3px 8px;
   background: rgba(0, 0, 0, 0.03);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .mcb--dark .mcb-row--stats {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .mcb-stats-pills {
@@ -358,13 +413,13 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb-wallet {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  background: rgba(200, 164, 86, 0.14);
+  color: #b8860b;
 }
 
 .mcb--dark .mcb-wallet {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  background: rgba(200, 164, 86, 0.18);
+  color: #D4B36A;
 }
 
 .mcb-progress-group {
@@ -392,7 +447,7 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb--dark .mcb-progress-track {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .mcb-progress-fill {
@@ -417,10 +472,10 @@ const autoProtocolBadge = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 8px;
-  background: rgba(200, 164, 86, 0.12);
-  border: 1px solid rgba(200, 164, 86, 0.3);
-  border-radius: 12px;
+  padding: 4px 8px;
+  background: rgba(200, 164, 86, 0.1);
+  border: 1px solid rgba(200, 164, 86, 0.28);
+  border-radius: 10px;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
@@ -429,8 +484,8 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb--dark .mcb-up-next-row {
-  background: linear-gradient(135deg, rgba(200, 164, 86, 0.14), rgba(99, 102, 241, 0.08));
-  border-color: rgba(200, 164, 86, 0.3);
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(13, 21, 39, 0.6));
+  border-color: rgba(200, 164, 86, 0.25);
 }
 
 .mcb-up-next-row:active {
@@ -444,7 +499,7 @@ const autoProtocolBadge = computed(() => {
   padding: 2px 6px;
   border-radius: 6px;
   background: #C8A456;
-  color: #0f172a;
+  color: #060b16;
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -458,7 +513,7 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb-up-next-title {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #0f172a;
   white-space: nowrap;
@@ -476,18 +531,18 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   color: #059669;
-  background: rgba(16, 185, 129, 0.15);
-  padding: 3px 7px;
-  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 7px;
   flex-shrink: 0;
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .mcb--dark .mcb-up-next-action {
   color: #34d399;
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.18);
 }
 </style>

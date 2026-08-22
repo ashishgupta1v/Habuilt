@@ -222,8 +222,11 @@ button {
 
 @media (max-width: 768px) {
   .app-main-content {
-    padding: max(6px, env(safe-area-inset-top, 0px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px calc(75px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
+  }
+  .app-nav--desktop-only {
+    display: none !important;
   }
 }
 
@@ -3021,19 +3024,20 @@ body.theme-dark .milestone-fill {
   }
 
   .time-filter-pill--active {
-    background: var(--accent-strong);
-    border-color: var(--accent-strong);
-    color: #ffffff;
+    background: rgba(200, 164, 86, 0.18);
+    border-color: #C8A456;
+    color: #D4B36A;
   }
 
   .time-filter-pill--active .time-filter-pill__count {
     opacity: 1;
+    color: #F6D380;
   }
 
   .time-filter-pill--current {
-    border-color: var(--accent-strong);
-    color: var(--accent-strong);
-    box-shadow: 0 0 0 1px var(--accent-strong);
+    border-color: rgba(200, 164, 86, 0.5);
+    color: #D4B36A;
+    box-shadow: 0 0 0 1px rgba(200, 164, 86, 0.3);
   }
 
   /* Progress Bar (Compact 5px) */
@@ -3187,8 +3191,8 @@ body.theme-dark .milestone-fill {
   }
 
   .mobile-daily__card--shared {
-    border-left: 3.5px solid #ec4899;
-    background: linear-gradient(90deg, rgba(236, 72, 153, 0.05) 0%, transparent 100%);
+    border-left: 3.5px solid #C8A456;
+    background: linear-gradient(90deg, rgba(200, 164, 86, 0.08) 0%, transparent 100%);
   }
 
   .mobile-daily__card--done.mobile-daily__card--shared {
@@ -10731,16 +10735,16 @@ body:not(.dark-mode) .habit-schedule-badge {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.01em;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.18), rgba(168, 85, 247, 0.2));
-  color: #f472b6;
-  border: 1px solid rgba(236, 72, 153, 0.4);
-  box-shadow: 0 1px 3px rgba(236, 72, 153, 0.12);
+  background: rgba(200, 164, 86, 0.14);
+  color: #D4B36A;
+  border: 1px solid rgba(200, 164, 86, 0.32);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 body:not(.dark-mode) .habit-shared-badge {
-  background: linear-gradient(135deg, #fdf2f8, #f3e8ff);
-  color: #db2777;
-  border-color: #fbcfe8;
+  background: rgba(200, 164, 86, 0.15);
+  color: #b8860b;
+  border-color: rgba(200, 164, 86, 0.35);
 }
 
 .habit-shared-partner-notice {
@@ -10750,13 +10754,13 @@ body:not(.dark-mode) .habit-shared-badge {
   padding: 0.6rem 0.75rem;
   margin-bottom: 0.6rem;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.15));
-  border: 1px solid rgba(236, 72, 153, 0.3);
+  background: rgba(200, 164, 86, 0.1);
+  border: 1px solid rgba(200, 164, 86, 0.25);
 }
 
 body:not(.dark-mode) .habit-shared-partner-notice {
-  background: #fdf2f8;
-  border-color: #fbcfe8;
+  background: rgba(200, 164, 86, 0.08);
+  border-color: rgba(200, 164, 86, 0.22);
 }
 
 .habit-shared-partner-notice__icon {
