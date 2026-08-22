@@ -69,6 +69,8 @@ export const ashishHabits = [
   { id: 'a-48', name: 'Weekly Pipeline Scrub & Invoicing (45 min)',       points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Only', hint: 'Update deal stages, follow up on unpaid invoices, archive dead leads, and ensure accurate sales forecasts.' },
   { id: 'a-49', name: 'Social Post / Newsletter Batch Production (2h)',   points: 2, daysOfWeek: [4, 6], scheduleLabel: 'Thu & Sat', hint: 'Batch write 3 social media posts or 1 newsletter edition in a single focused session. Schedule them out.' },
   { id: 'a-50', name: 'Shaarvi Weekend Sensory & Nature Outing (1h)',     points: 2, daysOfWeek: [0, 6], scheduleLabel: 'Sat–Sun', hint: 'Take Shaarvi to a botanical garden, park, or scenic outdoor spot. Let her touch grass, feel the breeze, and explore.' },
+  { id: 'a-59', name: '★ Weekend Couple Time & Relaxed Connection with Jyoti (90 min)', points: 3, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Protected Saturday daytime couple connection: quality conversation, tea together, relaxed shared activities or movie without office calls or weekday rush.' },
+  { id: 'a-60', name: 'Sunday Restorative Stretch, Mobility & Foam Roll (30 min)', points: 1, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Sunday morning active recovery routine: gentle mobility, foam rolling, and joint decompression to restore the body before the upcoming week.' },
 ];
 
 // ── Jyoti's Track (30 activities) ──
@@ -110,6 +112,7 @@ export const jyotiHabits = [
   { id: 'j-32', name: 'Shaarvi Developmental Milestone Log',              points: 1, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Record Shaarvi new sounds, motor achievements, smiles, and funny moments in her baby journal.' },
   { id: 'j-33', name: 'Creative Output / Skill Practice (2h)',            points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Spend 2 hours advancing your creative portfolio, design skills, or professional learning projects.' },
   { id: 'j-34', name: 'Shaarvi Sensory & Nature Outing',                  points: 2, daysOfWeek: [0, 6], scheduleLabel: 'Sat–Sun', hint: 'Weekend sensory trip to a park, garden, or family outing to expose Shaarvi to new nature textures.' },
+  { id: 'j-35', name: '★ Weekend Couple Time & Connection with Ashish (90 min)', points: 3, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Protected Saturday afternoon couple window with Ashish: relax, talk about dreams, enjoy tea together, and connect with zero weekday distractions.' },
 ];
 
 // ── Ashish Travel Mode (Chandigarh) — Micro-Detail (33 activities) ──
@@ -226,6 +229,8 @@ export const ashishTierDescriptions = {
   'a-56': ['Think of 1 goal', '3 min visualize', '5 min full visualization', '5 min + written down'],
   'a-57': ['Skim 1 page', '5 min reading', '10 min reading', '10 min + 1 key insight noted'],
   'a-58': ['1 sentence', '5 min journal', '10 min full journal entry', '10 min + gratitude + intention set'],
+  'a-59': ['30 min couple time', '60 min couple time', '90 min dedicated couple connection', '90 min + phone-free shared activity with Jyoti'],
+  'a-60': ['10 min mobility', '20 min stretch', '30 min restorative stretch & foam roll', '30 min + full posture recovery routine'],
 };
 
 export const jyotiTierDescriptions = {
@@ -259,7 +264,7 @@ export const jyotiTierDescriptions = {
   'j-32': ['Note 1 achievement', 'Write 2 memories', 'Full weekly milestone log', 'Log + baby photos saved'],
   'j-33': ['30 min practice', '60 min output', '2h creative session', '2h + completed creative work'],
   'j-34': ['Short trip', '30 min outdoor time', '1h sensory outing with Shaarvi', '1h + new sensory stimuli explored'],
-  'j-36': ['Quick rinse', 'Wash 1 load', 'Wash + hang full load', 'Wash + hang + fold ahead'],
+  'j-35': ['30 min couple time', '60 min couple time', '90 min dedicated couple connection', '90 min + quality couple conversation with Ashish'],
 };
 
 export const ashishTravelTierDescriptions = {
@@ -328,6 +333,10 @@ export const sharedCoupleHabits = {
   'a-44': { partnerId: 'j-30', type: 'date', badge: '★ Couple Date Night', partnerName: 'Jyoti', partnerAction: '2-hour uninterrupted date window' },
   'j-30': { partnerId: 'a-44', type: 'date', badge: '★ Couple Date Night', partnerName: 'Ashish', partnerAction: '2-hour uninterrupted date window' },
 
+  // Weekend Daytime Couple Connection (★ Saturday)
+  'a-59': { partnerId: 'j-35', type: 'couple', badge: '★ Weekend Couple Time', partnerName: 'Jyoti', partnerAction: 'Saturday 90-min couple connection & relaxation' },
+  'j-35': { partnerId: 'a-59', type: 'couple', badge: '★ Weekend Couple Time', partnerName: 'Ashish', partnerAction: 'Saturday 90-min couple connection & relaxation' },
+
   // Weekend Sensory Nature Outing
   'a-50': { partnerId: 'j-34', type: 'family', badge: '🌿 Nature Outing', partnerName: 'Jyoti & Shaarvi', partnerAction: 'Weekend park & sensory exploration' },
   'j-34': { partnerId: 'a-50', type: 'family', badge: '🌿 Nature Outing', partnerName: 'Ashish & Shaarvi', partnerAction: 'Weekend park & sensory exploration' },
@@ -360,9 +369,9 @@ export const timeSlotOrder = {
 };
 
 export function getTimeSlotForHabit(id) {
-  // Ashish core habits (micro-detail: a-1..a-58)
-  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10','a-54','a-55','a-56','a-57','a-58'].includes(id)) return 'morning';
-  if (['a-11','a-12','a-13','a-28','a-31','a-14','a-15','a-16','a-29','a-51','a-17','a-18','a-53'].includes(id)) return 'work';
+  // Ashish core habits (micro-detail: a-1..a-60)
+  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10','a-54','a-55','a-56','a-57','a-58','a-60'].includes(id)) return 'morning';
+  if (['a-11','a-12','a-13','a-28','a-31','a-14','a-15','a-16','a-29','a-51','a-17','a-18','a-53','a-59'].includes(id)) return 'work';
   if (['a-19','a-20','a-43','a-21','a-30','a-22','a-23','a-24','a-25','a-26','a-52','a-27'].includes(id)) return 'evening';
   if (['a-32','a-33','a-34','a-35','a-36'].includes(id)) return 'anytime';
   if (['a-37','a-38','a-39','a-40','a-41','a-42','a-44','a-45','a-46','a-47','a-48','a-49','a-50'].includes(id)) return 'weekly';
@@ -375,7 +384,7 @@ export function getTimeSlotForHabit(id) {
 
   // Jyoti habits by ID (micro-detail: j-1..j-36)
   if (['j-1','j-2','j-4','j-9','j-10','j-36'].includes(id)) return 'morning';
-  if (['j-11','j-12','j-14','j-6'].includes(id)) return 'work';
+  if (['j-11','j-12','j-14','j-6','j-35'].includes(id)) return 'work';
   if (['j-15','j-16','j-17','j-18','j-19','j-20','j-21','j-22'].includes(id)) return 'evening';
   if (['j-23','j-24','j-25','j-26','j-27','j-28'].includes(id)) return 'anytime';
   if (['j-29','j-30','j-31','j-32','j-33','j-34'].includes(id)) return 'weekly';
@@ -387,10 +396,10 @@ export function getTimeSlotForHabit(id) {
 export function getHabitCategory(habit) {
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
-  if (['a-4','a-5','a-6','a-7','j-16','at-3'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch')) return 'fitness';
+  if (['a-4','a-5','a-6','a-7','a-60','j-16','at-3'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility')) return 'fitness';
   if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','j-10','j-24','j-28','j-6','at-2','at-24','at-25','at-26','at-27','at-31','at-32','at-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin')) return 'nutrition';
   if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','j-14','at-10','at-12','at-17'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career')) return 'work';
-  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-36','at-6','at-15','at-19','at-20','at-21','at-30'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga')) return 'family';
+  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','a-59','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-35','j-36','at-6','at-15','at-19','at-20','at-21','at-30'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga') || name.includes('couple')) return 'family';
   if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','a-54','a-55','a-56','a-57','a-58','j-1','j-2','j-12','j-22','j-25','j-31','at-1','at-4','at-16','at-18','at-22','at-23','at-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp') || name.includes('meditation') || name.includes('breathwork') || name.includes('visualization') || name.includes('scribing') || name.includes('reading') || name.includes('bath')) return 'rest';
   return 'ops';
 }

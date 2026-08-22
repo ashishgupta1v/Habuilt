@@ -222,7 +222,7 @@ button {
 
 @media (max-width: 768px) {
   .app-main-content {
-    padding: max(10px, env(safe-area-inset-top, 24px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
+    padding: max(6px, env(safe-area-inset-top, 0px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
   }
 }
@@ -2868,7 +2868,7 @@ body.theme-dark .milestone-fill {
     padding: 6px 8px;
     background: rgba(0, 0, 0, 0.025);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
+    border-radius: 12px;
     margin-bottom: 6px;
   }
 
@@ -2880,7 +2880,7 @@ body.theme-dark .milestone-fill {
   .mobile-daily__nav-btn {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid var(--card-border);
     background: var(--card-bg);
     color: var(--text-primary);
@@ -3009,7 +3009,7 @@ body.theme-dark .milestone-fill {
     font-size: 11px;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: var(--radius-full);
+    border-radius: 10px;
     transition: var(--transition);
     flex-shrink: 0;
     min-height: 26px;
@@ -3163,7 +3163,7 @@ body.theme-dark .milestone-fill {
     padding: 7px 10px;
     min-height: 42px;
     border: 1px solid var(--card-border);
-    border-radius: 10px;
+    border-radius: 12px;
     background: var(--card-bg);
     text-align: left;
     transition: var(--transition);
@@ -6522,7 +6522,7 @@ body.theme-dark .section-head--collapsible:hover {
   margin: 12px 0 6px;
   background: var(--muted-bg);
   border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   font-size: 11.5px;
   font-weight: 750;
   color: var(--text-primary);
@@ -10328,20 +10328,21 @@ body.theme-dark .reward-bar {
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 8px 10px;
+  gap: 5px;
+  padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px;
   background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  margin-bottom: 10px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  margin-bottom: 6px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 body:not(.dark-mode) .mobile-compact-bar {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
 }
 .mcb-row--top {
   display: flex;
@@ -10380,12 +10381,12 @@ body:not(.dark-mode) .mcb-greeting {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 7px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #f8fafc;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
 }
 .mcb-icon-btn:hover {
@@ -10408,10 +10409,11 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
 }
 .mcb-icon-btn--travel {
   width: auto;
-  padding: 0 6px;
+  padding: 0 8px;
   gap: 3px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 750;
+  border-radius: 10px;
 }
 .mcb-icon-btn--travel-active {
   background: linear-gradient(135deg, rgba(200, 164, 86, 0.3), rgba(99, 102, 241, 0.3)) !important;
@@ -10425,8 +10427,8 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
   box-shadow: 0 0 10px rgba(200, 164, 86, 0.35);
 }
 .mcb-travel-label {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 .mcb-row--stats {
   display: flex;
@@ -10439,7 +10441,7 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
   align-items: center;
   gap: 6px;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 750;
   flex-shrink: 0;
 }
 .mcb-streak {
@@ -10447,12 +10449,16 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
   align-items: center;
   gap: 3px;
   color: #f59e0b;
+  padding: 2px 7px;
+  border-radius: 8px;
 }
 .mcb-wallet {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   color: var(--brand-gold, #C8A456);
+  padding: 2px 7px;
+  border-radius: 8px;
 }
 .mcb-progress-group {
   display: flex;
@@ -10464,10 +10470,10 @@ body:not(.dark-mode) .mcb-icon-btn:hover {
 .mcb-auto-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 8px;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 750;
   white-space: nowrap;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
@@ -10492,9 +10498,9 @@ body:not(.dark-mode) .mcb-auto-badge {
   color: #10b981;
 }
 .mcb-progress-track {
-  width: 48px;
+  width: 44px;
   height: 5px;
-  border-radius: 3px;
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
   flex-shrink: 0;
@@ -10504,12 +10510,12 @@ body:not(.dark-mode) .mcb-progress-track {
 }
 .mcb-progress-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   background: linear-gradient(90deg, #D4A03E, #10b981);
 }
 .mcb-progress-label {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 750;
   color: #94a3b8;
   white-space: nowrap;
   flex-shrink: 0;
@@ -10522,7 +10528,7 @@ body:not(.dark-mode) .mcb-progress-track {
   padding: 6px 10px;
   background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(99, 102, 241, 0.08));
   border: 1px solid rgba(200, 164, 86, 0.25);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -10537,7 +10543,7 @@ body:not(.dark-mode) .mcb-progress-track {
   align-items: center;
   gap: 4px;
   padding: 2px 6px;
-  border-radius: 5px;
+  border-radius: 6px;
   background: rgba(99, 102, 241, 0.18);
   border: 1px solid rgba(99, 102, 241, 0.35);
   color: #818cf8;
@@ -10579,7 +10585,7 @@ body.theme-dark .mcb-up-next-title {
   color: #10b981;
   background: rgba(16, 185, 129, 0.12);
   padding: 2px 6px;
-  border-radius: 5px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
@@ -10635,7 +10641,7 @@ body:not(.dark-mode) .habuilt-floating-toast {
   align-items: center;
   gap: 0.4rem;
   padding: 0.38rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: 10px;
   font-size: 0.76rem;
   font-weight: 600;
   color: #94a3b8;
@@ -10720,8 +10726,8 @@ body:not(.dark-mode) .habit-schedule-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 9999px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 8px;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -10946,7 +10952,7 @@ body:not(.dark-mode) .habit-grid__cell--off-schedule {
   background: rgba(200, 164, 86, 0.12);
   border: 1px solid rgba(200, 164, 86, 0.25);
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: 8px;
   letter-spacing: 0.02em;
 }
 
@@ -11073,7 +11079,7 @@ body:not(.dark-mode) .habit-grid__cell--off-schedule {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.25));
   border: 1px solid rgba(16, 185, 129, 0.4);
   color: #10B981;

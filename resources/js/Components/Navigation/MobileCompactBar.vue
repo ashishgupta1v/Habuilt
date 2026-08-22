@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Flame,
   Award,
@@ -57,10 +56,9 @@ const autoProtocolBadge = computed(() => {
 
 <template>
   <div class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
-    <!-- Top Row: Logo, User Identity & Action Icons -->
+    <!-- Top Row: User Identity & Action Icons (Clean single brand presentation) -->
     <div class="mcb-row mcb-row--top">
       <div class="mcb-user-group">
-        <HabuiltLogo size="xs" :with-text="false" class="mcb-logo" />
         <span class="mcb-user-name">{{ isAshish ? 'Ashish' : (timeGreeting?.name || 'User') }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
@@ -185,7 +183,7 @@ const autoProtocolBadge = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 6px 12px 6px;
+  padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -249,8 +247,8 @@ const autoProtocolBadge = computed(() => {
 
 .mcb-grade {
   font-size: 0.68rem;
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
 .mcb-actions-group {
@@ -264,10 +262,10 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.08);
   color: #334155;
@@ -290,10 +288,11 @@ const autoProtocolBadge = computed(() => {
 .mcb-icon-btn--travel {
   width: auto;
   min-width: auto;
-  padding: 0 7px;
+  padding: 0 8px;
   gap: 3px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 750;
+  border-radius: 10px;
   background: rgba(99, 102, 241, 0.1);
   border-color: rgba(99, 102, 241, 0.25);
   color: #6366f1;
@@ -306,7 +305,7 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb-travel-label {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 800;
 }
 
@@ -318,9 +317,9 @@ const autoProtocolBadge = computed(() => {
 .mcb-row--stats {
   justify-content: space-between;
   gap: 6px;
-  padding: 3px 6px;
+  padding: 4px 8px;
   background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -343,8 +342,8 @@ const autoProtocolBadge = computed(() => {
   gap: 3px;
   font-size: 0.72rem;
   font-weight: 750;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
@@ -378,15 +377,15 @@ const autoProtocolBadge = computed(() => {
 .mcb-auto-badge {
   font-size: 0.68rem;
   font-weight: 750;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
 .mcb-progress-track {
   width: 40px;
   height: 5px;
-  border-radius: 3px;
+  border-radius: 4px;
   background: rgba(0, 0, 0, 0.1);
   overflow: hidden;
   flex-shrink: 0;
@@ -399,7 +398,7 @@ const autoProtocolBadge = computed(() => {
 .mcb-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #10b981, #34d399);
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.3s ease;
 }
 
@@ -421,7 +420,7 @@ const autoProtocolBadge = computed(() => {
   padding: 5px 8px;
   background: rgba(200, 164, 86, 0.12);
   border: 1px solid rgba(200, 164, 86, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
@@ -442,8 +441,8 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 5px;
-  border-radius: 5px;
+  padding: 2px 6px;
+  border-radius: 6px;
   background: #C8A456;
   color: #0f172a;
   font-size: 0.65rem;
@@ -481,8 +480,8 @@ const autoProtocolBadge = computed(() => {
   font-weight: 800;
   color: #059669;
   background: rgba(16, 185, 129, 0.15);
-  padding: 3px 6px;
-  border-radius: 6px;
+  padding: 3px 7px;
+  border-radius: 8px;
   flex-shrink: 0;
   border: 1px solid rgba(16, 185, 129, 0.25);
 }

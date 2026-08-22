@@ -19,6 +19,7 @@ const props = defineProps({
   mobileDayLabel: { type: String, default: '' },
   mobileDayIsToday: { type: Boolean, default: true },
   mobileDayIsFuture: { type: Boolean, default: false },
+  isWeekend: { type: Boolean, default: false },
   monthDays: { type: Number, default: 31 },
   activeTimeFilter: { type: String, default: 'all' },
   timeSlotCounts: { type: Object, required: true },
@@ -160,7 +161,7 @@ const emit = defineEmits([
         }"
         @click="emit('update:activeTimeFilter', activeTimeFilter === 'work' ? 'all' : 'work')"
       >
-        <span class="time-filter-pill__label">Work</span>
+        <span class="time-filter-pill__label">{{ isWeekend ? 'Weekend' : 'Work' }}</span>
         <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.work }}/{{ timeSlotCounts.work }}</span>
       </button>
       <button

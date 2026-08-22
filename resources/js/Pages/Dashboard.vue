@@ -532,14 +532,29 @@ const timeSlotCompleted = computed(() => {
   return comp;
 });
 
+const isMobileDayWeekend = computed(() => {
+  const dow = getDayOfWeek(mobileDay.value);
+  return dow === 0 || dow === 6;
+});
+
+const dynamicTimeSlotDefinitions = computed(() => {
+  if (isMobileDayWeekend.value) {
+    return {
+      ...timeSlotDefinitions,
+      work: { label: 'Weekend Focus & Family', time: '08:30–18:30', emoji: '✨', color: '#D4B36A' },
+    };
+  }
+  return timeSlotDefinitions;
+});
+
 const timelineGroupedHabits = computed(() => {
   const source = filteredHabits.value;
   const groups = [
-    { slot: 'morning', meta: timeSlotDefinitions.morning, habits: [] },
-    { slot: 'work',    meta: timeSlotDefinitions.work,    habits: [] },
-    { slot: 'evening', meta: timeSlotDefinitions.evening, habits: [] },
-    { slot: 'anytime', meta: timeSlotDefinitions.anytime, habits: [] },
-    { slot: 'weekly',  meta: timeSlotDefinitions.weekly,  habits: [] },
+    { slot: 'morning', meta: dynamicTimeSlotDefinitions.value.morning, habits: [] },
+    { slot: 'work',    meta: dynamicTimeSlotDefinitions.value.work,    habits: [] },
+    { slot: 'evening', meta: dynamicTimeSlotDefinitions.value.evening, habits: [] },
+    { slot: 'anytime', meta: dynamicTimeSlotDefinitions.value.anytime, habits: [] },
+    { slot: 'weekly',  meta: dynamicTimeSlotDefinitions.value.weekly,  habits: [] },
   ];
   const groupMap = Object.fromEntries(groups.map(g => [g.slot, g.habits]));
   source.forEach(h => {
@@ -584,6 +599,7 @@ const habitTimeSchedule = {
   'a-58': { start: '05:40', end: '05:50' }, 'a-3': { start: '05:50', end: '05:55' },
   'a-4': { start: '05:55', end: '06:40' }, 'a-5': { start: '05:55', end: '06:40' },
   'a-6': { start: '05:55', end: '06:40' },
+  'a-60': { start: '06:00', end: '06:30' },
   'a-7': { start: '06:40', end: '06:45' }, 'a-8': { start: '06:45', end: '06:55' },
   'a-9': { start: '06:55', end: '07:05' }, 'a-10': { start: '07:05', end: '08:30' },
   'a-11': { start: '08:30', end: '08:45' }, 'a-12': { start: '08:45', end: '10:15' },
@@ -591,6 +607,7 @@ const habitTimeSchedule = {
   'a-15': { start: '12:30', end: '12:45' }, 'a-16': { start: '12:45', end: '14:00' },
   'a-29': { start: '14:00', end: '14:45' }, 'a-51': { start: '14:00', end: '14:45' },
   'a-17': { start: '15:00', end: '15:15' }, 'a-18': { start: '15:15', end: '16:45' },
+  'a-59': { start: '15:00', end: '16:30' },
   'a-53': { start: '17:00', end: '18:00' },
   'a-19': { start: '18:30', end: '18:35' }, 'a-20': { start: '18:35', end: '19:05' },
   'a-43': { start: '19:05', end: '19:25' }, 'a-21': { start: '19:25', end: '20:15' },
@@ -600,6 +617,13 @@ const habitTimeSchedule = {
   'a-26': { start: '21:30', end: '22:00' }, 'a-27': { start: '22:00', end: '23:59' },
   'a-28': { start: '10:30', end: '11:00' }, 'a-31': { start: '10:30', end: '11:00' },
   'a-52': { start: '21:30', end: '22:00' },
+  'a-37': { start: '09:30', end: '10:30' },
+  'a-38': { start: '11:00', end: '13:00' },
+  'a-39': { start: '13:00', end: '14:00' },
+  'a-40': { start: '16:00', end: '16:30' },
+  'a-42': { start: '16:30', end: '16:45' },
+  'a-49': { start: '11:00', end: '13:00' },
+  'a-50': { start: '11:00', end: '12:00' },
 
   // ── Jyoti ──
   'j-1': { start: '05:00', end: '08:00' }, 'j-2': { start: '08:00', end: '08:05' },
@@ -612,6 +636,12 @@ const habitTimeSchedule = {
   'j-18': { start: '18:35', end: '19:05' }, 'j-19': { start: '19:25', end: '20:15' },
   'j-20': { start: '20:15', end: '20:30' }, 'j-21': { start: '20:45', end: '21:30' },
   'j-22': { start: '21:30', end: '23:59' },
+  'j-29': { start: '09:30', end: '10:30' },
+  'j-31': { start: '16:30', end: '17:30' },
+  'j-32': { start: '15:00', end: '15:30' },
+  'j-33': { start: '11:00', end: '13:00' },
+  'j-34': { start: '11:00', end: '12:00' },
+  'j-35': { start: '15:00', end: '16:30' },
 
   // ── Ashish travel mode (Chandigarh) ──
   'at-1': { start: '05:00', end: '05:05' }, 'at-2': { start: '05:05', end: '05:15' },
@@ -1945,6 +1975,7 @@ onBeforeUnmount(() => {
           :mobile-day-label="mobileDayLabel"
           :mobile-day-is-today="mobileDayIsToday"
           :mobile-day-is-future="mobileDayIsFuture"
+          :is-weekend="isMobileDayWeekend"
           :month-days="props.monthDays"
           :active-time-filter="activeTimeFilter"
           :time-slot-counts="timeSlotCounts"
