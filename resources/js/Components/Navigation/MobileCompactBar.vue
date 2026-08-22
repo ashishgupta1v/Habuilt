@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Flame,
   Award,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   Bell,
   BellOff,
+  Target,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -46,23 +48,38 @@ const emit = defineEmits([
 
 const autoProtocolBadge = computed(() => {
   const pts = props.todayPoints;
-  if (pts >= 15) return { label: '🏆 Full Target', class: 'mcb-auto-badge--full' };
-  if (pts >= 8)  return { label: '⚡ Half Hit', class: 'mcb-auto-badge--half' };
-  if (pts >= 4)  return { label: '🛡️ Floor Safe', class: 'mcb-auto-badge--floor' };
-  return { label: `${pts}/15 pts`, class: 'mcb-auto-badge--base' };
+  if (pts >= 15) return { label: '👑 Full', class: 'mcb-auto-badge--full' };
+  if (pts >= 8)  return { label: '⚡ Half', class: 'mcb-auto-badge--half' };
+  if (pts >= 4)  return { label: '🛡️ Floor', class: 'mcb-auto-badge--floor' };
+  return { label: `${pts}/15p`, class: 'mcb-auto-badge--base' };
 });
 </script>
 
 <template>
-  <div class="mobile-compact-bar">
-    <!-- Top Row: Greeting, Status & Action Icons -->
+  <div class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
+    <!-- Top Row: Logo, User Identity & Action Icons -->
     <div class="mcb-row mcb-row--top">
       <div class="mcb-user-group">
-        <span class="mcb-greeting">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
+        <HabuiltLogo size="xs" :with-text="false" class="mcb-logo" />
+        <span class="mcb-user-name">{{ isAshish ? 'Ashish' : (timeGreeting?.name || 'User') }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
 
       <div class="mcb-actions-group">
+        <!-- Travel Mode Toggle (Ashish only) -->
+        <button
+          v-if="isAshish"
+          id="mcb-btn-travel"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--travel"
+          :class="{ 'mcb-icon-btn--travel-active': travelMode }"
+          @click="emit('toggle-travel')"
+          :title="travelMode ? 'Chandigarh Routine Active' : 'Switch to Chandigarh Routine'"
+        >
+          <Plane class="icon-xs" />
+          <span class="mcb-travel-label">{{ travelMode ? 'CHD' : 'Home' }}</span>
+        </button>
+
         <!-- Due Now Lockscreen Notification Actions Toggle -->
         <button
           v-if="notificationsSupported"
@@ -71,7 +88,7 @@ const autoProtocolBadge = computed(() => {
           class="mcb-icon-btn mcb-icon-btn--notif"
           :class="{ 'mcb-icon-btn--notif-active': dueNowNotificationsEnabled }"
           @click="emit('toggle-notifications')"
-          :title="dueNowNotificationsEnabled ? 'Due Now Lockscreen Actions Active (Tap to pause)' : 'Enable Due Now 1-Tap Lockscreen Actions'"
+          :title="dueNowNotificationsEnabled ? 'Due Now Notifications Active' : 'Enable Notifications'"
           aria-label="Due Now Lockscreen Notifications"
         >
           <Bell v-if="dueNowNotificationsEnabled" class="icon-xs icon-gold" />
@@ -88,20 +105,6 @@ const autoProtocolBadge = computed(() => {
           aria-label="Reload and Sync"
         >
           <RefreshCw class="icon-xs" :class="{ 'animate-spin': isSyncing }" />
-        </button>
-
-        <!-- Travel Mode Toggle (Ashish only) -->
-        <button
-          v-if="isAshish"
-          id="mcb-btn-travel"
-          type="button"
-          class="mcb-icon-btn mcb-icon-btn--travel"
-          :class="{ 'mcb-icon-btn--travel-active': travelMode }"
-          @click="emit('toggle-travel')"
-          :title="travelMode ? 'Chandigarh Routine Active • Tap to return to Home' : 'Switch to Chandigarh Routine'"
-        >
-          <Plane class="icon-xs" />
-          <span class="mcb-travel-label">{{ travelMode ? 'CHD' : 'Travel' }}</span>
         </button>
 
         <!-- Share Scorecard Button -->
@@ -131,11 +134,15 @@ const autoProtocolBadge = computed(() => {
       </div>
     </div>
 
-    <!-- Middle Row: Streak, Wallet & Progress Bar -->
+    <!-- Middle Row: High-Density KPI Metrics Capsule -->
     <div class="mcb-row mcb-row--stats">
       <div class="mcb-stats-pills">
-        <span class="mcb-streak"><Flame class="icon-xs icon-flame" /> {{ systemStreak.current }}d streak</span>
-        <span class="mcb-wallet"><Award class="icon-xs icon-vault-gold" /> {{ availableWallet }} pts</span>
+        <span class="mcb-streak" :title="`Current streak: ${systemStreak.current} days`">
+          <Flame class="icon-xs icon-flame" /> {{ systemStreak.current }}d
+        </span>
+        <span class="mcb-wallet" :title="`Available wallet: ${availableWallet} points`">
+          <Award class="icon-xs icon-vault-gold" /> {{ availableWallet }}p
+        </span>
       </div>
 
       <div class="mcb-progress-group">
@@ -152,7 +159,7 @@ const autoProtocolBadge = computed(() => {
       </div>
     </div>
 
-    <!-- Live Up Next Activity Strip on Mobile -->
+    <!-- Live Up Next / Due Now Action Card on Mobile -->
     <div
       v-if="isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, currentDay)"
       id="mcb-btn-upnext"
@@ -177,17 +184,31 @@ const autoProtocolBadge = computed(() => {
 .mobile-compact-bar {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 10px 6px;
-  background: rgba(9, 13, 22, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 5px;
+  padding: 6px 12px 6px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   position: sticky;
   top: 0;
   z-index: 80;
   box-sizing: border-box;
   width: 100%;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.mobile-compact-bar.mcb--dark {
+  background: rgba(9, 14, 26, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 769px) {
+  .mobile-compact-bar {
+    display: none !important;
+  }
 }
 
 .mcb-row {
@@ -207,25 +228,35 @@ const autoProtocolBadge = computed(() => {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  flex: 1;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.mcb-greeting {
-  font-size: clamp(0.72rem, 3.2vw, 0.88rem);
+.mcb-logo {
+  cursor: pointer;
+}
+
+.mcb-user-name {
+  font-size: 0.86rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  color: #0f172a;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #ffffff;
-  min-width: 0;
+}
+
+.mcb--dark .mcb-user-name {
+  color: #f8fafc;
+}
+
+.mcb-grade {
+  font-size: 0.68rem;
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .mcb-actions-group {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -233,41 +264,75 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #f8fafc;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #334155;
   cursor: pointer;
   padding: 0;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mcb-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.mcb--dark .mcb-icon-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
 }
 
 .mcb-icon-btn--travel {
   width: auto;
   min-width: auto;
-  padding: 0 5px;
-  gap: 2px;
-  font-size: 0.65rem;
-  font-weight: 700;
+  padding: 0 7px;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 750;
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #6366f1;
+}
+
+.mcb-icon-btn--travel-active {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.18), rgba(99, 102, 241, 0.18));
+  border-color: rgba(236, 72, 153, 0.4);
+  color: #ec4899;
 }
 
 .mcb-travel-label {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.mcb-icon-btn--notif-active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 .mcb-row--stats {
   justify-content: space-between;
-  gap: 4px;
+  gap: 6px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.mcb--dark .mcb-row--stats {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .mcb-stats-pills {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   flex-shrink: 1;
 }
@@ -275,83 +340,113 @@ const autoProtocolBadge = computed(() => {
 .mcb-streak, .mcb-wallet {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-size: clamp(0.64rem, 2.7vw, 0.72rem);
-  font-weight: 700;
-  padding: 2px 5px;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 2px 6px;
   border-radius: 6px;
   white-space: nowrap;
 }
 
 .mcb-streak {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+}
+
+.mcb--dark .mcb-streak {
+  background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
 }
 
 .mcb-wallet {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.mcb--dark .mcb-wallet {
+  background: rgba(16, 185, 129, 0.18);
   color: #34d399;
 }
 
 .mcb-progress-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .mcb-auto-badge {
-  font-size: clamp(0.6rem, 2.5vw, 0.68rem);
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  padding: 2px 6px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
 .mcb-progress-track {
-  width: clamp(28px, 7vw, 44px);
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.12);
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.1);
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.mcb--dark .mcb-progress-track {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .mcb-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .mcb-progress-label {
-  font-size: clamp(0.6rem, 2.4vw, 0.68rem);
-  color: #94a3b8;
-  font-weight: 700;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 750;
 }
 
+.mcb--dark .mcb-progress-label {
+  color: #94a3b8;
+}
+
+/* ── Live Up Next / Due Now Action Row ── */
 .mcb-up-next-row {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  margin-top: 2px;
-  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12), rgba(99, 102, 241, 0.08));
+  background: rgba(200, 164, 86, 0.12);
   border: 1px solid rgba(200, 164, 86, 0.3);
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mcb--dark .mcb-up-next-row {
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.14), rgba(99, 102, 241, 0.08));
+  border-color: rgba(200, 164, 86, 0.3);
+}
+
+.mcb-up-next-row:active {
+  transform: scale(0.985);
 }
 
 .mcb-up-next-tag {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 5px;
   background: #C8A456;
-  color: #1e293b;
-  font-size: clamp(0.58rem, 2.3vw, 0.65rem);
+  color: #0f172a;
+  font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -360,13 +455,13 @@ const autoProtocolBadge = computed(() => {
 
 .mcb-up-next-tag--due {
   background: #ef4444;
-  color: #fff;
+  color: #ffffff;
 }
 
 .mcb-up-next-title {
-  font-size: clamp(0.68rem, 2.8vw, 0.76rem);
+  font-size: 0.76rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -374,16 +469,26 @@ const autoProtocolBadge = computed(() => {
   min-width: 0;
 }
 
+.mcb--dark .mcb-up-next-title {
+  color: #f8fafc;
+}
+
 .mcb-up-next-action {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-size: clamp(0.62rem, 2.5vw, 0.7rem);
+  gap: 3px;
+  font-size: 0.7rem;
   font-weight: 800;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
-  padding: 2px 4px;
-  border-radius: 4px;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 3px 6px;
+  border-radius: 6px;
   flex-shrink: 0;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.mcb--dark .mcb-up-next-action {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.2);
 }
 </style>

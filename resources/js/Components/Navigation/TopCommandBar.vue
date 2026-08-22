@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Sparkles,
   Zap,
@@ -49,6 +50,10 @@ const showLevelInfo = ref(false);
 <template>
   <div class="hero-command-bar">
     <div class="hero-command-bar__left">
+      <!-- Habuilt Brand Logo & Name -->
+      <HabuiltLogo size="xs" :with-text="true" :show-badge="false" class="hero-brand-logo" />
+
+      <!-- User / Track System Pill -->
       <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : (isAshish ? 'hero-track-pill--ashish' : 'hero-track-pill--generic')">
         <Sparkles class="icon-xs" />
         <span v-if="isJyoti">Jyoti's System</span>
@@ -166,52 +171,56 @@ const showLevelInfo = ref(false);
       </button>
     </div>
 
-    <!-- Level & XP Popover Modal -->
-    <div v-if="showLevelInfo" class="hero-level-popover-overlay" @click.self="showLevelInfo = false">
-      <div class="hero-level-popover">
-        <div class="hero-level-popover__head">
-          <div class="hero-level-popover__title">
-            <Zap class="icon-sm icon-zap" />
-            <span>Habuilt XP Progression System</span>
+    <!-- Level & XP Popover Modal – Teleported to body to escape stacking context -->
+    <Teleport to="body">
+      <Transition name="popover-fade">
+        <div v-if="showLevelInfo" class="hero-level-popover-overlay" @click.self="showLevelInfo = false">
+          <div class="hero-level-popover" role="dialog" aria-modal="true" aria-labelledby="xp-dialog-title">
+            <div class="hero-level-popover__head">
+              <div class="hero-level-popover__title" id="xp-dialog-title">
+                <Zap class="icon-sm icon-zap" />
+                <span>Habuilt XP Progression System</span>
+              </div>
+              <button type="button" class="hero-level-popover__close" @click="showLevelInfo = false" aria-label="Close dialog">
+                <X class="icon-xs" />
+              </button>
+            </div>
+            <div class="hero-level-popover__body">
+              <p class="hero-level-popover__desc">
+                You earn <strong>10 XP</strong> for every point completed. Your current rank is
+                <strong>Level {{ levelData.level }} {{ levelTitle }}</strong> ({{ totalXP }} total XP).
+              </p>
+              <div class="hero-level-tiers-list">
+                <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 1 || levelData.level === 2 }">
+                  <span class="tier-badge">Lv 1–2</span>
+                  <span class="tier-title">Initiate</span>
+                  <span class="tier-xp">0–999 XP</span>
+                </div>
+                <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 3 || levelData.level === 4 }">
+                  <span class="tier-badge">Lv 3–4</span>
+                  <span class="tier-title">Practitioner</span>
+                  <span class="tier-xp">1,000–1,999 XP</span>
+                </div>
+                <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 5 || levelData.level === 6 }">
+                  <span class="tier-badge">Lv 5–6</span>
+                  <span class="tier-title">Architect</span>
+                  <span class="tier-xp">2,000–2,999 XP</span>
+                </div>
+                <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 7 && levelData.level <= 9 }">
+                  <span class="tier-badge">Lv 7–9</span>
+                  <span class="tier-title">Titan</span>
+                  <span class="tier-xp">3,000–4,999 XP</span>
+                </div>
+                <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 10 }">
+                  <span class="tier-badge">Lv 10+</span>
+                  <span class="tier-title">Ascendant</span>
+                  <span class="tier-xp">5,000+ XP</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button type="button" class="hero-level-popover__close" @click="showLevelInfo = false">
-            <X class="icon-xs" />
-          </button>
         </div>
-        <div class="hero-level-popover__body">
-          <p class="hero-level-popover__desc">
-            You earn <strong>10 XP</strong> for every point completed. Your current rank is
-            <strong>Level {{ levelData.level }} {{ levelTitle }}</strong> ({{ totalXP }} total XP).
-          </p>
-          <div class="hero-level-tiers-list">
-            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 1 || levelData.level === 2 }">
-              <span class="tier-badge">Lv 1–2</span>
-              <span class="tier-title">Initiate</span>
-              <span class="tier-xp">0–999 XP</span>
-            </div>
-            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 3 || levelData.level === 4 }">
-              <span class="tier-badge">Lv 3–4</span>
-              <span class="tier-title">Practitioner</span>
-              <span class="tier-xp">1,000–1,999 XP</span>
-            </div>
-            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 5 || levelData.level === 6 }">
-              <span class="tier-badge">Lv 5–6</span>
-              <span class="tier-title">Architect</span>
-              <span class="tier-xp">2,000–2,999 XP</span>
-            </div>
-            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 7 && levelData.level <= 9 }">
-              <span class="tier-badge">Lv 7–9</span>
-              <span class="tier-title">Titan</span>
-              <span class="tier-xp">3,000–4,999 XP</span>
-            </div>
-            <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 10 }">
-              <span class="tier-badge">Lv 10+</span>
-              <span class="tier-title">Ascendant</span>
-              <span class="tier-xp">5,000+ XP</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

@@ -122,14 +122,13 @@ const uid = Math.random().toString(36).substring(2, 9);
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2), 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  border-radius: 8px;
+  /* Crisp appearance with no blurry circular shadow artifact */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .habuilt-logo-brand:hover .habuilt-logo-brand__icon {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3), 0 2px 5px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px) scale(1.04);
 }
 
 .habuilt-logo-brand__svg {

@@ -1072,6 +1072,30 @@ const shareDailyScorecard = () => {
   isShareModalOpen.value = true;
 };
 
+// ── Real-Time Routine Phase Window Helper ──
+const currentRoutineWindow = computed(() => {
+  const now = currentClock.value;
+  const mins = now.getHours() * 60 + now.getMinutes();
+  if (mins < 9 * 60) {
+    return { name: 'Morning Protocol', time: '05:00 – 09:00', icon: '🌅' };
+  } else if (mins < 14 * 60) {
+    return { name: 'Deep Execution Block', time: '09:00 – 14:00', icon: '⚡' };
+  } else if (mins < 18 * 60 + 30) {
+    return { name: 'Midday & Operations Block', time: '14:00 – 18:30', icon: '☀️' };
+  } else if (mins < 21 * 60 + 30) {
+    return { name: 'Evening Routine & Shutdown', time: '18:30 – 21:30', icon: '🌙' };
+  } else {
+    return { name: 'Night Wind-down & Rest', time: '21:30+', icon: '✨' };
+  }
+});
+
+// ── Quick Productivity Launchers ──
+const startQuickFocus = (minutes = 25) => {
+  activeMobileTab.value = 'focus';
+  startDeepWorkTimer(minutes);
+  showToast(`⚡ Started ${minutes}m Focus Session`);
+};
+
 const handleAppReload = async () => {
   try {
     isSyncingCloud.value = true;
@@ -1621,71 +1645,234 @@ onBeforeUnmount(() => {
           @toggle-theme="toggleTheme"
         />
 
-        <!-- Greeting & Automatic Protocol Status -->
-        <div class="hero-greeting-bar">
-          <div class="hero-greeting-text">
-            <div class="hero-greeting-title">
-              <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
-              <span class="hero-greeting-wave">👋</span>
-              <span class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+        <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
+        <div class="hero-executive-deck">
+          <!-- Left Column: Greeting, Routine Phase, Live Up Next & Quick Actions -->
+          <div class="hero-deck-left">
+            <div class="hero-greeting-text">
+              <div class="hero-greeting-title">
+                <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
+                <span class="hero-greeting-wave">👋</span>
+                <span class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+                
+                <!-- Live Routine Phase Window Pill -->
+                <div class="hero-routine-pill" :title="`Active Routine Window: ${currentRoutineWindow.name} (${currentRoutineWindow.time})`">
+                  <span class="hero-routine-pill__icon">{{ currentRoutineWindow.icon }}</span>
+                  <span class="hero-routine-pill__name">{{ currentRoutineWindow.name }}</span>
+                  <span class="hero-routine-pill__time mono-num">{{ currentRoutineWindow.time }}</span>
+                </div>
+              </div>
+              <p class="hero-greeting-quote">
+                {{ timeGreeting.quote }}
+              </p>
             </div>
-            <p class="hero-greeting-quote">
-              <span class="hero-greeting-quote__brand">Habuilt.</span> {{ timeGreeting.quote }}
-            </p>
+
+            <!-- Live Up Next / Due Now Action Strip -->
+            <div
+              v-if="props.isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, props.currentDay)"
+              class="hero-upnext-strip"
+            >
+              <div class="hero-upnext-tag" :class="{ 'hero-upnext-tag--due': upNextHabitInfo.status === 'due' }">
+                <Clock class="icon-xs" />
+                <span>{{ upNextHabitInfo.shortBadge }}</span>
+              </div>
+              <div class="hero-upnext-info">
+                <span class="hero-upnext-name">{{ upNextHabitInfo.habit.name }}</span>
+                <span class="hero-upnext-time mono-num">{{ upNextHabitInfo.timeLabel }}</span>
+              </div>
+              <button
+                type="button"
+                class="hero-upnext-action-btn"
+                @click="toggleHabitForDay(upNextHabitInfo.habit, props.currentDay)"
+                :title="`Mark '${upNextHabitInfo.habit.name}' as completed (+${upNextHabitInfo.habit.points} XP)`"
+              >
+                <Check class="icon-xs" />
+                <span>Mark Done (+{{ upNextHabitInfo.habit.points }}pt)</span>
+              </button>
+            </div>
+
+            <div
+              v-else-if="props.isCurrentMonth && todayScheduledCount > 0 && todayCompletedCount >= todayScheduledCount"
+              class="hero-upnext-strip hero-upnext-strip--all-done"
+            >
+              <div class="hero-upnext-tag hero-upnext-tag--done">
+                <Crown class="icon-xs" />
+                <span>ALL PROTOCOLS MET</span>
+              </div>
+              <span class="hero-upnext-done-msg">🏆 Elite execution! All {{ todayScheduledCount }} scheduled habits completed for today.</span>
+            </div>
+
+            <!-- Quick Productivity Launchers -->
+            <div class="hero-quick-launchers">
+              <button
+                type="button"
+                class="hero-launch-btn hero-launch-btn--focus"
+                @click="startQuickFocus(25)"
+                title="Launch a 25-minute Pomodoro Deep Work Focus Session"
+              >
+                <Timer class="icon-xs" />
+                <span>{{ timerState && timerState.running ? 'Focus Active' : 'Start 25m Focus' }}</span>
+                <span v-if="timerState && timerState.running" class="hero-launch-btn__pulse"></span>
+              </button>
+
+              <button
+                type="button"
+                class="hero-launch-btn hero-launch-btn--share"
+                @click="shareDailyScorecard"
+                title="Generate and Share your Daily Scorecard"
+              >
+                <Share2 class="icon-xs" />
+                <span>Share Scorecard</span>
+              </button>
+
+              <button
+                type="button"
+                class="hero-launch-btn hero-launch-btn--sync"
+                @click="handleAppReload"
+                :title="isSyncingCloud ? 'Syncing with Supabase cloud database...' : 'Manual Sync Database'"
+              >
+                <RefreshCw class="icon-xs" :class="{ 'animate-spin': isSyncingCloud }" />
+                <span>{{ isSyncingCloud ? 'Syncing...' : 'Sync' }}</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Automatic Milestone Protocol Gauge -->
-          <div class="hero-auto-protocol-box">
-            <div class="hero-auto-protocol-header">
-              <div class="hero-auto-protocol-title-wrap">
-                <Shield class="icon-xs icon-gold" />
-                <span class="hero-auto-protocol-label">Today's Protocol</span>
+          <!-- Right Column: Today's Protocol Command Card -->
+          <div class="hero-deck-right">
+            <div class="hero-protocol-card">
+              <div class="hero-protocol-card__header">
+                <div class="hero-protocol-card__title">
+                  <Shield class="icon-sm icon-gold" />
+                  <span>Today's Protocol</span>
+                </div>
+                <div class="hero-protocol-card__score-chip">
+                  <span class="hero-protocol-card__current mono-num">{{ todayPoints }}</span>
+                  <span class="hero-protocol-card__target mono-num">/ 15 pts</span>
+                </div>
               </div>
-              <div class="hero-auto-protocol-pts-chip">
-                <span class="hero-auto-protocol-pts mono-num">{{ todayPoints }}</span>
-                <span class="hero-auto-protocol-target mono-num">/ 15 pts</span>
+
+              <!-- Segmented Milestone Gauge Bar -->
+              <div class="hero-milestone-gauge">
+                <div
+                  class="hero-milestone-gauge__fill"
+                  :style="{ width: `${Math.min(100, Math.round((todayPoints / 15) * 100))}%` }"
+                ></div>
+              </div>
+
+              <!-- 3 Milestone Tier Chips (Clean Horizontal Grid) -->
+              <div class="hero-protocol-tiers-grid">
+                <div
+                  class="hero-tier-card"
+                  :class="{ 'hero-tier-card--met': todayPoints >= 4 }"
+                  :title="todayPoints >= 4 ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${4 - todayPoints} more pts for Floor`"
+                >
+                  <div class="hero-tier-card__head">
+                    <Shield class="icon-xs hero-tier-card__icon" />
+                    <span class="hero-tier-card__title">Floor</span>
+                  </div>
+                  <div class="hero-tier-card__status mono-num">
+                    {{ todayPoints >= 4 ? '✓ Safe' : `${todayPoints}/4p` }}
+                  </div>
+                </div>
+
+                <div
+                  class="hero-tier-card"
+                  :class="{ 'hero-tier-card--met': todayPoints >= 8 }"
+                  :title="todayPoints >= 8 ? 'Half Protocol Achieved (Solid Execution)' : `Need ${8 - todayPoints} more pts for Half`"
+                >
+                  <div class="hero-tier-card__head">
+                    <Zap class="icon-xs hero-tier-card__icon" />
+                    <span class="hero-tier-card__title">Half</span>
+                  </div>
+                  <div class="hero-tier-card__status mono-num">
+                    {{ todayPoints >= 8 ? '✓ Hit' : `${todayPoints}/8p` }}
+                  </div>
+                </div>
+
+                <div
+                  class="hero-tier-card"
+                  :class="{ 'hero-tier-card--met': todayPoints >= 15 }"
+                  :title="todayPoints >= 15 ? 'Full Target Achieved (Elite Performance)' : `Need ${15 - todayPoints} more pts for Full`"
+                >
+                  <div class="hero-tier-card__head">
+                    <Trophy class="icon-xs hero-tier-card__icon" />
+                    <span class="hero-tier-card__title">Full</span>
+                  </div>
+                  <div class="hero-tier-card__status mono-num">
+                    {{ todayPoints >= 15 ? '👑 Peak' : `${todayPoints}/15p` }}
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Segmented Milestone Gauge Bar -->
-            <div class="hero-milestone-gauge">
-              <div
-                class="hero-milestone-gauge__fill"
-                :style="{ width: `${Math.min(100, Math.round((todayPoints / 15) * 100))}%` }"
-              ></div>
+        <!-- ── Mission Control Row 2: Executive 4-Card KPI Ribbon ── -->
+        <div class="hero-kpi-ribbon">
+          <!-- Card 1: System Streak -->
+          <div class="hero-kpi-card hero-kpi-card--streak" :title="`Current Streak: ${systemStreak.current} Days | Longest: ${systemStreak.longest || systemStreak.current} Days`">
+            <div class="hero-kpi-card__icon-wrap">
+              <Flame class="hero-kpi-card__icon icon-flame" />
             </div>
-
-            <!-- 3 Dynamic Milestone Status Cards -->
-            <div class="hero-auto-protocol-tiers">
-              <div
-                class="hero-auto-tier"
-                :class="{ 'hero-auto-tier--met': todayPoints >= 4 }"
-                :title="todayPoints >= 4 ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${4 - todayPoints} more pts for Floor`"
-              >
-                <span class="hero-auto-tier__icon">🛡️</span>
-                <span class="hero-auto-tier__name">Floor (4p)</span>
-                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 4 ? '✓ Safe' : `${todayPoints}/4p` }}</span>
+            <div class="hero-kpi-card__body">
+              <span class="hero-kpi-card__label">System Streak</span>
+              <div class="hero-kpi-card__value-row">
+                <span class="hero-kpi-card__value mono-num">{{ systemStreak.current }}</span>
+                <span class="hero-kpi-card__unit">Days</span>
               </div>
+              <span class="hero-kpi-card__subtext">
+                <span class="hero-kpi-card__sub-highlight mono-num">Best {{ systemStreak.longest || systemStreak.current }}d</span> • Protected
+              </span>
+            </div>
+          </div>
 
-              <div
-                class="hero-auto-tier"
-                :class="{ 'hero-auto-tier--met': todayPoints >= 8 }"
-                :title="todayPoints >= 8 ? 'Half Protocol Achieved (Solid Execution)' : `Need ${8 - todayPoints} more pts for Half`"
-              >
-                <span class="hero-auto-tier__icon">⚡</span>
-                <span class="hero-auto-tier__name">Half (8p)</span>
-                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 8 ? '✓ Hit' : `${todayPoints}/8p` }}</span>
+          <!-- Card 2: Reward Vault / Available Wallet -->
+          <div class="hero-kpi-card hero-kpi-card--wallet" :title="`${availableWallet} Points Available in Reward Vault • Click to open Vault`" @click="activeMobileTab = 'rewards'">
+            <div class="hero-kpi-card__icon-wrap">
+              <Award class="hero-kpi-card__icon icon-vault-gold" />
+            </div>
+            <div class="hero-kpi-card__body">
+              <span class="hero-kpi-card__label">Reward Vault</span>
+              <div class="hero-kpi-card__value-row">
+                <span class="hero-kpi-card__value mono-num">{{ availableWallet }}</span>
+                <span class="hero-kpi-card__unit">pts</span>
               </div>
+              <span class="hero-kpi-card__subtext">
+                <span class="hero-kpi-card__sub-highlight mono-num">+{{ monthlyTotalEarned }}</span> this month
+              </span>
+            </div>
+          </div>
 
-              <div
-                class="hero-auto-tier"
-                :class="{ 'hero-auto-tier--met': todayPoints >= 15 }"
-                :title="todayPoints >= 15 ? 'Full Target Achieved (Elite Performance)' : `Need ${15 - todayPoints} more pts for Full`"
-              >
-                <span class="hero-auto-tier__icon">🏆</span>
-                <span class="hero-auto-tier__name">Full (15p)</span>
-                <span class="hero-auto-tier__status mono-num">{{ todayPoints >= 15 ? '👑 Peak' : `${todayPoints}/15p` }}</span>
+          <!-- Card 3: Monthly Stickiness -->
+          <div class="hero-kpi-card hero-kpi-card--consistency" :title="`Monthly Stickiness: ${consistencyScore}% (Grade: ${consistencyGrade.grade || 'D'}) • Click for Analytics`" @click="activeMobileTab = 'stats'">
+            <div class="hero-kpi-card__icon-wrap">
+              <TrendingUp class="hero-kpi-card__icon icon-teal" />
+            </div>
+            <div class="hero-kpi-card__body">
+              <span class="hero-kpi-card__label">Monthly Consistency</span>
+              <div class="hero-kpi-card__value-row">
+                <span class="hero-kpi-card__value mono-num">{{ consistencyScore }}%</span>
+                <span class="hero-kpi-card__badge mono-num" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
               </div>
+              <span class="hero-kpi-card__subtext">{{ performanceGrade.text || 'Target: 85%+ Consistency' }}</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Daily Execution -->
+          <div class="hero-kpi-card hero-kpi-card--today" :title="`${todayCompletedCount} of ${todayScheduledCount} habits completed today`" @click="activeMobileTab = 'today'">
+            <div class="hero-kpi-card__icon-wrap">
+              <CheckCircle2 class="hero-kpi-card__icon icon-emerald" />
+            </div>
+            <div class="hero-kpi-card__body">
+              <span class="hero-kpi-card__label">Today's Habits</span>
+              <div class="hero-kpi-card__value-row">
+                <span class="hero-kpi-card__value mono-num">{{ todayCompletedCount }}/{{ todayScheduledCount }}</span>
+                <span class="hero-kpi-card__unit mono-num">({{ todayScheduledCount > 0 ? Math.round((todayCompletedCount / todayScheduledCount) * 100) : 0 }}%)</span>
+              </div>
+              <span class="hero-kpi-card__subtext">
+                <span v-if="todayScheduledCount - todayCompletedCount > 0" class="hero-kpi-card__sub-highlight">{{ todayScheduledCount - todayCompletedCount }} pending</span>
+                <span v-else class="hero-kpi-card__sub-done">🎉 All Done Today!</span>
+              </span>
             </div>
           </div>
         </div>

@@ -77,7 +77,7 @@ const emit = defineEmits([
     @touchstart="onTouchStart"
     @touchend="onTouchEnd"
   >
-    <!-- Day Navigator -->
+    <!-- Consolidated Day Navigator & Schedule Mode -->
     <div class="mobile-daily__nav">
       <button
         class="mobile-daily__nav-btn"
@@ -88,13 +88,27 @@ const emit = defineEmits([
         <ChevronLeft class="icon-sm" />
       </button>
       <div class="mobile-daily__nav-center">
-        <button v-if="!mobileDayIsToday" class="mobile-daily__today-link" @click="emit('go-today')">
-          Jump to today
-        </button>
-        <span class="mobile-daily__nav-label" :class="{ 'mobile-daily__nav-label--today': mobileDayIsToday }">
-          {{ mobileDayLabel }}
+        <div class="mobile-daily__nav-title-row">
+          <span class="mobile-daily__nav-label" :class="{ 'mobile-daily__nav-label--today': mobileDayIsToday }">
+            {{ mobileDayLabel }}
+          </span>
           <span v-if="mobileDayIsToday" class="mobile-daily__today-badge">TODAY</span>
-        </span>
+          <button v-else class="mobile-daily__today-link" @click="emit('go-today')">
+            Jump to today
+          </button>
+        </div>
+        <!-- Compact Inline Schedule Mode Chip -->
+        <button
+          type="button"
+          class="mobile-daily__schedule-chip"
+          :class="{ 'mobile-daily__schedule-chip--active': scheduleFilterMode === 'scheduled' }"
+          @click="emit('toggle-schedule-filter')"
+          :title="scheduleFilterMode === 'scheduled' ? 'Showing habits scheduled specifically for today. Tap to show master list.' : 'Showing master list. Tap to show scheduled routine.'"
+        >
+          <Sparkles class="icon-xs" />
+          <span v-if="scheduleFilterMode === 'scheduled'">{{ scheduledHabitsCount }} scheduled</span>
+          <span v-else>Master ({{ totalMasterHabitsCount }})</span>
+        </button>
       </div>
       <button
         class="mobile-daily__nav-btn"
@@ -110,27 +124,12 @@ const emit = defineEmits([
     <div v-if="mobileDayIsFuture" class="future-day-alert-banner" @click="emit('go-today')">
       <div class="future-alert-left">
         <Sparkles class="icon-sm icon-gold" />
-        <span>Viewing Future Day ({{ mobileDayLabel }}). Tap to <strong>Jump to Today</strong> to log habits</span>
+        <span>Viewing Future Day ({{ mobileDayLabel }}). Tap to <strong>Jump to Today</strong></span>
       </div>
       <button type="button" class="btn-jump-today">Jump to Today</button>
     </div>
 
-    <!-- Day-Specific Schedule Mode Bar -->
-    <div class="schedule-mode-bar">
-      <button
-        type="button"
-        class="schedule-mode-chip"
-        :class="{ 'schedule-mode-chip--active': scheduleFilterMode === 'scheduled' }"
-        @click="emit('toggle-schedule-filter')"
-        :title="scheduleFilterMode === 'scheduled' ? 'Showing habits scheduled specifically for today. Tap to show all habits.' : 'Showing all habits. Tap to show only today\'s scheduled routine.'"
-      >
-        <Sparkles class="icon-xs" />
-        <span v-if="scheduleFilterMode === 'scheduled'">{{ mobileDayLabel.split(',')[0] }} Schedule: <strong>{{ scheduledHabitsCount }} habits</strong></span>
-        <span v-else>Master Checklist: <strong>{{ totalMasterHabitsCount }} habits</strong></span>
-      </button>
-    </div>
-
-    <!-- Time-Slot Filter Pills -->
+    <!-- Time-Slot Filter Carousel Pills (Compact & Smooth) -->
     <div class="time-filter-bar">
       <button
         class="time-filter-pill"
@@ -196,18 +195,7 @@ const emit = defineEmits([
       </button>
     </div>
 
-    <!-- Travel Mode Toggle (Ashish only) -->
-    <div v-if="isAshish" class="travel-mode-bar">
-      <button class="travel-mode-toggle" :class="{ 'travel-mode-toggle--active': travelMode }" @click="emit('toggle-travel')">
-        <Plane v-if="travelMode" class="icon-sm" />
-        <MapPin v-else class="icon-sm" />
-        <span>{{ travelMode ? 'Travel Mode (Chandigarh)' : 'Home Mode' }}</span>
-        <ToggleRight v-if="travelMode" class="icon-md travel-toggle-icon" />
-        <ToggleLeft v-else class="icon-md travel-toggle-icon" />
-      </button>
-    </div>
-
-    <!-- Progress Summary -->
+    <!-- Slim Daily Execution Progress Line -->
     <div class="mobile-daily__progress">
       <div class="mobile-daily__progress-bar">
         <div
