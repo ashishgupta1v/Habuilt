@@ -184,9 +184,9 @@ const handleGuestAccess = () => {
           </div>
           <div class="auth-android-card__actions">
             <a
-              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/app-debug.apk"
+              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk"
               class="btn-auth-apk-download"
-              title="Download Latest Android APK (app-debug.apk)"
+              title="Download Latest Android APK (habuilt.apk)"
             >
               <Download class="icon-xs" />
               <span>Download APK</span>
@@ -413,7 +413,7 @@ const handleGuestAccess = () => {
           </div>
           <div class="auth-landing-apk-bar__buttons">
             <a
-              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/app-debug.apk"
+              href="https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk"
               class="auth-landing-apk-link"
               title="Direct APK Download"
             >

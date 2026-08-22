@@ -20,7 +20,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'toast']);
 
-const apkDownloadUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/app-debug.apk';
+const apkDownloadUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk';
 const githubReleaseUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/tag/latest-build';
 // High-res QR code generated for instant phone camera scanning
 const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(apkDownloadUrl)}`;
@@ -114,7 +114,7 @@ const copyLink = async () => {
                 class="btn btn--primary-action btn--apk-download"
               >
                 <Download class="icon-sm" />
-                <span>Download APK (app-debug.apk)</span>
+                <span>Download APK (habuilt.apk)</span>
               </a>
 
               <button
@@ -173,7 +173,7 @@ const copyLink = async () => {
               <div class="apk-step-num">1</div>
               <div class="apk-step-content">
                 <strong>Download & Open</strong>
-                <p>Tap download on your phone or scan the QR code. Open the downloaded <code>app-debug.apk</code> file.</p>
+                <p>Tap download on your phone or scan the QR code. Open the downloaded <code>habuilt.apk</code> file.</p>
               </div>
             </div>
 
