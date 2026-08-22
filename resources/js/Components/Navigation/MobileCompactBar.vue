@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Flame,
   Award,
@@ -14,7 +13,6 @@ import {
   RefreshCw,
   Bell,
   BellOff,
-  LogOut,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -44,7 +42,6 @@ const emit = defineEmits([
   'share-scorecard',
   'reload-app',
   'toggle-notifications',
-  'sign-out',
 ]);
 
 const autoProtocolBadge = computed(() => {
@@ -58,12 +55,9 @@ const autoProtocolBadge = computed(() => {
 
 <template>
   <div class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
-    <!-- Top Row: Brand, User Identity & Action Icons (Unified Single Mobile Navigation Bar) -->
+    <!-- Top Row: User Identity & Action Icons -->
     <div class="mcb-row mcb-row--top">
-      <div class="mcb-brand-user-group">
-        <HabuiltLogo size="xs" :with-text="true" class="mcb-brand-logo" />
-        <span class="mcb-pro-tag">PRO</span>
-        <div class="mcb-divider-dot"></div>
+      <div class="mcb-user-group">
         <span class="mcb-user-name">{{ isAshish ? 'Ashish' : (timeGreeting?.name || 'User') }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
@@ -134,18 +128,6 @@ const autoProtocolBadge = computed(() => {
           <Sun v-if="darkMode" class="icon-xs icon-sun" />
           <Moon v-else class="icon-xs icon-moon" />
         </button>
-
-        <!-- Sign Out Button -->
-        <button
-          id="mcb-btn-logout"
-          type="button"
-          class="mcb-icon-btn mcb-icon-btn--logout"
-          @click="emit('sign-out')"
-          title="Sign out of Habuilt"
-          aria-label="Sign Out"
-        >
-          <LogOut class="icon-xs" />
-        </button>
       </div>
     </div>
 
@@ -199,8 +181,8 @@ const autoProtocolBadge = computed(() => {
 .mobile-compact-bar {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: max(8px, env(safe-area-inset-top, 0px)) 10px 6px;
+  gap: 4px;
+  padding: 4px 10px 6px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -239,40 +221,16 @@ const autoProtocolBadge = computed(() => {
   justify-content: space-between;
 }
 
-.mcb-brand-user-group {
+.mcb-user-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
-  flex-shrink: 1;
-}
-
-.mcb-brand-logo {
-  flex-shrink: 0;
-}
-
-.mcb-pro-tag {
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  padding: 1px 4px;
-  border-radius: 4px;
-  background: rgba(200, 164, 86, 0.18);
-  color: #D4B36A;
-  border: 1px solid rgba(200, 164, 86, 0.35);
-  flex-shrink: 0;
-}
-
-.mcb-divider-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: rgba(148, 163, 184, 0.4);
   flex-shrink: 0;
 }
 
 .mcb-user-name {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #0f172a;
@@ -357,16 +315,6 @@ const autoProtocolBadge = computed(() => {
   background: rgba(200, 164, 86, 0.16);
   border-color: rgba(200, 164, 86, 0.4);
   color: #D4B36A;
-}
-
-.mcb-icon-btn--logout {
-  color: #94a3b8;
-}
-
-.mcb--dark .mcb-icon-btn--logout:hover {
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.25);
 }
 
 .mcb-row--stats {

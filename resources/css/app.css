@@ -222,11 +222,8 @@ button {
 
 @media (max-width: 768px) {
   .app-main-content {
-    padding: 0 10px calc(75px + env(safe-area-inset-bottom, 0px));
+    padding: max(6px, env(safe-area-inset-top, 0px)) 10px calc(75px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
-  }
-  .app-nav--desktop-only {
-    display: none !important;
   }
 }
 

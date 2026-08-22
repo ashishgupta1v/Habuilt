@@ -267,7 +267,7 @@ onMounted(async () => {
     <div v-if="activeUser" class="app-root">
       <!-- Dashboard + Top Header Wrapper -->
       <main class="app-main-content">
-        <nav class="app-nav app-nav--desktop-only">
+        <nav class="app-nav">
           <div class="app-nav__container">
             <div class="app-nav__left">
               <HabuiltLogo size="md" :with-text="true" />

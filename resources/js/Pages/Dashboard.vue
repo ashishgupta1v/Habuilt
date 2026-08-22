@@ -1648,7 +1648,6 @@ onBeforeUnmount(() => {
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
       @toggle-notifications="handleToggleDueNowNotifications"
-      @sign-out="emit('sign-out')"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
