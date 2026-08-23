@@ -594,34 +594,45 @@ const maxDailyPoints = computed(() => activeHabitsForMobileDay.value.reduce((sum
 
 // Up Next Engine
 const habitTimeSchedule = {
-  // ── Ashish home mode ──
-  'a-1': { start: '05:00', end: '05:05' }, 'a-2': { start: '05:05', end: '05:10' },
-  'a-54': { start: '05:10', end: '05:20' }, 'a-55': { start: '05:20', end: '05:25' },
-  'a-56': { start: '05:25', end: '05:30' }, 'a-57': { start: '05:30', end: '05:40' },
-  'a-58': { start: '05:40', end: '05:50' }, 'a-3': { start: '05:50', end: '05:55' },
-  'a-4': { start: '05:55', end: '06:40' }, 'a-5': { start: '05:55', end: '06:40' },
-  'a-6': { start: '05:55', end: '06:40' },
+  // ── Ashish home mode (04:45 wake-up + integrated MOVERS Sadhana protocol) ──
+  'a-64': { start: '04:45', end: '04:55' },
+  'a-1': { start: '04:55', end: '05:00' }, 'a-2': { start: '04:55', end: '05:00' },
+  'a-5': { start: '05:00', end: '05:20' },
+  'a-55': { start: '05:20', end: '05:35' },
+  'a-54': { start: '05:35', end: '05:45' },
+  'a-56': { start: '05:45', end: '05:50' }, 'a-57': { start: '05:50', end: '05:55' },
+  'a-58': { start: '05:55', end: '06:00' }, 'a-3': { start: '06:00', end: '06:05' },
+  'a-4': { start: '06:05', end: '06:35' },
+  'a-6': { start: '06:05', end: '06:40' },
   'a-60': { start: '06:00', end: '06:30' },
-  'a-7': { start: '06:40', end: '06:45' }, 'a-8': { start: '06:45', end: '06:55' },
-  'a-9': { start: '06:55', end: '07:05' }, 'a-10': { start: '07:05', end: '08:30' },
-  'a-61': { start: '07:05', end: '07:10' },
+  'a-7': { start: '06:35', end: '06:45' },
+  'a-66': { start: '06:45', end: '06:55' },
+  'a-9': { start: '06:55', end: '07:05' },
+  'a-8': { start: '07:05', end: '07:20' },
+  'a-67': { start: '07:20', end: '07:30' },
+  'a-61': { start: '07:30', end: '07:35' },
+  'a-10': { start: '07:35', end: '08:30' },
   'a-11': { start: '08:30', end: '08:45' }, 'a-12': { start: '08:45', end: '10:15' },
-  'a-13': { start: '10:30', end: '10:40' }, 'a-14': { start: '11:00', end: '12:30' },
+  'a-13': { start: '10:30', end: '10:40' },
+  'a-28': { start: '10:30', end: '11:00' }, 'a-31': { start: '10:30', end: '11:00' },
+  'a-14': { start: '11:00', end: '12:30' },
   'a-15': { start: '12:30', end: '12:45' }, 'a-16': { start: '12:45', end: '14:00' },
-  'a-29': { start: '14:00', end: '14:45' }, 'a-51': { start: '14:00', end: '14:45' },
-  'a-17': { start: '15:00', end: '15:15' }, 'a-18': { start: '15:15', end: '16:45' },
-  'a-62': { start: '15:00', end: '15:05' },
+  'a-29': { start: '14:00', end: '14:45' }, 'a-51': { start: '14:45', end: '14:50' },
+  'a-68': { start: '14:50', end: '15:00' },
+  'a-17': { start: '15:00', end: '15:15' },
+  'a-62': { start: '09:00', end: '18:00' },
+  'a-18': { start: '15:15', end: '16:45' },
   'a-59': { start: '15:00', end: '16:30' },
   'a-53': { start: '17:00', end: '18:00' },
   'a-19': { start: '18:30', end: '18:35' }, 'a-20': { start: '18:35', end: '19:05' },
   'a-43': { start: '19:05', end: '19:25' }, 'a-21': { start: '19:25', end: '20:15' },
   'a-30': { start: '19:25', end: '20:15' },
   'a-22': { start: '20:15', end: '20:30' }, 'a-23': { start: '20:45', end: '21:00' },
-  'a-24': { start: '21:00', end: '21:05' }, 'a-25': { start: '21:05', end: '21:30' },
+  'a-24': { start: '21:00', end: '21:05' }, 'a-25': { start: '21:05', end: '21:15' },
+  'a-52': { start: '21:15', end: '21:20' },
+  'a-69': { start: '21:20', end: '21:30' },
   'a-26': { start: '21:35', end: '21:40' }, 'a-63': { start: '21:40', end: '21:50' },
   'a-27': { start: '22:00', end: '23:59' },
-  'a-28': { start: '10:30', end: '11:00' }, 'a-31': { start: '10:30', end: '11:00' },
-  'a-52': { start: '21:30', end: '22:00' },
   'a-37': { start: '09:30', end: '10:30' },
   'a-38': { start: '11:00', end: '13:00' },
   'a-39': { start: '13:00', end: '14:00' },
@@ -648,22 +659,20 @@ const habitTimeSchedule = {
   'j-34': { start: '11:00', end: '12:00' },
   'j-35': { start: '15:00', end: '16:30' },
 
-  // ── Ashish travel mode (Chandigarh) ──
-  'at-1': { start: '05:00', end: '05:05' }, 'at-2': { start: '05:05', end: '05:15' },
-  'at-3': { start: '05:15', end: '05:40' }, 'at-4': { start: '05:40', end: '06:00' },
-  'at-5': { start: '06:00', end: '06:15' }, 'at-6': { start: '06:15', end: '06:30' },
-  'at-7': { start: '06:30', end: '07:30' }, 'at-8': { start: '07:30', end: '09:30' },
-  'at-9': { start: '09:30', end: '09:45' }, 'at-10': { start: '09:45', end: '11:15' },
-  'at-11': { start: '11:15', end: '11:30' }, 'at-12': { start: '11:30', end: '13:00' },
-  'at-13': { start: '13:00', end: '14:30' }, 'at-14': { start: '14:30', end: '16:00' },
-  'at-15': { start: '16:00', end: '16:30' }, 'at-16': { start: '16:30', end: '17:00' },
-  'at-17': { start: '17:00', end: '18:00' }, 'at-18': { start: '18:00', end: '18:35' },
-  'at-19': { start: '18:35', end: '19:25' }, 'at-20': { start: '19:25', end: '20:15' },
-  'at-21': { start: '20:15', end: '21:00' }, 'at-22': { start: '21:00', end: '21:30' },
-  'at-23': { start: '21:30', end: '23:59' },
-  'at-24': { start: '05:00', end: '06:30' }, 'at-25': { start: '12:00', end: '13:00' },
-  'at-26': { start: '19:25', end: '20:15' }, 'at-27': { start: '05:00', end: '06:30' },
-  'at-32': { start: '12:00', end: '13:00' }, 'at-33': { start: '21:00', end: '21:30' },
+  // ── Ashish travel mode (Chandigarh — confirmed 06:30-09:15 out, 13:30-16:30 return) ──
+  'at-1': { start: '04:45', end: '04:55' }, 'at-2': { start: '04:55', end: '05:00' },
+  'at-3': { start: '05:00', end: '05:20' }, 'at-4': { start: '05:20', end: '05:40' },
+  'at-5': { start: '05:40', end: '05:50' }, 'at-6': { start: '05:50', end: '06:05' },
+  'at-7': { start: '06:05', end: '06:20' }, 'at-8': { start: '06:20', end: '06:30' },
+  'at-9': { start: '06:30', end: '09:15' }, 'at-10': { start: '09:15', end: '09:30' },
+  'at-11': { start: '09:30', end: '13:00' }, 'at-12': { start: '13:00', end: '13:30' },
+  'at-13': { start: '13:30', end: '16:30' }, 'at-14': { start: '16:30', end: '17:00' },
+  'at-15': { start: '17:00', end: '18:00' }, 'at-16': { start: '18:00', end: '18:30' },
+  'at-17': { start: '18:35', end: '19:05' }, 'at-18': { start: '19:25', end: '20:15' },
+  'at-19': { start: '20:15', end: '20:30' }, 'at-20': { start: '20:45', end: '21:00' },
+  'at-21': { start: '21:00', end: '21:05' }, 'at-22': { start: '21:05', end: '21:15' },
+  'at-23': { start: '21:15', end: '21:25' }, 'at-24': { start: '21:30', end: '23:59' },
+  'at-29': { start: '13:00', end: '13:30' }, 'at-30': { start: '04:55', end: '05:00' },
 };
 
 const upNextHabitInfo = computed(() => {
@@ -1043,6 +1052,10 @@ const toggleTravelMode = () => {
   localHabits.value = (travelMode.value ? ashishTravelHabits : ashishHabits).map(h => ({ ...h, completed_days: [] }));
   saveState();
   syncDueNowNotification?.();
+  showToast(travelMode.value ? '✈️ Chandigarh Travel Routine Activated' : '🏠 Home Routine Activated');
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(20);
+  }
 };
 
 // ── PWA Due Now Notification & Background 1-Tap Action Hook ──
@@ -1112,7 +1125,7 @@ const currentRoutineWindow = computed(() => {
   const now = currentClock.value;
   const mins = now.getHours() * 60 + now.getMinutes();
   if (mins < 9 * 60) {
-    return { name: 'Morning Protocol', time: '05:00 – 09:00', icon: '🌅' };
+    return { name: 'Morning Protocol', time: '04:45 – 09:00', icon: '🌅' };
   } else if (mins < 14 * 60) {
     return { name: 'Deep Execution Block', time: '09:00 – 14:00', icon: '⚡' };
   } else if (mins < 18 * 60 + 30) {
@@ -1250,7 +1263,7 @@ const saveState = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-08-21-v5';
+const PRESET_VERSION = '2026-08-23-v9';
 
 const loadLocalState = () => {
   try {
@@ -1258,17 +1271,30 @@ const loadLocalState = () => {
     const lastVersion = localStorage.getItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Auto-enable travel mode on Tuesday (2) / Thursday (4) if not explicitly set for Ashish
+      if (parsed.travelMode === undefined && isAshish.value) {
+        const todayDayOfWeek = new Date().getDay();
+        parsed.travelMode = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+      }
       applyLoadedState(parsed, false);
       if (lastVersion !== PRESET_VERSION) {
         localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
         saveState();
       }
     } else {
+      if (isAshish.value) {
+        const todayDayOfWeek = new Date().getDay();
+        travelMode.value = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+      }
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
       localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
       saveState();
     }
   } catch {
+    if (isAshish.value) {
+      const todayDayOfWeek = new Date().getDay();
+      travelMode.value = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+    }
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
   drainQueuedCompletions?.();
