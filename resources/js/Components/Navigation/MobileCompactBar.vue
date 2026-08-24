@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Bell,
   BellOff,
+  MapPin,
+  Calendar,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +31,8 @@ const props = defineProps({
   hasCompletedDay: { type: Function, required: true },
   isAshish: { type: Boolean, default: false },
   travelMode: { type: Boolean, default: false },
+  dayType: { type: String, default: 'home' },
+  dayTypeLabel: { type: String, default: '🏠 Home' },
   darkMode: { type: Boolean, default: true },
   isSyncing: { type: Boolean, default: false },
   notificationsSupported: { type: Boolean, default: false },
@@ -63,18 +67,20 @@ const autoProtocolBadge = computed(() => {
       </div>
 
       <div class="mcb-actions-group">
-        <!-- Travel Mode Toggle (Ashish only) -->
+        <!-- Day Type / Travel Mode Toggle (Ashish only) -->
         <button
           v-if="isAshish"
           id="mcb-btn-travel"
           type="button"
           class="mcb-icon-btn mcb-icon-btn--travel"
-          :class="{ 'mcb-icon-btn--travel-active': travelMode }"
+          :class="{ 'mcb-icon-btn--travel-active': travelMode, 'mcb-icon-btn--half': dayType === 'half-day', 'mcb-icon-btn--holiday': dayType === 'holiday' }"
           @click="emit('toggle-travel')"
-          :title="travelMode ? 'Chandigarh Routine Active' : 'Switch to Chandigarh Routine'"
+          :title="`Current: ${dayTypeLabel} • Tap to cycle day type`"
         >
-          <Plane class="icon-xs" />
-          <span class="mcb-travel-label">{{ travelMode ? 'CHD' : 'Home' }}</span>
+          <Plane v-if="travelMode" class="icon-xs" />
+          <Calendar v-else-if="dayType === 'half-day' || dayType === 'holiday'" class="icon-xs" />
+          <MapPin v-else class="icon-xs" />
+          <span class="mcb-travel-label">{{ dayType === 'home' ? 'Home' : dayType === 'half-day' ? '½ Day' : dayType === 'holiday' ? 'Holi' : 'Office' }}</span>
         </button>
 
         <!-- Due Now Lockscreen Notification Actions Toggle -->

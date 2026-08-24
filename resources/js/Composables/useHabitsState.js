@@ -165,6 +165,198 @@ export const ashishTravelHabits = [
   { id: 'at-30', name: 'Morning Supplement — B12 & ALA (Fasting)',       points: 1, hint: 'Take with your 500ml warm water and lemon at 04:55.' },
 ];
 
+// ── Office Mid-Week (Tue–Thu): Panchkula Flat → Office (30 min, 12 km) → Flat Evening ──
+// Wake 05:15 · Depart flat 07:00 · Office 07:30–11:00 (3.5h) · Back at flat by 11:30
+export const ashishOfficeMidHabits = [
+  // ── MORNING AT FLAT 05:15–07:00 (8 micro-steps) ──
+  { id: 'ao-1',  name: '05:15 Spinal Mobility — In Bed (10 min)',          points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist, child\'s pose. Decompress before the day.' },
+  { id: 'ao-2',  name: '05:25 500ml Warm Water + Lemon + B12 & ALA',      points: 1, hint: 'Take B12 and ALA with warm water and lemon on empty stomach.' },
+  { id: 'ao-3',  name: '05:30 MOVERS: Padma Sadhana & Surya Namaskar (20 min)', points: 2, hint: 'Full Padma Sadhana sequence + 4 slow Surya Namaskars at the flat. Portable practice — just needs a mat.' },
+  { id: 'ao-4',  name: '05:50 Sudarshan Kriya & Pranayama (10 min)',       points: 1, hint: 'Compressed Kriya at flat. 3-stage Ujjayi, Bhastrika, Om chanting. Floods body with oxygen.' },
+  { id: 'ao-5',  name: '06:00 Meditation & Visualization (10 min)',        points: 1, hint: 'Silent meditation + visualization. Compress M+V from MOVERS into one sitting.' },
+  { id: 'ao-6',  name: '06:10 Quick Shower & Grooming',                    points: 1, hint: 'Warm shower at the flat. Efficient grooming for office.' },
+  { id: 'ao-7',  name: '06:25 Breakfast — Clean Protein + Papaya + Nuts',  points: 1, hint: 'Soaked nuts + papaya + clean protein. Eat calmly before departure.' },
+  { id: 'ao-8',  name: '06:45 Pack Mineral Bottle & Prep for Office',      points: 1, hint: 'Fill 2L mineral bottle (salt + lemon). Gather laptop and essentials. Depart by 07:00.' },
+
+  // ── COMMUTE & OFFICE 07:00–11:00 (4 micro-steps) ──
+  { id: 'ao-9',  name: '07:00 Drive to Office — Audio/Calls (30 min)',     points: 1, hint: 'Short 12km drive from Panchkula flat to office. Hands-free audio or planning. Lumbar support.' },
+  { id: 'ao-10', name: '07:30 Office Focus Block (3.5 hrs)',               points: 2, hint: 'High-intensity office focus. Attendance marked. Stand every 45 min. Eye drops at 09:00 and 11:00.' },
+  { id: 'ao-11', name: '10:30 Warm Hydration & Snack Break',               points: 1, hint: 'CCF or herbal infusion. Light snack. Step away from screen for 10 min.' },
+  { id: 'ao-12', name: '11:00 Drive Back to Flat (30 min)',                 points: 1, hint: '12km drive back to Panchkula flat. Hands-free calls or educational audio.' },
+
+  // ── FLAT AFTERNOON 11:30–18:30 (8 micro-steps — deep work from flat) ──
+  { id: 'ao-13', name: '11:30 Post-Commute Stretch & Settle (10 min)',     points: 1, hint: '3-min standing extension + brief spine decompression. Change into comfortable clothes.' },
+  { id: 'ao-14', name: '11:45 Block 1 — Deep Architecture / Code (90 min)', points: 2, hint: 'Pure deep work from flat. Phone on silent. Zero distractions.' },
+  { id: 'ao-15', name: '13:15 Lunch — Balanced Protein & Cooked Veg + D3/Omega-3', points: 1, hint: 'Warm cooked meal. Dal, sabzi, roti/rice. Take D3 + Omega-3 with food. Small sips only.' },
+  { id: 'ao-16', name: '13:45 Post-Lunch Walk (10 min)',                   points: 1, hint: 'Walk around the Panchkula colony. Glucose control after lunch.' },
+  { id: 'ao-17', name: '14:00 Block 2 — Client / Pipeline / Ops (90 min)', points: 2, hint: 'Afternoon deep work block. Client calls, PR reviews, pipeline outreach.' },
+  { id: 'ao-18', name: '15:30 15-Min Walk & Eye Drops',                    points: 1, hint: 'Step away, eye drops, warm herbal sip. Recharge for final block.' },
+  { id: 'ao-19', name: '15:45 Block 3 — Technical Execution / PRs (90 min)', points: 2, hint: 'Final afternoon work block. Code implementations, bug fixes, documentation.' },
+  { id: 'ao-20', name: '17:15 Client Calls & Team Sync (45 min)',          points: 2, hint: 'Live calls, standups, and check-ins. Ends by 18:00.' },
+
+  // ── FLAT EVENING 18:00–22:00 (Solo at Panchkula flat) ──
+  { id: 'ao-21', name: '18:00 Work Shutdown Ritual (5 min)',               points: 1, hint: 'Close all work tabs. Log tomorrow top 3. Officially disconnect.' },
+  { id: 'ao-22', name: '18:10 Video Call with Jyoti & Shaarvi (20 min)',   points: 2, hint: 'FaceTime with Jyoti and Shaarvi. See baby\'s face, hear about their day. Stay connected despite distance.' },
+  { id: 'ao-23', name: '18:30 Evening Walk — Solo Panchkula (30 min)',     points: 1, hint: 'Solo evening walk in Panchkula. Fresh air, decompression, light movement.' },
+  { id: 'ao-24', name: '19:00 Dinner — Light Protein & Warm Cooked Food', points: 1, hint: 'Simple warm dinner at flat. Dal, sabzi, roti. No raw salads in evening.' },
+  { id: 'ao-25', name: '19:30 Post-Dinner Stroll (15 min)',                points: 1, hint: 'Gentle walk around the flat complex for digestion.' },
+  { id: 'ao-26', name: '20:00 Reading / Personal Development (30 min)',    points: 1, hint: 'Dense reading or upskilling. Use the flat quiet time productively.' },
+  { id: 'ao-27', name: '20:30 Day Journaling & 3 Wins Log',               points: 1, hint: 'Write 3 wins from today, 1 lesson, gratitude. Reflect on flat day.' },
+  { id: 'ao-28', name: '20:45 Magnesium + Warm Milk & Evening Wind-Down', points: 1, hint: 'Magnesium with warm half-milk-half-water + haldi. Spinal wind-down: supine twist, legs up wall, child\'s pose.' },
+  { id: 'ao-29', name: '21:15 Screen Off & Lights Out — Recovery Sleep',   points: 2, hint: 'Full screen blackout by 21:15. Phone on charger. 8h sleep opportunity.' },
+
+  // ── HEALTH ALL DAY (5 rules) ──
+  { id: 'ao-30', name: '3 Litres Daily Water Protocol (Warm/Room Temp)',   points: 1, hint: 'Keep 2L bottle at office and flat. Sip throughout. Never fridge-cold. No large water with meals.' },
+  { id: 'ao-31', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Scalp rinse during evening shower. Cleanse sweat and DHT.' },
+  { id: 'ao-32', name: 'Movement Break Every 45 Minutes',                 points: 1, hint: 'Timer-based. Stand, walk 3 min, one gentle back extension. Non-negotiable.' },
+  { id: 'ao-33', name: 'No Refined Sugar / Clean Whole Foods',            points: 1, hint: 'Zero junk food. Clean, warm, nourishing meals only.' },
+  { id: 'ao-34', name: 'Zero Personal Screen Time During Work Blocks',    points: 1, hint: 'No social media, no YouTube. Protect the deep work blocks at the flat.' },
+];
+
+// ── Office Friday: Panchkula Flat → Office (30 min) → Return to Ludhiana (~2.75h) ──
+// Wake 05:15 · Depart flat 07:00 · Office 07:30–11:00 · Return drive to Ludhiana 11:30–14:15
+export const ashishOfficeFriHabits = [
+  // ── MORNING AT FLAT 05:15–07:00 (same as mid-week) ──
+  { id: 'af-1',  name: '05:15 Spinal Mobility — In Bed (10 min)',          points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist, child\'s pose.' },
+  { id: 'af-2',  name: '05:25 500ml Warm Water + Lemon + B12 & ALA',      points: 1, hint: 'B12 and ALA with warm water and lemon on empty stomach.' },
+  { id: 'af-3',  name: '05:30 MOVERS: Padma Sadhana & Surya Namaskar (20 min)', points: 2, hint: 'Full Padma Sadhana + Surya Namaskars at flat. Last office morning this week.' },
+  { id: 'af-4',  name: '05:50 Sudarshan Kriya & Pranayama (10 min)',       points: 1, hint: 'Compressed Kriya. 3-stage Ujjayi, Bhastrika, Om chanting.' },
+  { id: 'af-5',  name: '06:00 Meditation & Visualization (10 min)',        points: 1, hint: 'Silent meditation + visualization. Set intention for the drive home.' },
+  { id: 'af-6',  name: '06:10 Quick Shower & Grooming',                    points: 1, hint: 'Warm shower. Pack flat bag — you\'re heading home today.' },
+  { id: 'af-7',  name: '06:25 Breakfast — Clean Protein + Papaya + Nuts',  points: 1, hint: 'Full breakfast before departure. Pack snacks for the return drive.' },
+  { id: 'af-8',  name: '06:45 Pack Flat, Mineral Bottle & Office Prep',    points: 1, hint: 'Pack flat bag, fill 2L mineral bottle, gather all essentials. Depart by 07:00. You won\'t return until next office block.' },
+
+  // ── COMMUTE & OFFICE 07:00–11:00 (same as mid-week) ──
+  { id: 'af-9',  name: '07:00 Drive to Office — Audio/Calls (30 min)',     points: 1, hint: 'Last 12km drive to office this block. Hands-free audio. Lumbar support.' },
+  { id: 'af-10', name: '07:30 Office Focus Block (3.5 hrs)',               points: 2, hint: 'Final office attendance of the week. Stand every 45 min. Eye drops.' },
+  { id: 'af-11', name: '10:30 Warm Hydration & Snack Break',               points: 1, hint: 'CCF or herbal infusion. Light snack. Eye drops.' },
+
+  // ── RETURN DRIVE TO LUDHIANA 11:00–14:00 ──
+  { id: 'af-12', name: '11:00 Return Drive to Ludhiana — Audio / Calls (11:00–14:00)', points: 1, hint: 'Drive from office back to Ludhiana (~2.75h). Hands-free client calls and educational audio. Lumbar support engaged. Sip mineral water.' },
+
+  // ── HOME AFTERNOON & EVENING 14:00–22:00 (back with family!) ──
+  { id: 'af-13', name: '14:00 Home Arrival & Spinal Decompression (15 min)', points: 1, hint: 'Arrive home in Ludhiana. 15 min foam rolling, supine twist, legs-up-the-wall to unload spine.' },
+  { id: 'af-14', name: '14:15 Lunch with Jyoti — Balanced Protein & Cooked Veg', points: 1, hint: 'Warm cooked meal with Jyoti. Take D3 + Omega-3. Small sips only.' },
+  { id: 'af-15', name: '14:45 Post-Lunch Walk (10 min)',                   points: 1, hint: 'Walk after eating. Glucose control and transition to afternoon work.' },
+  { id: 'af-16', name: '15:00 Block 1 — Deep Work / Client Catch-up (90 min)', points: 2, hint: 'Afternoon deep work at home. Clear critical emails, PRs, client threads.' },
+  { id: 'af-17', name: '16:30 15-Min Pipeline & Outreach Action',          points: 1, hint: 'Send 3 high-value outbound messages. Keep pipeline warm.' },
+  { id: 'af-18', name: '16:45 Client Calls & Team Sync (45 min)',          points: 2, hint: 'Live calls, standups, and check-ins. End of work week sync.' },
+  { id: 'af-19', name: '17:30 Weekly Pipeline Scrub & Invoicing (45 min)', points: 2, hint: 'Update deal stages, follow up on unpaid invoices. Friday finance routine.' },
+  { id: 'af-20', name: '18:15 Work Shutdown — Welcome Home Ritual (5 min)', points: 1, hint: 'Close all work. Log next week\'s top 3. Celebrate end of office block week!' },
+  { id: 'af-21', name: '18:35 Joint Family Stroller Walk with Jyoti (30 min)', points: 2, hint: 'Outdoor stroller walk with Jyoti & Shaarvi. Reconnect after the office week away.' },
+  { id: 'af-22', name: '19:05 Shaarvi Floor Play & Language Time (20 min)', points: 2, hint: 'Interactive floor play. Read baby board books. Zero phones.' },
+  { id: 'af-23', name: '19:25 Dinner Prep & Shared Family Dinner',         points: 1, hint: 'Teamwork with Jyoti in kitchen. Nourishing warm meal together.' },
+  { id: 'af-24', name: '20:15 Post-Dinner Stroll with Jyoti (15 min)',     points: 1, hint: 'Gentle post-dinner stroll. Digestion and peaceful conversation.' },
+  { id: 'af-25', name: '20:45 Kitchen Reset & Shaarvi Wind-Down',          points: 1, hint: 'Dishes done. Diya, shloka, calm bedtime routine for Shaarvi.' },
+  { id: 'af-26', name: '21:00 Day Journaling & 3 Wins Log',               points: 1, hint: 'Write 3 wins from the office week, 1 lesson, gratitude.' },
+  { id: 'af-27', name: '21:05 Magnesium + Warm Milk',                      points: 1, hint: 'Magnesium with warm half-milk-half-water + haldi. Muscle relaxation.' },
+  { id: 'af-28', name: '21:15 Evening Spinal Wind-Down (10 min)',          points: 1, hint: 'Supine twist, legs up the wall, child\'s pose. Extra needed after the drive.' },
+  { id: 'af-29', name: '21:30 Screen Off & Lights Out — Recovery Sleep',   points: 2, hint: 'Full screen blackout. 7.5h restorative sleep. Welcome home.' },
+
+  // ── HEALTH ALL DAY (4 rules) ──
+  { id: 'af-30', name: '3 Litres Daily Water Protocol (Warm/Room Temp)',   points: 1, hint: 'Keep 2L bottle in car. Sip throughout transit and office. No large water with meals.' },
+  { id: 'af-31', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Scalp rinse in evening shower at home.' },
+  { id: 'af-32', name: 'Zero Screen Time in Front of Shaarvi',            points: 2, hint: 'Full eye contact with Shaarvi. You\'ve been away all week — be 100% present.' },
+  { id: 'af-33', name: 'No Refined Sugar / Clean Whole Foods',            points: 1, hint: 'Zero junk. Clean meals only.' },
+  { id: 'af-34', name: '10% Income Auto-Transfer to Savings',             points: 2, hint: 'Friday finance: transfer minimum 10% of weekly earnings to savings.' },
+];
+
+// ── Ashish Half-Day Routine (WFH Ludhiana — Light Office + Personal Projects / Content / Errands) ──
+export const ashishHalfDayHabits = [
+  // ── MORNING 04:45–08:30 (Full MOVERS Sadhana Protocol) ──
+  { id: 'a-64', name: '04:45 Spinal Mobility — In Bed (10 min)',          points: 1, hint: 'Cat-cow · knees-to-chest · pelvic tilts · supine spinal twist · child\'s pose.' },
+  { id: 'a-1',  name: '04:55 Alarm — Out of Bed',                        points: 1, hint: 'Feet on the floor. No snooze button.' },
+  { id: 'a-2',  name: '04:55 500ml Warm Water + Lemon + B12 & ALA',      points: 1, hint: 'Take B12 and ALA with warm water and lemon.' },
+  { id: 'a-5',  name: '05:00 MOVERS [E]: Padma Sadhana & Surya Namaskar (20 min)', points: 2, hint: 'Full Padma Sadhana sequence + 4–6 slow breath-synchronized Surya Namaskars.' },
+  { id: 'a-55', name: '05:20 MOVERS [O]: Sudarshan Kriya & Pranayama (15 min)', points: 1, hint: '3-stage Pranayama with Ujjayi, Bhastrika rounds, Om chanting and Sudarshan Kriya.' },
+  { id: 'a-54', name: '05:35 MOVERS [M]: Meditation & Deep Silence (10 min)', points: 1, hint: 'Rest in silent stillness following Sudarshan Kriya.' },
+  { id: 'a-56', name: '05:45 MOVERS [V]: Visualization & Sankalpa (5 min)', points: 1, hint: 'Mentally rehearse today going smoothly.' },
+  { id: 'a-57', name: '05:50 MOVERS [R]: Reading (5 min)',                points: 1, hint: 'Dense technical or uplifting wisdom reading.' },
+  { id: 'a-58', name: '05:55 MOVERS [S]: Scribing & Stiffness Log (5 min)', points: 1, hint: 'Three gratitudes + One Big Thing + stiffness log.' },
+  { id: 'a-3',  name: '06:00 Outdoor Sunlight & Fresh Air (5 min)',      points: 1, hint: 'Distant natural horizon light to release ciliary muscle accommodation.' },
+  { id: 'a-4',  name: '06:05 Workout — Moderate Strength / Cardio (30 min)', points: 2, hint: 'Moderate strength / restorative workout. No heavy deadlifts or compressive loads.' },
+  { id: 'a-7',  name: '06:35 10-Min Post-Workout Stretch & Foam Roll',   points: 1, hint: 'Shoulders, thoracic spine, hip flexors, hamstrings.' },
+  { id: 'a-66', name: '06:45 Abhyanga — Warm Sesame Oil (10 min)',        points: 1, hint: 'Warm sesame oil on joints, lower back, and scalp before shower.' },
+  { id: 'a-9',  name: '06:55 Warm Shower & Morning Grooming',            points: 1, hint: 'Body warm throughout. Final 20 seconds cool rinse on scalp only.' },
+  { id: 'a-8',  name: '07:05 Breakfast — Soaked Nuts + Papaya + Clean Protein', points: 1, hint: 'Soaked nuts + papaya + fresh paneer / moong chilla / plant protein.' },
+  { id: 'a-67', name: '07:20 Post-Breakfast Walk (10 min)',              points: 1, hint: 'Post-meal glucose walk. Take Shaarvi along.' },
+  { id: 'a-61', name: '07:30 Prepare 2L Mineral Bottle & Daily Water Protocol', points: 1, hint: 'Fill 2L mineral bottle: water + pink salt + lemon. 3L total daily.' },
+  { id: 'a-10', name: '07:35 Take Shaarvi (07:35–08:30 Baby Duty)',      points: 2, hint: '100% focused daddy-daughter time. Protects Jyoti\'s career hour.' },
+
+  // ── MORNING FOCUS 08:30–14:00 (Compressed 2 deep blocks) ──
+  { id: 'a-11', name: '08:30 Daily 1-3-5 & Half-Day Priorities (5 min)', points: 1, hint: 'Write today\'s 1-3-5. Prioritize the half-day focus.' },
+  { id: 'a-12', name: '08:45 Block 1 — Deep Architecture / Core Code (90m)', points: 2, hint: 'First half-day focus block: core system design & highest-leverage code.' },
+  { id: 'a-13', name: '10:30 10-Min Walk & Screen Hydration Break',       points: 1, hint: '20-20-20 eye rest pause, 10 deliberate blinks, mineral water.' },
+  { id: 'a-28', name: '10:30 Warm Hydration / CCF or Herbal Infusion + Snack', points: 1, hint: 'Tulsi or CCF water. No caffeine needed.' },
+  { id: 'a-31', name: '10:30 Multivitamin (Iron PAUSED)',               points: 1, hint: 'Take multivitamin with snack.' },
+  { id: 'a-14', name: '11:00 Block 2 — High-Leverage Deliverables (90m)', points: 2, hint: 'Second deep work block: finish key client deliverables & code reviews.' },
+  { id: 'a-15', name: '12:30 15-Min Pipeline & Outreach Action',         points: 1, hint: 'Send 3 outbound touches to maintain momentum.' },
+  { id: 'a-16', name: '12:45 Wrap-up Work & Sync PRs (75m)',             points: 2, hint: 'Wrap up morning sprint, push git commits, merge open PRs.' },
+  { id: 'a-29', name: '14:00 Lunch with Jyoti — Balanced Protein & Cooked Veg', points: 1, hint: 'Shared lunch with Jyoti. Thick dal, cooked sabzi, roti. Small warm sips only.' },
+  { id: 'a-51', name: '14:45 Midday Supplement — D3 + Omega-3 (with Lunch)', points: 1, hint: 'Take with food for optimal fat-soluble absorption.' },
+  { id: 'a-68', name: '14:50 Post-Lunch Walk (10 min)',                  points: 1, hint: '10 min walk to blunt glucose spike.' },
+  { id: 'a-62', name: '15:00 Eye Drops (09:00, 12:00, 15:00, 18:00)',   points: 1, hint: 'Preservative-free lubricating eye drops.' },
+
+  // ── HALF-DAY PRODUCTIVE PIVOT 15:15–18:30 (Replaces late client calls) ──
+  { id: 'ah-1', name: '15:15 Creative / Personal Project Build (90 min)', points: 2, hint: 'High-leverage personal project build (Habuilt development, side apps, architecture prototypes).' },
+  { id: 'ah-2', name: '16:45 Content Production / Social Connects (45 min)', points: 2, hint: 'Build valuable content, write tech insights, or reach out to new founders/partners.' },
+  { id: 'ah-3', name: '17:30 Personal Tasks, Errands & Family Prep (60 min)', points: 1, hint: 'Take care of half-day personal tasks: bank/documentation, festival prep, vehicle maintenance, or family errand.' },
+
+  // ── EVENING & FAMILY 18:30–22:00 (Nourishing Family Connection) ──
+  { id: 'a-19', name: '18:30 Work Day Shutdown Ritual (5 min)',          points: 1, hint: 'Close laptop tabs. Log tomorrow top 3 items.' },
+  { id: 'a-20', name: '18:35 Joint Family Stroller Walk with Jyoti (30 min)', points: 2, hint: 'Outdoor stroller walk together with Jyoti & Shaarvi.' },
+  { id: 'a-43', name: '19:05 Shaarvi Floor Play & Language Time (20m)',  points: 2, hint: 'Interactive floor play, board books, and clapping.' },
+  { id: 'a-21', name: '19:25 Dinner Preparation & Shared Family Dinner', points: 1, hint: 'Help Jyoti with dinner setup, enjoy warm meal together.' },
+  { id: 'a-30', name: 'Dinner — Light Protein & Cooked Vegetables',      points: 1, hint: 'Warm cooked meal. Finish 2 hours before bedtime.' },
+  { id: 'a-22', name: '20:15 Post-Dinner Stroll with Jyoti (15 min)',    points: 1, hint: 'Relaxed post-dinner walk to aid digestion.' },
+  { id: 'a-23', name: '20:45 Kitchen Reset & Counter Clean (15 min)',   points: 1, hint: 'Dishes done, counters clean, clean kitchen.' },
+  { id: 'a-24', name: '21:00 Day Journaling & 3 Wins Log (5 min)',       points: 1, hint: 'Write 3 wins from today, 1 lesson, gratitude.' },
+  { id: 'a-25', name: '21:05 Tomorrow Preparation (Clothes, Workspace)', points: 1, hint: 'Prepare clothes and workspace for frictionless morning.' },
+  { id: 'a-52', name: '21:15 Night Supplement — Magnesium',               points: 1, hint: 'With warm half-milk-half-water and a pinch of haldi.' },
+  { id: 'a-69', name: '21:20 Evening Spinal Wind-Down (10 min)',          points: 1, hint: 'Supine twist · legs up the wall · child\'s pose.' },
+  { id: 'a-26', name: '21:35 Screen Off Lockout — Complete Blackout',    points: 1, hint: 'Complete screen blackout. Phone on charger in another room.' },
+  { id: 'a-63', name: '21:40 Night Sip & Warm Eye Compress (10 min)',    points: 1, hint: 'Warm compress over closed eyelids to restore tear film lipid layer.' },
+  { id: 'a-27', name: '22:00 In Bed — Lights Out (7h Sleep Target)',     points: 2, hint: 'In bed by 22:00 for restorative sleep.' },
+
+  // ── HEALTH & MINDSET — ALL DAY (6 habits) ──
+  { id: 'a-65', name: 'Movement Break Every 45 Minutes',                 points: 1, hint: 'Repeating 45-min timer. Stand, walk, gentle back extension.' },
+  { id: 'a-32', name: 'Scalp Care & Hair Protocol',                      points: 1, hint: 'Gentle scalp rinse and care regimen.' },
+  { id: 'a-33', name: '5-Minute Stress & Mindset Journaling',             points: 1, hint: 'Rate stress, note challenge, focus on positive.' },
+  { id: 'a-34', name: 'Zero Screen Time in Front of Shaarvi',            points: 2, hint: 'Never look at phones while interacting with Shaarvi.' },
+  { id: 'a-35', name: 'Daily Jyoti Appreciation / Connection (5 min)',   points: 1, hint: 'Express genuine verbal appreciation to Jyoti.' },
+  { id: 'a-36', name: 'No Refined Sugar / Junk Food Today',              points: 1, hint: 'Clean, whole, nutrient-dense nutrition.' },
+];
+
+// ── Ashish Holiday Routine (Spiritual / Festive / Restorative — Zero Office Work) ──
+export const ashishHolidayHabits = [
+  { id: 'a-64', name: '04:45 Spinal Mobility — In Bed (10 min)',          points: 1, hint: 'Cat-cow · knees-to-chest · pelvic tilts · supine spinal twist · child\'s pose.' },
+  { id: 'a-1',  name: '05:00 Gentle Wake-up & Gratitude',                 points: 1, hint: 'Peaceful holiday morning wake-up.' },
+  { id: 'a-2',  name: '05:05 500ml Warm Water + Lemon + B12 & ALA',      points: 1, hint: 'Take B12 and ALA with warm water and lemon.' },
+  { id: 'a-5',  name: '05:15 MOVERS [E]: Deep Padma Sadhana & Surya Namaskar (30m)', points: 3, hint: 'Unrushed holiday Padma Sadhana + gentle Surya Namaskars.' },
+  { id: 'a-55', name: '05:45 MOVERS [O]: Sudarshan Kriya & Pranayama (20 min)', points: 2, hint: 'Deep, spacious Sudarshan Kriya and Pranayama.' },
+  { id: 'a-54', name: '06:05 MOVERS [M]: Meditation & Deep Silence (15 min)', points: 2, hint: 'Extended silent meditation in stillness.' },
+  { id: 'a-3',  name: '06:20 Sunlight, Nature & Fresh Air (15 min)',     points: 1, hint: 'Morning sunlight and fresh air.' },
+  { id: 'a-66', name: '06:40 Relaxed Full-Body Abhyanga (20 min)',        points: 2, hint: 'Spacious warm sesame oil massage on joints and scalp.' },
+  { id: 'a-9',  name: '07:00 Warm Shower & Festive Grooming',            points: 1, hint: 'Nourishing warm bath.' },
+  { id: 'a-8',  name: '07:30 Festive / Healthy Family Breakfast',         points: 1, hint: 'Nourishing whole food breakfast with family.' },
+  { id: 'a-10', name: '08:00 Extended Play & Quality Time with Shaarvi (2h)', points: 3, hint: 'Joyful, playful, uninterrupted daddy-daughter playtime.' },
+  { id: 'a-50', name: '10:30 Family Outing / Park / Nature Walk (60 min)', points: 2, hint: 'Take Shaarvi & Jyoti to botanical garden or park.' },
+  { id: 'a-29', name: '13:30 Festive Shared Lunch with Family',            points: 2, hint: 'Wholesome festive lunch cooked with love.' },
+  { id: 'a-51', name: '14:30 Midday Supplement — D3 + Omega-3',           points: 1, hint: 'Take with festive lunch.' },
+  { id: 'a-68', name: '14:45 Post-Lunch Family Stroll (15 min)',          points: 1, hint: 'Digestive stroll with Jyoti.' },
+  { id: 'ah-1', name: '15:30 Creative Passion / Reading / Personal Project (90m)', points: 2, hint: 'Work on creative hobbies, reading, or inspiring ideas.' },
+  { id: 'a-20', name: '18:00 Sunset Family Stroller Walk with Jyoti (45m)', points: 2, hint: 'Extended evening walk in golden hour.' },
+  { id: 'a-21', name: '19:15 Festive Dinner & Quality Connection',        points: 2, hint: 'Nourishing shared dinner.' },
+  { id: 'a-22', name: '20:15 Post-Dinner Family Walk (20 min)',           points: 1, hint: 'Digestive stroll under night sky.' },
+  { id: 'a-24', name: '21:00 Holiday Gratitude & 3 Wins Journaling',      points: 1, hint: 'Reflect on family joy and spiritual connection.' },
+  { id: 'a-52', name: '21:15 Magnesium + Warm Haldi Milk',                points: 1, hint: 'Deep relaxation before sleep.' },
+  { id: 'a-69', name: '21:25 Restorative Spinal Wind-Down (15 min)',      points: 1, hint: 'Supine twist, legs up wall, child\'s pose.' },
+  { id: 'a-27', name: '21:45 Restful Holiday Sleep (8h target)',          points: 2, hint: 'Deep restorative sleep.' },
+  { id: 'a-61', name: '3 Litres Mineral Water Protocol',                  points: 1, hint: 'Sip steadily throughout the day.' },
+  { id: 'a-34', name: 'Zero Screen Time in Front of Shaarvi',            points: 2, hint: '100% present with Shaarvi.' },
+  { id: 'a-35', name: 'Daily Jyoti Appreciation & Love',                  points: 1, hint: 'Heartfelt appreciation and connection.' },
+];
+
 // ── Generic Starter Habits (7 simple starter habits) ──
 export const genericStarterHabits = [
   { id: 'g-1', name: 'Morning water & stretch (10 min)',   points: 1, hint: 'Drink a glass of water first thing. Spend 10 min stretching or doing light movement.' },
@@ -394,6 +586,21 @@ export function getTimeSlotForHabit(id) {
   if (['at-14','at-15','at-16','at-17','at-18','at-19','at-20','at-21','at-22','at-23','at-24'].includes(id)) return 'evening';
   if (['at-25','at-26','at-27','at-28','at-30'].includes(id)) return 'anytime';
 
+  // Ashish office mid-week (Tue–Thu flat→office: ao-1..ao-34)
+  if (['ao-1','ao-2','ao-3','ao-4','ao-5','ao-6','ao-7','ao-8'].includes(id)) return 'morning';
+  if (['ao-9','ao-10','ao-11','ao-12','ao-13','ao-14','ao-15','ao-16','ao-17','ao-18','ao-19','ao-20'].includes(id)) return 'work';
+  if (['ao-21','ao-22','ao-23','ao-24','ao-25','ao-26','ao-27','ao-28','ao-29'].includes(id)) return 'evening';
+  if (['ao-30','ao-31','ao-32','ao-33','ao-34'].includes(id)) return 'anytime';
+
+  // Ashish office Friday (flat→office→Ludhiana: af-1..af-34)
+  if (['af-1','af-2','af-3','af-4','af-5','af-6','af-7','af-8'].includes(id)) return 'morning';
+  if (['af-9','af-10','af-11','af-12','af-13','af-14','af-15','af-16','af-17','af-18','af-19','af-20'].includes(id)) return 'work';
+  if (['af-21','af-22','af-23','af-24','af-25','af-26','af-27','af-28','af-29'].includes(id)) return 'evening';
+  if (['af-30','af-31','af-32','af-33','af-34'].includes(id)) return 'anytime';
+
+  // Ashish half-day & holiday habits
+  if (['ah-1','ah-2','ah-3'].includes(id)) return 'work';
+
   // Jyoti habits by ID (micro-detail: j-1..j-36)
   if (['j-1','j-2','j-4','j-9','j-10','j-36'].includes(id)) return 'morning';
   if (['j-11','j-12','j-14','j-6','j-35'].includes(id)) return 'work';
@@ -408,11 +615,11 @@ export function getTimeSlotForHabit(id) {
 export function getHabitCategory(habit) {
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
-  if (['a-4','a-5','a-6','a-7','a-60','a-64','a-67','a-68','a-69','j-16','at-4','at-10','at-14','at-23'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility') || name.includes('yoga') || name.includes('abhyanga') || name.includes('extension') || name.includes('decompression')) return 'fitness';
-  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','a-61','j-10','j-24','j-28','j-6','at-2','at-7','at-12','at-18','at-22','at-25','at-28','at-29','at-30'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin') || name.includes('mineral bottle') || name.includes('papaya') || name.includes('green tea')) return 'nutrition';
-  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','j-14','at-9','at-11','at-13','at-15','at-16'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career') || name.includes('office') || name.includes('stealth') || name.includes('drive') || name.includes('execution')) return 'work';
-  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','a-59','a-66','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-35','j-36','at-5','at-8','at-17','at-18','at-19','at-20','at-27'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga') || name.includes('couple')) return 'family';
-  if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','a-54','a-55','a-56','a-57','a-58','a-62','a-63','a-65','j-1','j-2','j-12','j-22','j-25','j-31','at-1','at-3','at-6','at-21','at-24','at-26'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp') || name.includes('meditation') || name.includes('breathwork') || name.includes('visualization') || name.includes('scribing') || name.includes('reading') || name.includes('bath') || name.includes('eye drops') || name.includes('eye compress') || name.includes('movement break') || name.includes('spinal') || name.includes('lights out')) return 'rest';
+  if (['a-4','a-5','a-6','a-7','a-60','a-64','a-67','a-68','a-69','j-16','at-4','at-10','at-14','at-23','ao-3','ao-13','ao-16','ao-23','af-3','af-13','af-15','af-28'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility') || name.includes('yoga') || name.includes('abhyanga') || name.includes('extension') || name.includes('decompression')) return 'fitness';
+  if (['a-2','a-8','a-28','a-29','a-30','a-31','a-36','a-51','a-52','a-61','j-10','j-24','j-28','j-6','at-2','at-7','at-12','at-18','at-22','at-25','at-28','at-29','at-30','ao-2','ao-7','ao-11','ao-15','ao-24','ao-28','ao-30','ao-33','af-2','af-7','af-11','af-14','af-23','af-27','af-30','af-33'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin') || name.includes('mineral bottle') || name.includes('papaya') || name.includes('green tea')) return 'nutrition';
+  if (['a-11','a-12','a-14','a-15','a-16','a-18','a-24','a-25','a-45','a-46','a-47','a-48','a-49','a-53','j-4','j-14','at-9','at-11','at-13','at-15','at-16','ao-9','ao-10','ao-12','ao-14','ao-17','ao-19','ao-20','ao-26','ao-34','af-9','af-10','af-12','af-16','af-17','af-18','af-19','ah-1','ah-2','ah-3'].includes(id) || name.includes('deep work') || name.includes('block') || name.includes('pipeline') || name.includes('code') || name.includes('architecture') || name.includes('client') || name.includes('review') || name.includes('priority') || name.includes('career') || name.includes('office') || name.includes('stealth') || name.includes('drive') || name.includes('execution') || name.includes('content') || name.includes('project')) return 'work';
+  if (['a-10','a-20','a-21','a-22','a-34','a-35','a-43','a-44','a-50','a-59','a-66','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-35','j-36','at-5','at-8','at-17','at-18','at-19','at-20','at-27','ao-8','ao-22','af-8','af-21','af-22','af-23','af-24','af-25','af-32'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('stroller') || name.includes('board meeting') || name.includes('abhyanga') || name.includes('couple') || name.includes('video call')) return 'family';
+  if (['a-3','a-9','a-19','a-26','a-27','a-32','a-33','a-54','a-55','a-56','a-57','a-58','a-62','a-63','a-65','j-1','j-2','j-12','j-22','j-25','j-31','at-1','at-3','at-6','at-21','at-24','at-26','ao-1','ao-4','ao-5','ao-6','ao-18','ao-21','ao-25','ao-27','ao-29','ao-31','ao-32','af-1','af-4','af-5','af-6','af-20','af-26','af-29','af-31'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('curfew') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('scalp') || name.includes('meditation') || name.includes('breathwork') || name.includes('visualization') || name.includes('scribing') || name.includes('reading') || name.includes('bath') || name.includes('eye drops') || name.includes('eye compress') || name.includes('movement break') || name.includes('spinal') || name.includes('lights out')) return 'rest';
   return 'ops';
 }
 

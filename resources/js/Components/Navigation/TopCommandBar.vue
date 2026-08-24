@@ -19,6 +19,7 @@ import {
   Download,
   Bell,
   Monitor,
+  MapPin,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +30,8 @@ const props = defineProps({
   levelTitle: { type: String, default: 'Starter' },
   totalXP: { type: Number, default: 0 },
   travelMode: { type: Boolean, default: false },
+  dayType: { type: String, default: 'home' },
+  dayTypeLabel: { type: String, default: '🏠 Home' },
   canNavigatePrevMonth: { type: Boolean, default: true },
   canNavigateNextMonth: { type: Boolean, default: true },
   isNavigatingMonth: { type: Boolean, default: false },
@@ -122,17 +125,19 @@ const showLevelInfo = ref(false);
     </nav>
 
     <div class="hero-command-bar__right">
-      <!-- Travel Mode Button (Aligned Icon + Text) -->
+      <!-- Day Type Cycle Button (Office Calendar Aware) -->
       <button
         v-if="isAshish"
         type="button"
         class="hero-travel-btn"
-        :class="{ 'hero-travel-btn--active': travelMode }"
+        :class="{ 'hero-travel-btn--active': travelMode, 'hero-travel-btn--half': dayType === 'half-day', 'hero-travel-btn--holiday': dayType === 'holiday' }"
         @click="emit('toggle-travel')"
-        :title="travelMode ? 'Travel Mode Active (Chandigarh Routine: 33 habits) • Tap to switch to Home' : 'Switch to Travel Mode (Chandigarh Routine)'"
+        :title="`Current: ${dayTypeLabel} • Tap to cycle day type`"
       >
-        <Plane class="icon-xs icon-plane" />
-        <span class="hero-travel-text">{{ travelMode ? 'Chandigarh' : 'Travel' }}</span>
+        <Plane v-if="travelMode" class="icon-xs icon-plane" />
+        <Calendar v-else-if="dayType === 'half-day' || dayType === 'holiday'" class="icon-xs" />
+        <MapPin v-else class="icon-xs" />
+        <span class="hero-travel-text">{{ dayType === 'home' ? 'Home' : dayType === 'half-day' ? '½ Day' : dayType === 'holiday' ? 'Holiday' : 'Office' }}</span>
       </button>
 
       <!-- Month Controls -->

@@ -29,6 +29,10 @@ import {
   ashishHabits,
   jyotiHabits,
   ashishTravelHabits,
+  ashishOfficeMidHabits,
+  ashishOfficeFriHabits,
+  ashishHalfDayHabits,
+  ashishHolidayHabits,
   genericStarterHabits,
   ashishTierDescriptions,
   jyotiTierDescriptions,
@@ -39,6 +43,17 @@ import {
   getHabitCategory,
   getCurrentTimeBlock,
 } from '@/Composables/useHabitsState';
+import {
+  getDayType,
+  getDayTypeLabel,
+  getDayTypeShortLabel,
+  getDayTypeEmoji,
+  isOfficeDay,
+  isFlatEvening,
+  getNextDayType,
+  getHolidayName,
+  getHalfDayReason,
+} from '@/Composables/useOfficeCalendar';
 
 import {
   BarChart3,
@@ -158,14 +173,25 @@ const updateCurrentClock = () => {
   currentClock.value = new Date();
 };
 
-const travelMode = ref(false);
+// ── Day Type Engine (replaces binary travelMode) ──
+// Values: 'home' | 'office-mon' | 'office-mid' | 'office-fri' | 'half-day' | 'holiday'
+const dayType = ref('home');
+// Backward-compatible alias for components that use travelMode
+const travelMode = computed(() => isOfficeDay(dayType.value));
 const localHabits = ref([]);
 const pendingCells = ref({});
 
 const fallbackHabits = computed(() => {
   if (isJyoti.value) return jyotiHabits;
   if (isAshish.value) {
-    return travelMode.value ? ashishTravelHabits : ashishHabits;
+    switch (dayType.value) {
+      case 'office-mon': return ashishTravelHabits;     // Mon: Ludhiana→CHD (long drive + Panchkula stay)
+      case 'office-mid': return ashishOfficeMidHabits;  // Tue–Thu: Panchkula flat→office (30m) + solo evening
+      case 'office-fri': return ashishOfficeFriHabits;  // Fri: Panchkula flat→office→early return to Ludhiana
+      case 'half-day':   return ashishHalfDayHabits;    // Half day: WFH + creative projects & errands
+      case 'holiday':    return ashishHolidayHabits;    // Holiday: Spiritual / family / zero office work
+      default:           return ashishHabits;           // Home: Full Ludhiana baseline
+    }
   }
   return genericStarterHabits;
 });
@@ -674,6 +700,46 @@ const habitTimeSchedule = {
   'at-21': { start: '21:00', end: '21:05' }, 'at-22': { start: '21:05', end: '21:15' },
   'at-23': { start: '21:15', end: '21:25' }, 'at-24': { start: '21:30', end: '23:59' },
   'at-29': { start: '13:00', end: '13:30' }, 'at-30': { start: '04:55', end: '05:00' },
+
+  // ── Ashish office mid-week (Tue–Thu flat→office, 30min commute) ──
+  'ao-1': { start: '05:15', end: '05:25' }, 'ao-2': { start: '05:25', end: '05:30' },
+  'ao-3': { start: '05:30', end: '05:50' }, 'ao-4': { start: '05:50', end: '06:00' },
+  'ao-5': { start: '06:00', end: '06:10' }, 'ao-6': { start: '06:10', end: '06:25' },
+  'ao-7': { start: '06:25', end: '06:45' }, 'ao-8': { start: '06:45', end: '07:00' },
+  'ao-9': { start: '07:00', end: '07:30' }, 'ao-10': { start: '07:30', end: '11:00' },
+  'ao-11': { start: '10:30', end: '11:00' }, 'ao-12': { start: '11:00', end: '11:30' },
+  'ao-13': { start: '11:30', end: '11:45' }, 'ao-14': { start: '11:45', end: '13:15' },
+  'ao-15': { start: '13:15', end: '13:45' }, 'ao-16': { start: '13:45', end: '14:00' },
+  'ao-17': { start: '14:00', end: '15:30' }, 'ao-18': { start: '15:30', end: '15:45' },
+  'ao-19': { start: '15:45', end: '17:15' }, 'ao-20': { start: '17:15', end: '18:00' },
+  'ao-21': { start: '18:00', end: '18:10' }, 'ao-22': { start: '18:10', end: '18:30' },
+  'ao-23': { start: '18:30', end: '19:00' }, 'ao-24': { start: '19:00', end: '19:30' },
+  'ao-25': { start: '19:30', end: '19:45' }, 'ao-26': { start: '20:00', end: '20:30' },
+  'ao-27': { start: '20:30', end: '20:45' }, 'ao-28': { start: '20:45', end: '21:15' },
+  'ao-29': { start: '21:15', end: '23:59' },
+
+  // ── Ashish office Friday (flat→office→return to Ludhiana) ──
+  'af-1': { start: '05:15', end: '05:25' }, 'af-2': { start: '05:25', end: '05:30' },
+  'af-3': { start: '05:30', end: '05:50' }, 'af-4': { start: '05:50', end: '06:00' },
+  'af-5': { start: '06:00', end: '06:10' }, 'af-6': { start: '06:10', end: '06:25' },
+  'af-7': { start: '06:25', end: '06:45' }, 'af-8': { start: '06:45', end: '07:00' },
+  'af-9': { start: '07:00', end: '07:30' }, 'af-10': { start: '07:30', end: '11:00' },
+  'af-11': { start: '10:30', end: '11:00' },
+  'af-12': { start: '11:00', end: '14:00' },
+  'af-13': { start: '14:00', end: '14:15' }, 'af-14': { start: '14:15', end: '14:45' },
+  'af-15': { start: '14:45', end: '15:00' }, 'af-16': { start: '15:00', end: '16:30' },
+  'af-17': { start: '16:30', end: '16:45' }, 'af-18': { start: '16:45', end: '17:30' },
+  'af-19': { start: '17:30', end: '18:15' }, 'af-20': { start: '18:15', end: '18:35' },
+  'af-21': { start: '18:35', end: '19:05' }, 'af-22': { start: '19:05', end: '19:25' },
+  'af-23': { start: '19:25', end: '20:15' }, 'af-24': { start: '20:15', end: '20:30' },
+  'af-25': { start: '20:45', end: '21:00' }, 'af-26': { start: '21:00', end: '21:05' },
+  'af-27': { start: '21:05', end: '21:15' }, 'af-28': { start: '21:15', end: '21:25' },
+  'af-29': { start: '21:30', end: '23:59' },
+
+  // ── Ashish half-day & holiday creative / errand blocks ──
+  'ah-1': { start: '15:15', end: '16:45' },
+  'ah-2': { start: '16:45', end: '17:30' },
+  'ah-3': { start: '17:30', end: '18:30' },
 };
 
 const upNextHabitInfo = computed(() => {
@@ -1047,13 +1113,18 @@ const markHabitCompletedDirectly = (habitId, day) => {
   }
 };
 
-// Travel Mode Toggle
+// Day Type Cycle Toggle (replaces binary travel mode)
 const toggleTravelMode = () => {
-  travelMode.value = !travelMode.value;
-  localHabits.value = (travelMode.value ? ashishTravelHabits : ashishHabits).map(h => ({ ...h, completed_days: [] }));
+  const nextType = getNextDayType(dayType.value);
+  dayType.value = nextType;
+  localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   saveState();
   syncDueNowNotification?.();
-  showToast(travelMode.value ? '✈️ Chandigarh Travel Routine Activated' : '🏠 Home Routine Activated');
+  const label = getDayTypeLabel(nextType);
+  const detail = isOfficeDay(nextType)
+    ? (isFlatEvening(nextType) ? ' (Evening at Panchkula flat)' : ' (Return to Ludhiana)')
+    : '';
+  showToast(`${label}${detail} Routine Activated`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(20);
   }
@@ -1251,7 +1322,8 @@ const applyLoadedState = (data, isRemote = false) => {
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
   if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
   if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
-  if (data.travelMode !== undefined) travelMode.value = data.travelMode;
+  if (data.dayType !== undefined) dayType.value = data.dayType;
+  else if (data.travelMode !== undefined) dayType.value = data.travelMode ? 'office-mon' : 'home'; // Migrate legacy
   if (data.darkMode !== undefined) darkMode.value = data.darkMode;
 
   try {
@@ -1261,7 +1333,7 @@ const applyLoadedState = (data, isRemote = false) => {
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
-      travelMode: travelMode.value,
+      dayType: dayType.value,
       darkMode: darkMode.value,
       updated_at: new Date().toISOString(),
     };
@@ -1283,7 +1355,7 @@ const saveState = async () => {
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
-      travelMode: travelMode.value,
+      dayType: dayType.value,
       darkMode: darkMode.value,
       updated_at: new Date().toISOString(),
     };
@@ -1297,7 +1369,7 @@ const saveState = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-08-23-v9';
+const PRESET_VERSION = '2026-08-24-v10-office-calendar';
 
 const loadLocalState = () => {
   try {
@@ -1305,10 +1377,9 @@ const loadLocalState = () => {
     const lastVersion = localStorage.getItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Auto-enable travel mode on Tuesday (2) / Thursday (4) if not explicitly set for Ashish
-      if (parsed.travelMode === undefined && isAshish.value) {
-        const todayDayOfWeek = new Date().getDay();
-        parsed.travelMode = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+      // Auto-detect day type from office calendar if not explicitly saved
+      if (parsed.dayType === undefined && isAshish.value) {
+        parsed.dayType = getDayType(new Date());
       }
       applyLoadedState(parsed, false);
       if (lastVersion !== PRESET_VERSION) {
@@ -1317,8 +1388,7 @@ const loadLocalState = () => {
       }
     } else {
       if (isAshish.value) {
-        const todayDayOfWeek = new Date().getDay();
-        travelMode.value = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+        dayType.value = getDayType(new Date());
       }
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
       localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
@@ -1326,8 +1396,7 @@ const loadLocalState = () => {
     }
   } catch {
     if (isAshish.value) {
-      const todayDayOfWeek = new Date().getDay();
-      travelMode.value = (todayDayOfWeek === 2 || todayDayOfWeek === 4);
+      dayType.value = getDayType(new Date());
     }
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
@@ -1710,6 +1779,8 @@ onBeforeUnmount(() => {
       :has-completed-day="hasCompletedDay"
       :is-ashish="isAshish"
       :travel-mode="travelMode"
+      :day-type="dayType"
+      :day-type-label="getDayTypeLabel(dayType)"
       :dark-mode="darkMode"
       :is-syncing="isSyncingCloud"
       :notifications-supported="notificationsSupported"
@@ -1737,6 +1808,8 @@ onBeforeUnmount(() => {
           :level-title="levelTitle"
           :total-x-p="totalXP"
           :travel-mode="travelMode"
+          :day-type="dayType"
+          :day-type-label="getDayTypeLabel(dayType)"
           :can-navigate-prev-month="props.canNavigatePrevMonth"
           :can-navigate-next-month="props.canNavigateNextMonth"
           :is-navigating-month="isNavigatingMonth"
