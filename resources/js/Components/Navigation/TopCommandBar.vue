@@ -16,6 +16,9 @@ import {
   Award,
   Info,
   X,
+  Download,
+  Bell,
+  Monitor,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -34,6 +37,7 @@ const props = defineProps({
   darkMode: { type: Boolean, default: false },
   activeTab: { type: String, default: 'today' },
   timerRunning: { type: Boolean, default: false },
+  notificationsEnabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -42,6 +46,7 @@ const emit = defineEmits([
   'next-month',
   'toggle-theme',
   'set-tab',
+  'open-install-modal',
 ]);
 
 const showLevelInfo = ref(false);
@@ -157,6 +162,17 @@ const showLevelInfo = ref(false);
           <ChevronRight class="icon-sm" />
         </button>
       </div>
+
+      <!-- App & Alerts Hub Button (Desktop PWA & Notifications) -->
+      <button
+        type="button"
+        class="hero-app-install-btn"
+        @click="emit('open-install-modal')"
+        title="Install Windows Desktop App & Enable Notifications"
+      >
+        <Download class="icon-xs" />
+        <span class="hero-app-install-text">App / Alerts</span>
+      </button>
 
       <!-- Theme Switcher -->
       <button

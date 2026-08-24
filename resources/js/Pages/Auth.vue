@@ -16,7 +16,7 @@ import {
   QrCode,
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
-import AndroidInstallModal from '@/Components/Modals/AndroidInstallModal.vue';
+import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
 const emit = defineEmits(['guest-login']);
 
@@ -435,8 +435,8 @@ const handleGuestAccess = () => {
       </div>
     </div>
 
-    <!-- Native Android App & Widget Download Modal -->
-    <AndroidInstallModal
+    <!-- Multiplatform App & Alerts Download Modal -->
+    <AppInstallModal
       :is-open="isApkModalOpen"
       @close="isApkModalOpen = false"
     />

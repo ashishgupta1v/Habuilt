@@ -501,12 +501,72 @@ export function useDueNowNotifications({
     { deep: true }
   );
 
+  // Send Test Notification (for desktop / mobile testing)
+  const sendTestNotification = async () => {
+    if (!isSupported) return false;
+    if (permissionState.value !== 'granted') {
+      const granted = await requestPermission();
+      if (!granted) return false;
+    }
+    const title = '⚡ Due Now: Test Habit (+2 pts)';
+    const body = '⏰ Test Routine • +2 pts\nTap [Mark Done] to test 1-tap tracking without opening the app.';
+
+    if (isNative) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 99999,
+              title,
+              body,
+              channelId: 'habuilt_reminders',
+              actionTypeId: 'HABUILT_HABIT_ACTION',
+              extra: {
+                habitId: 'test-habit',
+                day: new Date().getDate(),
+              },
+              schedule: { at: new Date(Date.now() + 500) },
+              sound: 'default',
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#10B981',
+            },
+          ],
+        });
+        return true;
+      } catch (e) {
+        console.warn('Native test notification error:', e);
+      }
+    } else if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_DUE_NOW_NOTIFICATION',
+        payload: {
+          habitId: 'test-habit',
+          habitName: 'Test Habit',
+          points: 2,
+          timeLabel: 'Testing Mode',
+          day: new Date().getDate(),
+          customBody: body,
+        },
+      });
+      return true;
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/badge-monochrome-96.png',
+      });
+      return true;
+    }
+    return false;
+  };
+
   return {
     isSupported,
     permissionState,
     notificationsEnabled,
     requestPermission,
     toggleNotifications,
+    sendTestNotification,
     syncDueNowNotification,
     dismissDueNowNotification,
     drainQueuedCompletions,

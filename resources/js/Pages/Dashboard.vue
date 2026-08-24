@@ -19,6 +19,7 @@ import SundayReview from '@/Components/Review/SundayReview.vue';
 import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
+import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
 // Composables & Data
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
@@ -1065,6 +1066,7 @@ const {
   notificationsEnabled: dueNowNotificationsEnabled,
   requestPermission: requestDueNowNotifications,
   toggleNotifications: toggleDueNowNotifications,
+  sendTestNotification,
   syncDueNowNotification,
   dismissDueNowNotification,
   drainQueuedCompletions,
@@ -1081,9 +1083,41 @@ const {
 const handleToggleDueNowNotifications = async () => {
   const enabled = await toggleDueNowNotifications();
   if (enabled) {
-    showToast('🔔 Due Now Lockscreen Actions active!');
+    showToast('🔔 Live Desktop/Mobile Alerts Active!');
   } else {
-    showToast('🔕 Lockscreen notifications paused');
+    showToast('🔕 Live alerts paused');
+  }
+};
+
+// ── App & Notifications Hub Modal & Desktop PWA Installer ──
+const isAppInstallModalOpen = ref(false);
+const deferredInstallPrompt = ref(null);
+const canInstallPwa = ref(false);
+
+const handleTriggerInstallPwa = async () => {
+  if (deferredInstallPrompt.value) {
+    try {
+      deferredInstallPrompt.value.prompt();
+      const choiceResult = await deferredInstallPrompt.value.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        showToast('🎉 Habuilt App installed on your desktop!');
+        canInstallPwa.value = false;
+        deferredInstallPrompt.value = null;
+      }
+    } catch (e) {
+      console.warn('Install prompt error:', e);
+    }
+  } else {
+    showToast('💡 Click the Install icon (⊕) in your browser address bar');
+  }
+};
+
+const handleSendTestNotification = async () => {
+  const sent = await sendTestNotification();
+  if (sent) {
+    showToast('⚡ Test toast notification sent! Look for the action banner.');
+  } else {
+    showToast('⚠️ Please allow notification permission in your browser/Windows');
   }
 };
 
@@ -1532,6 +1566,18 @@ onMounted(() => {
   window.addEventListener('online', () => syncCloudState(true));
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
+  // ── Desktop PWA Install Prompt Capture (Chrome / Edge / Windows) ──
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt.value = e;
+    canInstallPwa.value = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    canInstallPwa.value = false;
+    deferredInstallPrompt.value = null;
+    showToast('🎉 Habuilt Desktop App ready!');
+  });
+
   // ── Native Android Hardware / Gesture Back Button Handler ──
   if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
     let lastBackPressTime = 0;
@@ -1699,11 +1745,13 @@ onBeforeUnmount(() => {
           :dark-mode="darkMode"
           :active-tab="activeMobileTab"
           :timer-running="timerState && timerState.running"
+          :notifications-enabled="dueNowNotificationsEnabled"
           @set-tab="tab => activeMobileTab = tab"
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
           @toggle-theme="toggleTheme"
+          @open-install-modal="isAppInstallModalOpen = true"
         />
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
@@ -2198,6 +2246,20 @@ onBeforeUnmount(() => {
         :date-label="mobileDayIsToday ? '' : mobileDayLabel"
         @close="isShareModalOpen = false"
         @toast="msg => showToast(msg)"
+      />
+
+      <!-- App & Live Notifications Hub Modal (Windows Desktop PWA & Android APK) -->
+      <AppInstallModal
+        :is-open="isAppInstallModalOpen"
+        :notifications-supported="notificationsSupported"
+        :notifications-enabled="dueNowNotificationsEnabled"
+        :permission-state="notificationPermission"
+        :can-install-pwa="canInstallPwa"
+        @close="isAppInstallModalOpen = false"
+        @toast="msg => showToast(msg)"
+        @trigger-install-pwa="handleTriggerInstallPwa"
+        @toggle-notifications="handleToggleDueNowNotifications"
+        @test-notification="handleSendTestNotification"
       />
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
