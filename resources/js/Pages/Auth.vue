@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import {
   Mail, Lock, ArrowRight, ShieldCheck, Zap, KeyRound, ArrowLeft,
   Smartphone, Download, CheckCircle2, Sparkles, Timer, Award,
-  Clock, Check, ChevronRight, Play,
+  Clock, Check, ChevronRight, Play, Star, Flame, Shield,
+  Layers, Compass, BarChart3
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
@@ -20,123 +21,178 @@ const loading = ref(false);
 const error = ref('');
 const successMessage = ref('');
 const activeFeature = ref(0);
-const isDownloadingApk = ref(false);
+const progressPercent = ref(0);
 let ticker = null;
+let progressTicker = null;
 
 const apkUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/v2.0/habuilt.apk';
 
-/* ─── Feature cards ──────────────────────────────────────────────── */
+/* ─── Feature Showcase Data ─────────────────────────────────────── */
 const features = [
   {
     num: '01',
+    id: 'due-now',
     color: '#10b981',
-    shadow: 'rgba(16,185,129,0.18)',
+    colorDark: '#059669',
+    shadow: 'rgba(16, 185, 129, 0.22)',
+    badgeBg: 'rgba(16, 185, 129, 0.12)',
     label: 'Due-Now Engine',
-    headline: "Always know what's\nnext. Never miss.",
-
-    body: 'A live time-phased timeline surfaces exactly what needs your attention right now — not a flat to-do list.',
+    headline: "Always know what's next.\nNever lose momentum.",
+    body: 'A live, time-phased schedule surfaces the exact habit needing your attention right now — so you never stare at an overwhelming list.',
     stat: '3.2×',
-    statDesc: 'daily completion rate',
-    pills: ['Time-blocks', 'Auto-sort', 'Flow alerts'],
-    preview: {
+    statLabel: 'Higher Daily Completion',
+    statDesc: 'vs. static habit checklists',
+    pills: ['Dynamic Timeline', 'Auto-Prioritization', 'Smart Alerts'],
+    mock: {
+      type: 'due-now',
       badge: 'DUE NOW',
-      task: 'Deep Work: Architecture',
-      time: '09:00 – 10:30',
-      meta: '🔥 18-day streak',
+      title: 'Deep Work: Core Architecture',
+      timeSlot: '09:00 – 10:30 AM',
+      streak: '18 Days',
       progress: 68,
-    },
+      subtext: 'Time remaining: 28 mins in flow window'
+    }
   },
   {
     num: '02',
+    id: 'focus-station',
     color: '#818cf8',
-    shadow: 'rgba(129,140,248,0.18)',
-    label: 'Focus Sessions',
-    headline: '90-minute flows.\nNo interruptions.',
-    body: 'Pomodoro blocks with lockscreen alerts keep you sealed inside deep work — home screen widget included.',
+    colorDark: '#6366f1',
+    shadow: 'rgba(129, 140, 248, 0.22)',
+    badgeBg: 'rgba(129, 140, 248, 0.12)',
+    label: 'Focus Workstation',
+    headline: '90-minute deep flows.\nZero interruptions.',
+    body: 'Integrated Pomodoro workstation with ambient timers and lockscreen widgets keep your mind locked into high-output focus blocks.',
     stat: '91%',
-    statDesc: 'flow completion rate',
-    pills: ['Pomodoro', 'Widget', 'Lockscreen'],
-    preview: {
-      badge: 'ACTIVE',
-      task: 'Sprint: Deliverables Block',
-      time: '45m target · 28:14 elapsed',
-      meta: '⚡ Deep flow active',
+    statLabel: 'Flow Session Success',
+    statDesc: 'avg focus session completion',
+    pills: ['Custom Intervals', 'Home Screen Widget', 'Lockscreen Sync'],
+    mock: {
+      type: 'focus',
+      badge: 'FOCUS ACTIVE',
+      title: 'Sprint: System Architecture & Refactor',
+      timeSlot: '28:14 / 45:00',
+      streak: '9 Sessions',
       progress: 63,
-    },
+      subtext: 'High-discipline zone active'
+    }
   },
   {
     num: '03',
+    id: 'warrior-ranks',
     color: '#f59e0b',
-    shadow: 'rgba(245,158,11,0.18)',
+    colorDark: '#d97706',
+    shadow: 'rgba(245, 158, 11, 0.22)',
+    badgeBg: 'rgba(245, 158, 11, 0.12)',
     label: 'Warrior Ranks',
-    headline: 'Discipline becomes\na game you win.',
-    body: 'Every completed block earns XP. Climb warrior tiers. Unlock milestone vaults. Your streak is your identity.',
+    headline: 'Discipline turned into\na game you master.',
+    body: 'Earn XP for every finished habit. Climb warrior tiers from Novice to Grandmaster. Unlock milestone reward vaults along your journey.',
     stat: '5.8×',
-    statDesc: '30-day retention vs apps',
-    pills: ['XP Rewards', 'Tier ranks', 'Vaults'],
-    preview: {
-      badge: 'LEVELED UP',
-      task: 'Level 8 — Mastery Tier',
-      time: '1,420 XP · Next: 80%',
-      meta: '👑 Master streak on',
+    statLabel: '30-Day Habit Retention',
+    statDesc: 'gamified streak consistency',
+    pills: ['Warrior Tiers', 'XP Rewards', 'Milestone Vaults'],
+    mock: {
+      type: 'ranks',
+      badge: 'LEVEL 8 · MASTERY',
+      title: 'Grandmaster Discipline Tier',
+      timeSlot: '1,420 XP · Next Level: 80%',
+      streak: '32 Days',
       progress: 80,
-    },
+      subtext: 'Next milestone reward vault unlocks in 180 XP'
+    }
   },
   {
     num: '04',
+    id: 'adaptive-mode',
     color: '#38bdf8',
-    shadow: 'rgba(56,189,248,0.18)',
-    label: 'Adaptive Mode',
-    headline: 'Life changes.\nYour routine adapts.',
-    body: 'Office day? Travel? Holiday? Habuilt detects your day type and reshapes your entire schedule automatically.',
-    stat: '0',
-    statDesc: 'broken streaks from life',
-    pills: ['4 day modes', 'Travel routing', 'Streak shield'],
-    preview: {
-      badge: 'AUTO-SET',
-      task: 'Office Mode: Detected',
-      time: 'Home · Office · Half · Holiday',
-      meta: '🛡️ Streak protected',
+    colorDark: '#0284c7',
+    shadow: 'rgba(56, 189, 248, 0.22)',
+    badgeBg: 'rgba(56, 189, 248, 0.12)',
+    label: 'Adaptive Schedules',
+    headline: 'Life changes daily.\nYour system adapts.',
+    body: 'Home day? Office commute? Travel or Holiday? Habuilt intelligently shifts your daily habits so you never break a streak when routine changes.',
+    stat: '100%',
+    statLabel: 'Streak Protection',
+    statDesc: 'adaptive routine continuity',
+    pills: ['4 Day Profiles', 'Commute Mode', 'Streak Shield'],
+    mock: {
+      type: 'adaptive',
+      badge: 'OFFICE MODE ACTIVE',
+      title: 'Adaptive Schedule: Office Day',
+      timeSlot: 'Commute · Office · Evening Shift',
+      streak: 'Shield Active',
       progress: 100,
-    },
-  },
+      subtext: 'Travel routines automatically re-routed'
+    }
+  }
 ];
 
 const current = computed(() => features[activeFeature.value]);
 
 const setFeature = (i) => {
   activeFeature.value = i;
-  resetTicker();
+  startTicker();
 };
 
-const resetTicker = () => {
+const CYCLE_DURATION = 4200;
+const TICK_STEP = 50;
+
+const startTicker = () => {
   clearInterval(ticker);
+  clearInterval(progressTicker);
+  progressPercent.value = 0;
+
+  const startTime = Date.now();
+  progressTicker = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    progressPercent.value = Math.min(100, (elapsed / CYCLE_DURATION) * 100);
+  }, TICK_STEP);
+
   ticker = setInterval(() => {
     activeFeature.value = (activeFeature.value + 1) % features.length;
-  }, 4500);
+    startTicker();
+  }, CYCLE_DURATION);
 };
 
-/* ─── Auth logic ─────────────────────────────────────────────────── */
+/* ─── Social Proof Data ─────────────────────────────────────────── */
+const socialUsers = [
+  { initial: 'A', bg: 'linear-gradient(135deg, #10b981, #047857)' },
+  { initial: 'J', bg: 'linear-gradient(135deg, #818cf8, #4f46e5)' },
+  { initial: 'M', bg: 'linear-gradient(135deg, #f59e0b, #b45309)' },
+  { initial: 'S', bg: 'linear-gradient(135deg, #38bdf8, #0284c7)' },
+];
+
+/* ─── Auth Logic ─────────────────────────────────────────────────── */
 onMounted(() => {
-  resetTicker();
+  startTicker();
   if (typeof window !== 'undefined') {
     const h = window.location.hash;
     if (h.includes('type=recovery') || h.includes('access_token')) mode.value = 'reset';
     if (Capacitor.isNativePlatform()) {
       try {
         App.addListener('backButton', () => {
-          if (mode.value !== 'login') { mode.value = 'login'; error.value = ''; successMessage.value = ''; }
-          else App.exitApp();
+          if (mode.value !== 'login') {
+            mode.value = 'login';
+            error.value = '';
+            successMessage.value = '';
+          } else {
+            App.exitApp();
+          }
         });
       } catch {}
     }
   }
 });
 
-onUnmounted(() => clearInterval(ticker));
+onUnmounted(() => {
+  clearInterval(ticker);
+  clearInterval(progressTicker);
+});
 
 const handleAuth = async () => {
-  loading.value = true; error.value = ''; successMessage.value = '';
+  loading.value = true;
+  error.value = '';
+  successMessage.value = '';
   try {
     if (mode.value === 'signup') {
       const { error: e } = await supabase.auth.signUp({ email: email.value, password: password.value });
@@ -153,7 +209,7 @@ const handleAuth = async () => {
     } else if (mode.value === 'reset') {
       const { error: e } = await supabase.auth.updateUser({ password: newPassword.value });
       if (e) throw e;
-      successMessage.value = 'Password updated.';
+      successMessage.value = 'Password updated successfully.';
       mode.value = 'login';
     } else {
       const { error: e } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
@@ -167,7 +223,8 @@ const handleAuth = async () => {
 };
 
 const handleGoogle = async () => {
-  error.value = ''; loading.value = true;
+  error.value = '';
+  loading.value = true;
   try {
     const isNative = typeof window !== 'undefined' && (window.Capacitor?.isNativePlatform?.() || window.location.origin.includes('localhost'));
     const { data, error: e } = await supabase.auth.signInWithOAuth({
@@ -179,8 +236,11 @@ const handleGoogle = async () => {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({ url: data.url, windowName: '_self' });
     }
-  } catch (e) { error.value = e.message; }
-  finally { loading.value = false; }
+  } catch (e) {
+    error.value = e.message;
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleGuest = () => {
@@ -195,291 +255,388 @@ const handleGuest = () => {
 <template>
   <div class="lp">
 
-    <!-- ── Canvas Background ─────────────────────────────────────── -->
+    <!-- ── Ambient Spatial Background ────────────────────────────── -->
     <div class="lp__bg" aria-hidden="true">
-      <div class="lp__bg-orb lp__bg-orb--a"></div>
-      <div class="lp__bg-orb lp__bg-orb--b"></div>
-      <div class="lp__bg-orb lp__bg-orb--c"></div>
-      <svg class="lp__bg-grid" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+      <!-- Animated multi-stop color orbs -->
+      <div class="lp__orb lp__orb--primary" :style="`background: radial-gradient(circle, ${current.color}1c 0%, transparent 70%)`"></div>
+      <div class="lp__orb lp__orb--secondary"></div>
+      <div class="lp__orb lp__orb--accent"></div>
+
+      <!-- Linear-style SVG Grid Pattern with Vignette -->
+      <svg class="lp__grid-pattern" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
         <defs>
-          <pattern id="grid" width="72" height="72" patternUnits="userSpaceOnUse">
-            <path d="M 72 0 L 0 0 0 72" fill="none" stroke="rgba(255,255,255,0.025)" stroke-width="0.8"/>
+          <pattern id="lux-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+            <circle cx="60" cy="0" r="1" fill="rgba(255,255,255,0.07)" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)"/>
+        <rect width="100%" height="100%" fill="url(#lux-grid)"/>
       </svg>
-      <!-- Horizontal scan line -->
-      <div class="lp__bg-scanline"></div>
+
+      <!-- Ambient Light Sweep -->
+      <div class="lp__light-sweep"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         HERO PANEL
-         ═══════════════════════════════════════════════════════════ -->
-    <div class="lp__hero">
+    <!-- ── Main Viewport Split Container ─────────────────────────── -->
+    <div class="lp__container">
 
-      <!-- Logo -->
-      <div class="lp__logo-row">
-        <HabuiltLogo size="sm" />
-        <span class="lp__logo-wordmark">Habuilt</span>
-      </div>
+      <!-- ═══════════════════════════════════════════════════════════
+           LEFT COLUMN: HERO, VALUE PROP & INTERACTIVE 3D SHOWCASE
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="lp__hero">
 
-      <!-- Headline -->
-      <div class="lp__headline-block">
-        <p class="lp__eyebrow">Execution Operating System</p>
-        <h1 class="lp__h1">
-          The OS for people<br>
-          who <em class="lp__h1-em">actually ship.</em>
-        </h1>
-        <p class="lp__sub">
-          Replace dead lists with a living time-engine.<br>
-          Due-now alerts. Adaptive schedules. Real momentum.
-        </p>
-
-        <!-- Credibility bar -->
-        <div class="lp__cred">
-          <span class="lp__cred-dot"></span>
-          <span>Trusted by ambitious builders</span>
-          <span class="lp__cred-sep">·</span>
-          <span>Android &amp; Web</span>
-        </div>
-      </div>
-
-      <!-- Feature selector -->
-      <div class="lp__feat-nav">
-        <button
-          v-for="(f, i) in features"
-          :key="f.num"
-          class="lp__feat-pill"
-          :class="{ 'lp__feat-pill--on': activeFeature === i }"
-          :style="activeFeature === i ? `--ac: ${f.color}` : ''"
-          type="button"
-          @click="setFeature(i)"
-        >
-          <span class="lp__feat-pill-num">{{ f.num }}</span>
-          <span>{{ f.label }}</span>
-        </button>
-      </div>
-
-      <!-- Feature spotlight -->
-      <div
-        class="lp__card"
-        :style="`--ac: ${current.color}; --sh: ${current.shadow}`"
-      >
-        <!-- Top row: stat + headline -->
-        <div class="lp__card-top">
-          <div class="lp__stat-block">
-            <span class="lp__stat-num">{{ current.stat }}</span>
-            <span class="lp__stat-desc">{{ current.statDesc }}</span>
+        <!-- Top Brand Bar -->
+        <div class="lp__brand-row">
+          <HabuiltLogo size="md" />
+          <div class="lp__brand-meta">
+            <span class="lp__brand-name">Habuilt</span>
+            <span class="lp__brand-tag">Daily Habit &amp; Focus System</span>
           </div>
-          <div class="lp__card-text">
-            <h2 class="lp__card-h2">{{ current.headline }}</h2>
-            <p class="lp__card-body">{{ current.body }}</p>
-            <div class="lp__pills">
-              <span v-for="p in current.pills" :key="p" class="lp__pill">{{ p }}</span>
+        </div>
+
+        <!-- Editorial Hero Headline Block -->
+        <div class="lp__headline-block">
+          <!-- Familiar, Trustworthy Eyebrow -->
+          <div class="lp__eyebrow">
+            <span class="lp__eyebrow-dot"></span>
+            <span class="lp__eyebrow-text">Daily Habit &amp; Routine System</span>
+          </div>
+
+          <h1 class="lp__h1">
+            Build unshakeable daily habits,<br>
+            <span class="lp__h1-gradient">effortlessly engineered.</span>
+          </h1>
+
+          <p class="lp__sub">
+            Transform vague intentions into automatic daily momentum. Live Due-Now timelines, deep focus workstations, and warrior streak levels — with zero clutter.
+          </p>
+
+          <!-- Social Proof Section -->
+          <div class="lp__social-proof">
+            <div class="lp__avatar-stack">
+              <div
+                v-for="(user, idx) in socialUsers"
+                :key="idx"
+                class="lp__avatar"
+                :style="{ background: user.bg, zIndex: 5 - idx }"
+              >
+                <span>{{ user.initial }}</span>
+              </div>
+            </div>
+            <div class="lp__social-text">
+              <div class="lp__stars">
+                <Star v-for="s in 5" :key="s" class="lp__star-icon" />
+                <span class="lp__rating-num">4.9/5</span>
+              </div>
+              <p class="lp__proof-label">Trusted by <strong>1,400+ builders &amp; high performers</strong></p>
             </div>
           </div>
         </div>
 
-        <!-- App Preview widget -->
-        <div class="lp__preview">
-          <div class="lp__preview-top">
-            <div class="lp__preview-dots">
-              <span></span><span></span><span></span>
-            </div>
-            <span class="lp__preview-label">habuilt · live</span>
-            <span class="lp__preview-badge" :style="`color: ${current.color}; border-color: ${current.color}33; background: ${current.shadow}`">
-              {{ current.preview.badge }}
-            </span>
-          </div>
-          <div class="lp__preview-row">
-            <div class="lp__preview-tick" :style="`background: ${current.color}22; border-color: ${current.color}55`">
-              <Check class="lp__preview-tick-icon" :style="`color: ${current.color}`" />
-            </div>
-            <div class="lp__preview-info">
-              <span class="lp__preview-task">{{ current.preview.task }}</span>
-              <span class="lp__preview-time">{{ current.preview.time }}</span>
-            </div>
-            <span class="lp__preview-meta">{{ current.preview.meta }}</span>
-          </div>
-          <div class="lp__preview-bar">
-            <div
-              class="lp__preview-fill"
-              :style="`width: ${current.preview.progress}%; background: linear-gradient(90deg, ${current.color}cc, ${current.color})`"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Progress strip -->
-        <div class="lp__card-footer">
-          <div class="lp__progress-dots">
+        <!-- ── Interactive 4-Part Feature Tabs with Live Progress ── -->
+        <div class="lp__tabs-wrapper">
+          <div class="lp__tabs-nav" role="tablist">
             <button
               v-for="(f, i) in features"
-              :key="i"
-              class="lp__pdot"
-              :class="{ 'lp__pdot--on': activeFeature === i }"
-              :style="activeFeature === i ? `background: ${f.color}; box-shadow: 0 0 8px ${f.color}80` : ''"
-              @click="setFeature(i)"
+              :key="f.id"
+              class="lp__tab-btn"
+              :class="{ 'lp__tab-btn--active': activeFeature === i }"
+              :style="activeFeature === i ? `--tab-color: ${f.color}` : ''"
               type="button"
-            />
+              role="tab"
+              :aria-selected="activeFeature === i"
+              @click="setFeature(i)"
+            >
+              <div class="lp__tab-header">
+                <span class="lp__tab-num">{{ f.num }}</span>
+                <span class="lp__tab-label">{{ f.label }}</span>
+              </div>
+              <!-- Animated Progress Bar -->
+              <div class="lp__tab-track">
+                <div
+                  class="lp__tab-fill"
+                  :style="activeFeature === i ? { width: `${progressPercent}%`, background: f.color } : { width: '0%' }"
+                ></div>
+              </div>
+            </button>
           </div>
-          <a
-            :href="apkUrl"
-            download="habuilt.apk"
-            class="lp__dl-link"
-            @click="isDownloadingApk = true"
+
+          <!-- ── Feature Spotlight 3D Card ──────────────────────── -->
+          <div
+            class="lp__showcase-3d"
+            :style="`--accent-color: ${current.color}; --accent-shadow: ${current.shadow}; --accent-bg: ${current.badgeBg}`"
           >
-            <Download class="lp__dl-icon" />
-            <span>Download for Android</span>
-          </a>
-        </div>
-      </div>
+            <div class="lp__card-inner">
 
-    </div>
+              <!-- Top Row: Oversized Stat Callout + Headline -->
+              <div class="lp__card-header">
+                <!-- Oversized Stat Callout -->
+                <div class="lp__stat-box">
+                  <span class="lp__stat-value">{{ current.stat }}</span>
+                  <div class="lp__stat-info">
+                    <span class="lp__stat-title">{{ current.statLabel }}</span>
+                    <span class="lp__stat-sub">{{ current.statDesc }}</span>
+                  </div>
+                </div>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         AUTH PANEL
-         ═══════════════════════════════════════════════════════════ -->
-    <div class="lp__auth">
-      <div class="lp__auth-card">
+                <!-- Feature Description -->
+                <div class="lp__feature-info">
+                  <h2 class="lp__feature-title">{{ current.headline }}</h2>
+                  <p class="lp__feature-desc">{{ current.body }}</p>
+                  <div class="lp__feature-tags">
+                    <span v-for="tag in current.pills" :key="tag" class="lp__tag-pill">
+                      <Sparkles class="lp__tag-icon" />
+                      {{ tag }}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-        <!-- Mobile logo -->
-        <div class="lp__auth-mobile-logo">
-          <HabuiltLogo size="sm" />
-          <span class="lp__logo-wordmark">Habuilt</span>
-        </div>
+              <!-- ── 3D Live App Simulation Mock Widget ─────────── -->
+              <div class="lp__mock-stage">
+                <div class="lp__mock-window">
+                  <div class="lp__mock-titlebar">
+                    <div class="lp__mock-dots">
+                      <span class="lp__dot lp__dot--red"></span>
+                      <span class="lp__dot lp__dot--yellow"></span>
+                      <span class="lp__dot lp__dot--green"></span>
+                    </div>
+                    <span class="lp__mock-uri">habuilt.com/app · {{ current.label }}</span>
+                    <span class="lp__mock-badge" :style="{ color: current.color, borderColor: `${current.color}40`, background: current.badgeBg }">
+                      {{ current.mock.badge }}
+                    </span>
+                  </div>
 
-        <!-- Guest CTA — hero action -->
-        <button class="lp__guest" type="button" @click="handleGuest">
-          <div class="lp__guest-left">
-            <span class="lp__guest-glyph">⚡</span>
-            <div>
-              <p class="lp__guest-title">Try instantly — no account</p>
-              <p class="lp__guest-sub">Full dashboard · Zero setup</p>
+                  <!-- Dynamic Mock Content -->
+                  <div class="lp__mock-body">
+                    <div class="lp__mock-icon-wrap" :style="{ background: `${current.color}20`, borderColor: `${current.color}50` }">
+                      <Zap v-if="current.id === 'due-now'" class="lp__mock-svg" :style="{ color: current.color }" />
+                      <Timer v-else-if="current.id === 'focus-station'" class="lp__mock-svg" :style="{ color: current.color }" />
+                      <Award v-else-if="current.id === 'warrior-ranks'" class="lp__mock-svg" :style="{ color: current.color }" />
+                      <Compass v-else class="lp__mock-svg" :style="{ color: current.color }" />
+                    </div>
+
+                    <div class="lp__mock-details">
+                      <div class="lp__mock-row-top">
+                        <span class="lp__mock-name">{{ current.mock.title }}</span>
+                        <span class="lp__mock-streak">
+                          <Flame class="lp__mock-flame" />
+                          {{ current.mock.streak }}
+                        </span>
+                      </div>
+                      <div class="lp__mock-row-meta">
+                        <span class="lp__mock-time">{{ current.mock.timeSlot }}</span>
+                        <span class="lp__mock-hint">{{ current.mock.subtext }}</span>
+                      </div>
+                      <div class="lp__mock-progress-track">
+                        <div
+                          class="lp__mock-progress-fill"
+                          :style="{ width: `${current.mock.progress}%`, background: `linear-gradient(90deg, ${current.colorDark}, ${current.color})` }"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Strip: APK Download CTA -->
+              <div class="lp__card-foot">
+                <span class="lp__foot-tip">Available on Android &amp; Modern Web Browsers</span>
+                <a :href="apkUrl" download="habuilt.apk" class="lp__apk-btn">
+                  <Download class="lp__apk-icon" />
+                  <span>Download for Android</span>
+                </a>
+              </div>
+
             </div>
           </div>
-          <ChevronRight class="lp__guest-arrow" />
-        </button>
-
-        <!-- Auth form header -->
-        <div class="lp__auth-header">
-          <h2 class="lp__auth-h2">
-            <template v-if="mode === 'login'">Sign in</template>
-            <template v-else-if="mode === 'signup'">Create account</template>
-            <template v-else-if="mode === 'forgot'">Reset password</template>
-            <template v-else>New password</template>
-          </h2>
-          <p class="lp__auth-sub">
-            <template v-if="mode === 'login'">Welcome back. Your dashboard awaits.</template>
-            <template v-else-if="mode === 'signup'">Start building unshakeable habits.</template>
-            <template v-else-if="mode === 'forgot'">We'll send a reset link to your email.</template>
-            <template v-else>Choose a strong new password.</template>
-          </p>
         </div>
 
-        <!-- Google OAuth -->
-        <template v-if="mode === 'login' || mode === 'signup'">
-          <button class="lp__google" type="button" @click="handleGoogle">
-            <svg class="lp__google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           RIGHT COLUMN: FLOATING FROSTED AUTH CARD
+           ═══════════════════════════════════════════════════════════ -->
+      <aside class="lp__auth-col">
+        <div class="lp__auth-glass">
+
+          <!-- Mobile-only logo -->
+          <div class="lp__mobile-brand">
+            <HabuiltLogo size="sm" />
+            <span class="lp__mobile-brand-name">Habuilt</span>
+          </div>
+
+          <!-- Hero Guest CTA Action -->
+          <button class="lp__hero-guest-btn" type="button" @click="handleGuest">
+            <div class="lp__guest-main">
+              <div class="lp__guest-bolt-wrap">
+                <Zap class="lp__guest-bolt" />
+              </div>
+              <div class="lp__guest-text">
+                <span class="lp__guest-head">Try Instantly — No Account</span>
+                <span class="lp__guest-sub">Explore full workspace with sample routines</span>
+              </div>
+            </div>
+            <ChevronRight class="lp__guest-arrow" />
           </button>
 
-          <div class="lp__sep">
-            <span class="lp__sep-line"></span>
-            <span class="lp__sep-text">or continue with email</span>
-            <span class="lp__sep-line"></span>
-          </div>
-        </template>
-
-        <!-- Alerts -->
-        <p v-if="successMessage" class="lp__alert lp__alert--ok">
-          <CheckCircle2 class="lp__alert-icon" /> {{ successMessage }}
-        </p>
-        <p v-if="error" class="lp__alert lp__alert--err">
-          <ShieldCheck class="lp__alert-icon" /> {{ error }}
-        </p>
-
-        <!-- Form -->
-        <form @submit.prevent="handleAuth" class="lp__form">
-          <div v-if="mode !== 'reset'" class="lp__field">
-            <label class="lp__label" for="f-email">Email</label>
-            <div class="lp__input-wrap">
-              <Mail class="lp__input-icon" />
-              <input
-                id="f-email" v-model="email" type="email" required
-                placeholder="you@domain.com" class="lp__input"
-                autocomplete="email"
-              />
-            </div>
+          <!-- Auth Header -->
+          <div class="lp__auth-header">
+            <h3 class="lp__auth-h3">
+              <template v-if="mode === 'login'">Sign In to Your Workspace</template>
+              <template v-else-if="mode === 'signup'">Create Free Account</template>
+              <template v-else-if="mode === 'forgot'">Reset Password</template>
+              <template v-else>Set New Password</template>
+            </h3>
+            <p class="lp__auth-subtext">
+              <template v-if="mode === 'login'">Sync habits, streaks, and focus across all devices.</template>
+              <template v-else-if="mode === 'signup'">Join ambitious builders tracking daily discipline.</template>
+              <template v-else-if="mode === 'forgot'">We'll send a secure password reset link to your email.</template>
+              <template v-else>Choose a strong new password for your account.</template>
+            </p>
           </div>
 
-          <div v-if="mode === 'login' || mode === 'signup'" class="lp__field">
-            <div class="lp__field-top">
-              <label class="lp__label" for="f-pw">Password</label>
-              <button v-if="mode === 'login'" type="button" class="lp__forgot" @click="mode = 'forgot'; error = ''; successMessage = ''">Forgot?</button>
-            </div>
-            <div class="lp__input-wrap">
-              <Lock class="lp__input-icon" />
-              <input
-                id="f-pw" v-model="password" type="password" required
-                placeholder="••••••••" class="lp__input"
-                autocomplete="current-password"
-              />
-            </div>
-          </div>
-
-          <div v-if="mode === 'reset'" class="lp__field">
-            <label class="lp__label" for="f-newpw">New Password</label>
-            <div class="lp__input-wrap">
-              <KeyRound class="lp__input-icon" />
-              <input
-                id="f-newpw" v-model="newPassword" type="password" required minlength="6"
-                placeholder="Min. 6 characters" class="lp__input"
-              />
-            </div>
-          </div>
-
-          <button type="submit" :disabled="loading" class="lp__submit">
-            <template v-if="loading">
-              <svg class="lp__spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity=".2"/>
-                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          <!-- Google OAuth Button -->
+          <template v-if="mode === 'login' || mode === 'signup'">
+            <button class="lp__google-btn" type="button" @click="handleGoogle">
+              <svg class="lp__google-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Processing…
+              <span>Continue with Google</span>
+            </button>
+
+            <div class="lp__divider">
+              <span class="lp__divider-line"></span>
+              <span class="lp__divider-text">or email</span>
+              <span class="lp__divider-line"></span>
+            </div>
+          </template>
+
+          <!-- Feedback Alerts -->
+          <div v-if="successMessage" class="lp__alert lp__alert--success">
+            <CheckCircle2 class="lp__alert-icon" />
+            <span>{{ successMessage }}</span>
+          </div>
+          <div v-if="error" class="lp__alert lp__alert--error">
+            <ShieldCheck class="lp__alert-icon" />
+            <span>{{ error }}</span>
+          </div>
+
+          <!-- Auth Form -->
+          <form @submit.prevent="handleAuth" class="lp__form-fields">
+            <div v-if="mode !== 'reset'" class="lp__input-group">
+              <label class="lp__input-label" for="auth-email">Email Address</label>
+              <div class="lp__input-box">
+                <Mail class="lp__field-icon" />
+                <input
+                  id="auth-email"
+                  v-model="email"
+                  type="email"
+                  required
+                  placeholder="name@domain.com"
+                  class="lp__text-input"
+                  autocomplete="email"
+                />
+              </div>
+            </div>
+
+            <div v-if="mode === 'login' || mode === 'signup'" class="lp__input-group">
+              <div class="lp__label-row">
+                <label class="lp__input-label" for="auth-password">Password</label>
+                <button
+                  v-if="mode === 'login'"
+                  type="button"
+                  class="lp__forgot-link"
+                  @click="mode = 'forgot'; error = ''; successMessage = ''"
+                >
+                  Forgot?
+                </button>
+              </div>
+              <div class="lp__input-box">
+                <Lock class="lp__field-icon" />
+                <input
+                  id="auth-password"
+                  v-model="password"
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  class="lp__text-input"
+                  autocomplete="current-password"
+                />
+              </div>
+            </div>
+
+            <div v-if="mode === 'reset'" class="lp__input-group">
+              <label class="lp__input-label" for="auth-new-password">New Password</label>
+              <div class="lp__input-box">
+                <KeyRound class="lp__field-icon" />
+                <input
+                  id="auth-new-password"
+                  v-model="newPassword"
+                  type="password"
+                  required
+                  minlength="6"
+                  placeholder="Min. 6 characters"
+                  class="lp__text-input"
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" :disabled="loading" class="lp__submit-btn">
+              <template v-if="loading">
+                <svg class="lp__spin-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity=".2"/>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span>Processing…</span>
+              </template>
+              <template v-else>
+                <span v-if="mode === 'login'">Sign In</span>
+                <span v-else-if="mode === 'signup'">Create Free Account</span>
+                <span v-else-if="mode === 'forgot'">Send Reset Link</span>
+                <span v-else>Update Password</span>
+                <ArrowRight class="lp__btn-arrow" />
+              </template>
+            </button>
+          </form>
+
+          <!-- Toggle Mode Switcher -->
+          <div class="lp__auth-toggle">
+            <template v-if="mode === 'forgot' || mode === 'reset'">
+              <button type="button" class="lp__back-btn" @click="mode = 'login'; error = ''; successMessage = ''">
+                <ArrowLeft class="lp__back-icon" />
+                <span>Back to sign in</span>
+              </button>
             </template>
             <template v-else>
-              <span v-if="mode === 'login'">Sign in</span>
-              <span v-else-if="mode === 'signup'">Create account</span>
-              <span v-else-if="mode === 'forgot'">Send reset link</span>
-              <span v-else>Update password</span>
-              <ArrowRight class="lp__submit-arrow" />
+              <span class="lp__toggle-text">
+                {{ mode === 'login' ? "Don't have an account?" : "Already have an account?" }}
+                <button
+                  type="button"
+                  class="lp__toggle-link"
+                  @click="mode = mode === 'login' ? 'signup' : 'login'; error = ''; successMessage = ''"
+                >
+                  {{ mode === 'login' ? 'Sign up free' : 'Sign in' }}
+                </button>
+              </span>
             </template>
-          </button>
-        </form>
+          </div>
 
-        <!-- Footer toggle -->
-        <div class="lp__auth-foot">
-          <template v-if="mode === 'forgot' || mode === 'reset'">
-            <button type="button" class="lp__back" @click="mode = 'login'; error = ''; successMessage = ''">
-              <ArrowLeft class="lp__back-icon" /> Back to sign in
-            </button>
-          </template>
-          <template v-else>
-            <span class="lp__foot-text">
-              {{ mode === 'login' ? "No account?" : "Have an account?" }}
-              <button type="button" class="lp__switch" @click="mode = mode === 'login' ? 'signup' : 'login'; error = ''; successMessage = ''">
-                {{ mode === 'login' ? 'Sign up free' : 'Sign in' }}
-              </button>
+          <!-- Bottom Privacy & Security Micro-Badge -->
+          <div class="lp__auth-badges">
+            <span class="lp__security-pill">
+              <Shield class="lp__sec-icon" />
+              End-to-End Encrypted Sync
             </span>
-          </template>
+          </div>
+
         </div>
+      </aside>
 
-      </div>
     </div>
-
   </div>
 </template>
