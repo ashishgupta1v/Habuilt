@@ -4464,563 +4464,696 @@ body.theme-dark .habit-grid__check--done {
   }
 }
 
-/* ── AUTH VIEW STYLING ────────────────────────────────────────── */
+/* ── AUTH & LANDING PAGE STYLING (MODERN LUXURY DESIGN SYSTEM) ── */
 .auth-layout {
   min-height: 100vh;
   display: flex;
-  background-color: var(--page-bg);
-}
-
-.auth-panel-premium {
-  display: none;
-  position: relative;
-  background: radial-gradient(130% 100% at 10% 10%, #1e293b 0%, #0f172a 50%, #020617 100%);
-  overflow: hidden;
   align-items: center;
   justify-content: center;
-  padding: 48px;
-  color: #ffffff;
+  background: radial-gradient(130% 120% at 50% 0%, #0b1120 0%, #050811 50%, #020408 100%);
+  position: relative;
+  overflow-x: hidden;
+  padding: 32px 16px;
+  color: #f8fafc;
+}
+
+.auth-bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-bg-blob--primary {
+  top: -60px;
+  left: -80px;
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0) 70%);
+}
+
+.auth-bg-blob--secondary {
+  bottom: -100px;
+  right: -80px;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.16) 0%, rgba(99, 102, 241, 0) 70%);
+}
+
+.auth-bg-blob--tertiary {
+  top: 35%;
+  right: 25%;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(200, 164, 86, 0.12) 0%, rgba(200, 164, 86, 0) 70%);
+}
+
+.auth-container-unified {
+  width: 100%;
+  max-width: 1140px;
+  display: flex;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+}
+
+/* Left Promotional Hero Panel */
+.auth-panel-premium {
+  display: none;
+  flex: 1.15;
+  padding: 44px 40px;
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  position: relative;
 }
 
 @media (min-width: 1024px) {
   .auth-panel-premium {
     display: flex;
-    width: 50%;
+    flex-direction: column;
+    justify-content: center;
   }
 }
 
-.auth-bg-blob {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(54px);
-  pointer-events: none;
-}
-
-.auth-bg-blob--primary {
-  top: -100px;
-  left: -100px;
-  width: 360px;
-  height: 360px;
-  background: var(--accent);
-  opacity: 0.18;
-}
-
-.auth-bg-blob--secondary {
-  bottom: -100px;
-  right: -100px;
-  width: 420px;
-  height: 420px;
-  background: var(--brand-sky);
-  opacity: 0.15;
-}
-
-.auth-bg-blob--tertiary {
-  top: 45%;
-  left: 30%;
-  width: 260px;
-  height: 260px;
-  background: var(--brand-indigo);
-  opacity: 0.18;
-}
-
 .auth-panel__content-wrapper {
-  position: relative;
-  z-index: 10;
-  max-width: 480px;
+  max-width: 520px;
 }
 
-.auth-panel__icon-container {
+.auth-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.auth-live-pill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 54px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  margin-bottom: 28px;
-  backdrop-filter: blur(12px);
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  font-size: 11px;
+  font-weight: 700;
+  color: #34d399;
+  letter-spacing: 0.02em;
+}
+
+.auth-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: authPulse 2s infinite;
+}
+
+@keyframes authPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 .auth-panel__title {
-  font-size: clamp(32px, 3.6vw, 44px);
-  line-height: 1.1;
+  font-size: clamp(26px, 2.6vw, 36px);
+  line-height: 1.15;
   font-weight: 850;
   letter-spacing: -0.03em;
-  margin: 0 0 16px;
+  color: #f8fafc;
+  margin: 0 0 12px;
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #38bdf8 0%, #34d399 100%);
+  background: linear-gradient(135deg, #38bdf8 0%, #34d399 60%, #c8a456 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .auth-panel__description {
-  font-size: 16px;
-  color: #cbd5e1;
-  line-height: 1.6;
-  margin: 0 0 32px;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.55;
+  margin: 0 0 24px;
 }
 
-.auth-panel__feature-list {
+/* Feature Grid */
+.auth-feature-grid {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.feature-chip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.feature-chip__icon--fuchsia { color: #f472b6; }
-.feature-chip__icon--emerald { color: #34d399; }
-
-.feature-chip__text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #f1f5f9;
-}
-
-/* Auth Right Panel */
-.auth-panel-form {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 18px;
-  background: var(--page-bg);
-}
-
-@media (min-width: 1024px) {
-  .auth-panel-form {
-    width: 50%;
-    padding: 48px;
-  }
-}
-
-.auth-form-container {
-  width: 100%;
-  max-width: 420px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  padding: 28px 24px;
-  box-shadow: var(--shadow-lg);
-}
-
-@media (max-width: 480px) {
-  .auth-form-container {
-    padding: 22px 18px;
-    border-radius: var(--radius-md);
-  }
-}
-
-.auth-mobile-logo {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-@media (min-width: 1024px) {
-  .auth-mobile-logo { display: none; }
-}
-
-.auth-mobile-logo__box {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px var(--accent-glow);
-}
-
-.auth-header {
-  text-align: center;
+  gap: 10px;
   margin-bottom: 24px;
 }
 
-.auth-header__title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.auth-header__subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.btn-oauth {
-  width: 100%;
+.auth-feature-card {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 10px 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 14px;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-oauth:hover {
-  background: var(--hover-bg);
-  border-color: #cbd5e1;
-}
-
-.icon-oauth {
-  width: 20px;
-  height: 20px;
-}
-
-.auth-divider {
-  position: relative;
-  margin: 22px 0;
-  text-align: center;
-}
-
-.auth-divider__line {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  border-top: 1px solid var(--card-border);
-}
-
-.auth-divider__text-wrapper {
-  position: relative;
-  display: inline-block;
-  background: var(--card-bg);
-  padding: 0 12px;
-}
-
-.auth-divider__text {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.auth-alert {
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.auth-alert--success {
-  background: var(--accent-light);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: var(--accent-strong);
-}
-
-.auth-alert--error {
-  background: var(--danger-light);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: var(--danger);
-}
-
-.auth-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.auth-label {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.auth-input-wrapper {
-  position: relative;
-}
-
-.auth-input-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-}
-
-.auth-input {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px 10px 38px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
-  background: var(--muted-bg);
-  color: var(--text-primary);
-  font-size: 13.5px;
-  transition: var(--transition);
-}
-
-.auth-input:focus {
-  border-color: var(--accent);
-  background: var(--card-bg);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.auth-submit-btn {
-  width: 100%;
-  min-height: 46px;
-  padding: 12px 16px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--accent-strong);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-  box-shadow: 0 2px 8px var(--accent-glow);
-}
-
-.auth-submit-btn:hover:not(:disabled) {
-  background: var(--accent);
-}
-
-.auth-submit-btn__inner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.auth-toggle {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.auth-toggle__text {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.auth-toggle__btn {
-  border: none;
-  background: transparent;
-  color: var(--accent-strong);
-  font-weight: 700;
-  padding: 0 0 0 4px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-body.theme-dark .auth-toggle__btn {
-  color: #34d399;
-}
-
-/* ── Auth Landing Page Android APK Elements ── */
-.auth-android-card {
-  margin-top: 28px;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
 }
 
-.auth-android-card__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.auth-feature-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateX(3px);
 }
 
-.auth-android-card__icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.18);
+.auth-feature-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #34d399;
+  margin-top: 1px;
 }
 
-.auth-android-card__info {
+.auth-feature-card__icon--amber {
+  background: rgba(200, 164, 86, 0.16);
+  color: #fbbf24;
+}
+
+.auth-feature-card__icon--indigo {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+}
+
+.auth-feature-card__icon--sky {
+  background: rgba(14, 165, 233, 0.16);
+  color: #38bdf8;
+}
+
+.auth-feature-card__body {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.auth-android-card__title {
-  font-size: 13.5px;
+.auth-feature-card__title {
+  margin: 0;
+  font-size: 13px;
   font-weight: 750;
-  color: #ffffff;
+  color: #f1f5f9;
   letter-spacing: -0.01em;
 }
 
-.auth-android-card__desc {
+.auth-feature-card__desc {
+  margin: 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+/* Android APK Showcase Banner */
+.auth-apk-showcase-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.25) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-apk-showcase-card__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-apk-showcase-card__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+.auth-apk-showcase-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-apk-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-apk-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.auth-apk-version-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-apk-desc {
+  margin: 0;
   font-size: 11.5px;
   color: #94a3b8;
   line-height: 1.3;
 }
 
-.auth-android-card__actions {
+.btn-apk-direct-download {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-apk-direct-download:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-apk-direct-download:active {
+  transform: translateY(0);
+}
+
+/* Right Auth & Form Panel */
+.auth-panel-form {
+  flex: 0.95;
+  padding: 40px 36px;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.btn-auth-apk-download {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
-  transition: all 0.15s ease;
+  background: rgba(10, 15, 29, 0.8);
 }
 
-.btn-auth-apk-download:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-  color: #ffffff;
+@media (max-width: 1023px) {
+  .auth-panel-form {
+    padding: 32px 20px;
+    width: 100%;
+  }
 }
 
-.btn-auth-apk-qr {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e2e8f0;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.auth-form-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
 }
 
-.btn-auth-apk-qr:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-}
-
-/* Right Form Android APK Bar */
-.auth-landing-apk-bar {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--card-border);
+.auth-mobile-brand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
-.auth-landing-apk-bar__text {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+@media (min-width: 1024px) {
+  .auth-mobile-brand {
+    display: none;
+  }
 }
 
-.auth-landing-apk-bar__buttons {
+.auth-mobile-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.auth-header__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.auth-header__subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+/* Instant Guest Banner */
+.auth-guest-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%);
+  border: 1px solid rgba(200, 164, 86, 0.35);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.auth-guest-banner:hover {
+  background: linear-gradient(135deg, rgba(200, 164, 86, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+  border-color: #c8a456;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(200, 164, 86, 0.2);
+}
+
+.auth-guest-banner__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(200, 164, 86, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.auth-guest-banner__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+}
+
+.auth-guest-banner__title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.auth-guest-banner__sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.auth-guest-banner__arrow {
+  color: #c8a456;
+  transition: transform 0.2s ease;
+}
+
+.auth-guest-banner:hover .auth-guest-banner__arrow {
+  transform: translateX(3px);
+}
+
+/* OAuth Button */
+.btn-oauth-premium {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-oauth-premium:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.icon-oauth {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Modern Divider */
+.auth-divider-modern {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.auth-divider-modern__line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-divider-modern__text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Form inputs */
+.auth-form-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.auth-field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auth-field__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.auth-field__forgot-btn {
+  background: transparent;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #34d399;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.auth-field__forgot-btn:hover {
+  color: #6ee7b7;
+  text-decoration: underline;
+}
+
+.auth-field__input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-field__icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.auth-field__input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px 8px 36px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.auth-field__input:focus {
+  outline: none;
+  border-color: #10b981;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.auth-field__input::placeholder {
+  color: #475569;
+}
+
+/* Submit Button */
+.btn-auth-submit-glow {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 9px;
+  border: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  margin-top: 4px;
+}
+
+.btn-auth-submit-glow:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-auth-submit-glow:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-auth-submit__inner {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
 }
 
-.auth-landing-apk-link {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.15s ease;
+/* Footer Switch */
+.auth-footer-toggle {
+  margin-top: 16px;
+  text-align: center;
 }
 
-.auth-landing-apk-link:hover {
-  background: rgba(16, 185, 129, 0.2);
-  color: #059669;
+.auth-footer-toggle__text {
+  margin: 0;
+  font-size: 12.5px;
+  color: #94a3b8;
 }
 
-body.theme-dark .auth-landing-apk-link {
+.auth-footer-toggle__btn-link {
+  background: transparent;
+  border: none;
   color: #34d399;
+  font-weight: 750;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-body.theme-dark .auth-landing-apk-link:hover {
+.auth-footer-toggle__btn-link:hover {
   color: #6ee7b7;
 }
 
-.auth-landing-apk-btn-qr {
+.auth-footer-toggle__btn-back {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+.auth-footer-toggle__btn-back:hover {
+  color: #7dd3fc;
+}
+
+/* Mobile APK Download box */
+.auth-mobile-apk-box {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .auth-mobile-apk-box {
+    display: none;
+  }
+}
+
+.auth-mobile-apk-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.btn-mobile-apk-download {
+  width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: var(--muted-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399 !important;
   font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
-.auth-landing-apk-btn-qr:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
+.btn-mobile-apk-download:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34d399;
 }
 
 /* ══════════════════════════════════════════════════════════════════
