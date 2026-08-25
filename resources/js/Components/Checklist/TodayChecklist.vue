@@ -69,6 +69,8 @@ const emit = defineEmits([
   'toggle-note',
   'set-note',
   'toggle-schedule-filter',
+  'add-habit',
+  'edit-habit',
 ]);
 </script>
 
@@ -267,9 +269,22 @@ const emit = defineEmits([
             @set-tier="(t) => emit('set-tier', habit.id, t)"
             @toggle-note="emit('toggle-note', habit.id, mobileDay)"
             @update-note="(val) => emit('set-note', habit.id, mobileDay, val)"
+            @edit-habit="(h) => emit('edit-habit', h)"
           />
         </template>
       </template>
+
+      <!-- Quick Add Habit Footer Action -->
+      <div class="mobile-daily__add-footer">
+        <button
+          type="button"
+          class="btn-quick-add-habit"
+          @click="emit('add-habit')"
+        >
+          <Plus class="icon-sm" />
+          <span>Add New Habit</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>

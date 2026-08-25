@@ -18,6 +18,7 @@ import RewardShop from '@/Components/Rewards/RewardShop.vue';
 import SundayReview from '@/Components/Review/SundayReview.vue';
 import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
+import HabitFormModal from '@/Components/Modals/HabitFormModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
@@ -535,14 +536,14 @@ const activeTimeFilter = ref('all');
 const filteredHabits = computed(() => {
   const source = activeHabitsForMobileDay.value;
   if (activeTimeFilter.value === 'all') return source;
-  return source.filter(h => getTimeSlotForHabit(h.id) === activeTimeFilter.value);
+  return source.filter(h => getTimeSlotForHabit(h.id, h) === activeTimeFilter.value);
 });
 
 const timeSlotCounts = computed(() => {
   const source = activeHabitsForMobileDay.value;
   const counts = { all: source.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
   source.forEach(h => {
-    const slot = getTimeSlotForHabit(h.id);
+    const slot = getTimeSlotForHabit(h.id, h);
     if (counts[slot] !== undefined) counts[slot]++;
   });
   return counts;
@@ -555,7 +556,7 @@ const timeSlotCompleted = computed(() => {
   source.forEach(h => {
     if (hasCompletedDay(h, day)) {
       comp.all++;
-      const slot = getTimeSlotForHabit(h.id);
+      const slot = getTimeSlotForHabit(h.id, h);
       if (comp[slot] !== undefined) comp[slot]++;
     }
   });
@@ -588,7 +589,7 @@ const timelineGroupedHabits = computed(() => {
   ];
   const groupMap = Object.fromEntries(groups.map(g => [g.slot, g.habits]));
   source.forEach(h => {
-    const slot = getTimeSlotForHabit(h.id);
+    const slot = getTimeSlotForHabit(h.id, h);
     if (groupMap[slot]) groupMap[slot].push(h);
     else groupMap.anytime.push(h);
   });
@@ -597,8 +598,8 @@ const timelineGroupedHabits = computed(() => {
   groups.forEach(g => {
     if (g.slot === 'morning' || g.slot === 'work' || g.slot === 'evening') {
       g.habits.sort((a, b) => {
-        const timeA = habitTimeSchedule[a.id]?.start || '99:99';
-        const timeB = habitTimeSchedule[b.id]?.start || '99:99';
+        const timeA = a.startTime || habitTimeSchedule[a.id]?.start || (a.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
+        const timeB = b.startTime || habitTimeSchedule[b.id]?.start || (b.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
         return timeA.localeCompare(timeB);
       });
     }
@@ -743,6 +744,22 @@ const habitTimeSchedule = {
   'ah-3': { start: '17:30', end: '18:30' },
 };
 
+const getScheduleForHabit = (habit) => {
+  if (!habit) return null;
+  if (habitTimeSchedule[habit.id]) return habitTimeSchedule[habit.id];
+  if (habit.startTime && habit.endTime) return { start: habit.startTime, end: habit.endTime };
+  const match = (habit.name || '').match(/^(\d{2}:\d{2})/);
+  if (match) {
+    const start = match[1];
+    const [h, m] = start.split(':').map(Number);
+    const endMins = ((h * 60 + m + 30) % 1440);
+    const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
+    const em = String(endMins % 60).padStart(2, '0');
+    return { start, end: `${eh}:${em}` };
+  }
+  return null;
+};
+
 const upNextHabitInfo = computed(() => {
   if (!props.isCurrentMonth) return null;
   const now = currentClock.value;
@@ -751,7 +768,7 @@ const upNextHabitInfo = computed(() => {
   if (uncompleted.length === 0) return null;
 
   for (const habit of uncompleted) {
-    const sched = habitTimeSchedule[habit.id];
+    const sched = getScheduleForHabit(habit);
     if (sched) {
       const [sh, sm] = sched.start.split(':').map(Number);
       const [eh, em] = sched.end.split(':').map(Number);
@@ -763,7 +780,7 @@ const upNextHabitInfo = computed(() => {
     }
   }
   for (const habit of uncompleted) {
-    const sched = habitTimeSchedule[habit.id];
+    const sched = getScheduleForHabit(habit);
     if (sched) {
       const [sh, sm] = sched.start.split(':').map(Number);
       const startMins = sh * 60 + sm;
@@ -1681,6 +1698,80 @@ const saveHabits = () => {
   saveState();
 };
 
+// ── Single Habit Form Modal Handlers (Quick Add & Edit) ──
+const isHabitFormModalOpen = ref(false);
+const editingHabitTarget = ref(null);
+const defaultSlotForNewHabit = ref('morning');
+
+const openAddHabitModal = (slot = 'morning') => {
+  editingHabitTarget.value = null;
+  defaultSlotForNewHabit.value = slot || 'morning';
+  isHabitFormModalOpen.value = true;
+};
+
+const openEditHabitModal = (habit) => {
+  editingHabitTarget.value = habit;
+  isHabitFormModalOpen.value = true;
+};
+
+const closeHabitFormModal = () => {
+  isHabitFormModalOpen.value = false;
+  editingHabitTarget.value = null;
+};
+
+const handleSaveHabitForm = (habitData) => {
+  if (!habitData || !habitData.name) return;
+
+  const existingIdx = (localHabits.value || []).findIndex(h => String(h.id) === String(habitData.id));
+  if (existingIdx > -1) {
+    // Update existing habit
+    localHabits.value[existingIdx] = {
+      ...localHabits.value[existingIdx],
+      ...habitData,
+    };
+    // Also update allHistoricalHabits
+    allHistoricalHabits.value = (allHistoricalHabits.value || []).map(h => {
+      if (String(h.id) === String(habitData.id)) {
+        return { ...h, ...habitData };
+      }
+      return h;
+    });
+    showToast(`✨ Updated "${habitData.name}"`);
+  } else {
+    // Add new custom habit
+    const newHabit = {
+      id: habitData.id || `c-${Date.now()}`,
+      name: habitData.name,
+      points: Number(habitData.points) || 1,
+      category: habitData.category || 'fitness',
+      isTimed: habitData.isTimed !== undefined ? habitData.isTimed : true,
+      startTime: habitData.startTime || null,
+      endTime: habitData.endTime || null,
+      timeSlot: habitData.timeSlot || 'morning',
+      scheduleType: habitData.scheduleType || 'all',
+      customDays: habitData.customDays || null,
+      hint: habitData.hint || '',
+      completed_days: [],
+    };
+    localHabits.value.push(newHabit);
+    showToast(`✨ Added "${newHabit.name}" (+${newHabit.points} pts)`);
+  }
+
+  saveState();
+  syncDueNowNotification?.();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([15, 30, 15]);
+};
+
+const handleDeleteHabitFromForm = (habitId) => {
+  if (!habitId) return;
+  localHabits.value = (localHabits.value || []).filter(h => String(h.id) !== String(habitId));
+  allHistoricalHabits.value = (allHistoricalHabits.value || []).filter(h => String(h.id) !== String(habitId));
+  saveState();
+  syncDueNowNotification?.();
+  showToast('🗑️ Habit removed');
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20);
+};
+
 // Rewards Editor Handlers
 const startEditingRewards = () => {
   const source = (rewards.value && rewards.value.length > 0) ? rewards.value : defaultRewards;
@@ -2311,9 +2402,14 @@ onBeforeUnmount(() => {
             </h2>
             <small>Core Leading Indicators — day-based completion matrix</small>
           </div>
-          <button id="habits-btn-edit" v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits" title="Customize Habits">
-            <Edit3 class="icon-sm" /> <span>Edit Habits</span>
-          </button>
+          <div class="section-actions-wrap">
+            <button id="habits-btn-add" class="btn btn--primary-action" @click="openAddHabitModal('morning')">
+              <Plus class="icon-sm" /> <span>Add Habit</span>
+            </button>
+            <button id="habits-btn-edit" v-if="!habitsEditing" class="btn btn--secondary" @click="startEditingHabits" title="Customize Habits">
+              <Edit3 class="icon-sm" /> <span>Batch Edit</span>
+            </button>
+          </div>
         </div>
 
         <!-- Habits Editor Modal / Panel -->
@@ -2385,6 +2481,8 @@ onBeforeUnmount(() => {
           @set-tier="setHabitTier"
           @toggle-note="toggleHabitNote"
           @set-note="setHabitNote"
+          @add-habit="openAddHabitModal"
+          @edit-habit="openEditHabitModal"
         />
 
         <!-- Desktop Month Grid Table -->
@@ -2530,6 +2628,16 @@ onBeforeUnmount(() => {
         :date-label="mobileDayIsToday ? '' : mobileDayLabel"
         @close="isShareModalOpen = false"
         @toast="msg => showToast(msg)"
+      />
+
+      <!-- Single Habit Add/Edit Modal (Time Pickers, Custom Schedule & Points) -->
+      <HabitFormModal
+        :is-open="isHabitFormModalOpen"
+        :habit="editingHabitTarget"
+        :default-slot="defaultSlotForNewHabit"
+        @close="closeHabitFormModal"
+        @save="handleSaveHabitForm"
+        @delete="handleDeleteHabitFromForm"
       />
 
       <!-- App & Live Notifications Hub Modal (Windows Desktop PWA & Android APK) -->

@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --font-base: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
@@ -6502,9 +6502,75 @@ body.theme-dark .habit-note-btn {
   transform: scale(1.05);
 }
 
-.habit-note-btn__icon {
-  width: 15px;
-  height: 15px;
+.habit-edit-card-btn {
+  position: static;
+  transform: none;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  color: var(--text-color-secondary, #64748b);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dark-mode .habit-edit-card-btn,
+body.theme-dark .habit-edit-card-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+.habit-edit-card-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  transform: scale(1.08);
+}
+
+.mobile-daily__add-footer {
+  padding: 1.25rem 0.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-quick-add-habit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(59, 130, 246, 0.12));
+  border: 1px dashed rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  max-width: 320px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-quick-add-habit:hover {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(59, 130, 246, 0.25));
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.4);
+}
+
+.section-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .habit-note-input {

@@ -572,7 +572,17 @@ export const timeSlotOrder = {
   weekly: 5,
 };
 
-export function getTimeSlotForHabit(id) {
+export function getTimeSlotForHabit(id, habit = null) {
+  if (habit && habit.timeSlot) return habit.timeSlot;
+  if (habit && habit.startTime) {
+    const [h, m] = String(habit.startTime).split(':').map(Number);
+    const mins = (h || 0) * 60 + (m || 0);
+    if (mins >= 4 * 60 && mins < 8 * 60 + 30) return 'morning';
+    if (mins >= 8 * 60 + 30 && mins < 18 * 60 + 30) return 'work';
+    if (mins >= 18 * 60 + 30 && mins < 21 * 60 + 30) return 'evening';
+    return 'evening';
+  }
+
   // Ashish core habits (micro-detail: a-1..a-69)
   if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-10','a-54','a-55','a-56','a-57','a-58','a-60','a-61','a-64','a-66','a-67'].includes(id)) return 'morning';
   if (['a-11','a-12','a-13','a-28','a-31','a-14','a-15','a-16','a-29','a-51','a-68','a-17','a-62','a-18','a-53','a-59'].includes(id)) return 'work';
@@ -613,6 +623,7 @@ export function getTimeSlotForHabit(id) {
 }
 
 export function getHabitCategory(habit) {
+  if (habit && habit.category) return habit.category;
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
   if (['a-4','a-5','a-6','a-7','a-60','a-64','a-67','a-68','a-69','j-16','at-4','at-10','at-14','at-23','ao-3','ao-13','ao-16','ao-23','af-3','af-13','af-15','af-28'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility') || name.includes('yoga') || name.includes('abhyanga') || name.includes('extension') || name.includes('decompression')) return 'fitness';

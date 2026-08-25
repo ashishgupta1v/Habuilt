@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Info,
   FileText,
+  Edit2,
 } from 'lucide-vue-next';
 import HabitGuidanceCard from './HabitGuidanceCard.vue';
 import { getSharedHabitInfo } from '../../Composables/useHabitsState.js';
@@ -36,6 +37,7 @@ const emit = defineEmits([
   'set-tier',
   'toggle-note',
   'update-note',
+  'edit-habit',
 ]);
 
 const sharedInfo = computed(() => getSharedHabitInfo(props.habit?.id));
@@ -108,6 +110,17 @@ const handleCardClick = () => {
         <span class="mobile-daily__card-pts">
           +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
         </span>
+
+        <!-- Edit Habit Button -->
+        <button
+          type="button"
+          class="habit-edit-card-btn"
+          @click.stop="emit('edit-habit', habit)"
+          title="Edit habit details, time & points"
+          aria-label="Edit habit"
+        >
+          <Edit2 class="icon-xs" />
+        </button>
 
         <!-- Habit Instruction & Note Toggle -->
         <button
