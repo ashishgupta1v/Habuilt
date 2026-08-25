@@ -179,6 +179,7 @@ const dayType = ref('home');
 // Backward-compatible alias for components that use travelMode
 const travelMode = computed(() => isOfficeDay(dayType.value));
 const localHabits = ref([]);
+const allHistoricalHabits = ref([]);
 const pendingCells = ref({});
 
 const fallbackHabits = computed(() => {
@@ -612,7 +613,7 @@ const missingDefaultHabits = computed(() => {
 });
 
 const mobileDayCompleted = computed(() => activeHabitsForMobileDay.value.filter(h => hasCompletedDay(h, mobileDay.value)).length);
-const mobileDayPoints = computed(() => activeHabitsForMobileDay.value.filter(h => hasCompletedDay(h, mobileDay.value)).reduce((s, h) => s + h.points, 0));
+const mobileDayPoints = computed(() => getDayTotal(mobileDay.value));
 // Denominators for the checklist's own progress bar — scoped to whatever day is being viewed
 // (mobileDay) and respecting the scheduled/all toggle, so a Sunday never gets judged against
 // a weekday's habit count.
@@ -810,6 +811,72 @@ const toggleHabitNote = (habitId, day) => {
   habitNotesOpen.value = habitNotesOpen.value === key ? null : key;
 };
 
+// ── Canonical Habit Mapping & Historical Completion Preservation ──
+const getCanonicalHabitKey = (name) => {
+  if (!name || typeof name !== 'string') return '';
+  const lower = name.toLowerCase()
+    .replace(/^\d{2}:\d{2}\s*/, '')
+    .replace(/[★•·\(\)\[\]\—\-–:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (lower.includes('spinal mobility')) return 'canonical:spinal-mobility';
+  if (lower.includes('warm water') || lower.includes('b12') || lower.includes('lemon')) return 'canonical:warm-water-b12';
+  if (lower.includes('padma sadhana') || lower.includes('surya namaskar')) return 'canonical:padma-sadhana-surya';
+  if (lower.includes('sudarshan kriya') || lower.includes('kriya') || lower.includes('pranayama')) return 'canonical:sudarshan-kriya';
+  if (lower.includes('meditation')) return 'canonical:meditation';
+  if (lower.includes('visualization') || lower.includes('sankalpa')) return 'canonical:visualization';
+  if (lower.includes('reading')) return 'canonical:reading';
+  if (lower.includes('scribing') || lower.includes('stiffness log')) return 'canonical:scribing-stiffness';
+  if (lower.includes('sunlight') || lower.includes('fresh air')) return 'canonical:sunlight';
+  if (lower.includes('workout') || lower.includes('strength') || lower.includes('cardio')) return 'canonical:workout';
+  if (lower.includes('abhyanga') || lower.includes('sesame oil')) return 'canonical:abhyanga';
+  if (lower.includes('shower') || lower.includes('grooming')) return 'canonical:shower-grooming';
+  if (lower.includes('breakfast') || lower.includes('soaked nuts') || lower.includes('papaya')) return 'canonical:breakfast';
+  if (lower.includes('mineral bottle') || lower.includes('water protocol') || lower.includes('water intake') || lower.includes('3 litres daily water') || lower.includes('3.5l daily water')) return 'canonical:water-protocol';
+  if (lower.includes('baby duty') || (lower.includes('shaarvi') && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down')))) return 'canonical:shaarvi-duty';
+  if (lower.includes('1-3-5') || lower.includes('top priority')) return 'canonical:1-3-5-priorities';
+  if (lower.includes('block 1') || lower.includes('deep architecture') || lower.includes('office focus') || lower.includes('chandigarh office')) return 'canonical:deep-work-block-1';
+  if (lower.includes('block 2') || lower.includes('high-leverage') || lower.includes('pipeline')) return 'canonical:deep-work-block-2';
+  if (lower.includes('block 3') || lower.includes('technical execution')) return 'canonical:deep-work-block-3';
+  if (lower.includes('block 4') || lower.includes('ops / client')) return 'canonical:deep-work-block-4';
+  if (lower.includes('lunch')) return 'canonical:lunch';
+  if (lower.includes('post-lunch walk') || (lower.includes('walk') && lower.includes('lunch'))) return 'canonical:post-lunch-walk';
+  if (lower.includes('eye drops')) return 'canonical:eye-drops';
+  if (lower.includes('shutdown') || lower.includes('work day shutdown') || lower.includes('work shutdown')) return 'canonical:shutdown-ritual';
+  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || (lower.includes('walk') && lower.includes('jyoti') && lower.includes('shaarvi'))) return 'canonical:family-walk';
+  if (lower.includes('dinner preparation') || lower.includes('family dinner') || lower.includes('dinner')) return 'canonical:dinner';
+  if (lower.includes('post-dinner stroll') || lower.includes('post-dinner walk') || (lower.includes('stroll') && lower.includes('dinner'))) return 'canonical:post-dinner-stroll';
+  if (lower.includes('kitchen reset') || lower.includes('counter clean')) return 'canonical:kitchen-reset';
+  if (lower.includes('journaling') || lower.includes('3 wins')) return 'canonical:journaling-3-wins';
+  if (lower.includes('magnesium') || lower.includes('night supplement')) return 'canonical:magnesium';
+  if (lower.includes('spinal wind-down') || lower.includes('decompression')) return 'canonical:spinal-wind-down';
+  if (lower.includes('lights out') || lower.includes('sleep') || lower.includes('in bed')) return 'canonical:lights-out';
+  if (lower.includes('movement break') || lower.includes('45 minutes')) return 'canonical:movement-break-45m';
+  if (lower.includes('scalp care') || lower.includes('hair protocol')) return 'canonical:scalp-care';
+  if (lower.includes('zero screen time') || lower.includes('screen blackout') || lower.includes('screen off')) return 'canonical:zero-screen-family';
+  if (lower.includes('no refined sugar') || lower.includes('clean whole foods') || lower.includes('junk food')) return 'canonical:no-refined-sugar';
+  if (lower.includes('d3') || lower.includes('omega-3')) return 'canonical:d3-omega3';
+
+  return `custom:${lower}`;
+};
+
+// Global reactive completion map across all active and historical habits
+const canonicalCompletionsMap = computed(() => {
+  const map = {};
+  const allHabitSources = [...(localHabits.value || []), ...(allHistoricalHabits.value || [])];
+  for (const h of allHabitSources) {
+    if (!h || !Array.isArray(h.completed_days)) continue;
+    const canonKey = getCanonicalHabitKey(h.name);
+    if (!canonKey) continue;
+    if (!map[canonKey]) map[canonKey] = new Set();
+    for (const d of h.completed_days) {
+      map[canonKey].add(Number(d));
+    }
+  }
+  return map;
+});
+
 // Points & Check-in Logic
 const keyFor = (habitId, day) => `${habitId}-${day}`;
 const hasCompletedDay = (habit, day) => {
@@ -817,7 +884,19 @@ const hasCompletedDay = (habit, day) => {
   const numDay = Number(day);
   const cellKey = keyFor(habit.id, numDay);
   if (pendingCells.value[cellKey] !== undefined) return pendingCells.value[cellKey];
-  return Array.isArray(habit.completed_days) && habit.completed_days.some(d => Number(d) === numDay);
+
+  // 1. Direct check on habit's completed_days
+  if (Array.isArray(habit.completed_days) && habit.completed_days.some(d => Number(d) === numDay)) {
+    return true;
+  }
+
+  // 2. Canonical check: if another equivalent habit in our state was completed on that day
+  const canonKey = getCanonicalHabitKey(habit.name);
+  if (canonKey && canonicalCompletionsMap.value[canonKey]?.has(numDay)) {
+    return true;
+  }
+
+  return false;
 };
 const isPending = (habitId, day) => !!pendingCells.value[keyFor(habitId, day)];
 const isFutureDay = (day) => props.isFutureMonth || (props.isCurrentMonth && day > props.currentDay);
@@ -838,7 +917,37 @@ const cellAriaLabel = (habit, day) => {
   return `${habit.name}, day ${day}, ${status}`;
 };
 
-const getDayTotal = (day) => visibleHabits.value.reduce((sum, h) => hasCompletedDay(h, day) ? sum + h.points : sum, 0);
+const getDayTotal = (day) => {
+  const numDay = Number(day);
+  let total = 0;
+  const countedCanonicalKeys = new Set();
+  const countedHabitIds = new Set();
+
+  // 1. Sum completions from visible active habits
+  for (const h of (visibleHabits.value || [])) {
+    if (hasCompletedDay(h, numDay)) {
+      total += Number(h.points) || 1;
+      const canonKey = getCanonicalHabitKey(h.name);
+      if (canonKey) countedCanonicalKeys.add(canonKey);
+      countedHabitIds.add(String(h.id));
+    }
+  }
+
+  // 2. Also include any historical / preset-specific completions from that day not currently visible
+  for (const h of (allHistoricalHabits.value || [])) {
+    if (countedHabitIds.has(String(h.id))) continue;
+    const canonKey = getCanonicalHabitKey(h.name);
+    if (canonKey && countedCanonicalKeys.has(canonKey)) continue;
+
+    if (Array.isArray(h.completed_days) && h.completed_days.some(d => Number(d) === numDay)) {
+      total += Number(h.points) || 1;
+      if (canonKey) countedCanonicalKeys.add(canonKey);
+      countedHabitIds.add(String(h.id));
+    }
+  }
+
+  return total;
+};
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
@@ -1030,29 +1139,45 @@ const toggleHabitForDay = (habit, day) => {
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
 
-  let found = false;
-  let nextDone = false;
+  const canonKey = getCanonicalHabitKey(habit.name);
+  const isCurrentlyDone = hasCompletedDay(habit, numDay);
+  const nextDone = !isCurrentlyDone;
 
+  // 1. Update localHabits (both matching ID and canonical equivalents)
   localHabits.value = localHabits.value.map(h => {
-    if (String(h.id) === String(habit.id)) {
-      found = true;
+    const matchId = String(h.id) === String(habit.id);
+    const matchCanon = canonKey && getCanonicalHabitKey(h.name) === canonKey;
+    if (matchId || matchCanon) {
       const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
-      const isCurrentlyDone = cd.includes(numDay);
-      nextDone = !isCurrentlyDone;
       let newCd = cd.filter(d => d !== numDay);
-      if (nextDone) {
-        newCd.push(numDay);
-      }
+      if (nextDone) newCd.push(numDay);
       return { ...h, completed_days: newCd };
     }
     return h;
   });
 
-  if (!found) {
-    nextDone = true;
-    localHabits.value.push({
-      ...habit,
+  // 2. Synchronize allHistoricalHabits
+  let histFound = false;
+  allHistoricalHabits.value = (allHistoricalHabits.value || []).map(h => {
+    const matchId = String(h.id) === String(habit.id);
+    const matchCanon = canonKey && getCanonicalHabitKey(h.name) === canonKey;
+    if (matchId || matchCanon) {
+      histFound = true;
+      const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+      let newCd = cd.filter(d => d !== numDay);
+      if (nextDone) newCd.push(numDay);
+      return { ...h, completed_days: newCd };
+    }
+    return h;
+  });
+
+  if (!histFound && nextDone) {
+    allHistoricalHabits.value.push({
+      id: habit.id,
+      name: habit.name,
+      points: Number(habit.points) || 1,
       completed_days: [numDay],
+      canonicalKey: canonKey,
     });
   }
 
@@ -1070,10 +1195,14 @@ const markHabitCompletedDirectly = (habitId, day) => {
   const key = keyFor(habitId, numDay);
   delete pendingCells.value[key];
 
-  let found = false;
+  const targetHabit = (localHabits.value || []).find(h => String(h.id) === String(habitId))
+    || (allHistoricalHabits.value || []).find(h => String(h.id) === String(habitId));
+  const canonKey = targetHabit ? getCanonicalHabitKey(targetHabit.name) : '';
+
   localHabits.value = (localHabits.value || []).map(h => {
-    if (h.id === habitId) {
-      found = true;
+    const matchId = String(h.id) === String(habitId);
+    const matchCanon = canonKey && getCanonicalHabitKey(h.name) === canonKey;
+    if (matchId || matchCanon) {
       const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
       if (!cd.includes(numDay)) {
         return { ...h, completed_days: [...cd, numDay] };
@@ -1082,6 +1211,30 @@ const markHabitCompletedDirectly = (habitId, day) => {
     return h;
   });
 
+  let histFound = false;
+  allHistoricalHabits.value = (allHistoricalHabits.value || []).map(h => {
+    const matchId = String(h.id) === String(habitId);
+    const matchCanon = canonKey && getCanonicalHabitKey(h.name) === canonKey;
+    if (matchId || matchCanon) {
+      histFound = true;
+      const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+      if (!cd.includes(numDay)) {
+        return { ...h, completed_days: [...cd, numDay] };
+      }
+    }
+    return h;
+  });
+
+  if (!histFound && targetHabit) {
+    allHistoricalHabits.value.push({
+      id: targetHabit.id,
+      name: targetHabit.name,
+      points: Number(targetHabit.points) || 1,
+      completed_days: [numDay],
+      canonicalKey: canonKey,
+    });
+  }
+
   // Direct fallback patch to localStorage for offline persistence
   try {
     const raw = localStorage.getItem(localStateKey.value);
@@ -1089,7 +1242,9 @@ const markHabitCompletedDirectly = (habitId, day) => {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed.habits)) {
         parsed.habits = parsed.habits.map(h => {
-          if (h.id === habitId) {
+          const matchId = String(h.id) === String(habitId);
+          const matchCanon = canonKey && getCanonicalHabitKey(h.name) === canonKey;
+          if (matchId || matchCanon) {
             const cd = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
             if (!cd.includes(numDay)) {
               return { ...h, completed_days: [...cd, numDay] };
@@ -1097,6 +1252,7 @@ const markHabitCompletedDirectly = (habitId, day) => {
           }
           return h;
         });
+        parsed.allHistoricalHabits = allHistoricalHabits.value;
         localStorage.setItem(localStateKey.value, JSON.stringify(parsed));
       }
     }
@@ -1105,19 +1261,23 @@ const markHabitCompletedDirectly = (habitId, day) => {
   saveState();
   syncDueNowNotification?.();
 
-  const habitObj = (localHabits.value || []).find(h => h.id === habitId);
-  const habitName = habitObj ? habitObj.name : 'Habit';
+  const habitName = targetHabit ? targetHabit.name : 'Habit';
   showToast(`✅ "${habitName}" marked done!`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([15, 30, 15]);
   }
 };
 
-// Day Type Cycle Toggle (replaces binary travel mode)
+// Day Type Cycle Toggle (replaces binary travel mode) — Never drops completed days!
 const toggleTravelMode = () => {
   const nextType = getNextDayType(dayType.value);
   dayType.value = nextType;
-  localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
+  // Re-apply state seamlessly with new fallback preset while PRESERVING all completed_days and historical data
+  applyLoadedState({
+    habits: localHabits.value,
+    allHistoricalHabits: allHistoricalHabits.value,
+    dayType: nextType,
+  }, false);
   saveState();
   syncDueNowNotification?.();
   const label = getDayTypeLabel(nextType);
@@ -1287,36 +1447,89 @@ const applyLoadedState = (data, isRemote = false) => {
 
   const currentFallbacks = fallbackHabits.value || [];
   const systemHabitIds = new Set(currentFallbacks.map(h => String(h.id)));
-  const savedHabitList = Array.isArray(data.habits) ? data.habits : [];
-  const savedHabitMap = new Map(savedHabitList.map(h => [String(h.id), h]));
 
-  // 1. Reconcile system habits against latest code definitions (MOVERS, exact timings, names, points, hints)
-  // Preserving any checked-off completed_days and custom notes/archived state from user data
-  const mergedSystemHabits = currentFallbacks.map(fallback => {
-    const saved = savedHabitMap.get(String(fallback.id));
-    if (saved) {
-      return {
-        ...fallback,
-        completed_days: Array.isArray(saved.completed_days) ? saved.completed_days.map(Number) : [],
-        archived: saved.archived || false,
-        notes: saved.notes || '',
-      };
+  // Aggregate all known habits from incoming data, historical store, and current memory
+  const incomingHabits = Array.isArray(data.habits) ? data.habits : [];
+  const incomingHistorical = Array.isArray(data.allHistoricalHabits) ? data.allHistoricalHabits : [];
+  const currentMemoryHabits = Array.isArray(localHabits.value) ? localHabits.value : [];
+  const currentMemoryHistorical = Array.isArray(allHistoricalHabits.value) ? allHistoricalHabits.value : [];
+
+  const masterList = [...incomingHabits, ...incomingHistorical, ...currentMemoryHabits, ...currentMemoryHistorical];
+
+  // Build ID completion map and Canonical completion map
+  const idCompletedMap = new Map();
+  const canonicalCompletedMap = new Map();
+  const savedHabitMap = new Map();
+
+  for (const h of masterList) {
+    if (!h || !h.id) continue;
+    const idStr = String(h.id);
+    if (!savedHabitMap.has(idStr)) {
+      savedHabitMap.set(idStr, h);
     }
+    const days = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+
+    if (!idCompletedMap.has(idStr)) idCompletedMap.set(idStr, new Set());
+    days.forEach(d => idCompletedMap.get(idStr).add(d));
+
+    const canonKey = getCanonicalHabitKey(h.name);
+    if (canonKey) {
+      if (!canonicalCompletedMap.has(canonKey)) canonicalCompletedMap.set(canonKey, new Set());
+      days.forEach(d => canonicalCompletedMap.get(canonKey).add(d));
+    }
+  }
+
+  // 1. Reconcile active preset system habits
+  const mergedSystemHabits = currentFallbacks.map(fallback => {
+    const idStr = String(fallback.id);
+    const canonKey = getCanonicalHabitKey(fallback.name);
+    const daysSet = new Set();
+
+    if (idCompletedMap.has(idStr)) {
+      idCompletedMap.get(idStr).forEach(d => daysSet.add(d));
+    }
+    if (canonKey && canonicalCompletedMap.has(canonKey)) {
+      canonicalCompletedMap.get(canonKey).forEach(d => daysSet.add(d));
+    }
+
+    const saved = savedHabitMap.get(idStr);
     return {
       ...fallback,
-      completed_days: [],
+      completed_days: Array.from(daysSet).sort((a, b) => a - b),
+      archived: saved ? (saved.archived || false) : false,
+      notes: saved ? (saved.notes || '') : '',
     };
   });
 
-  // 2. Preserve any custom user-added habits (e.g. starting with 'c-' or not in default system list)
-  const customHabits = savedHabitList
-    .filter(h => h && h.id && !systemHabitIds.has(String(h.id)))
-    .map(h => ({
-      ...h,
-      completed_days: Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [],
-    }));
+  // 2. Preserve custom user-added habits (e.g. starting with 'c-' or unique custom habits)
+  const customHabits = masterList
+    .filter(h => h && h.id && String(h.id).startsWith('c-') && !systemHabitIds.has(String(h.id)))
+    .filter((h, idx, self) => self.findIndex(x => String(x.id) === String(h.id)) === idx)
+    .map(h => {
+      const idStr = String(h.id);
+      const days = idCompletedMap.has(idStr) ? Array.from(idCompletedMap.get(idStr)).sort((a, b) => a - b) : [];
+      return { ...h, completed_days: days };
+    });
 
   localHabits.value = [...mergedSystemHabits, ...customHabits];
+
+  // 3. Keep master historical archive of all unique completed habits
+  const historicalUniqueMap = new Map();
+  for (const h of masterList) {
+    if (!h || !h.id) continue;
+    const idStr = String(h.id);
+    const days = idCompletedMap.has(idStr) ? Array.from(idCompletedMap.get(idStr)).sort((a, b) => a - b) : [];
+    if (days.length > 0) {
+      historicalUniqueMap.set(idStr, {
+        id: h.id,
+        name: h.name,
+        points: Number(h.points) || 1,
+        completed_days: days,
+        canonicalKey: getCanonicalHabitKey(h.name),
+      });
+    }
+  }
+  allHistoricalHabits.value = Array.from(historicalUniqueMap.values());
 
   if (Array.isArray(data.rewards)) rewards.value = data.rewards;
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
@@ -1329,6 +1542,7 @@ const applyLoadedState = (data, isRemote = false) => {
   try {
     const payload = {
       habits: localHabits.value,
+      allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
@@ -1351,6 +1565,7 @@ const saveState = async () => {
   try {
     const payload = {
       habits: localHabits.value,
+      allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
@@ -1369,7 +1584,7 @@ const saveState = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-08-24-v10-office-calendar';
+const PRESET_VERSION = '2026-08-25-v11-history-protection';
 
 const loadLocalState = () => {
   try {
@@ -1405,7 +1620,7 @@ const loadLocalState = () => {
 
 watch(fallbackHabits, (newFallbacks) => {
   if (Array.isArray(newFallbacks) && newFallbacks.length > 0) {
-    applyLoadedState({ habits: localHabits.value }, false);
+    applyLoadedState({ habits: localHabits.value, allHistoricalHabits: allHistoricalHabits.value }, false);
   }
 }, { deep: true });
 
@@ -1451,11 +1666,7 @@ const toggleArchiveHabit = (habit) => {
   saveState();
 };
 const restoreDefaultHabits = () => {
-  const currentCompletedMap = new Map((localHabits.value || []).map(h => [h.id, h.completed_days]));
-  localHabits.value = fallbackHabits.value.map(h => ({
-    ...h,
-    completed_days: Array.isArray(currentCompletedMap.get(h.id)) ? currentCompletedMap.get(h.id) : [],
-  }));
+  applyLoadedState({ habits: localHabits.value, allHistoricalHabits: allHistoricalHabits.value }, false);
   habitsEditing.value = false;
   saveState();
   showToast('✨ Updated to latest routine preset!');
