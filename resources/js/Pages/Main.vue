@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { supabase } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
-import { LogOut, Download, Share2 } from 'lucide-vue-next';
+import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
 const authLoading = ref(true);
 
@@ -14,76 +14,71 @@ const showInstallBtn = ref(false);
 const isIOS = ref(false);
 const showIOSInstructions = ref(false);
 
-// Detect iOS (no beforeinstallprompt on Safari)
+// ── Exit-confirmation dialog ───────────────────────────────────────
+// Shown when back-button is pressed while inside the app
+const showExitDialog = ref(false);
+
 const checkIOS = () => {
   const ua = navigator.userAgent;
   isIOS.value = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // Show install button on iOS if not already in standalone
   if (isIOS.value && !window.matchMedia('(display-mode: standalone)').matches) {
     showInstallBtn.value = true;
   }
 };
 
-// Capture beforeinstallprompt (Chrome, Edge, Samsung, etc.)
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt.value = e;
   showInstallBtn.value = true;
 });
 
-// Hide button after install
 window.addEventListener('appinstalled', () => {
   showInstallBtn.value = false;
   deferredPrompt.value = null;
 });
 
 const handleInstall = async () => {
-  if (isIOS.value) {
-    showIOSInstructions.value = true;
-    return;
-  }
+  if (isIOS.value) { showIOSInstructions.value = true; return; }
   if (!deferredPrompt.value) return;
   deferredPrompt.value.prompt();
   const { outcome } = await deferredPrompt.value.userChoice;
-  if (outcome === 'accepted') {
-    showInstallBtn.value = false;
-  }
+  if (outcome === 'accepted') showInstallBtn.value = false;
   deferredPrompt.value = null;
 };
 
 const todayDate = new Date();
 const urlParams = new URLSearchParams(window.location.search);
 const qMonth = Number.parseInt(urlParams.get('month') ?? '', 10);
-const qYear = Number.parseInt(urlParams.get('year') ?? '', 10);
+const qYear  = Number.parseInt(urlParams.get('year')  ?? '', 10);
 
 const month = ref(Number.isInteger(qMonth) && qMonth >= 1 && qMonth <= 12 ? qMonth : todayDate.getMonth() + 1);
-const year = ref(Number.isInteger(qYear) && qYear >= 2000 && qYear <= 2100 ? qYear : todayDate.getFullYear());
+const year  = ref(Number.isInteger(qYear)  && qYear  >= 2000 && qYear  <= 2100 ? qYear  : todayDate.getFullYear());
 
-const monthDays = computed(() => new Date(year.value, month.value, 0).getDate());
-
-const isCurrentMonth = computed(() => {
-  return year.value === todayDate.getFullYear() && month.value === (todayDate.getMonth() + 1);
-});
-const isFutureMonth = computed(() => {
-  const target = year.value * 100 + month.value;
-  const current = todayDate.getFullYear() * 100 + (todayDate.getMonth() + 1);
-  return target > current;
-});
-const currentDay = computed(() => isCurrentMonth.value ? todayDate.getDate() : monthDays.value);
+const monthDays      = computed(() => new Date(year.value, month.value, 0).getDate());
+const isCurrentMonth = computed(() => year.value === todayDate.getFullYear() && month.value === todayDate.getMonth() + 1);
+const isFutureMonth  = computed(() => year.value * 100 + month.value > todayDate.getFullYear() * 100 + todayDate.getMonth() + 1);
+const currentDay     = computed(() => isCurrentMonth.value ? todayDate.getDate() : monthDays.value);
 
 const previousMonth = computed(() => {
-  let m = month.value - 1; 
-  let y = year.value;
-  if(m < 1) { m = 12; y--; }
+  let m = month.value - 1, y = year.value;
+  if (m < 1) { m = 12; y--; }
+  return { month: m, year: y };
+});
+const nextMonth = computed(() => {
+  let m = month.value + 1, y = year.value;
+  if (m > 12) { m = 1; y++; }
   return { month: m, year: y };
 });
 
-const nextMonth = computed(() => {
-  let m = month.value + 1; 
-  let y = year.value;
-  if(m > 12) { m = 1; y++; }
-  return { month: m, year: y };
-});
+const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+
+const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
+let initialUser = null;
+try { initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null; } catch { initialUser = null; }
+if (!initialUser && isGuestActive.value) {
+  initialUser = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+}
+const activeUser = ref(initialUser);
 
 const isUserJyoti = computed(() => {
   const email = (activeUser.value?.email || '').toLowerCase().trim();
@@ -96,34 +91,64 @@ const userInitial = computed(() => {
 });
 
 const handleNavigateMonth = (monthOffset) => {
-  let newMonth = month.value + monthOffset;
-  let newYear = year.value;
+  let newMonth = month.value + monthOffset, newYear = year.value;
   if (newMonth > 12) { newMonth = 1; newYear++; }
   if (newMonth < 1) { newMonth = 12; newYear--; }
   window.location.search = `?month=${newMonth}&year=${newYear}`;
 };
 
-const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+// ── History / Back-button management ─────────────────────────────
+// When user enters the app (guest or auth), push a sentinel history
+// entry so that browser back-button is intercepted.
+const APP_HISTORY_KEY = 'habuilt-app-state';
 
-// Synchronous initial auth check from local cache to eliminate loading flash
-const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
-let initialUser = null;
-try {
-  initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null;
-} catch {
-  initialUser = null;
-}
-if (!initialUser && isGuestActive.value) {
-  initialUser = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-}
-const activeUser = ref(initialUser);
+const pushAppHistoryEntry = () => {
+  if (typeof window === 'undefined') return;
+  if (window.history.state?.[APP_HISTORY_KEY]) return;
+  try {
+    window.history.pushState({ [APP_HISTORY_KEY]: true }, '', window.location.href);
+  } catch {}
+};
 
+const handlePopState = (event) => {
+  if (!activeUser.value) return; // Not inside app — let it navigate freely
+
+  // If popping to an internal app state (e.g. mobile tab switch), do not show exit modal
+  if (event.state?.[APP_HISTORY_KEY]) {
+    return;
+  }
+
+  // Popped off app state to landing/external history. Re-push app state to keep primed.
+  try {
+    window.history.pushState({ [APP_HISTORY_KEY]: true }, '', window.location.href);
+  } catch {}
+  showExitDialog.value = true;
+};
+
+// Confirm exit / sign-out from dialog
+const confirmSignOut = async () => {
+  showExitDialog.value = false;
+  await handleSignOut();
+};
+
+const dismissExitDialog = () => {
+  showExitDialog.value = false;
+};
+
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' && showExitDialog.value) {
+    dismissExitDialog();
+  }
+};
+
+// ── Auth helpers ──────────────────────────────────────────────────
 const enterGuestMode = (guestUser) => {
   const user = guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
   localStorage.setItem('habuilt_guest_mode', 'true');
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
   isGuestActive.value = true;
   activeUser.value = user;
+  pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
 };
 
 const handleSignOut = async () => {
@@ -131,11 +156,25 @@ const handleSignOut = async () => {
   localStorage.removeItem('habuilt_cached_user');
   isGuestActive.value = false;
   activeUser.value = null;
-  await supabase.auth.signOut();
+  showExitDialog.value = false;
+  try {
+    await supabase.auth.signOut();
+  } catch {}
+  // Reset history state to clean landing page
+  try {
+    window.history.replaceState({ [APP_HISTORY_KEY]: false }, '', window.location.pathname);
+  } catch {}
 };
 
 onMounted(async () => {
-  // Listen for guest auth events
+  // If user was already logged in (page refresh), push the sentinel
+  if (activeUser.value) {
+    pushAppHistoryEntry();
+  }
+
+  window.addEventListener('popstate', handlePopState);
+  window.addEventListener('keydown', handleKeydown);
+
   window.addEventListener('habuilt-guest-auth', (e) => {
     enterGuestMode(e?.detail);
   });
@@ -151,8 +190,10 @@ onMounted(async () => {
   if (session?.user) {
     activeUser.value = session.user;
     localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
+    pushAppHistoryEntry();
   } else if (isGuestActive.value) {
     activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+    pushAppHistoryEntry();
   } else if (!activeUser.value) {
     activeUser.value = null;
   }
@@ -162,6 +203,7 @@ onMounted(async () => {
     if (session?.user) {
       activeUser.value = session.user;
       localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
+      pushAppHistoryEntry();
     } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
       activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
     } else {
@@ -170,68 +212,66 @@ onMounted(async () => {
     }
   });
 
+  // ── Native Android Hardware Back Button ──
+  try {
+    const { App } = await import('@capacitor/app');
+    App.addListener('backButton', () => {
+      if (!activeUser.value) return; // On landing page — let OS handle
+      showExitDialog.value = true;   // Inside app — show exit dialog
+    });
+  } catch { /* non-native */ }
+
   // ── Native Deep Link Handler for OAuth Callback ──
   try {
     const { App } = await import('@capacitor/app');
     const { Browser } = await import('@capacitor/browser');
-    
-    App.addListener('appUrlOpen', async (event) => {
-      try {
-        await Browser.close();
-      } catch { /* ignore */ }
 
+    App.addListener('appUrlOpen', async (event) => {
+      try { await Browser.close(); } catch { /* ignore */ }
       if (event.url) {
-        // Handle habuilt://auth/callback#access_token=... or ?code=...
-        const rawUrl = event.url.replace('habuilt://', 'https://habuilt.com/').replace('com.habuilt.app://', 'https://habuilt.com/');
+        const rawUrl = event.url
+          .replace('habuilt://', 'https://habuilt.com/')
+          .replace('com.habuilt.app://', 'https://habuilt.com/');
         try {
           const parsed = new URL(rawUrl);
           const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-          const accessToken = hashParams.get('access_token');
+          const accessToken  = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
           const code = parsed.searchParams.get('code') || hashParams.get('code');
 
           if (accessToken && refreshToken) {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
+            const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
             if (data?.user) {
               activeUser.value = data.user;
               localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
+              pushAppHistoryEntry();
             }
           } else if (code) {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            const { data } = await supabase.auth.exchangeCodeForSession(code);
             if (data?.user) {
               activeUser.value = data.user;
               localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
+              pushAppHistoryEntry();
             }
           }
-        } catch (e) {
-          console.warn('Error parsing deep link auth:', e);
-        }
+        } catch (e) { console.warn('Error parsing deep link auth:', e); }
       }
     });
-  } catch {
-    // Non-native fallback
-  }
+  } catch { /* non-native */ }
 
-  // ── Web-to-Native App Automatic Handoff Bridge ──
+  // ── Web OAuth Code Exchange ──
   if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
-    const hash = window.location.hash;
+    const hash   = window.location.hash;
     const search = window.location.search;
     if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
-        try {
-          window.location.href = `habuilt://auth/callback${hash}`;
-        } catch { /* ignore */ }
+        try { window.location.href = `habuilt://auth/callback${hash}`; } catch { /* ignore */ }
       }
     } else if (search && search.includes('code=')) {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
-        try {
-          window.location.href = `habuilt://auth/callback${search}`;
-        } catch { /* ignore */ }
+        try { window.location.href = `habuilt://auth/callback${search}`; } catch { /* ignore */ }
       } else {
         const params = new URLSearchParams(search);
         const code = params.get('code');
@@ -242,16 +282,20 @@ onMounted(async () => {
               activeUser.value = data.user;
               localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
               window.history.replaceState({}, document.title, window.location.pathname);
+              pushAppHistoryEntry();
             }
-          } catch (e) {
-            console.warn('Error exchanging web OAuth code:', e);
-          }
+          } catch (e) { console.warn('Error exchanging web OAuth code:', e); }
         }
       }
     }
   }
 
   checkIOS();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState);
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
@@ -265,12 +309,15 @@ onMounted(async () => {
 
   <template v-else>
     <div v-if="activeUser" class="app-root">
-      <!-- Dashboard + Top Header Wrapper -->
       <main class="app-main-content">
         <nav class="app-nav">
           <div class="app-nav__container">
             <div class="app-nav__left">
               <HabuiltLogo size="md" :with-text="true" />
+              <!-- Guest mode indicator -->
+              <span v-if="isGuestActive" class="guest-mode-pill">
+                Guest Preview
+              </span>
             </div>
 
             <div class="app-nav__right">
@@ -298,7 +345,7 @@ onMounted(async () => {
 
               <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
                 <LogOut class="icon-sm" />
-                <span class="logout-text">Sign Out</span>
+                <span class="logout-text">{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
               </button>
             </div>
           </div>
@@ -335,7 +382,40 @@ onMounted(async () => {
         />
       </main>
     </div>
-    
+
     <Auth v-else @guest-login="enterGuestMode" />
   </template>
+
+  <!-- ── Exit / Sign-out Confirmation Dialog ─────────────────────── -->
+  <Teleport to="body">
+    <Transition name="exit-dialog">
+      <div v-if="showExitDialog" class="exit-overlay" @click.self="dismissExitDialog">
+        <div class="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-dialog-title">
+          <div class="exit-dialog__icon">
+            <AlertTriangle class="exit-dialog__icon-svg" />
+          </div>
+          <h2 id="exit-dialog-title" class="exit-dialog__title">
+            {{ isGuestActive ? 'Exit Guest Mode?' : 'Sign out?' }}
+          </h2>
+          <p class="exit-dialog__body">
+            <template v-if="isGuestActive">
+              Your guest session will be ended and you'll return to the landing page. Create a free account to save your habits permanently.
+            </template>
+            <template v-else>
+              You'll be returned to the sign-in screen. Your habits and streaks are safely synced to the cloud.
+            </template>
+          </p>
+          <div class="exit-dialog__actions">
+            <button class="exit-dialog__btn exit-dialog__btn--cancel" @click="dismissExitDialog">
+              Stay in app
+            </button>
+            <button class="exit-dialog__btn exit-dialog__btn--confirm" @click="confirmSignOut">
+              <LogOut class="exit-dialog__btn-icon" />
+              {{ isGuestActive ? 'Exit to Landing Page' : 'Sign out' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>

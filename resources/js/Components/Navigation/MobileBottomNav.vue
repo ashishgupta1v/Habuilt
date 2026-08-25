@@ -21,7 +21,7 @@ const setTab = (tab) => {
     } else {
       url.searchParams.set('tab', tab);
     }
-    window.history.pushState({ tab }, '', url.toString());
+    window.history.pushState({ tab, 'habuilt-app-state': true }, '', url.toString());
   } catch { /* history pushState fallback */ }
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {

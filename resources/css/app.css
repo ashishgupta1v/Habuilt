@@ -266,6 +266,147 @@ body.theme-dark .app-nav {
   gap: 12px;
 }
 
+/* Guest mode indicator pill in nav */
+.guest-mode-pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+/* ── Exit / Sign-out Dialog ─────────────────────────────────── */
+.exit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.exit-dialog {
+  background: linear-gradient(160deg, #0d1320 0%, #060a12 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+  padding: 32px 28px 24px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 40px 100px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.exit-dialog__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.exit-dialog__icon-svg {
+  width: 22px;
+  height: 22px;
+  color: #f59e0b;
+}
+
+.exit-dialog__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 850;
+  color: #f1f5f9;
+  letter-spacing: -0.03em;
+}
+
+.exit-dialog__body {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.65;
+  max-width: 260px;
+}
+
+.exit-dialog__actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.exit-dialog__btn {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.exit-dialog__btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+.exit-dialog__btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.exit-dialog__btn--confirm {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
+}
+.exit-dialog__btn--confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(239, 68, 68, 0.38);
+}
+
+.exit-dialog__btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Transition */
+.exit-dialog-enter-active,
+.exit-dialog-leave-active {
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.exit-dialog-enter-from,
+.exit-dialog-leave-to {
+  opacity: 0;
+}
+.exit-dialog-enter-from .exit-dialog,
+.exit-dialog-leave-to .exit-dialog {
+  transform: scale(0.94) translateY(8px);
+}
+
 .app-nav__logo-icon {
   width: 38px;
   height: 38px;
