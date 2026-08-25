@@ -2,6 +2,7 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 
 import '../css/app.css';
+import '../css/landing.css';
 import MainSPA from './Pages/Main.vue';
 
 const rootElement = document.getElementById('app');
