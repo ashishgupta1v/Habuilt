@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
@@ -17,6 +17,13 @@ import {
   CheckCircle2,
   Calendar,
   Sparkles,
+  Timer,
+  Award,
+  Layers,
+  Clock,
+  Check,
+  TrendingUp,
+  Activity,
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
@@ -33,8 +40,74 @@ const isDownloadingApk = ref(false);
 
 const apkDownloadUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk';
 
+// Interactive Feature Preview Tab on Hero Panel
+const activePreviewTab = ref('timeline'); // 'timeline' | 'timer' | 'adaptive' | 'gamification'
+
+const previewFeatures = [
+  {
+    id: 'timeline',
+    label: 'Live Due-Now Timeline',
+    icon: Clock,
+    badge: 'Real-Time Intelligence',
+    title: 'Never wonder what to do next',
+    problem: 'Traditional to-do apps dump 30 tasks on your plate with zero time context, leading to overwhelm and decision fatigue.',
+    solution: 'Habuilt dynamically organizes your day into time-phased blocks (Morning, Deep Work, Evening), automatically calculating what is DUE NOW.',
+    demoTitle: 'CURRENT FOCUS · WORK BLOCK',
+    demoTask: 'Deep Architecture & Core Execution',
+    demoTime: '09:00 – 10:30 (90 min)',
+    demoStatus: 'DUE NOW',
+    demoStreak: '🔥 18 Day Streak',
+  },
+  {
+    id: 'timer',
+    label: 'Deep Work Focus Station',
+    icon: Timer,
+    badge: 'Distraction Destroyer',
+    title: 'Laser-focused execution blocks',
+    problem: 'Context switching and notifications derail deep flow states, leaving high-priority projects unfinished.',
+    solution: 'Built-in Pomodoro deep work timers linked directly to your core habits with background completion and lockscreen alerts.',
+    demoTitle: 'FOCUS TIMER ACTIVE',
+    demoTask: 'Sprint Deliverables Block',
+    demoTime: '45m Target · 28:14 Elapsed',
+    demoStatus: 'IN PROGRESS',
+    demoStreak: '⚡ 100% Flow State',
+  },
+  {
+    id: 'adaptive',
+    label: 'Adaptive Day-Type Engine',
+    icon: Calendar,
+    badge: 'Context-Aware Flexibility',
+    title: 'Schedules that adapt when life happens',
+    problem: 'Rigid habit trackers break the moment you travel, have an office day, or take a half-day off, causing streak resets.',
+    solution: 'Calendar-aware engine automatically switches between Home, Office travel blocks, Half-days, and Holidays with 1-tap manual override.',
+    demoTitle: 'SMART SCHEDULE DETECTED',
+    demoTask: 'Adaptive Office Travel Routine',
+    demoTime: '4 Modes: Home · Office · ½ Day · Holiday',
+    demoStatus: 'AUTO-ADJUSTED',
+    demoStreak: '🛡️ Streak Protected',
+  },
+  {
+    id: 'gamification',
+    label: 'Gamified XP & Reward Vault',
+    icon: Award,
+    badge: 'Dopamine For Good',
+    title: 'Turn daily discipline into real rewards',
+    problem: 'Habits fade after week 1 because there is no immediate feedback loop or tangible reward for showing up daily.',
+    solution: 'Earn XP for every micro-action, level up your warrior rank, maintain system streaks, and claim custom reward milestones.',
+    demoTitle: 'WARRIOR RANK: LEVEL 8',
+    demoTask: 'Mastery Tier · 1,420 Total XP',
+    demoTime: 'Next Reward: Weekend Tech Gadget (80% unlocked)',
+    demoStatus: 'LEVEL UP',
+    demoStreak: '👑 Master Status',
+  },
+];
+
+const currentPreview = computed(() => {
+  return previewFeatures.find(f => f.id === activePreviewTab.value) || previewFeatures[0];
+});
+
 // Direct APK download trigger
-const handleDownloadApk = (e) => {
+const handleDownloadApk = () => {
   isDownloadingApk.value = true;
   setTimeout(() => {
     isDownloadingApk.value = false;
@@ -161,7 +234,7 @@ const handleGuestAccess = () => {
 
     <div class="auth-container-unified">
       
-      <!-- Left Hero & Showcase Panel -->
+      <!-- Left Hero & Dynamic Problem/Solution Showcase Panel -->
       <div class="auth-panel-premium">
         <div class="auth-panel__content-wrapper">
           
@@ -175,41 +248,66 @@ const handleGuestAccess = () => {
           </div>
 
           <h1 class="auth-panel__title">
-            Build high-performance routines that <span class="text-gradient">actually stick.</span>
+            The Daily Execution OS for <span class="text-gradient">High Performers.</span>
           </h1>
           <p class="auth-panel__description">
-            The daily execution OS for founders and high performers. Dynamic routine timelines, calendar-aware office blocks, and native home screen widgets.
+            Replace chaotic to-do lists with a time-anchored routine engine. Stay in flow with live due-now alerts, adaptive schedules, and 1-tap mobile widgets.
           </p>
 
-          <!-- Value Proposition Feature Grid -->
-          <div class="auth-feature-grid">
-            <div class="auth-feature-card">
-              <div class="auth-feature-card__icon auth-feature-card__icon--amber">
-                <Sparkles class="icon-sm" />
+          <!-- Interactive Feature Navigation Tabs -->
+          <div class="auth-feature-nav">
+            <button
+              v-for="feat in previewFeatures"
+              :key="feat.id"
+              type="button"
+              class="auth-feature-nav__btn"
+              :class="{ 'auth-feature-nav__btn--active': activePreviewTab === feat.id }"
+              @click="activePreviewTab = feat.id"
+            >
+              <component :is="feat.icon" class="icon-xs" />
+              <span>{{ feat.label }}</span>
+            </button>
+          </div>
+
+          <!-- Dynamic Feature Spotlight Card -->
+          <div class="auth-spotlight-card">
+            <div class="auth-spotlight-card__header">
+              <div class="auth-spotlight-badge">
+                <Sparkles class="icon-xs" />
+                <span>{{ currentPreview.badge }}</span>
               </div>
-              <div class="auth-feature-card__body">
-                <h3 class="auth-feature-card__title">04:45 M·O·V·E·R·S & Sadhana</h3>
-                <p class="auth-feature-card__desc">Padma Sadhana, Sudarshan Kriya, meditation & bed mobility for peak physical clarity.</p>
+              <h3 class="auth-spotlight-title">{{ currentPreview.title }}</h3>
+            </div>
+
+            <!-- Problem vs Solution Callout -->
+            <div class="auth-contrast-grid">
+              <div class="auth-contrast-box auth-contrast-box--problem">
+                <span class="auth-contrast-label">❌ The Problem</span>
+                <p class="auth-contrast-text">{{ currentPreview.problem }}</p>
+              </div>
+              <div class="auth-contrast-box auth-contrast-box--solution">
+                <span class="auth-contrast-label">✨ Habuilt Solution</span>
+                <p class="auth-contrast-text">{{ currentPreview.solution }}</p>
               </div>
             </div>
 
-            <div class="auth-feature-card">
-              <div class="auth-feature-card__icon auth-feature-card__icon--indigo">
-                <Zap class="icon-sm" />
+            <!-- Live Interactive UI Simulation Widget -->
+            <div class="auth-live-demo-widget">
+              <div class="auth-live-demo-widget__top">
+                <span class="auth-demo-badge">{{ currentPreview.demoTitle }}</span>
+                <span class="auth-demo-status">{{ currentPreview.demoStatus }}</span>
               </div>
-              <div class="auth-feature-card__body">
-                <h3 class="auth-feature-card__title">Deep Work Focus Engine</h3>
-                <p class="auth-feature-card__desc">90-min Pomodoro focus blocks, live lockscreen alerts & 1-tap background actions.</p>
-              </div>
-            </div>
-
-            <div class="auth-feature-card">
-              <div class="auth-feature-card__icon auth-feature-card__icon--sky">
-                <Calendar class="icon-sm" />
-              </div>
-              <div class="auth-feature-card__body">
-                <h3 class="auth-feature-card__title">Calendar-Aware Day Engine</h3>
-                <p class="auth-feature-card__desc">Auto-adjusts for Home, Office Blocks (Mon/Mid/Fri), Half Days, and Holidays.</p>
+              <div class="auth-live-demo-widget__main">
+                <div class="auth-demo-check">
+                  <Check class="icon-xs" />
+                </div>
+                <div class="auth-demo-info">
+                  <span class="auth-demo-task">{{ currentPreview.demoTask }}</span>
+                  <span class="auth-demo-time">{{ currentPreview.demoTime }}</span>
+                </div>
+                <div class="auth-demo-streak-pill">
+                  {{ currentPreview.demoStreak }}
+                </div>
               </div>
             </div>
           </div>
@@ -223,7 +321,7 @@ const handleGuestAccess = () => {
               <div class="auth-apk-showcase-card__text">
                 <div class="auth-apk-badge-row">
                   <span class="auth-apk-title">Habuilt for Android</span>
-                  <span class="auth-apk-version-tag">Latest Build</span>
+                  <span class="auth-apk-version-tag">Latest APK</span>
                 </div>
                 <p class="auth-apk-desc">Includes Live Due Now 1-Tap Home Screen Widget & offline sync</p>
               </div>

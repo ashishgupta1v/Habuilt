@@ -10,6 +10,30 @@
   "id": "/",
   "scope": "/",
   "categories": ["productivity", "health", "lifestyle"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "shortcuts": [
+    {
+      "name": "Today's Routine Checklist",
+      "short_name": "Checklist",
+      "description": "View and complete today's time-sequenced habits",
+      "url": "/?tab=today",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Deep Work Focus Station",
+      "short_name": "Focus Station",
+      "description": "Start a 25m or 90m deep work pomodoro block",
+      "url": "/?tab=focus",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Progress Analytics",
+      "short_name": "Analytics",
+      "description": "View monthly streaks, points, and consistency scorecards",
+      "url": "/?tab=stats",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
     { "src": "/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png" },
