@@ -151,6 +151,17 @@ const enterGuestMode = (guestUser) => {
   pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
 };
 
+const switchUserTrack = (track) => {
+  const user = track === 'jyoti'
+    ? { id: 'jyoti', email: 'goyaljyoti007@gmail.com', user_metadata: { full_name: 'Jyoti Goyal' } }
+    : { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } };
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  isGuestActive.value = true;
+  activeUser.value = user;
+  pushAppHistoryEntry();
+};
+
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
   localStorage.removeItem('habuilt_cached_user');
@@ -333,13 +344,13 @@ onUnmounted(() => {
                 <span class="install-text">Install App</span>
               </button>
 
-              <div class="user-badge" :title="activeUser.email">
+              <div class="user-badge" :title="`Current: ${isUserJyoti ? 'Jyoti Track' : 'Ashish Track'} — Click to switch`" @click="switchUserTrack(isUserJyoti ? 'ashish' : 'jyoti')" style="cursor: pointer;">
                 <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : 'user-avatar--ashish'">
-                  {{ userInitial }}
+                  {{ isUserJyoti ? 'J' : 'A' }}
                 </div>
                 <span class="user-badge__text">{{ activeUser.email }}</span>
                 <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : 'user-track-pill--ashish'">
-                  {{ isUserJyoti ? 'Jyoti Track' : 'Ashish Track' }}
+                  {{ isUserJyoti ? '🌸 Jyoti Track' : '⚡ Ashish Track' }} ⇄
                 </span>
               </div>
 

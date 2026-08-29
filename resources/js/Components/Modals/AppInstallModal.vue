@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   Monitor,
   Smartphone,
@@ -16,6 +16,9 @@ import {
   X,
   Layers,
   MousePointerClick,
+  Share2,
+  PlusSquare,
+  Globe,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -34,7 +37,20 @@ const emit = defineEmits([
   'test-notification',
 ]);
 
-const activeTab = ref('windows'); // 'windows' | 'android'
+const activeTab = ref('windows'); // 'windows' | 'android' | 'ios'
+
+onMounted(() => {
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+      activeTab.value = 'ios';
+    } else if (/Android/.test(ua)) {
+      activeTab.value = 'android';
+    } else {
+      activeTab.value = 'windows';
+    }
+  }
+});
 
 const apkDownloadUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk';
 const githubReleaseUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/tag/latest-build';
@@ -66,8 +82,8 @@ const copyLink = async () => {
             <Sparkles class="icon-md icon-gold" />
           </div>
           <div>
-            <h3 class="modal-title">Install Habuilt & Live Alerts</h3>
-            <p class="modal-subtitle">Track seamlessly on Windows laptop, browser, or Android phone</p>
+            <h3 class="modal-title">Install Habuilt &amp; Live Alerts</h3>
+            <p class="modal-subtitle">Track seamlessly on iOS, Android, Windows, or Mac</p>
           </div>
         </div>
         <button
@@ -89,7 +105,7 @@ const copyLink = async () => {
           @click="activeTab = 'windows'"
         >
           <Monitor class="icon-xs" />
-          <span>Windows Laptop / Browser</span>
+          <span>Windows / Mac Desktop</span>
         </button>
         <button
           type="button"
@@ -98,7 +114,16 @@ const copyLink = async () => {
           @click="activeTab = 'android'"
         >
           <Smartphone class="icon-xs" />
-          <span>Android App & Widget</span>
+          <span>Android (App / PWA)</span>
+        </button>
+        <button
+          type="button"
+          class="app-hub-tab"
+          :class="{ 'app-hub-tab--active': activeTab === 'ios' }"
+          @click="activeTab = 'ios'"
+        >
+          <Share2 class="icon-xs" />
+          <span>iPhone / iPad (iOS)</span>
         </button>
       </div>
 
@@ -113,7 +138,7 @@ const copyLink = async () => {
             <div class="app-feature-card">
               <div class="app-feature-card__icon"><BellRing class="icon-sm icon-gold" /></div>
               <div class="app-feature-card__content">
-                <strong>Windows Toast Alerts</strong>
+                <strong>Desktop Toast Alerts</strong>
                 <p>Native action-center banners pop up exactly when habits are due.</p>
               </div>
             </div>
@@ -121,14 +146,14 @@ const copyLink = async () => {
               <div class="app-feature-card__icon"><CheckCircle2 class="icon-sm icon-emerald" /></div>
               <div class="app-feature-card__content">
                 <strong>1-Tap Background Tracking</strong>
-                <p>Click <code>[✅ Mark Done]</code> right on the toast without opening the website.</p>
+                <p>Click <code>[✅ Mark Done]</code> right on the toast without opening the browser.</p>
               </div>
             </div>
             <div class="app-feature-card">
               <div class="app-feature-card__icon"><Monitor class="icon-sm icon-indigo" /></div>
               <div class="app-feature-card__content">
                 <strong>Standalone App Window</strong>
-                <p>Pin to Taskbar & Start Menu. Zero browser tabs or clutter.</p>
+                <p>Pin to Taskbar &amp; Start Menu. Zero browser tabs or distractions.</p>
               </div>
             </div>
           </div>
@@ -138,9 +163,9 @@ const copyLink = async () => {
             <div class="windows-action-box__left">
               <div class="app-badge-tag">
                 <span class="app-badge-dot"></span>
-                <span>Desktop PWA • Edge & Chrome</span>
+                <span>Desktop PWA • Edge, Chrome &amp; Brave</span>
               </div>
-              <h4 class="windows-box-title">Install Habuilt on Windows</h4>
+              <h4 class="windows-box-title">Install Habuilt on Desktop</h4>
               <p class="windows-box-desc">
                 Install as a native standalone desktop app. It will appear in your <strong>Start Menu</strong>, <strong>Taskbar</strong>, and <strong>Alt+Tab</strong> app switcher.
               </p>
@@ -153,7 +178,7 @@ const copyLink = async () => {
                   @click="emit('trigger-install-pwa')"
                 >
                   <Download class="icon-sm" />
-                  <span>1-Click Install to Windows</span>
+                  <span>1-Click Install to Desktop</span>
                 </button>
                 <div v-else class="browser-install-hint">
                   <MousePointerClick class="icon-xs icon-gold" />
@@ -167,7 +192,7 @@ const copyLink = async () => {
               <div class="windows-notif-header">
                 <div class="windows-notif-title">
                   <Bell class="icon-xs icon-gold" />
-                  <span>Windows Notifications</span>
+                  <span>Desktop Notifications</span>
                 </div>
                 <button
                   type="button"
@@ -203,7 +228,7 @@ const copyLink = async () => {
               <div class="app-step-item">
                 <div class="app-step-num">1</div>
                 <div class="app-step-content">
-                  <strong>Install to Windows Taskbar</strong>
+                  <strong>Install to Taskbar</strong>
                   <p>In Chrome or Edge, click the <strong>Install</strong> icon in the address bar (or Menu <code>...</code> → <em>"Install Habuilt"</em>). Pin it to your Taskbar.</p>
                 </div>
               </div>
@@ -212,7 +237,7 @@ const copyLink = async () => {
                 <div class="app-step-num">2</div>
                 <div class="app-step-content">
                   <strong>Allow Desktop Notifications</strong>
-                  <p>When prompted by the browser/Windows, click <strong>"Allow"</strong>. Ensure Windows <em>Focus Assist</em> is not blocking Chrome/Edge alerts.</p>
+                  <p>When prompted by the browser/Windows, click <strong>"Allow"</strong>. Ensure <em>Focus Assist</em> / <em>Do Not Disturb</em> is not blocking alerts.</p>
                 </div>
               </div>
 
@@ -220,7 +245,7 @@ const copyLink = async () => {
                 <div class="app-step-num">3</div>
                 <div class="app-step-content">
                   <strong>1-Tap Background Tracking</strong>
-                  <p>When a habit is due, a Windows Toast appears at bottom-right. Click <strong>[✅ Mark Done]</strong> directly on the toast — the task logs instantly in the background!</p>
+                  <p>When a habit is due, a Toast appears at bottom-right. Click <strong>[✅ Mark Done]</strong> directly on the toast — the task logs instantly in the background!</p>
                 </div>
               </div>
             </div>
@@ -230,13 +255,13 @@ const copyLink = async () => {
         <!-- ══════════════════════════════════════════════════════════════════ -->
         <!-- TAB 2: ANDROID APP & WIDGET -->
         <!-- ══════════════════════════════════════════════════════════════════ -->
-        <div v-else class="android-view">
+        <div v-else-if="activeTab === 'android'" class="android-view">
           <div class="app-features-grid">
             <div class="app-feature-card">
               <div class="app-feature-card__icon"><Zap class="icon-sm icon-gold" /></div>
               <div class="app-feature-card__content">
                 <strong>Due Now Widget</strong>
-                <p>4x2 & 4x1 home screen widget displaying active habit & timer.</p>
+                <p>4x2 &amp; 4x1 home screen widget displaying active habit &amp; timer.</p>
               </div>
             </div>
             <div class="app-feature-card">
@@ -265,11 +290,21 @@ const copyLink = async () => {
 
               <h4 class="apk-action-title">Install on your Android Device</h4>
               <p class="apk-action-desc">
-                Download the APK directly on your phone, or scan the QR code with your phone's camera.
+                Download the APK directly on your phone, scan the QR code, or install as a PWA via Chrome.
               </p>
 
               <div class="apk-actions-row">
+                <button
+                  v-if="canInstallPwa"
+                  type="button"
+                  class="btn btn--primary-action btn--apk-download"
+                  @click="emit('trigger-install-pwa')"
+                >
+                  <Download class="icon-sm" />
+                  <span>1-Tap PWA Install (Chrome)</span>
+                </button>
                 <a
+                  v-else
                   :href="apkDownloadUrl"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -326,14 +361,14 @@ const copyLink = async () => {
           <div class="app-steps-card">
             <h5 class="app-steps-title">
               <Sparkles class="icon-xs icon-gold" />
-              <span>3-Step Installation & Widget Guide</span>
+              <span>3-Step Installation &amp; Widget Guide</span>
             </h5>
 
             <div class="app-steps-list">
               <div class="app-step-item">
                 <div class="app-step-num">1</div>
                 <div class="app-step-content">
-                  <strong>Download & Open</strong>
+                  <strong>Download &amp; Open</strong>
                   <p>Tap download on your phone or scan the QR code. Open the downloaded <code>habuilt.apk</code> file.</p>
                 </div>
               </div>
@@ -356,6 +391,76 @@ const copyLink = async () => {
             </div>
           </div>
         </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB 3: IPHONE & IPAD (IOS SAFARI PWA) -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <div v-else class="ios-view">
+          <div class="app-features-grid">
+            <div class="app-feature-card">
+              <div class="app-feature-card__icon"><Smartphone class="icon-sm icon-gold" /></div>
+              <div class="app-feature-card__content">
+                <strong>Full-Screen iOS Experience</strong>
+                <p>Runs cleanly without Safari URL bars or bottom navigation clutter.</p>
+              </div>
+            </div>
+            <div class="app-feature-card">
+              <div class="app-feature-card__icon"><CheckCircle2 class="icon-sm icon-emerald" /></div>
+              <div class="app-feature-card__content">
+                <strong>1-Tap Home Screen Launch</strong>
+                <p>Instant access right from your iPhone home screen or App Library.</p>
+              </div>
+            </div>
+            <div class="app-feature-card">
+              <div class="app-feature-card__icon"><Layers class="icon-sm icon-indigo" /></div>
+              <div class="app-feature-card__content">
+                <strong>Works 100% Offline</strong>
+                <p>Track habits on flights or in low-connectivity areas without lag.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- iOS Visual 3-Step Card -->
+          <div class="app-steps-card ios-steps-card">
+            <h5 class="app-steps-title">
+              <Sparkles class="icon-xs icon-gold" />
+              <span>How to Install on iPhone / iPad (20 Seconds)</span>
+            </h5>
+
+            <div class="app-steps-list">
+              <div class="app-step-item">
+                <div class="app-step-num">1</div>
+                <div class="app-step-content">
+                  <strong>Open in Safari</strong>
+                  <p>Make sure you are viewing Habuilt inside the native <strong>Safari</strong> browser on iOS.</p>
+                </div>
+              </div>
+
+              <div class="app-step-item">
+                <div class="app-step-num">2</div>
+                <div class="app-step-content">
+                  <div class="ios-step-headline">
+                    <span>Tap the <strong>Share</strong> Button</span>
+                    <Share2 class="icon-xs icon-gold" />
+                  </div>
+                  <p>Tap the <strong>Share icon</strong> (the square with an arrow pointing up) at the bottom toolbar of Safari.</p>
+                </div>
+              </div>
+
+              <div class="app-step-item">
+                <div class="app-step-num">3</div>
+                <div class="app-step-content">
+                  <div class="ios-step-headline">
+                    <span>Select <strong>"Add to Home Screen"</strong></span>
+                    <PlusSquare class="icon-xs icon-gold" />
+                  </div>
+                  <p>Scroll down the action sheet and tap <strong>"Add to Home Screen"</strong>, then tap <strong>Add</strong> in the top-right corner.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

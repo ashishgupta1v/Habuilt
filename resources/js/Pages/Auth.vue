@@ -10,6 +10,7 @@ import {
   Layers, Compass, BarChart3
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
+import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
 const emit = defineEmits(['guest-login']);
 
@@ -24,6 +25,36 @@ const activeFeature = ref(0);
 const progressPercent = ref(0);
 let ticker = null;
 let progressTicker = null;
+
+// PWA Install Prompt State
+const isAppInstallModalOpen = ref(false);
+const deferredInstallPrompt = ref(null);
+const canInstallPwa = ref(false);
+
+const onBeforeInstallPrompt = (e) => {
+  e.preventDefault();
+  deferredInstallPrompt.value = e;
+  canInstallPwa.value = true;
+};
+
+const handleTriggerInstallPwa = async () => {
+  if (deferredInstallPrompt.value) {
+    try {
+      deferredInstallPrompt.value.prompt();
+      const choice = await deferredInstallPrompt.value.userChoice;
+      if (choice.outcome === 'accepted') {
+        canInstallPwa.value = false;
+        deferredInstallPrompt.value = null;
+        successMessage.value = '🎉 Habuilt App installed successfully!';
+      }
+    } catch (e) {
+      console.warn('PWA install error:', e);
+      isAppInstallModalOpen.value = true;
+    }
+  } else {
+    isAppInstallModalOpen.value = true;
+  }
+};
 
 const apkUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/v2.0/habuilt.apk';
 
@@ -166,6 +197,12 @@ const socialUsers = [
 onMounted(() => {
   startTicker();
   if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', () => {
+      canInstallPwa.value = false;
+      deferredInstallPrompt.value = null;
+    });
+
     const h = window.location.hash;
     if (h.includes('type=recovery') || h.includes('access_token')) mode.value = 'reset';
     if (Capacitor.isNativePlatform()) {
@@ -187,6 +224,9 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(ticker);
   clearInterval(progressTicker);
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  }
 });
 
 const handleAuth = async () => {
@@ -244,11 +284,17 @@ const handleGoogle = async () => {
 };
 
 const handleGuest = () => {
-  const g = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+  handleTrackPreview('ashish');
+};
+
+const handleTrackPreview = (track) => {
+  const user = track === 'jyoti'
+    ? { id: 'jyoti', email: 'goyaljyoti007@gmail.com', user_metadata: { full_name: 'Jyoti Goyal' } }
+    : { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } };
   localStorage.setItem('habuilt_guest_mode', 'true');
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(g));
-  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: g }));
-  emit('guest-login', g);
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
+  emit('guest-login', user);
 };
 </script>
 
@@ -466,19 +512,34 @@ const handleGuest = () => {
             <span class="lp__mobile-brand-name">Habuilt</span>
           </div>
 
-          <!-- Hero Guest CTA Action -->
-          <button class="lp__hero-guest-btn" type="button" @click="handleGuest">
-            <div class="lp__guest-main">
-              <div class="lp__guest-bolt-wrap">
-                <Zap class="lp__guest-bolt" />
+          <!-- Quick Track Direct Launch CTAs -->
+          <div class="lp__track-picker">
+            <button class="lp__hero-guest-btn" type="button" @click="handleTrackPreview('ashish')" style="margin-bottom: 8px;">
+              <div class="lp__guest-main">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(14, 107, 103, 0.25); color: #2dd4bf;">
+                  <Zap class="lp__guest-bolt" />
+                </div>
+                <div class="lp__guest-text">
+                  <span class="lp__guest-head">⚡ Ashish Track (Health &amp; Focus)</span>
+                  <span class="lp__guest-sub">Full MOVERS, Isabgol, Yoga, Deep Work &amp; 3L Water</span>
+                </div>
               </div>
-              <div class="lp__guest-text">
-                <span class="lp__guest-head">Try Instantly — No Account</span>
-                <span class="lp__guest-sub">Explore full workspace with sample routines</span>
+              <ChevronRight class="lp__guest-arrow" />
+            </button>
+
+            <button class="lp__hero-guest-btn" type="button" @click="handleTrackPreview('jyoti')" style="margin-bottom: 16px; border-color: rgba(142, 59, 95, 0.4);">
+              <div class="lp__guest-main">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(142, 59, 95, 0.25); color: #f472b6;">
+                  <Sparkles class="lp__guest-bolt" />
+                </div>
+                <div class="lp__guest-text">
+                  <span class="lp__guest-head">🌸 Jyoti Track (Nursing &amp; Career)</span>
+                  <span class="lp__guest-sub">B12, D3 + DHA, IBP Planning, Tummy Time &amp; Sleep</span>
+                </div>
               </div>
-            </div>
-            <ChevronRight class="lp__guest-arrow" />
-          </button>
+              <ChevronRight class="lp__guest-arrow" />
+            </button>
+          </div>
 
           <!-- Auth Header -->
           <div class="lp__auth-header">
