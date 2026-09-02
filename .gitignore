@@ -40,3 +40,4 @@ Thumbs.db
 *~
 /.vite/
 *.timestamp-*.mjs
+vite.config.js.timestamp-*

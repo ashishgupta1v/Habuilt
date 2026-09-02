@@ -1,10 +1,10 @@
 {
   "_landing-!~{006}~.js": {
-    "file": "assets/landing-CEKabNc2.css",
+    "file": "assets/landing-B3bm6RlQ.css",
     "src": "_landing-!~{006}~.js"
   },
-  "_landing-CUm-5-sU.js": {
-    "file": "assets/landing-CUm-5-sU.js",
+  "_landing-DBO_N5LE.js": {
+    "file": "assets/landing-DBO_N5LE.js",
     "name": "landing",
     "imports": [
       "_vendor-CS6A9dCr.js",
@@ -15,11 +15,10 @@
       "_vendor-CS6A9dCr.js",
       "_vendor-CS6A9dCr.js",
       "_vendor-CS6A9dCr.js",
-      "_vendor-CS6A9dCr.js",
       "_vendor-CS6A9dCr.js"
     ],
     "css": [
-      "assets/landing-CEKabNc2.css"
+      "assets/landing-B3bm6RlQ.css"
     ]
   },
   "_vendor-CS6A9dCr.js": {
@@ -42,24 +41,24 @@
     ]
   },
   "index.html": {
-    "file": "assets/preview-PvFmrHMZ.js",
+    "file": "assets/preview-MWee49Xs.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_landing-CUm-5-sU.js",
+      "_landing-DBO_N5LE.js",
       "_vendor-vue-C_oeq-bO.js",
       "_vendor-CS6A9dCr.js",
       "_vendor-icons-e-rTYVT5.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DOtXvZPq.js",
+    "file": "assets/app-D2wyTOAq.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_landing-CUm-5-sU.js",
+      "_landing-DBO_N5LE.js",
       "_vendor-vue-C_oeq-bO.js",
       "_vendor-CS6A9dCr.js",
       "_vendor-icons-e-rTYVT5.js"

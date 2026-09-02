@@ -65,6 +65,11 @@ const generateScorecardCanvas = async () => {
   isGenerating.value = true;
   await nextTick();
 
+  // Ensure web fonts are fully loaded before rendering to canvas context
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
+  }
+
   const canvas = canvasRef.value;
   if (!canvas) return;
 

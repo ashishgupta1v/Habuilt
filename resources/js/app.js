@@ -63,19 +63,26 @@ if (canBootInertia) {
 // ensuring the browser fetches a fresh SW on each deploy.
 const swUrl = '/sw.js?v=' + (typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : Date.now());
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    const isTyping = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
+    if (!isTyping) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(swUrl)
       .then((reg) => {
-        // Auto-update on new SW
         reg.addEventListener('updatefound', () => {
           const newSW = reg.installing;
           if (newSW) {
             newSW.addEventListener('statechange', () => {
               if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                // New content available — activate immediately
                 newSW.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
               }
             });
           }

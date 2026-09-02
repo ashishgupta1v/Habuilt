@@ -26,6 +26,8 @@ const emit = defineEmits(['toggle-collapse']);
         { 'timeline-slot-header--collapsed': isCollapsed }
       ]"
       @click="emit('toggle-collapse')"
+      @keydown.enter="emit('toggle-collapse')"
+      @keydown.space.prevent="emit('toggle-collapse')"
       role="button"
       tabindex="0"
       :aria-expanded="!isCollapsed"
@@ -52,7 +54,12 @@ const emit = defineEmits(['toggle-collapse']);
     <div
       v-if="isCollapsed"
       class="timeline-slot-collapsed-pill"
+      role="button"
+      tabindex="0"
       @click="emit('toggle-collapse')"
+      @keydown.enter="emit('toggle-collapse')"
+      @keydown.space.prevent="emit('toggle-collapse')"
+      aria-label="Expand time slot"
     >
       <span class="timeline-slot-collapsed-pill__text">
         <CheckCircle2 v-if="completedCount === group.habits.length && group.habits.length > 0" class="icon-xs icon-success" />

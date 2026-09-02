@@ -6,6 +6,9 @@ export const playTimerChime = (type = 'complete') => {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
     if (type === 'complete') {
       // Ascending triumphant three-tone chord
       const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
@@ -49,12 +52,11 @@ const timerLauncherDuration = ref(25);
 const customTimerMin = ref(null);
 const timerLauncherHabitId = ref('');
 const timerSoundEnabled = ref(true);
-const timerCompleteToast = ref(null);
 const now = ref(Date.now());
 let timerInterval = null;
 
 export function useDeepWorkTimer(options = {}) {
-  const { onHabitAutoComplete, allHabits = ref([]) } = options;
+  const { onHabitAutoComplete, onSessionComplete, allHabits = ref([]) } = options;
 
   const getHabitsList = () => {
     if (typeof allHabits === 'function') return allHabits() || [];
@@ -125,6 +127,12 @@ export function useDeepWorkTimer(options = {}) {
 
       if (linkedHabitId && !isBreak && onHabitAutoComplete) {
         onHabitAutoComplete(linkedHabitId);
+      }
+
+      if (onSessionComplete) {
+        const list = getHabitsList();
+        const linked = list.find((h) => String(h.id) === String(linkedHabitId));
+        onSessionComplete({ isBreak, linkedHabitId, habitName: linked?.name || null });
       }
 
       if (timerInterval) {
@@ -208,17 +216,25 @@ export function useDeepWorkTimer(options = {}) {
     }
   };
 
+  const handleVisibilityChange = () => {
+    if (typeof document !== 'undefined' && !document.hidden && timerState.value?.running) {
+      now.value = Date.now();
+      checkTimerTick();
+    }
+  };
+
   onMounted(() => {
     if (!timerInterval && timerState.value && timerState.value.running) {
       startInterval();
     }
     if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && timerState.value?.running) {
-          now.value = Date.now();
-          checkTimerTick();
-        }
-      });
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+  });
+
+  onBeforeUnmount(() => {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
   });
 
@@ -228,7 +244,6 @@ export function useDeepWorkTimer(options = {}) {
     customTimerMin,
     timerLauncherHabitId,
     timerSoundEnabled,
-    timerCompleteToast,
     timerProgressPct,
     timerElapsedFormatted,
     timerRemainingFormatted,

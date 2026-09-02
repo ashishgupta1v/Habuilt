@@ -190,8 +190,28 @@ watch(() => props.isOpen, (newVal) => {
         }
       }
 
-      scheduleType.value = props.habit.scheduleType || 'all';
-      customDays.value = Array.isArray(props.habit.customDays) ? [...props.habit.customDays] : [1, 2, 3, 4, 5, 6, 7];
+      if (props.habit.scheduleType) {
+        scheduleType.value = props.habit.scheduleType;
+        customDays.value = Array.isArray(props.habit.customDays) ? [...props.habit.customDays] : [1, 2, 3, 4, 5, 6, 7];
+      } else if (Array.isArray(props.habit.daysOfWeek) && props.habit.daysOfWeek.length > 0) {
+        const dows = props.habit.daysOfWeek;
+        if (dows.length === 7) {
+          scheduleType.value = 'all';
+          customDays.value = [1, 2, 3, 4, 5, 6, 7];
+        } else if (dows.length === 5 && [1, 2, 3, 4, 5].every(d => dows.includes(d))) {
+          scheduleType.value = 'weekdays';
+          customDays.value = [1, 2, 3, 4, 5];
+        } else if (dows.length === 2 && [0, 6].every(d => dows.includes(d))) {
+          scheduleType.value = 'weekends';
+          customDays.value = [6, 7];
+        } else {
+          scheduleType.value = 'custom';
+          customDays.value = dows.map(d => (d === 0 ? 7 : d)).sort((a, b) => a - b);
+        }
+      } else {
+        scheduleType.value = 'all';
+        customDays.value = [1, 2, 3, 4, 5, 6, 7];
+      }
     } else {
       // Add mode default
       name.value = '';
@@ -230,13 +250,21 @@ const handleSave = () => {
     return;
   }
 
-  // Format habit name to include time prefix if user hasn't explicitly included it
+  // Format habit name to include time prefix if habit is timed
   let cleanName = name.value.trim();
   if (isTimed.value && startTime.value) {
-    // If the name doesn't start with a timestamp, prepend start time for uniform display
-    if (!cleanName.match(/^\d{2}:\d{2}/)) {
-      cleanName = `${startTime.value} ${cleanName}`;
-    }
+    cleanName = cleanName.replace(/^\d{2}:\d{2}\s*/, '');
+    cleanName = `${startTime.value} ${cleanName}`;
+  }
+
+  // Compute normalized daysOfWeek (0=Sun, 1=Mon, ..., 6=Sat)
+  let daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
+  if (scheduleType.value === 'weekdays') {
+    daysOfWeek = [1, 2, 3, 4, 5];
+  } else if (scheduleType.value === 'weekends') {
+    daysOfWeek = [0, 6];
+  } else if (scheduleType.value === 'custom') {
+    daysOfWeek = (customDays.value || []).map(d => (d === 7 ? 0 : d)).sort((a, b) => a - b);
   }
 
   const payload = {
@@ -250,6 +278,7 @@ const handleSave = () => {
     timeSlot: isTimed.value ? computedSlot.value : timeSlot.value,
     scheduleType: scheduleType.value,
     customDays: scheduleType.value === 'custom' ? customDays.value : null,
+    daysOfWeek,
     hint: hint.value.trim(),
     completed_days: props.habit ? (props.habit.completed_days || []) : [],
   };

@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
-  Sparkles,
   Zap,
   Plane,
   ChevronLeft,
@@ -14,12 +13,10 @@ import {
   Timer,
   BarChart3,
   Award,
-  Info,
   X,
   Download,
-  Bell,
-  Monitor,
   MapPin,
+  Sparkles,
 } from 'lucide-vue-next';
 
 const props = defineProps({

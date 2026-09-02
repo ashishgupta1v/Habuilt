@@ -20,6 +20,7 @@ import {
   PlusSquare,
   Globe,
 } from 'lucide-vue-next';
+import { APK_DOWNLOAD_URL, APP_CONFIG } from '@/config/appConfig';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -52,8 +53,8 @@ onMounted(() => {
   }
 });
 
-const apkDownloadUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/latest-build/habuilt.apk';
-const githubReleaseUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/tag/latest-build';
+const apkDownloadUrl = APK_DOWNLOAD_URL;
+const githubReleaseUrl = `${APP_CONFIG.repositoryUrl}/releases/tag/latest-build`;
 const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(apkDownloadUrl)}`;
 
 const isCopied = ref(false);

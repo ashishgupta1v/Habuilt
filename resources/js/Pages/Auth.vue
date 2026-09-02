@@ -11,6 +11,7 @@ import {
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
+import { APK_DOWNLOAD_URL } from '@/config/appConfig';
 
 const emit = defineEmits(['guest-login']);
 
@@ -41,14 +42,12 @@ const handleTriggerInstallPwa = async () => {
   if (deferredInstallPrompt.value) {
     try {
       deferredInstallPrompt.value.prompt();
-      const choice = await deferredInstallPrompt.value.userChoice;
-      if (choice.outcome === 'accepted') {
+      const { outcome } = await deferredInstallPrompt.value.userChoice;
+      if (outcome === 'accepted') {
         canInstallPwa.value = false;
         deferredInstallPrompt.value = null;
-        successMessage.value = '🎉 Habuilt App installed successfully!';
       }
-    } catch (e) {
-      console.warn('PWA install error:', e);
+    } catch {
       isAppInstallModalOpen.value = true;
     }
   } else {
@@ -56,7 +55,7 @@ const handleTriggerInstallPwa = async () => {
   }
 };
 
-const apkUrl = 'https://github.com/ashishgupta1v/Habuilt/releases/download/v2.0/habuilt.apk';
+const apkUrl = APK_DOWNLOAD_URL;
 
 /* ─── Feature Showcase Data ─────────────────────────────────────── */
 const features = [
@@ -204,7 +203,7 @@ onMounted(() => {
     });
 
     const h = window.location.hash;
-    if (h.includes('type=recovery') || h.includes('access_token')) mode.value = 'reset';
+    if (h.includes('type=recovery')) mode.value = 'reset';
     if (Capacitor.isNativePlatform()) {
       try {
         App.addListener('backButton', () => {
@@ -240,7 +239,7 @@ const handleAuth = async () => {
       successMessage.value = 'Account created — check your email or sign in.';
       mode.value = 'login';
     } else if (mode.value === 'forgot') {
-      const isNative = typeof window !== 'undefined' && (window.Capacitor?.isNativePlatform?.() || window.location.origin.includes('localhost'));
+      const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
       const { error: e } = await supabase.auth.resetPasswordForEmail(email.value, {
         redirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
       });
@@ -266,7 +265,7 @@ const handleGoogle = async () => {
   error.value = '';
   loading.value = true;
   try {
-    const isNative = typeof window !== 'undefined' && (window.Capacitor?.isNativePlatform?.() || window.location.origin.includes('localhost'));
+    const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
     const { data, error: e } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`, skipBrowserRedirect: isNative },
@@ -284,13 +283,19 @@ const handleGoogle = async () => {
 };
 
 const handleGuest = () => {
-  handleTrackPreview('ashish');
+  const user = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
+  emit('guest-login', user);
 };
 
 const handleTrackPreview = (track) => {
   const user = track === 'jyoti'
     ? { id: 'jyoti', email: 'goyaljyoti007@gmail.com', user_metadata: { full_name: 'Jyoti Goyal' } }
-    : { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } };
+    : track === 'ashish'
+    ? { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } }
+    : { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
   localStorage.setItem('habuilt_guest_mode', 'true');
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
   window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));

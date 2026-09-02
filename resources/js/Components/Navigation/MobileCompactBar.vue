@@ -30,6 +30,7 @@ const props = defineProps({
   upNextHabitInfo: { type: Object, default: null },
   hasCompletedDay: { type: Function, required: true },
   isAshish: { type: Boolean, default: false },
+  displayName: { type: String, default: '' },
   travelMode: { type: Boolean, default: false },
   dayType: { type: String, default: 'home' },
   dayTypeLabel: { type: String, default: '🏠 Home' },
@@ -62,7 +63,7 @@ const autoProtocolBadge = computed(() => {
     <!-- Top Row: User Identity & Action Icons -->
     <div class="mcb-row mcb-row--top">
       <div class="mcb-user-group">
-        <span class="mcb-user-name">{{ isAshish ? 'Ashish' : (timeGreeting?.name || 'User') }}</span>
+        <span class="mcb-user-name">{{ displayName || (isAshish ? 'Ashish' : (timeGreeting?.name || 'User')) }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
 

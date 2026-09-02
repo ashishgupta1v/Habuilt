@@ -30,19 +30,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <script>
-      (function() {
-        try {
-          var h = window.location.hash;
-          if (h && (h.indexOf('access_token') !== -1 || h.indexOf('refresh_token') !== -1)) {
-            var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            if (isMobile) {
-              window.location.href = 'habuilt://auth/callback' + h;
-            }
-          }
-        } catch(e) {}
-      })();
-    </script>
     <script type="module" src="/resources/js/app.js"></script>
   </head>
   <body>

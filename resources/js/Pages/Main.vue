@@ -82,19 +82,52 @@ const activeUser = ref(initialUser);
 
 const isUserJyoti = computed(() => {
   const email = (activeUser.value?.email || '').toLowerCase().trim();
-  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
+  const uid = (activeUser.value?.id || '').toLowerCase().trim();
+  return email === 'goyaljyoti007@gmail.com' || uid === 'jyoti' || email.includes('jyoti');
+});
+
+const isUserAshish = computed(() => {
+  if (isUserJyoti.value) return false;
+  const email = (activeUser.value?.email || '').toLowerCase().trim();
+  const uid = (activeUser.value?.id || '').toLowerCase().trim();
+  return email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
 });
 
 const userInitial = computed(() => {
-  if (!activeUser.value?.email) return 'U';
-  return activeUser.value.email.charAt(0).toUpperCase();
+  const name = activeUser.value?.user_metadata?.full_name || activeUser.value?.user_metadata?.name;
+  if (name && name.trim()) {
+    return name.trim().charAt(0).toUpperCase();
+  }
+  if (activeUser.value?.email) {
+    return activeUser.value.email.charAt(0).toUpperCase();
+  }
+  return 'U';
 });
 
-const handleNavigateMonth = (monthOffset) => {
-  let newMonth = month.value + monthOffset, newYear = year.value;
-  if (newMonth > 12) { newMonth = 1; newYear++; }
-  if (newMonth < 1) { newMonth = 12; newYear--; }
-  window.location.search = `?month=${newMonth}&year=${newYear}`;
+const userTrackLabel = computed(() => {
+  if (isUserJyoti.value) return '🌸 Jyoti Track';
+  if (isUserAshish.value) return '⚡ Ashish Track';
+  const name = activeUser.value?.user_metadata?.full_name || (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'User');
+  return `✨ ${name}'s Workspace`;
+});
+
+const handleNavigateMonth = (target) => {
+  if (typeof target === 'number') {
+    let newMonth = month.value + target, newYear = year.value;
+    if (newMonth > 12) { newMonth = 1; newYear++; }
+    if (newMonth < 1) { newMonth = 12; newYear--; }
+    month.value = newMonth;
+    year.value = newYear;
+  } else if (target && typeof target === 'object' && target.month && target.year) {
+    month.value = Number(target.month);
+    year.value = Number(target.year);
+  }
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', month.value);
+    url.searchParams.set('year', year.value);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 
 // ── History / Back-button management ─────────────────────────────
@@ -223,15 +256,6 @@ onMounted(async () => {
     }
   });
 
-  // ── Native Android Hardware Back Button ──
-  try {
-    const { App } = await import('@capacitor/app');
-    App.addListener('backButton', () => {
-      if (!activeUser.value) return; // On landing page — let OS handle
-      showExitDialog.value = true;   // Inside app — show exit dialog
-    });
-  } catch { /* non-native */ }
-
   // ── Native Deep Link Handler for OAuth Callback ──
   try {
     const { App } = await import('@capacitor/app');
@@ -272,31 +296,20 @@ onMounted(async () => {
 
   // ── Web OAuth Code Exchange ──
   if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
-    const hash   = window.location.hash;
     const search = window.location.search;
-    if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        try { window.location.href = `habuilt://auth/callback${hash}`; } catch { /* ignore */ }
-      }
-    } else if (search && search.includes('code=')) {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        try { window.location.href = `habuilt://auth/callback${search}`; } catch { /* ignore */ }
-      } else {
-        const params = new URLSearchParams(search);
-        const code = params.get('code');
-        if (code) {
-          try {
-            const { data } = await supabase.auth.exchangeCodeForSession(code);
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              window.history.replaceState({}, document.title, window.location.pathname);
-              pushAppHistoryEntry();
-            }
-          } catch (e) { console.warn('Error exchanging web OAuth code:', e); }
-        }
+    if (search && search.includes('code=')) {
+      const params = new URLSearchParams(search);
+      const code = params.get('code');
+      if (code) {
+        try {
+          const { data } = await supabase.auth.exchangeCodeForSession(code);
+          if (data?.user) {
+            activeUser.value = data.user;
+            localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
+            window.history.replaceState({}, document.title, window.location.pathname);
+            pushAppHistoryEntry();
+          }
+        } catch (e) { console.warn('Error exchanging web OAuth code:', e); }
       }
     }
   }
@@ -344,13 +357,18 @@ onUnmounted(() => {
                 <span class="install-text">Install App</span>
               </button>
 
-              <div class="user-badge" :title="`Current: ${isUserJyoti ? 'Jyoti Track' : 'Ashish Track'} — Click to switch`" @click="switchUserTrack(isUserJyoti ? 'ashish' : 'jyoti')" style="cursor: pointer;">
-                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : 'user-avatar--ashish'">
-                  {{ isUserJyoti ? 'J' : 'A' }}
+              <div
+                class="user-badge"
+                :title="isGuestActive ? 'Click to switch sample track' : activeUser.email"
+                @click="isGuestActive ? switchUserTrack(isUserJyoti ? 'ashish' : 'jyoti') : null"
+                :style="{ cursor: isGuestActive ? 'pointer' : 'default' }"
+              >
+                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : (isUserAshish ? 'user-avatar--ashish' : 'user-avatar--generic')">
+                  {{ userInitial }}
                 </div>
                 <span class="user-badge__text">{{ activeUser.email }}</span>
-                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : 'user-track-pill--ashish'">
-                  {{ isUserJyoti ? '🌸 Jyoti Track' : '⚡ Ashish Track' }} ⇄
+                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : (isUserAshish ? 'user-track-pill--ashish' : 'user-track-pill--generic')">
+                  {{ userTrackLabel }} <span v-if="isGuestActive">⇄</span>
                 </span>
               </div>
 
@@ -389,6 +407,7 @@ onUnmounted(() => {
           :canNavigateNextMonth="true"
           :previousMonth="previousMonth"
           :nextMonth="nextMonth"
+          @navigate-month="handleNavigateMonth"
           @sign-out="handleSignOut"
         />
       </main>

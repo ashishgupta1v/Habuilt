@@ -4,12 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prepare-vercel-dist.mjs",
     "build:vercel": "vite build && node scripts/prepare-vercel-dist.mjs",
     "preview": "vite preview",
     "cap:add": "cap add android",
-    "cap:sync": "cap sync android",
-    "cap:build": "npm run build:vercel && cap sync android",
+    "cap:sync": "npm run build && cap sync android",
+    "cap:build": "npm run build && cap sync android",
     "cap:open": "cap open android"
   },
   "dependencies": {

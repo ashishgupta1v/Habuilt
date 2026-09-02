@@ -5,6 +5,11 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
+import {
+  computeLifetimeStats,
+  getMonthlyHabits,
+  getHabitCompletedDays,
+} from '@/lib/lifetimeStats';
 
 // Subcomponents
 import TopCommandBar from '@/Components/Navigation/TopCommandBar.vue';
@@ -16,7 +21,6 @@ import MonthGrid from '@/Components/Grid/MonthGrid.vue';
 import PerformanceAnalytics from '@/Components/Analytics/PerformanceAnalytics.vue';
 import RewardShop from '@/Components/Rewards/RewardShop.vue';
 import SundayReview from '@/Components/Review/SundayReview.vue';
-import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import HabitFormModal from '@/Components/Modals/HabitFormModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
@@ -149,23 +153,33 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['sign-out']);
+const emit = defineEmits(['sign-out', 'navigate-month']);
 
 const page = usePage();
-const authUser = computed(() => page.props.auth?.user ?? null);
+const authUser = computed(() => page?.props?.auth?.user ?? null);
 const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email || '').toLowerCase().trim());
 const isJyoti = computed(() => {
   const email = resolvedEmail.value;
   const uid = (props.userId || '').toLowerCase();
-  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti') || uid.includes('jyoti');
+  return email === 'goyaljyoti007@gmail.com' || uid === 'jyoti' || email.includes('jyoti');
 });
 const isAshish = computed(() => {
   if (isJyoti.value) return false;
   const email = resolvedEmail.value;
   const uid = (props.userId || '').toLowerCase();
-  return email === 'ashishgupta1v@gmail.com' || email.includes('ashish') || uid.includes('ashish') || !email || email === 'guest';
+  return email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
 });
-const displayName = computed(() => isJyoti.value ? 'Jyoti' : isAshish.value ? 'Ashish' : (props.userId || 'User'));
+const displayName = computed(() => {
+  const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
+  if (metaName && metaName.trim()) return metaName.trim();
+  if (isJyoti.value) return 'Jyoti';
+  if (isAshish.value) return 'Ashish';
+  if (resolvedEmail.value && resolvedEmail.value.includes('@') && !resolvedEmail.value.startsWith('guest')) {
+    const local = resolvedEmail.value.split('@')[0];
+    return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+  return props.userId && props.userId !== 'guest' ? props.userId : 'Champion';
+});
 const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
 
 // Reactive real-time clock ticker
@@ -348,6 +362,15 @@ const {
       toggleHabitForDay(targetHabit, props.currentDay);
     }
   },
+  onSessionComplete: ({ isBreak, habitName }) => {
+    if (isBreak) {
+      showToast('☕ Break completed! Ready to resume flow.');
+    } else if (habitName) {
+      showToast(`🎉 Focus session complete! "${habitName}" auto-logged.`);
+    } else {
+      showToast('🎉 Focus session complete! Great work.');
+    }
+  },
 });
 
 // Habit Editor State
@@ -355,22 +378,21 @@ const habitsEditing = ref(false);
 const habitsDraft = ref([]);
 const habitSaveStatus = ref('idle');
 const hasCustomHabits = ref(false);
-const habitSwipeStart = ref({});
 
 const rewardsEditing = ref(false);
 const rewardsDraft = ref([]);
 const rewardSaveStatus = ref('idle');
 
 const defaultRewards = [
-  { type: 'Daily', item: '1 Hour+ social media', cost: 8 },
-  { type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
-  { type: 'Weekly', item: 'Cheat Meal', cost: 15 },
-  { type: 'Weekly', item: 'Social Meetup/Night Out/Movie', cost: 20 },
-  { type: 'Month', item: 'New Tech/Clothing', cost: 30 },
-  { type: 'Month', item: 'Purchase 1 Useful Subscription/Plan', cost: 40 },
-  { type: 'Quarter', item: 'Major Purchase', cost: 100 },
-  { type: 'Half-Yr', item: 'Vacation', cost: 500 },
-  { type: 'Yearly', item: 'International Vacation', cost: 2000 },
+  { id: 'rew-daily-social', type: 'Daily', item: '1 Hour+ social media', cost: 8 },
+  { id: 'rew-weekly-gadget', type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
+  { id: 'rew-weekly-cheat', type: 'Weekly', item: 'Cheat Meal', cost: 15 },
+  { id: 'rew-weekly-meetup', type: 'Weekly', item: 'Social Meetup/Night Out/Movie', cost: 20 },
+  { id: 'rew-month-tech', type: 'Month', item: 'New Tech/Clothing', cost: 30 },
+  { id: 'rew-month-sub', type: 'Month', item: 'Purchase 1 Useful Subscription/Plan', cost: 40 },
+  { id: 'rew-quarter-major', type: 'Quarter', item: 'Major Purchase', cost: 100 },
+  { id: 'rew-halfyr-vacation', type: 'Half-Yr', item: 'Vacation', cost: 500 },
+  { id: 'rew-yr-intl-vacation', type: 'Yearly', item: 'International Vacation', cost: 2000 },
 ];
 const rewards = ref(defaultRewards.map(r => ({ ...r })));
 
@@ -380,7 +402,7 @@ const createDefaultWeeklyReview = () => ({
   checks: [
     { text: 'I reviewed missed days and found one clear trigger.', done: false },
     { text: 'I declared tier (Full/Half/Floor) at breakfast every day.', done: false },
-    { text: 'Shaarvi blocks never shrank — they happened first.', done: false },
+    { text: 'Family & non-negotiable personal blocks happened first.', done: false },
     { text: '18:30 hard stop held — phones out of room.', done: false },
     { text: 'Sleep stayed above 7h floor (or next day was Floor tier).', done: false },
     { text: 'I graduated max one habit this week (1% rule).', done: false },
@@ -424,6 +446,7 @@ const fillSundayMetrics = () => {
   };
   weeklyReview.value.reviewDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   saveState();
+  showToast('✨ Weekly metrics auto-filled & saved!');
 };
 
 // Theme Management (Dark / Light Mode)
@@ -491,9 +514,19 @@ const getDayOfWeek = (dayNum) => {
 
 const isHabitScheduledForDay = (habit, dayNum) => {
   if (!habit) return true;
+  const dow = getDayOfWeek(dayNum);
   if (Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
-    const dow = getDayOfWeek(dayNum);
     return habit.daysOfWeek.includes(dow);
+  }
+  if (habit.scheduleType === 'weekdays') {
+    return dow >= 1 && dow <= 5;
+  }
+  if (habit.scheduleType === 'weekends') {
+    return dow === 0 || dow === 6;
+  }
+  if (habit.scheduleType === 'custom' && Array.isArray(habit.customDays)) {
+    const customDow = dow === 0 ? 7 : dow;
+    return habit.customDays.includes(customDow) || habit.customDays.includes(dow);
   }
   return true;
 };
@@ -837,7 +870,7 @@ const getHabitNote = (habitId, day) => enhancedState.value.habitNotes?.[`${habit
 const setHabitNote = (habitId, day, note) => {
   if (!enhancedState.value.habitNotes) enhancedState.value.habitNotes = {};
   enhancedState.value.habitNotes[`${habitId}:${day}`] = note;
-  saveState();
+  debouncedSaveState(400);
 };
 const toggleHabitNote = (habitId, day) => {
   const key = `${habitId}:${day}`;
@@ -1023,7 +1056,9 @@ const systemStreak = computed(() => {
       temp = 0;
     }
   }
-  for (let d = maxDay; d >= 1; d--) {
+  const todayDone = getDayTotal(maxDay) > 0;
+  const startDay = (props.isCurrentMonth && !todayDone) ? maxDay - 1 : maxDay;
+  for (let d = startDay; d >= 1; d--) {
     if (getDayTotal(d) > 0) current++;
     else break;
   }
@@ -1055,8 +1090,8 @@ const consistencyGrade = computed(() => {
 
 const performanceGrade = computed(() => consistencyGrade.value);
 
-// XP & Level
-const totalXP = computed(() => monthlyTotalEarned.value * 10);
+// XP & Level (Total Lifetime XP across all historical and current months)
+const totalXP = computed(() => (earnedBeforeCurrentMonth.value + monthlyTotalEarned.value) * 10);
 const levelData = computed(() => {
   const xp = totalXP.value;
   const level = Math.floor(xp / 500) + 1;
@@ -1119,7 +1154,9 @@ const habitStreaks = computed(() => {
   return visibleHabits.value.map(h => {
     let current = 0;
     const maxDay = props.isCurrentMonth ? props.currentDay : props.monthDays;
-    for (let d = maxDay; d >= 1; d--) {
+    const todayDone = hasCompletedDay(h, maxDay);
+    const startDay = (props.isCurrentMonth && !todayDone) ? maxDay - 1 : maxDay;
+    for (let d = startDay; d >= 1; d--) {
       if (hasCompletedDay(h, d)) current++;
       else break;
     }
@@ -1216,6 +1253,26 @@ const toggleHabitForDay = (habit, day) => {
 
   saveState();
   syncDueNowNotification?.();
+
+  // Optional non-blocking Laravel Backend Sync when running in Inertia environment
+  if (typeof window !== 'undefined' && window.__inertia_app && habit.id) {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    try {
+      if (nextDone) {
+        fetch(`/habits/${habit.id}/check-ins`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ completed_on: checkInDate }),
+        }).catch(() => {});
+      } else {
+        fetch(`/habits/${habit.id}/check-ins`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ completed_on: checkInDate }),
+        }).catch(() => {});
+      }
+    } catch {}
+  }
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(nextDone ? [15, 30, 15] : [20]);
@@ -1564,10 +1621,32 @@ const applyLoadedState = (data, isRemote = false) => {
   }
   allHistoricalHabits.value = Array.from(historicalUniqueMap.values());
 
-  if (Array.isArray(data.rewards)) rewards.value = data.rewards;
+  if (Array.isArray(data.rewards)) {
+    rewards.value = data.rewards.map((r, idx) => ({
+      id: r.id || `rew-saved-${idx}-${Date.now()}`,
+      type: r.type || 'Weekly',
+      item: r.item || '',
+      cost: Number(r.cost) || 10,
+    }));
+  }
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
   if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
   if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
+  if (data.weeklyReview && typeof data.weeklyReview === 'object') {
+    weeklyReview.value = {
+      ...createDefaultWeeklyReview(),
+      ...data.weeklyReview,
+      metrics: {
+        ...createDefaultWeeklyReview().metrics,
+        ...(data.weeklyReview.metrics || {}),
+      },
+      reflections: {
+        ...createDefaultWeeklyReview().reflections,
+        ...(data.weeklyReview.reflections || {}),
+      },
+      checks: Array.isArray(data.weeklyReview.checks) ? data.weeklyReview.checks : createDefaultWeeklyReview().checks,
+    };
+  }
   if (data.dayType !== undefined) dayType.value = data.dayType;
   else if (data.travelMode !== undefined) dayType.value = data.travelMode ? 'office-mon' : 'home'; // Migrate legacy
   if (data.darkMode !== undefined) darkMode.value = data.darkMode;
@@ -1580,6 +1659,7 @@ const applyLoadedState = (data, isRemote = false) => {
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
       updated_at: new Date().toISOString(),
@@ -1594,6 +1674,30 @@ const applyLoadedState = (data, isRemote = false) => {
   }, 50);
 };
 
+let debouncedSaveTimeout = null;
+const debouncedSaveState = (delayMs = 400) => {
+  try {
+    const payload = {
+      habits: localHabits.value,
+      allHistoricalHabits: allHistoricalHabits.value,
+      rewards: rewards.value,
+      rewardLedger: rewardLedger.value,
+      progressiveSettings: progressiveSettings.value,
+      enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
+      dayType: dayType.value,
+      darkMode: darkMode.value,
+      updated_at: new Date().toISOString(),
+    };
+    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
+  } catch { /* offline fallback */ }
+
+  if (debouncedSaveTimeout) clearTimeout(debouncedSaveTimeout);
+  debouncedSaveTimeout = setTimeout(() => {
+    saveState();
+  }, delayMs);
+};
+
 const saveState = async () => {
   try {
     const payload = {
@@ -1603,6 +1707,7 @@ const saveState = async () => {
       rewardLedger: rewardLedger.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
       updated_at: new Date().toISOString(),
@@ -1614,6 +1719,91 @@ const saveState = async () => {
     }
   } catch (err) {
     console.warn('Failed to save dashboard state:', err);
+  }
+};
+
+const lifetimeData = ref(null);
+
+// ── Cross-Month Points, Wallet & Lifetime History Calculator ──
+const calculateHistoricalTotals = async () => {
+  let earnedBefore = 0;
+  let redeemedBefore = 0;
+  const currentKey = monthScope.value;
+  const allMonthlyRows = [];
+
+  // 1. Scan LocalStorage for all months saved for this user
+  try {
+    const prefix = `habuilt.dashboard.${effectiveUserId.value}.`;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        const monthKey = k.replace(prefix, '');
+        if (/^\d{4}-\d{2}$/.test(monthKey)) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              allMonthlyRows.push({ month_key: monthKey, state_data: parsed });
+            } catch {}
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('LocalStorage historical scan warning:', e);
+  }
+
+  // 2. Fetch remote months from Supabase if logged in
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    try {
+      const remoteMonths = await loadAllUserMonthlyStates(effectiveUserId.value);
+      if (Array.isArray(remoteMonths)) {
+        remoteMonths.forEach(rm => {
+          if (rm && rm.month_key && rm.state_data) {
+            const existingIdx = allMonthlyRows.findIndex(r => r.month_key === rm.month_key);
+            if (existingIdx > -1) {
+              allMonthlyRows[existingIdx] = rm;
+            } else {
+              allMonthlyRows.push(rm);
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Remote historical months fetch warning:', e);
+    }
+  }
+
+  // 3. Aggregate prior months (month_key < currentKey)
+  allMonthlyRows.forEach(row => {
+    if (!row || !row.month_key || row.month_key >= currentKey) return;
+    const data = row.state_data;
+    if (!data) return;
+
+    const habits = getMonthlyHabits(data);
+    habits.forEach(h => {
+      const pts = Number(h.points) || 1;
+      const cd = getHabitCompletedDays(h);
+      earnedBefore += pts * cd.length;
+    });
+
+    const ledger = Array.isArray(data.rewardLedger) ? data.rewardLedger : [];
+    redeemedBefore += ledger.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+  });
+
+  earnedBeforeCurrentMonth.value = earnedBefore;
+  redeemedBeforeCurrentMonth.value = redeemedBefore;
+
+  // 4. Compute comprehensive lifetime stats across all months
+  try {
+    lifetimeData.value = computeLifetimeStats(allMonthlyRows, {
+      year: props.year,
+      month: props.month,
+      day: props.currentDay,
+      habits: localHabits.value,
+    });
+  } catch (e) {
+    console.warn('Lifetime stats computation warning:', e);
   }
 };
 
@@ -1648,6 +1838,7 @@ const loadLocalState = () => {
     }
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
+  calculateHistoricalTotals();
   drainQueuedCompletions?.();
 };
 
@@ -1656,6 +1847,14 @@ watch(fallbackHabits, (newFallbacks) => {
     applyLoadedState({ habits: localHabits.value, allHistoricalHabits: allHistoricalHabits.value }, false);
   }
 }, { deep: true });
+
+watch(monthScope, async (newScope, oldScope) => {
+  if (newScope && newScope !== oldScope) {
+    loadLocalState();
+    await calculateHistoricalTotals();
+    await syncCloudState(true);
+  }
+});
 
 const syncCloudState = async (force = false) => {
   const now = Date.now();
@@ -1669,6 +1868,7 @@ const syncCloudState = async (force = false) => {
       applyLoadedState(remoteData, true);
       lastSyncTimestamp = Date.now();
     }
+    await calculateHistoricalTotals();
   } catch (err) {
     console.warn('Cloud sync on open failed:', err);
   } finally {
@@ -1843,14 +2043,77 @@ const removeDraftReward = (index) => {
   rewardsDraft.value.splice(index, 1);
 };
 
+const isRewardClaimedThisMonth = (rewardId) => {
+  if (!rewardId) return false;
+  const targetReward = (rewards.value || []).find(r => r.id === rewardId);
+  const isOneTimeType = targetReward && ['Month', 'Monthly', 'Quarter', 'Quarterly', 'Half-Yr', 'Half-Year', 'Yearly'].includes(targetReward.type);
+  if (!isOneTimeType) return false; // Daily and Weekly rewards are repeatable
+  return (rewardLedger.value || []).some(entry => entry.reward_id === rewardId || (targetReward && entry.item === targetReward.item));
+};
+
+const handleRedeemReward = (r) => {
+  if (!r) return;
+  if (availableWallet.value < r.cost) {
+    showToast('❌ Not enough points in wallet to redeem this reward.');
+    return;
+  }
+  const isOneTimeType = ['Month', 'Monthly', 'Quarter', 'Quarterly', 'Half-Yr', 'Half-Year', 'Yearly'].includes(r.type);
+  if (isOneTimeType && isRewardClaimedThisMonth(r.id)) {
+    showToast('⚠️ This reward has already been claimed for this month.');
+    return;
+  }
+  const rewardId = r.id || `reward-${Date.now()}`;
+  rewardLedger.value.unshift({
+    id: Date.now(),
+    reward_id: rewardId,
+    item: r.item,
+    cost: Number(r.cost) || 0,
+    type: r.type || 'Weekly',
+    month_scope: monthScope.value,
+    claimed_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  });
+  saveState();
+  showToast(`🎉 Claimed: ${r.item} (-${r.cost} pts)`);
+};
+
 // Month Navigation
 const goToPreviousMonth = () => {
   if (!props.canNavigatePrevMonth) return;
-  router.visit(`/?month=${props.previousMonth.month}&year=${props.previousMonth.year}`);
+  const target = props.previousMonth;
+  try {
+    if (typeof window !== 'undefined' && window.__inertia_app) {
+      router.visit(`/?month=${target.month}&year=${target.year}`);
+      return;
+    }
+  } catch (e) {
+    console.warn('Inertia navigation skipped, using SPA event navigation:', e);
+  }
+  emit('navigate-month', target);
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', target.month);
+    url.searchParams.set('year', target.year);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 const goToNextMonth = () => {
   if (!props.canNavigateNextMonth) return;
-  router.visit(`/?month=${props.nextMonth.month}&year=${props.nextMonth.year}`);
+  const target = props.nextMonth;
+  try {
+    if (typeof window !== 'undefined' && window.__inertia_app) {
+      router.visit(`/?month=${target.month}&year=${target.year}`);
+      return;
+    }
+  } catch (e) {
+    console.warn('Inertia navigation skipped, using SPA event navigation:', e);
+  }
+  emit('navigate-month', target);
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', target.month);
+    url.searchParams.set('year', target.year);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 
 // SPA URL Tab Synchronization
@@ -1970,17 +2233,37 @@ onMounted(() => {
     let lastBackPressTime = 0;
     try {
       App.addListener('backButton', () => {
-        // 1. Close any open modal dialogs
-        if (isMorningSetupOpen.value) {
-          isMorningSetupOpen.value = false;
+        // 1. Close any open modal dialogs or drawers
+        if (isHabitFormModalOpen.value) {
+          closeHabitFormModal();
           return;
         }
-        if (isHabitEditorOpen.value) {
-          isHabitEditorOpen.value = false;
+        if (habitsEditing.value) {
+          habitsEditing.value = false;
+          return;
+        }
+        if (rewardsEditing.value) {
+          rewardsEditing.value = false;
+          return;
+        }
+        if (isAppInstallModalOpen.value) {
+          isAppInstallModalOpen.value = false;
           return;
         }
         if (isShareModalOpen.value) {
           isShareModalOpen.value = false;
+          return;
+        }
+        if (progressivePanelOpen.value) {
+          progressivePanelOpen.value = false;
+          return;
+        }
+        if (analyticsOpen.value) {
+          analyticsOpen.value = false;
+          return;
+        }
+        if (partnerViewOpen.value) {
+          partnerViewOpen.value = false;
           return;
         }
         if (weeklyReviewExpanded.value) {
@@ -1991,8 +2274,8 @@ onMounted(() => {
           tierDetailHabitId.value = null;
           return;
         }
-        if (Object.values(habitNotesOpen.value).some(Boolean)) {
-          habitNotesOpen.value = {};
+        if (habitNotesOpen.value) {
+          habitNotesOpen.value = null;
           return;
         }
         if (mobileHeroExpanded.value) {
@@ -2025,7 +2308,7 @@ onMounted(() => {
         }
       });
     } catch (e) {
-      console.warn('Native back button registration:', e);
+      console.warn('Capacitor backButton listener error:', e);
     }
   }
 });
@@ -2096,6 +2379,7 @@ onBeforeUnmount(() => {
       :up-next-habit-info="upNextHabitInfo"
       :has-completed-day="hasCompletedDay"
       :is-ashish="isAshish"
+      :display-name="displayName"
       :travel-mode="travelMode"
       :day-type="dayType"
       :day-type-label="getDayTypeLabel(dayType)"
@@ -2457,7 +2741,6 @@ onBeforeUnmount(() => {
           :time-slot-completed="timeSlotCompleted"
           :get-current-time-block="getCurrentTimeBlock"
           :is-ashish="isAshish"
-          :travel-mode="travelMode"
           :mobile-day-completed="mobileDayCompleted"
           :total-habits="mobileDayTotalHabits"
           :mobile-day-points="mobileDayPoints"
@@ -2550,8 +2833,6 @@ onBeforeUnmount(() => {
           :total-x-p="totalXP"
           :available-wallet="availableWallet"
           :monthly-total-earned="monthlyTotalEarned"
-          :daily-average="todayPoints"
-          :target-daily-points="targetDailyPoints"
           :heatmap-data="heatmapData"
           :hovered-heatmap-day="hoveredHeatmapDay"
           :hovered-heatmap-cell="hoveredHeatmapCell"
@@ -2587,7 +2868,7 @@ onBeforeUnmount(() => {
           :active-rewards="rewards"
           :reward-ledger="rewardLedger"
           :is-redeeming="false"
-          :is-claimed-this-month="() => false"
+          :is-claimed-this-month="isRewardClaimedThisMonth"
           :can-afford-reward="r => availableWallet >= r.cost"
           @toggle-expand="() => {}"
           @start-editing="startEditingRewards"
@@ -2596,7 +2877,7 @@ onBeforeUnmount(() => {
           @restore-default-rewards="restoreDefaultRewards"
           @add-draft-reward="addDraftReward"
           @remove-draft-reward="removeDraftReward"
-          @redeem-reward="r => { rewardLedger.push({ id: Date.now(), item: r.item, cost: r.cost, claimed_at: new Date().toLocaleDateString() }); saveState(); }"
+          @redeem-reward="handleRedeemReward"
         />
       </section>
 

@@ -23,8 +23,6 @@ const props = defineProps({
   totalXP: { type: Number, default: 0 },
   availableWallet: { type: Number, default: 0 },
   monthlyTotalEarned: { type: Number, default: 0 },
-  dailyAverage: { type: Number, default: 0 },
-  targetDailyPoints: { type: Number, default: 15 },
   heatmapData: { type: Array, default: () => [] },
   hoveredHeatmapDay: { type: Number, default: null },
   hoveredHeatmapCell: { type: Object, default: null },

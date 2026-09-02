@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import {
   Gift,
   Award,
@@ -38,6 +39,18 @@ const emit = defineEmits([
   'remove-draft-reward',
   'redeem-reward',
 ]);
+
+const nextMilestoneReward = computed(() => {
+  const higherRewards = (props.activeRewards || [])
+    .filter((r) => (Number(r.cost) || 0) > props.availableWallet)
+    .sort((a, b) => (Number(a.cost) || 0) - (Number(b.cost) || 0));
+
+  if (higherRewards.length > 0) {
+    const next = higherRewards[0];
+    return `${next.item} (${next.cost} pts)`;
+  }
+  return 'All Unlocked! 👑';
+});
 </script>
 
 <template>
@@ -80,7 +93,7 @@ const emit = defineEmits([
           </div>
           <div class="reward-vault-stat">
             <span class="reward-vault-stat-label">Next Big Milestone</span>
-            <strong class="reward-vault-stat-val mono-num">Vacation (500 pts)</strong>
+            <strong class="reward-vault-stat-val mono-num">{{ nextMilestoneReward }}</strong>
           </div>
         </div>
       </div>

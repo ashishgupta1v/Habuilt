@@ -134,7 +134,12 @@ const defaultChecks = [
             :key="'chk-' + idx"
             class="sunday-check-row"
             :class="{ 'sunday-check-row--done': check.done }"
+            role="checkbox"
+            tabindex="0"
+            :aria-checked="check.done"
             @click="check.done = !check.done; handleSave()"
+            @keydown.enter="check.done = !check.done; handleSave()"
+            @keydown.space.prevent="check.done = !check.done; handleSave()"
           >
             <CheckCircle2 v-if="check.done" class="icon-sm icon-check-done" />
             <Circle v-else class="icon-sm icon-check-circle" />

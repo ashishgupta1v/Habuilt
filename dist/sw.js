@@ -205,7 +205,7 @@ self.addEventListener('push', (event) => {
     title: 'Habuilt',
     body: 'Time to check in on your habits!',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-96x96.png',
+    badge: '/icons/badge-monochrome-96.png',
     tag: 'habuilt-reminder',
     renotify: true,
     data: { url: '/' },

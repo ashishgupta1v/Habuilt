@@ -196,13 +196,15 @@ export function useDueNowNotifications({
       reg[habitId] = Date.now();
       localStorage.setItem(storageKey, JSON.stringify(reg));
 
-      // Clean up older date keys (keep only last 3 days)
+      // Clean up older date keys safely without index shifting
+      const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith('habuilt.notified_habits.') && k !== storageKey) {
-          localStorage.removeItem(k);
+          keysToRemove.push(k);
         }
       }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
     } catch (e) {
       console.warn('Error recording notification registry:', e);
     }
@@ -457,17 +459,19 @@ export function useDueNowNotifications({
       } catch { /* channel fallback */ }
     }
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
-          const { habitId, day } = event.data;
-          if (habitId && day && onCompleteHabit) {
-            markHabitNotifiedToday(habitId, Number(day));
-            onCompleteHabit(habitId, Number(day));
-            dismissDueNowNotification(habitId);
-          }
+    const handleSwMessage = (event) => {
+      if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
+        const { habitId, day } = event.data;
+        if (habitId && day && onCompleteHabit) {
+          markHabitNotifiedToday(habitId, Number(day));
+          onCompleteHabit(habitId, Number(day));
+          dismissDueNowNotification(habitId);
         }
-      });
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
     }
 
     window.addEventListener('focus', handleVisibilityOrFocus);
@@ -490,6 +494,9 @@ export function useDueNowNotifications({
     if (typeof window !== 'undefined') {
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    }
+    if ('serviceWorker' in navigator && typeof handleSwMessage === 'function') {
+      navigator.serviceWorker.removeEventListener('message', handleSwMessage);
     }
   });
 
