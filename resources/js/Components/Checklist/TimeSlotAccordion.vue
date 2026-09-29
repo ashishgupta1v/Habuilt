@@ -4,6 +4,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Circle,
+  Zap,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -13,7 +14,7 @@ const props = defineProps({
   completedCount: { type: Number, default: 0 },
 });
 
-const emit = defineEmits(['toggle-collapse']);
+const emit = defineEmits(['toggle-collapse', 'batch-complete-slot']);
 </script>
 
 <template>
@@ -38,6 +39,19 @@ const emit = defineEmits(['toggle-collapse']);
         <span class="timeline-slot-time">{{ group.meta.time }}</span>
       </div>
       <div class="timeline-slot-header__right">
+        <!-- 1-Tap Routine Batch Action Button -->
+        <button
+          v-if="completedCount < group.habits.length"
+          type="button"
+          class="timeline-slot-batch-btn"
+          @click.stop="emit('batch-complete-slot', group)"
+          :title="`Complete all ${group.habits.length - completedCount} pending activities in ${group.meta.label}`"
+          aria-label="Batch complete remaining activities"
+        >
+          <Zap class="icon-xs" />
+          <span>Batch</span>
+        </button>
+
         <span
           class="timeline-slot-count"
           :class="{ 'timeline-slot-complete-badge': completedCount === group.habits.length && group.habits.length > 0 }"

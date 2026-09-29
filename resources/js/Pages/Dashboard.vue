@@ -1,10 +1,23 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
+import {
+  loadUserMonthlyState,
+  saveUserMonthlyState,
+  loadAllUserMonthlyStates,
+  recordHabitCheckIn,
+  removeHabitCheckIn,
+  loadMonthCheckIns,
+  subscribeToHabitCheckIns,
+  initCoupleBroadcastChannel,
+  broadcastPartnerEvent,
+  silentBackfillLegacyState,
+  saveUserSettings,
+  loadUserSettings,
+} from '@/lib/supabase';
 import {
   computeLifetimeStats,
   getMonthlyHabits,
@@ -25,11 +38,24 @@ import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import HabitFormModal from '@/Components/Modals/HabitFormModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
+import SpotlightCommandModal from '@/Components/Modals/SpotlightCommandModal.vue';
+import WarriorIntelligenceCockpit from '@/Components/Intelligence/WarriorIntelligenceCockpit.vue';
+import DataBackupModal from '@/Components/Modals/DataBackupModal.vue';
+import CalendarSyncModal from '@/Components/Modals/CalendarSyncModal.vue';
+import PartnerSyncModal from '@/Components/Modals/PartnerSyncModal.vue';
+import ProtocolWizardModal from '@/Components/Modals/ProtocolWizardModal.vue';
+import ProtocolSettingsModal from '@/Components/Modals/ProtocolSettingsModal.vue';
+import UniversalPartnerPairModal from '@/Components/Modals/UniversalPartnerPairModal.vue';
+import RheumatologyClinicalAnalytics from '@/Components/Analytics/RheumatologyClinicalAnalytics.vue';
 
 // Composables & Data
+import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
+import { getPartnerConnection, pairWithInviteCode } from '@/lib/partnerPairing';
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
+import { useConfetti } from '@/Composables/useConfetti';
 import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
 import { useNativeWidget } from '@/Composables/useNativeWidget';
+import { useAppBadging } from '@/Composables/useAppBadging';
 import {
   ashishHabits,
   jyotiHabits,
@@ -47,6 +73,7 @@ import {
   getTimeSlotForHabit,
   getHabitCategory,
   getCurrentTimeBlock,
+  getSharedHabitInfo,
 } from '@/Composables/useHabitsState';
 import {
   getDayType,
@@ -197,7 +224,51 @@ const localHabits = ref([]);
 const allHistoricalHabits = ref([]);
 const pendingCells = ref({});
 
+// ── Dynamic Multi-Tenant Protocols & Universal Partner Pairing ──
+const isProtocolWizardOpen = ref(false);
+const isProtocolSettingsOpen = ref(false);
+const isUniversalPartnerPairModalOpen = ref(false);
+const activePartnerConnection = ref(null);
+
+const {
+  allProtocols,
+  activeProtocol,
+  activeProtocolId,
+  dynamicTimeSlotDefinitions: protocolTimeSlotDefinitions,
+  loadProtocols,
+  switchProtocol,
+  saveCustomProtocol,
+} = useDynamicProtocols(effectiveUserId.value, isAshish.value, isJyoti.value);
+
+const isPartnerPaired = computed(() => {
+  if (isAshish.value || isJyoti.value) return true;
+  return activePartnerConnection.value?.status === 'connected';
+});
+
+const partnerDisplayName = computed(() => {
+  if (isJyoti.value) return 'Ashish';
+  if (isAshish.value) return 'Jyoti';
+  return activePartnerConnection.value?.alias || 'Partner';
+});
+
+const activeProtocolDisplayName = computed(() => {
+  if (isAshish.value && (!activeProtocolId.value || activeProtocolId.value === 'archetype-ashish' || activeProtocolId.value === 'ashishMaster')) {
+    return 'Ashish Master Protocol';
+  }
+  if (isJyoti.value && (!activeProtocolId.value || activeProtocolId.value === 'archetype-jyoti' || activeProtocolId.value === 'jyotiMaster')) {
+    return 'Jyoti Master Protocol';
+  }
+  return activeProtocol.value?.name || 'Default Protocol';
+});
+
 const fallbackHabits = computed(() => {
+  // If activeProtocol is a custom or switched protocol other than the hardcoded baseline, use it
+  if (activeProtocolId.value && activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
+    if (activeProtocolId.value !== 'archetype-ashish' && activeProtocolId.value !== 'archetype-jyoti') {
+      return activeProtocol.value.habits;
+    }
+  }
+
   if (isJyoti.value) return jyotiHabits;
   if (isAshish.value) {
     switch (dayType.value) {
@@ -208,6 +279,9 @@ const fallbackHabits = computed(() => {
       case 'holiday':    return ashishHolidayHabits;    // Holiday: Spiritual / family / zero office work
       default:           return ashishHabits;           // Home: Full Ludhiana baseline
     }
+  }
+  if (activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
+    return activeProtocol.value.habits;
   }
   return genericStarterHabits;
 });
@@ -250,6 +324,10 @@ const habitNotesOpen = ref(null);
 const partnerViewOpen = ref(false);
 const partnerData = ref(null);
 const partnerLoading = ref(false);
+
+// Realtime subscriptions
+let realtimeCheckInsChannel = null;
+let coupleLiveChannel = null;
 
 // ── MOBILE PWA SPA 4-TAB ROUTING & DAY NAV ──
 const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
@@ -337,6 +415,187 @@ const enhancedState = ref({
 });
 
 // Deep Work Timer Composable Integration
+// Confetti & Celebration Physics Engine
+const {
+  fireDualCannons,
+  fireTierMilestone,
+  firePartnerCelebration,
+  fireFocusComplete,
+} = useConfetti();
+
+// Spotlight Command Palette State
+const isSpotlightOpen = ref(false);
+const openSpotlight = () => { isSpotlightOpen.value = true; };
+const closeSpotlight = () => { isSpotlightOpen.value = false; };
+const cockpitRef = ref(null);
+
+const handlePlayTacticalBriefingFromSpotlight = () => {
+  isSpotlightOpen.value = false;
+  activeMobileTab.value = 'today';
+  nextTick(() => {
+    if (cockpitRef.value && typeof cockpitRef.value.toggleAudioBriefing === 'function') {
+      cockpitRef.value.toggleAudioBriefing();
+    }
+    const cockpitEl = document.querySelector('.warrior-audio-briefing-card') || document.querySelector('.card--warrior-intelligence');
+    if (cockpitEl) {
+      cockpitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+};
+
+// Sticky Mini HUD — appears on desktop after scrolling past the hero
+const showStickyHud = ref(false);
+
+const hudTimeLabel = computed(() => {
+  const h = currentClock.value.getHours();
+  const m = currentClock.value.getMinutes();
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+});
+
+let _heroObserver = null;
+
+onMounted(() => {
+  // Watch hero section visibility to show/hide HUD on desktop viewports
+  nextTick(() => {
+    const heroEl = document.getElementById('overview');
+    if (heroEl && typeof IntersectionObserver !== 'undefined') {
+      _heroObserver = new IntersectionObserver(
+        ([entry]) => {
+          const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+          showStickyHud.value = isDesktop && !entry.isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      _heroObserver.observe(heroEl);
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  if (_heroObserver) _heroObserver.disconnect();
+});
+
+// Data Portability & Backup Modal State
+const isDataBackupModalOpen = ref(false);
+const openDataBackupModal = () => { isDataBackupModalOpen.value = true; };
+const closeDataBackupModal = () => { isDataBackupModalOpen.value = false; };
+
+// Biometrics & Metabolic Daily Tracking State
+const biomarkersState = ref({
+  stiffnessMin: 0,
+  energyRating: 8,
+  note: '',
+});
+const hydrationMlState = ref(0);
+
+// Milestone 4: Calendar Sync Modal State
+const isCalendarSyncModalOpen = ref(false);
+
+// Dynamic Protocol Builder & Universal Partner Pairing Open/Close Helpers
+const openProtocolWizard = () => { isProtocolWizardOpen.value = true; };
+const closeProtocolWizard = () => { isProtocolWizardOpen.value = false; };
+const openPartnerPairModal = () => { isUniversalPartnerPairModalOpen.value = true; };
+const closePartnerPairModal = () => { isUniversalPartnerPairModalOpen.value = false; };
+
+const handleActivateCustomProtocol = async (customProtocol) => {
+  if (!customProtocol) return;
+  try {
+    const saved = await saveCustomProtocol(customProtocol);
+    if (saved && Array.isArray(saved.habits) && saved.habits.length > 0) {
+      // Preserve completed days for matching habits
+      const existingCompletions = new Map();
+      (localHabits.value || []).forEach(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        if (Array.isArray(h.completed_days) && h.completed_days.length > 0) {
+          if (canon) existingCompletions.set(canon, h.completed_days);
+          existingCompletions.set(String(h.id), h.completed_days);
+        }
+      });
+
+      localHabits.value = saved.habits.map(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        const days = existingCompletions.get(canon) || existingCompletions.get(String(h.id)) || [];
+        return {
+          ...h,
+          completed_days: days,
+        };
+      });
+
+      await saveState();
+      showToast(`⚡ Protocol "${saved.name}" Activated!`);
+      fireDualCannons();
+    }
+  } catch (err) {
+    console.error('Failed to activate protocol:', err);
+    showToast('⚠️ Could not activate protocol');
+  }
+};
+
+const handleQuickSwitchProtocol = async (protoId) => {
+  if (!protoId) return;
+  try {
+    await switchProtocol(protoId);
+    const targetProto = (allProtocols.value || []).find(p => p.id === protoId || p.key === protoId);
+    if (targetProto && Array.isArray(targetProto.habits) && targetProto.habits.length > 0) {
+      const existingCompletions = new Map();
+      (localHabits.value || []).forEach(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        if (Array.isArray(h.completed_days) && h.completed_days.length > 0) {
+          if (canon) existingCompletions.set(canon, h.completed_days);
+          existingCompletions.set(String(h.id), h.completed_days);
+        }
+      });
+
+      localHabits.value = targetProto.habits.map(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        const days = existingCompletions.get(canon) || existingCompletions.get(String(h.id)) || [];
+        return {
+          ...h,
+          completed_days: days,
+        };
+      });
+
+      await saveState();
+      showToast(`⚡ Protocol "${targetProto.name}" Activated!`);
+      fireTierMilestone('full');
+    }
+  } catch (err) {
+    console.error('Failed to switch protocol:', err);
+    showToast('⚠️ Could not switch protocol');
+  }
+};
+
+const handleSaveProtocolSettings = async (newSettings) => {
+  if (!newSettings) return;
+  progressiveSettings.value = {
+    ...progressiveSettings.value,
+    ...newSettings,
+  };
+  await saveState();
+  showToast('⚡ Protocol settings & scoring tiers saved!');
+};
+
+const handlePartnerPaired = (connection) => {
+  activePartnerConnection.value = connection;
+  showToast(`🌸 Connected with ${connection.alias || 'Partner'}!`);
+  firePartnerCelebration();
+};
+
+const handlePartnerUnpaired = () => {
+  activePartnerConnection.value = null;
+  showToast('Partner connection disconnected');
+};
+
+// Milestone 4: Dynamic PWA Badging Integration
+const remainingTodayHabitsCount = computed(() => {
+  const sched = todayScheduledCount.value || 0;
+  const comp = todayCompletedCount.value || 0;
+  return Math.max(0, sched - comp);
+});
+useAppBadging({
+  remainingCount: remainingTodayHabitsCount,
+});
+
 const {
   timerState,
   timerLauncherDuration,
@@ -348,6 +607,12 @@ const {
   timerRemainingFormatted,
   timerLinkedHabit,
   timerHabitOptions,
+  soundscapeType,
+  soundscapeVolume,
+  isSoundscapePlaying,
+  setSoundscapeType,
+  updateSoundscapeVolume,
+  toggleSoundscapeManual,
   startDeepWorkTimer,
   pauseDeepWorkTimer,
   resumeDeepWorkTimer,
@@ -367,8 +632,10 @@ const {
       showToast('☕ Break completed! Ready to resume flow.');
     } else if (habitName) {
       showToast(`🎉 Focus session complete! "${habitName}" auto-logged.`);
+      fireFocusComplete();
     } else {
       showToast('🎉 Focus session complete! Great work.');
+      fireFocusComplete();
     }
   },
 });
@@ -427,8 +694,9 @@ const calculatePastWeekStickiness = () => {
   const totalDays = (currentD - startD) + 1;
   if (totalDays === 0) return '0%';
   let metDays = 0;
+  const floorThreshold = tierThresholds.value?.floor || 4;
   for (let d = startD; d <= currentD; d++) {
-    if (getDayTotal(d) >= 4) metDays++;
+    if (getDayTotal(d) >= floorThreshold) metDays++;
   }
   return `${Math.round((metDays / totalDays) * 100)}%`;
 };
@@ -465,10 +733,15 @@ const applyTheme = (isDark) => {
     document.documentElement.classList.remove('dark-mode', 'theme-dark');
     document.body.classList.remove('dark-mode', 'theme-dark');
   }
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', isDark ? '#040911' : '#f8fafc');
+  }
 };
 
 const toggleTheme = () => {
   darkMode.value = !darkMode.value;
+  saveState();
 };
 
 watch(darkMode, (newVal) => {
@@ -478,8 +751,81 @@ watch(darkMode, (newVal) => {
   }
 }, { immediate: true });
 
-onMounted(() => {
+// Distraction-Free Zen Focus Mode (Apple / Linear Grade Flow)
+const zenMode = ref(
+  typeof window !== 'undefined'
+    ? localStorage.getItem('habuilt.zen_mode') === 'true'
+    : false
+);
+
+const toggleZenMode = () => {
+  zenMode.value = !zenMode.value;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt.zen_mode', zenMode.value ? 'true' : 'false');
+  }
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(zenMode.value ? [20, 40, 20] : 15);
+  }
+  showToast(zenMode.value ? '🧘 Zen Focus Mode Activated: Distraction-free flow' : '✨ Zen Focus Mode Deactivated');
+};
+
+const handleZenKeyDown = (e) => {
+  // Only trigger on 'z' or 'Z' without ctrl/meta/alt
+  if (e.key && e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const activeEl = document.activeElement;
+    if (activeEl && (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) || activeEl.isContentEditable)) {
+      return;
+    }
+    if (isSpotlightOpen.value) return;
+
+    e.preventDefault();
+    toggleZenMode();
+  }
+};
+
+watch(zenMode, (newVal) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt.zen_mode', newVal ? 'true' : 'false');
+  }
+});
+
+onMounted(async () => {
   applyTheme(darkMode.value);
+  await loadProtocols();
+
+  // Load partner connection
+  try {
+    const conn = await getPartnerConnection(effectiveUserId.value);
+    if (conn) activePartnerConnection.value = conn;
+  } catch (e) {
+    console.warn('[Dashboard] partner init error:', e);
+  }
+
+  // Handle instant pairing via URL hash (e.g. #pair=HAB-8942)
+  if (typeof window !== 'undefined' && window.location.hash.startsWith('#pair=')) {
+    const rawPairCode = window.location.hash.replace('#pair=', '').trim();
+    if (rawPairCode) {
+      try {
+        const conn = await pairWithInviteCode(effectiveUserId.value, rawPairCode);
+        activePartnerConnection.value = conn;
+        showToast(`❤️ Partner connection established via invite link (${rawPairCode})!`);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch (err) {
+        showToast(err.message || 'Could not pair via link');
+      }
+    }
+  }
+
+  // If first-time user / guest, trigger onboarding wizard
+  if (!isAshish.value && !isJyoti.value && (!localHabits.value || localHabits.value.length === 0)) {
+    const onboarded = localStorage.getItem(`habuilt_onboarded_${effectiveUserId.value}`);
+    if (!onboarded) {
+      setTimeout(() => {
+        isProtocolWizardOpen.value = true;
+        localStorage.setItem(`habuilt_onboarded_${effectiveUserId.value}`, 'true');
+      }, 1000);
+    }
+  }
 });
 
 const weeklyReviewExpanded = ref(false);
@@ -536,8 +882,45 @@ const isHabitScheduledForDay = (habit, dayNum) => {
 // badges (top bar, bottom nav, share card) should always divide by, not the full master list.
 const todayScheduledHabits = computed(() => visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay)));
 const todayScheduledCount = computed(() => todayScheduledHabits.value.length);
+const todayPossibleDailyPoints = computed(() => {
+  const sum = (todayScheduledHabits.value || []).reduce((acc, h) => acc + (Number(h.points) || 1), 0);
+  return sum > 0 ? sum : 15;
+});
 
-const scheduleFilterMode = ref('scheduled'); // 'scheduled' (active for this day) | 'all' (all 52 master habits)
+// Dynamic Percentage-Based Tiers Engine (Floor: 25%, Half: 50%, Full: 100% of daily scheduled points, or custom overrides)
+const tierThresholds = computed(() => {
+  const target = todayPossibleDailyPoints.value || 15;
+  const custom = progressiveSettings.value?.customTiers || {};
+
+  let floorPts, halfPts, fullPts;
+  if (custom.isFixed) {
+    floorPts = Math.max(1, Number(custom.floor) || 4);
+    halfPts = Math.max(floorPts + 1, Number(custom.half) || 8);
+    fullPts = Math.max(halfPts + 1, Number(custom.full) || 15);
+  } else {
+    const fPct = custom.floorPct !== undefined ? Number(custom.floorPct) : 25;
+    const hPct = custom.halfPct !== undefined ? Number(custom.halfPct) : 50;
+    const uPct = custom.fullPct !== undefined ? Number(custom.fullPct) : 100;
+    floorPts = custom.floor !== undefined && custom.floor > 0
+      ? Number(custom.floor)
+      : Math.max(1, Math.round(target * (fPct / 100)));
+    halfPts = custom.half !== undefined && custom.half > 0
+      ? Number(custom.half)
+      : Math.max(floorPts + 1, Math.round(target * (hPct / 100)));
+    fullPts = custom.full !== undefined && custom.full > 0
+      ? Number(custom.full)
+      : Math.max(halfPts + 1, Math.round(target * (uPct / 100)));
+  }
+
+  return {
+    floor: floorPts,
+    half: halfPts,
+    full: fullPts,
+    target: target
+  };
+});
+
+const scheduleFilterMode = ref('scheduled'); // 'scheduled' (active for this day) | 'all' (all master habits)
 
 // Mobile Day
 const mobileDay = computed(() => Math.min(Math.max(1, mobileSelectedDay.value), props.monthDays));
@@ -572,12 +955,35 @@ const filteredHabits = computed(() => {
   return source.filter(h => getTimeSlotForHabit(h.id, h) === activeTimeFilter.value);
 });
 
+const isMobileDayWeekend = computed(() => {
+  const dow = getDayOfWeek(mobileDay.value);
+  return dow === 0 || dow === 6;
+});
+
+const dynamicTimeSlotDefinitions = computed(() => {
+  const customSlots = progressiveSettings.value?.customTimeSlots;
+  const baseSlots = (customSlots && Object.keys(customSlots).length > 0)
+    ? customSlots
+    : (protocolTimeSlotDefinitions.value || timeSlotDefinitions);
+
+  if (isMobileDayWeekend.value && baseSlots.work) {
+    return {
+      ...baseSlots,
+      work: { label: 'Weekend Focus & Family', time: baseSlots.work?.time || '08:30–18:30', emoji: '✨', color: '#D4B36A' },
+    };
+  }
+  return baseSlots;
+});
+
 const timeSlotCounts = computed(() => {
   const source = activeHabitsForMobileDay.value;
-  const counts = { all: source.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const counts = { all: source.length };
+  Object.keys(defs).forEach(k => { counts[k] = 0; });
   source.forEach(h => {
     const slot = getTimeSlotForHabit(h.id, h);
-    if (counts[slot] !== undefined) counts[slot]++;
+    if (counts[slot] === undefined) counts[slot] = 0;
+    counts[slot]++;
   });
   return counts;
 });
@@ -585,57 +991,44 @@ const timeSlotCounts = computed(() => {
 const timeSlotCompleted = computed(() => {
   const day = mobileDay.value;
   const source = activeHabitsForMobileDay.value;
-  const comp = { all: 0, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const comp = { all: 0 };
+  Object.keys(defs).forEach(k => { comp[k] = 0; });
   source.forEach(h => {
     if (hasCompletedDay(h, day)) {
       comp.all++;
       const slot = getTimeSlotForHabit(h.id, h);
-      if (comp[slot] !== undefined) comp[slot]++;
+      if (comp[slot] === undefined) comp[slot] = 0;
+      comp[slot]++;
     }
   });
   return comp;
 });
 
-const isMobileDayWeekend = computed(() => {
-  const dow = getDayOfWeek(mobileDay.value);
-  return dow === 0 || dow === 6;
-});
-
-const dynamicTimeSlotDefinitions = computed(() => {
-  if (isMobileDayWeekend.value) {
-    return {
-      ...timeSlotDefinitions,
-      work: { label: 'Weekend Focus & Family', time: '08:30–18:30', emoji: '✨', color: '#D4B36A' },
-    };
-  }
-  return timeSlotDefinitions;
-});
-
 const timelineGroupedHabits = computed(() => {
   const source = filteredHabits.value;
-  const groups = [
-    { slot: 'morning', meta: dynamicTimeSlotDefinitions.value.morning, habits: [] },
-    { slot: 'work',    meta: dynamicTimeSlotDefinitions.value.work,    habits: [] },
-    { slot: 'evening', meta: dynamicTimeSlotDefinitions.value.evening, habits: [] },
-    { slot: 'anytime', meta: dynamicTimeSlotDefinitions.value.anytime, habits: [] },
-    { slot: 'weekly',  meta: dynamicTimeSlotDefinitions.value.weekly,  habits: [] },
-  ];
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const slotKeys = Object.keys(defs);
+  const groups = slotKeys.map(key => ({
+    slot: key,
+    meta: defs[key],
+    habits: []
+  }));
   const groupMap = Object.fromEntries(groups.map(g => [g.slot, g.habits]));
   source.forEach(h => {
     const slot = getTimeSlotForHabit(h.id, h);
     if (groupMap[slot]) groupMap[slot].push(h);
-    else groupMap.anytime.push(h);
+    else if (groupMap.anytime) groupMap.anytime.push(h);
+    else if (groups.length > 0) groups[0].habits.push(h);
   });
 
   // Strict chronological sorting inside timed routine slots
   groups.forEach(g => {
-    if (g.slot === 'morning' || g.slot === 'work' || g.slot === 'evening') {
-      g.habits.sort((a, b) => {
-        const timeA = a.startTime || habitTimeSchedule[a.id]?.start || (a.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
-        const timeB = b.startTime || habitTimeSchedule[b.id]?.start || (b.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
-        return timeA.localeCompare(timeB);
-      });
-    }
+    g.habits.sort((a, b) => {
+      const timeA = a.startTime || habitTimeSchedule[a.id]?.start || (a.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
+      const timeB = b.startTime || habitTimeSchedule[b.id]?.start || (b.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
+      return timeA.localeCompare(timeB);
+    });
   });
 
   return groups.filter(g => g.habits.length > 0);
@@ -1018,11 +1411,33 @@ const getDayTotal = (day) => {
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 
+// ── Celebration Milestones Watcher (Dynamic Floor, Half, Full) ──
+const celebratedMilestones = ref(new Set());
+watch(todayPoints, (newPts, oldPts) => {
+  if (props.isCurrentMonth && newPts > (oldPts || 0)) {
+    const t = tierThresholds.value;
+    if (newPts >= t.full && !celebratedMilestones.value.has('full')) {
+      celebratedMilestones.value.add('full');
+      celebratedMilestones.value.add('half');
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('full');
+    } else if (newPts >= t.half && !celebratedMilestones.value.has('half')) {
+      celebratedMilestones.value.add('half');
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('half');
+    } else if (newPts >= t.floor && !celebratedMilestones.value.has('floor')) {
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('floor');
+    }
+  }
+});
+
 const autoProtocolTier = computed(() => {
   const pts = todayPoints.value;
-  if (pts >= 15) return { title: '🏆 Full Target', tier: 'Full' };
-  if (pts >= 8)  return { title: '⚡ Half Hit', tier: 'Half' };
-  if (pts >= 4)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
+  const t = tierThresholds.value;
+  if (pts >= t.full) return { title: '🏆 Full Target', tier: 'Full' };
+  if (pts >= t.half)  return { title: '⚡ Half Hit', tier: 'Half' };
+  if (pts >= t.floor)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
   return { title: '🌱 Building Momentum', tier: 'Base' };
 });
 
@@ -1069,11 +1484,12 @@ const consistencyScore = computed(() => {
   const daysEvaluated = props.isCurrentMonth ? props.currentDay : props.monthDays;
   if (daysEvaluated === 0) return 0;
   let totalScore = 0;
+  const t = tierThresholds.value;
   for (let d = 1; d <= daysEvaluated; d++) {
     const pts = getDayTotal(d);
-    if (pts >= 15) totalScore += 100;      // Full Protocol
-    else if (pts >= 8) totalScore += 75;   // Half Protocol
-    else if (pts >= 4) totalScore += 50;   // Floor Protocol (protected)
+    if (pts >= t.full) totalScore += 100;      // Full Protocol
+    else if (pts >= t.half) totalScore += 75;   // Half Protocol
+    else if (pts >= t.floor) totalScore += 50;  // Floor Protocol (protected)
     else if (pts > 0) totalScore += 25;
   }
   return Math.min(100, Math.round(totalScore / daysEvaluated));
@@ -1254,6 +1670,43 @@ const toggleHabitForDay = (habit, day) => {
   saveState();
   syncDueNowNotification?.();
 
+  // Normalized Real-Time Ledger Persistence & Partner Broadcast
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    if (nextDone) {
+      recordHabitCheckIn({
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        habitName: habit.name,
+        monthKey: monthScope.value,
+        day: numDay,
+        completedOn: checkInDate,
+        points: habit.points || 1,
+        canonicalKey: canonKey,
+        source: 'web',
+      });
+
+      const sharedInfo = getSharedHabitInfo(habit.id);
+      if (sharedInfo) {
+        broadcastPartnerEvent({
+          type: 'shared_habit_done',
+          partner: isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value),
+          habitId: habit.id,
+          habitName: habit.name,
+          points: habit.points || 1,
+          day: numDay,
+        });
+      }
+    } else {
+      removeHabitCheckIn({
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        monthKey: monthScope.value,
+        day: numDay,
+      });
+    }
+  }
+
   // Optional non-blocking Laravel Backend Sync when running in Inertia environment
   if (typeof window !== 'undefined' && window.__inertia_app && habit.id) {
     const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
@@ -1351,10 +1804,125 @@ const markHabitCompletedDirectly = (habitId, day) => {
   saveState();
   syncDueNowNotification?.();
 
+  // Normalized Real-Time Ledger Persistence
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    recordHabitCheckIn({
+      userId: effectiveUserId.value,
+      habitId: habitId,
+      habitName: targetHabit ? targetHabit.name : '',
+      monthKey: monthScope.value,
+      day: numDay,
+      completedOn: checkInDate,
+      points: targetHabit ? (Number(targetHabit.points) || 1) : 1,
+      canonicalKey: canonKey,
+      source: 'notification_or_widget',
+    });
+  }
+
   const habitName = targetHabit ? targetHabit.name : 'Habit';
   showToast(`✅ "${habitName}" marked done!`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([15, 30, 15]);
+  }
+};
+
+// ── Milestone 3: 1-Tap Batch Routine Quick Action ──
+const handleBatchCompleteSlot = (group) => {
+  if (!group || !group.habits || group.habits.length === 0) return;
+  const targetDay = Number(mobileDay.value || props.currentDay || new Date().getDate());
+  const pendingInSlot = group.habits.filter(h => !hasCompletedDay(h, targetDay));
+
+  if (pendingInSlot.length === 0) {
+    showToast(`⚡ All habits in ${group.label} are already completed!`);
+    return;
+  }
+
+  // Iterate and complete all pending habits in this slot
+  pendingInSlot.forEach(habit => {
+    toggleHabitForDay(habit, targetDay);
+  });
+
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([40, 80, 40, 80]);
+  }
+  const totalPts = pendingInSlot.reduce((s, h) => s + (Number(h.points) || 1), 0);
+  showToast(`⚡ Blitz! Completed all ${pendingInSlot.length} habits in ${group.label}! (+${totalPts} pts) 🚀`, 4000);
+};
+
+// ── Milestone 3: Live Partner High-Five Broadcaster ──
+const sendWarriorHighFive = async () => {
+  const sender = isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value);
+  await broadcastPartnerEvent({
+    type: 'warrior_high_five',
+    partner: sender,
+  });
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([30, 60, 30]);
+  }
+  showToast(`🙌 High-Five broadcast to your partner live! Keep crushing it! 🔥`);
+};
+
+// ── Milestone 3: Biometric & Metabolic Journaling Handlers ──
+const handleUpdateBiomarkers = (updatedBio) => {
+  biomarkersState.value = { ...biomarkersState.value, ...updatedBio };
+  debouncedSaveState();
+  showToast('🧬 Biometrics & morning stiffness updated!');
+};
+
+const handleUpdateHydration = (amountMl) => {
+  hydrationMlState.value = amountMl;
+  debouncedSaveState();
+};
+
+// ── Milestone 3: Data Portability & Backup Restore Handler ──
+const handleRestoreData = (restoredData) => {
+  if (!restoredData) return;
+  try {
+    if (restoredData.habits && Array.isArray(restoredData.habits)) {
+      localHabits.value = restoredData.habits;
+    }
+    if (restoredData.historicalHabits && Array.isArray(restoredData.historicalHabits)) {
+      allHistoricalHabits.value = restoredData.historicalHabits;
+    }
+    if (restoredData.biometrics) {
+      biomarkersState.value = {
+        stiffnessMin: restoredData.biometrics.stiffnessMin || 0,
+        energyRating: restoredData.biometrics.energyRating || 8,
+        note: restoredData.biometrics.note || '',
+      };
+      if (restoredData.biometrics.hydrationMl !== undefined) {
+        hydrationMlState.value = restoredData.biometrics.hydrationMl;
+      }
+    }
+    if (restoredData.weeklyReview) {
+      weeklyReview.value = { ...weeklyReview.value, ...restoredData.weeklyReview };
+    }
+    saveState();
+    calculateHistoricalTotals();
+    showToast('✨ Backup restored and synced successfully!');
+  } catch (err) {
+    console.error('Failed to apply restored data:', err);
+    showToast('⚠️ Error applying restored backup data');
+  }
+};
+
+// ── Milestone 4: Shared Partner Emote Broadcaster ──
+const handleSendPartnerEmote = async (emote) => {
+  if (!emote) return;
+  const sender = isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value);
+  await broadcastPartnerEvent({
+    type: 'partner_emote',
+    partner: sender,
+    emoteId: emote.id,
+    label: emote.label,
+    message: emote.message,
+  });
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([25, 50, 25]);
   }
 };
 
@@ -1649,7 +2217,20 @@ const applyLoadedState = (data, isRemote = false) => {
   }
   if (data.dayType !== undefined) dayType.value = data.dayType;
   else if (data.travelMode !== undefined) dayType.value = data.travelMode ? 'office-mon' : 'home'; // Migrate legacy
-  if (data.darkMode !== undefined) darkMode.value = data.darkMode;
+  const explicitTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('habuilt_theme') : null;
+  if (explicitTheme) {
+    darkMode.value = explicitTheme === 'dark';
+  } else if (data.darkMode !== undefined) {
+    darkMode.value = data.darkMode;
+  }
+  if (data.biomarkers && typeof data.biomarkers === 'object') {
+    biomarkersState.value = { ...biomarkersState.value, ...data.biomarkers };
+  }
+  if (data.hydration_ml !== undefined) {
+    hydrationMlState.value = Number(data.hydration_ml) || 0;
+  } else if (data.hydrationMl !== undefined) {
+    hydrationMlState.value = Number(data.hydrationMl) || 0;
+  }
 
   try {
     const payload = {
@@ -1662,6 +2243,8 @@ const applyLoadedState = (data, isRemote = false) => {
       weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
@@ -1687,6 +2270,8 @@ const debouncedSaveState = (delayMs = 400) => {
       weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
@@ -1710,12 +2295,15 @@ const saveState = async () => {
       weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
     pushToNativeWidget();
     if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
       await saveUserMonthlyState(effectiveUserId.value, monthScope.value, payload);
+      await saveUserSettings(effectiveUserId.value, payload);
     }
   } catch (err) {
     console.warn('Failed to save dashboard state:', err);
@@ -1863,11 +2451,51 @@ const syncCloudState = async (force = false) => {
 
   try {
     isSyncingCloud.value = true;
-    const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
-    if (remoteData) {
-      applyLoadedState(remoteData, true);
-      lastSyncTimestamp = Date.now();
+
+    // 1. First, attempt to load from normalized habit_check_ins ledger
+    const ledgerRows = await loadMonthCheckIns(effectiveUserId.value, monthScope.value);
+    if (Array.isArray(ledgerRows) && ledgerRows.length > 0) {
+      const habitDayMap = new Map();
+      ledgerRows.forEach(row => {
+        const hid = String(row.habit_id);
+        if (!habitDayMap.has(hid)) habitDayMap.set(hid, new Set());
+        habitDayMap.get(hid).add(Number(row.day));
+      });
+
+      localHabits.value = (localHabits.value || []).map(h => {
+        const hid = String(h.id);
+        const canonKey = getCanonicalHabitKey(h.name);
+        const set = habitDayMap.get(hid) || new Set();
+        return {
+          ...h,
+          completed_days: Array.from(set).sort((a, b) => a - b),
+        };
+      });
+    } else {
+      // Fallback to legacy monthly state document
+      const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
+      if (remoteData) {
+        applyLoadedState(remoteData, true);
+        // Silently backfill to the new normalized ledger
+        silentBackfillLegacyState(effectiveUserId.value, monthScope.value, localHabits.value);
+      }
     }
+
+    // 2. Load user settings & reviews
+    const settingsData = await loadUserSettings(effectiveUserId.value);
+    if (settingsData) {
+      if (settingsData.day_type) dayType.value = settingsData.day_type;
+      if (settingsData.dark_mode !== undefined) darkMode.value = settingsData.dark_mode;
+      if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
+      if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
+      if (Array.isArray(settingsData.reward_ledger)) rewardLedger.value = settingsData.reward_ledger;
+      if (settingsData.weekly_reviews) weeklyReview.value = { ...weeklyReview.value, ...settingsData.weekly_reviews };
+      if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
+      if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
+      if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
+    }
+
+    lastSyncTimestamp = Date.now();
     await calculateHistoricalTotals();
   } catch (err) {
     console.warn('Cloud sync on open failed:', err);
@@ -2214,6 +2842,7 @@ onMounted(() => {
   window.addEventListener('focus', handleAppResume);
   window.addEventListener('pageshow', handleAppResume);
   window.addEventListener('online', () => syncCloudState(true));
+  window.addEventListener('keydown', handleZenKeyDown);
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // ── Desktop PWA Install Prompt Capture (Chrome / Edge / Windows) ──
@@ -2228,12 +2857,103 @@ onMounted(() => {
     showToast('🎉 Habuilt Desktop App ready!');
   });
 
+  // ── Realtime Multi-Device Check-In Subscription ──
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    realtimeCheckInsChannel = subscribeToHabitCheckIns(effectiveUserId.value, ({ eventType, new: newRec, old: oldRec }) => {
+      if (eventType === 'INSERT' && newRec && newRec.month_key === monthScope.value) {
+        const targetHabitId = String(newRec.habit_id);
+        const targetDay = Number(newRec.day);
+        let updated = false;
+        localHabits.value = (localHabits.value || []).map(h => {
+          if (String(h.id) === targetHabitId) {
+            const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+            if (!cds.includes(targetDay)) {
+              updated = true;
+              return { ...h, completed_days: [...cds, targetDay].sort((a, b) => a - b) };
+            }
+          }
+          return h;
+        });
+        if (updated) {
+          calculateHistoricalTotals();
+        }
+      } else if (eventType === 'DELETE' && oldRec && oldRec.month_key === monthScope.value) {
+        const targetHabitId = String(oldRec.habit_id);
+        const targetDay = Number(oldRec.day);
+        let updated = false;
+        localHabits.value = (localHabits.value || []).map(h => {
+          if (String(h.id) === targetHabitId) {
+            const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+            if (cds.includes(targetDay)) {
+              updated = true;
+              return { ...h, completed_days: cds.filter(d => d !== targetDay) };
+            }
+          }
+          return h;
+        });
+        if (updated) {
+          calculateHistoricalTotals();
+        }
+      }
+    });
+
+    // ── Realtime Couple Broadcast Listener ──
+    coupleLiveChannel = initCoupleBroadcastChannel((msg) => {
+      if (msg && msg.type === 'shared_habit_done') {
+        const sender = msg.partner || 'Partner';
+        const currentIsAshish = isAshish.value;
+        const currentIsJyoti = isJyoti.value;
+        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+          showToast(`🌸 ${sender} completed "${msg.habitName}"! (+${msg.points} pts) ✨`, 4500);
+          firePartnerCelebration();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([25, 50, 25]);
+          }
+        }
+      } else if (msg && msg.type === 'warrior_high_five') {
+        const sender = msg.partner || 'Partner';
+        const currentIsAshish = isAshish.value;
+        const currentIsJyoti = isJyoti.value;
+        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+          showToast(`🙌 ${sender} just sent you a Warrior High-Five! Keep conquering! ⚡`, 5000);
+          fireDualCannons();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([50, 100, 50, 100]);
+          }
+        }
+      } else if (msg && msg.type === 'partner_emote') {
+        const sender = msg.partner || 'Partner';
+        const currentIsAshish = isAshish.value;
+        const currentIsJyoti = isJyoti.value;
+        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+          showToast(`${msg.label || '💌'} ${sender} ${msg.message || 'sent you encouragement!'}`, 5500);
+          fireDualCannons();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([35, 70, 35, 70]);
+          }
+        }
+      }
+    });
+  }
+
   // ── Native Android Hardware / Gesture Back Button Handler ──
   if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
     let lastBackPressTime = 0;
     try {
       App.addListener('backButton', () => {
         // 1. Close any open modal dialogs or drawers
+        if (isSpotlightOpen.value) {
+          isSpotlightOpen.value = false;
+          return;
+        }
+        if (isDataBackupModalOpen.value) {
+          isDataBackupModalOpen.value = false;
+          return;
+        }
+        if (isCalendarSyncModalOpen.value) {
+          isCalendarSyncModalOpen.value = false;
+          return;
+        }
         if (isHabitFormModalOpen.value) {
           closeHabitFormModal();
           return;
@@ -2316,9 +3036,16 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (clockInterval) clearInterval(clockInterval);
   if (cloudSyncInterval) clearInterval(cloudSyncInterval);
+  if (realtimeCheckInsChannel) {
+    try { realtimeCheckInsChannel.unsubscribe(); } catch {}
+  }
+  if (coupleLiveChannel) {
+    try { coupleLiveChannel.unsubscribe(); } catch {}
+  }
   window.removeEventListener('popstate', handlePopState);
   window.removeEventListener('focus', handleAppResume);
   window.removeEventListener('pageshow', handleAppResume);
+  window.removeEventListener('keydown', handleZenKeyDown);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
@@ -2384,19 +3111,50 @@ onBeforeUnmount(() => {
       :day-type="dayType"
       :day-type-label="getDayTypeLabel(dayType)"
       :dark-mode="darkMode"
+      :zen-mode="zenMode"
       :is-syncing="isSyncingCloud"
       :notifications-supported="notificationsSupported"
       :due-now-notifications-enabled="dueNowNotificationsEnabled"
+      :tier-thresholds="tierThresholds"
       @toggle-up-next="toggleHabitForDay"
       @toggle-theme="toggleTheme"
+      @toggle-zen="toggleZenMode"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
       @toggle-notifications="handleToggleDueNowNotifications"
+      @open-spotlight="openSpotlight"
+      @open-calendar-sync="isCalendarSyncModalOpen = true"
+      @open-partner-sync="partnerViewOpen = true"
+      @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+      @open-protocol-wizard="isProtocolWizardOpen = true"
     />
 
+    <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
+    <div
+      class="sticky-hud"
+      :class="{ 'sticky-hud--hidden': !showStickyHud }"
+      aria-hidden="true"
+    >
+      <span class="sticky-hud__chip sticky-hud__chip--pts">
+        ⚡ {{ todayPoints }}/{{ todayPossibleDailyPoints }} pts
+      </span>
+      <span class="sticky-hud__chip sticky-hud__chip--streak">
+        🔥 {{ systemStreak?.current || 0 }}d
+      </span>
+      <span class="sticky-hud__chip sticky-hud__chip--time">
+        🕐 {{ hudTimeLabel }}
+      </span>
+      <span v-if="zenMode" class="sticky-hud__chip" style="color:#d4af37; font-weight:700;">
+        🧘 ZEN FLOW
+      </span>
+      <span v-if="upNextHabitInfo && upNextHabitInfo.habit" class="sticky-hud__chip" style="color:#a78bfa; margin-left:auto;">
+        ▶ {{ upNextHabitInfo.habit.name }}
+      </span>
+    </div>
+
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
-    <div class="dashboard-flow" :class="{ 'dark-mode': darkMode }">
+    <div class="dashboard-flow" :class="{ 'dark-mode': darkMode, 'dashboard-flow--zen': zenMode }">
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
         class="card card--hero mobile-tab-hero"
@@ -2406,6 +3164,10 @@ onBeforeUnmount(() => {
           :is-jyoti="isJyoti"
           :is-ashish="isAshish"
           :display-name="displayName"
+          :active-protocol-name="activeProtocolDisplayName"
+          :all-protocols="allProtocols"
+          :active-protocol-id="activeProtocolId"
+          :is-partner-paired="isPartnerPaired"
           :level-data="levelData"
           :level-title="levelTitle"
           :total-x-p="totalXP"
@@ -2418,6 +3180,7 @@ onBeforeUnmount(() => {
           :month-label="monthLabel"
           :year="props.year"
           :dark-mode="darkMode"
+          :zen-mode="zenMode"
           :active-tab="activeMobileTab"
           :timer-running="timerState && timerState.running"
           :notifications-enabled="dueNowNotificationsEnabled"
@@ -2426,7 +3189,15 @@ onBeforeUnmount(() => {
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
           @toggle-theme="toggleTheme"
+          @toggle-zen="toggleZenMode"
           @open-install-modal="isAppInstallModalOpen = true"
+          @open-spotlight="openSpotlight"
+          @open-calendar-sync="isCalendarSyncModalOpen = true"
+          @open-partner-sync="partnerViewOpen = true"
+          @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+          @open-protocol-wizard="isProtocolWizardOpen = true"
+          @open-protocol-settings="isProtocolSettingsOpen = true"
+          @switch-protocol="handleQuickSwitchProtocol"
         />
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
@@ -2531,7 +3302,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="hero-protocol-card__score-chip">
                   <span class="hero-protocol-card__current mono-num">{{ todayPoints }}</span>
-                  <span class="hero-protocol-card__target mono-num">/ 15 pts</span>
+                  <span class="hero-protocol-card__target mono-num">/ {{ tierThresholds.target }} pts</span>
                 </div>
               </div>
 
@@ -2539,7 +3310,7 @@ onBeforeUnmount(() => {
               <div class="hero-milestone-gauge">
                 <div
                   class="hero-milestone-gauge__fill"
-                  :style="{ width: `${Math.min(100, Math.round((todayPoints / 15) * 100))}%` }"
+                  :style="{ width: `${Math.min(100, Math.round((todayPoints / tierThresholds.target) * 100))}%` }"
                 ></div>
               </div>
 
@@ -2547,43 +3318,43 @@ onBeforeUnmount(() => {
               <div class="hero-protocol-tiers-grid">
                 <div
                   class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 4 }"
-                  :title="todayPoints >= 4 ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${4 - todayPoints} more pts for Floor`"
+                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.floor }"
+                  :title="todayPoints >= tierThresholds.floor ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${tierThresholds.floor - todayPoints} more pts for Floor`"
                 >
                   <div class="hero-tier-card__head">
                     <Shield class="icon-xs hero-tier-card__icon" />
                     <span class="hero-tier-card__title">Floor</span>
                   </div>
                   <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 4 ? '✓ Safe' : `${todayPoints}/4p` }}
+                    {{ todayPoints >= tierThresholds.floor ? '✓ Safe' : `${todayPoints}/${tierThresholds.floor}p` }}
                   </div>
                 </div>
 
                 <div
                   class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 8 }"
-                  :title="todayPoints >= 8 ? 'Half Protocol Achieved (Solid Execution)' : `Need ${8 - todayPoints} more pts for Half`"
+                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.half }"
+                  :title="todayPoints >= tierThresholds.half ? 'Half Protocol Achieved (Solid Execution)' : `Need ${tierThresholds.half - todayPoints} more pts for Half`"
                 >
                   <div class="hero-tier-card__head">
                     <Zap class="icon-xs hero-tier-card__icon" />
                     <span class="hero-tier-card__title">Half</span>
                   </div>
                   <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 8 ? '✓ Hit' : `${todayPoints}/8p` }}
+                    {{ todayPoints >= tierThresholds.half ? '✓ Hit' : `${todayPoints}/${tierThresholds.half}p` }}
                   </div>
                 </div>
 
                 <div
                   class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 15 }"
-                  :title="todayPoints >= 15 ? 'Full Target Achieved (Elite Performance)' : `Need ${15 - todayPoints} more pts for Full`"
+                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.full }"
+                  :title="todayPoints >= tierThresholds.full ? 'Full Target Achieved (Elite Performance)' : `Need ${tierThresholds.full - todayPoints} more pts for Full`"
                 >
                   <div class="hero-tier-card__head">
                     <Trophy class="icon-xs hero-tier-card__icon" />
                     <span class="hero-tier-card__title">Full</span>
                   </div>
                   <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 15 ? '👑 Peak' : `${todayPoints}/15p` }}
+                    {{ todayPoints >= tierThresholds.full ? '👑 Peak' : `${todayPoints}/${tierThresholds.full}p` }}
                   </div>
                 </div>
               </div>
@@ -2662,6 +3433,34 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
+      <!-- ── SECTION: WARRIOR INTELLIGENCE COCKPIT (Circadian Battle Plan, Keystone Analysis & Biometrics) ── -->
+      <WarriorIntelligenceCockpit
+        ref="cockpitRef"
+        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :current-day="props.currentDay"
+        :today-points="todayPoints"
+        :today-completed-count="todayCompletedCount"
+        :today-scheduled-count="todayScheduledCount"
+        :today-habits="todayScheduledHabits"
+        :all-habits="localHabits"
+        :system-streak="systemStreak"
+        :performance-grade="performanceGrade"
+        :has-completed-day="hasCompletedDay"
+        :biomarkers="biomarkersState"
+        :hydration-ml="hydrationMlState"
+        :tier-thresholds="tierThresholds"
+        @send-high-five="sendWarriorHighFive"
+        @update-biomarkers="handleUpdateBiomarkers"
+        @update-hydration="handleUpdateHydration"
+        @open-data-backup="isDataBackupModalOpen = true"
+        @toast="msg => showToast(msg)"
+      />
+
       <!-- ── SECTION: DEDICATED DEEP WORK FOCUS STATION (Focus Tab on Mobile) ── -->
       <DeepWorkStation
         v-if="activeMobileTab === 'focus'"
@@ -2677,10 +3476,16 @@ onBeforeUnmount(() => {
         :timer-habit-options="timerHabitOptions"
         :current-day="props.currentDay"
         :has-completed-day="hasCompletedDay"
+        :soundscape-type="soundscapeType"
+        :soundscape-volume="soundscapeVolume"
+        :is-soundscape-playing="isSoundscapePlaying"
         @update:custom-timer-min="val => customTimerMin = val"
         @update:timer-launcher-duration="val => timerLauncherDuration = val"
         @update:timer-launcher-habit-id="val => timerLauncherHabitId = val"
         @update:timer-sound-enabled="val => timerSoundEnabled = val"
+        @set-soundscape-type="setSoundscapeType"
+        @update-soundscape-volume="updateSoundscapeVolume"
+        @toggle-soundscape-manual="toggleSoundscapeManual"
         @start-timer="startDeepWorkTimer"
         @pause-timer="pauseDeepWorkTimer"
         @resume-timer="resumeDeepWorkTimer"
@@ -2728,6 +3533,19 @@ onBeforeUnmount(() => {
           @save="saveHabits"
         />
 
+        <!-- Zen Focus Mode Active Notice & Fast Exit Bar -->
+        <div v-if="zenMode" class="dashboard-flow--zen-banner">
+          <span>🧘 <strong>Zen Flow Mode Active</strong> — Secondary executive cards hidden. Focused on today's execution.</span>
+          <button
+            type="button"
+            class="dashboard-flow--zen-banner__btn"
+            @click="toggleZenMode"
+            title="Exit Zen Mode (Press Z)"
+          >
+            Exit Zen Mode (Z)
+          </button>
+        </div>
+
         <!-- Mobile Daily Checklist View -->
         <TodayChecklist
           :mobile-day="mobileDay"
@@ -2739,6 +3557,7 @@ onBeforeUnmount(() => {
           :active-time-filter="activeTimeFilter"
           :time-slot-counts="timeSlotCounts"
           :time-slot-completed="timeSlotCompleted"
+          :time-slot-definitions="dynamicTimeSlotDefinitions"
           :get-current-time-block="getCurrentTimeBlock"
           :is-ashish="isAshish"
           :mobile-day-completed="mobileDayCompleted"
@@ -2782,6 +3601,8 @@ onBeforeUnmount(() => {
           @set-note="setHabitNote"
           @add-habit="openAddHabitModal"
           @edit-habit="openEditHabitModal"
+          @batch-complete-slot="handleBatchCompleteSlot"
+          @open-protocol-wizard="isProtocolWizardOpen = true"
         />
 
         <!-- Desktop Month Grid Table -->
@@ -2840,6 +3661,19 @@ onBeforeUnmount(() => {
           :milestone-badges="milestoneBadges"
           @update:hovered-heatmap-day="val => hoveredHeatmapDay = val"
           @select-heatmap-day="day => mobileSelectedDay = day"
+        />
+
+        <!-- Rheumatology & Autoimmune Clinical Longitudinal Analytics -->
+        <RheumatologyClinicalAnalytics
+          :biomarkers="biomarkersState"
+          :hydration-ml="hydrationMlState"
+          :month-scope="monthScope"
+          :month="props.month"
+          :year="props.year"
+          :current-day="props.currentDay"
+          :habits="localHabits"
+          :display-name="displayName"
+          @toast="msg => showToast(msg)"
         />
       </section>
 
@@ -2949,6 +3783,131 @@ onBeforeUnmount(() => {
         @trigger-install-pwa="handleTriggerInstallPwa"
         @toggle-notifications="handleToggleDueNowNotifications"
         @test-notification="handleSendTestNotification"
+      />
+
+      <!-- Spotlight Command Palette Modal (Cmd+K / Ctrl+K) -->
+      <SpotlightCommandModal
+        :is-open="isSpotlightOpen"
+        :habits="todayScheduledHabits"
+        :has-completed-day="hasCompletedDay"
+        :current-day="props.currentDay"
+        :is-ashish="isAshish"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :dark-mode="darkMode"
+        :active-tab="activeMobileTab"
+        :due-now-notifications-enabled="dueNowNotificationsEnabled"
+        @close="isSpotlightOpen = false"
+        @toggle-habit="habit => toggleHabitForDay(habit, props.currentDay)"
+        @start-timer="(min, hId) => { activeMobileTab = 'focus'; startDeepWorkTimer(min, hId); }"
+        @set-tab="tab => activeMobileTab = tab"
+        @toggle-theme="toggleTheme"
+        @toggle-zen="toggleZenMode"
+        @toggle-travel="toggleTravelMode"
+        @open-add-habit="() => openAddHabitModal('morning')"
+        @open-share-scorecard="() => isShareModalOpen = true"
+        @toggle-notifications="handleToggleDueNowNotifications"
+        @trigger-celebration="() => fireTierMilestone('full')"
+        @open-backup="isDataBackupModalOpen = true"
+        @open-calendar-sync="isCalendarSyncModalOpen = true"
+        @open-partner-sync="partnerViewOpen = true"
+        @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+        @open-protocol-wizard="isProtocolWizardOpen = true"
+        @open-protocol-settings="isProtocolSettingsOpen = true"
+        @switch-protocol="handleQuickSwitchProtocol"
+        @open-clinical-report="activeMobileTab = 'stats'"
+        @play-tactical-briefing="handlePlayTacticalBriefingFromSpotlight"
+      />
+
+      <!-- Data Portability & Backup Hub Modal (JSON snapshot & RFC 4180 CSV export) -->
+      <DataBackupModal
+        :is-open="isDataBackupModalOpen"
+        :local-habits="localHabits"
+        :all-historical-habits="allHistoricalHabits"
+        :month-scope="monthScope"
+        :year="props.year"
+        :month="props.month"
+        :available-wallet="availableWallet"
+        :system-streak="systemStreak"
+        :weekly-review="weeklyReview"
+        :biomarkers="biomarkersState"
+        :hydration-ml="hydrationMlState"
+        @close="isDataBackupModalOpen = false"
+        @toast="msg => showToast(msg)"
+        @restore-data="handleRestoreData"
+      />
+
+      <!-- Calendar Focus Projection Modal (Google & Outlook / Apple .ics sync) -->
+      <CalendarSyncModal
+        :is-open="isCalendarSyncModalOpen"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :year="props.year"
+        :month="props.month"
+        :current-day="props.currentDay"
+        @close="isCalendarSyncModalOpen = false"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Shared Couple Cockpit Modal (Live Peer Visibility & Emote Cheers) -->
+      <PartnerSyncModal
+        :is-open="partnerViewOpen"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :partner-name="partnerDisplayName"
+        :partner-completed-count="isJyoti ? 18 : 34"
+        :partner-total-count="isJyoti ? 37 : 68"
+        :partner-points="isJyoti ? 14 : 16"
+        :current-day="props.currentDay"
+        @close="partnerViewOpen = false"
+        @send-emote="handleSendPartnerEmote"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Dynamic Protocol Builder & Onboarding Wizard Modal -->
+      <ProtocolWizardModal
+        :is-open="isProtocolWizardOpen"
+        :current-protocol="activeProtocol"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        @close="isProtocolWizardOpen = false"
+        @activate="handleActivateCustomProtocol"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Protocol Settings & Dynamic Scoring Tiers Modal -->
+      <ProtocolSettingsModal
+        :is-open="isProtocolSettingsOpen"
+        :progressive-settings="progressiveSettings"
+        :tier-thresholds="tierThresholds"
+        :today-possible-daily-points="todayPossibleDailyPoints"
+        :time-slot-definitions="dynamicTimeSlotDefinitions"
+        :all-protocols="allProtocols"
+        :active-protocol="activeProtocol"
+        :active-protocol-id="activeProtocolId"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        @close="isProtocolSettingsOpen = false"
+        @save-settings="handleSaveProtocolSettings"
+        @switch-protocol="handleQuickSwitchProtocol"
+        @open-wizard="isProtocolWizardOpen = true"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Universal Partner Pairing Modal (Invite Code, Link, QR & Peer Link) -->
+      <UniversalPartnerPairModal
+        :is-open="isUniversalPartnerPairModalOpen"
+        :user-id="effectiveUserId"
+        :display-name="displayName"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        @close="isUniversalPartnerPairModalOpen = false"
+        @paired="handlePartnerPaired"
+        @unpaired="handlePartnerUnpaired"
+        @toast="msg => showToast(msg)"
       />
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->

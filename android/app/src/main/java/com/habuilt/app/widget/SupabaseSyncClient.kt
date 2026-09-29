@@ -109,6 +109,39 @@ object SupabaseSyncClient {
                         val postCode = postConn.responseCode
                         Log.d(TAG, "Supabase 1-tap completion sync response: $postCode")
                     }
+
+                    // 2. Also write atomically to normalized habit_check_ins table for instant Realtime sync
+                    try {
+                        val ledgerUrl = URL("$SUPABASE_URL/rest/v1/habit_check_ins")
+                        val ledgerConn = ledgerUrl.openConnection() as HttpURLConnection
+                        ledgerConn.requestMethod = "POST"
+                        ledgerConn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+                        ledgerConn.setRequestProperty("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                        ledgerConn.setRequestProperty("Content-Type", "application/json")
+                        ledgerConn.setRequestProperty("Prefer", "resolution=merge-duplicates")
+                        ledgerConn.doOutput = true
+
+                        val ledgerPayload = JSONObject().apply {
+                            put("user_id", userId)
+                            put("habit_id", habitId)
+                            put("month_key", monthKey)
+                            put("day", day)
+                            put("completed_on", SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now))
+                            put("points", 1)
+                            put("source", "android_widget")
+                            put("updated_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
+                        }
+
+                        val ledgerWriter = OutputStreamWriter(ledgerConn.outputStream)
+                        ledgerWriter.write(ledgerPayload.toString())
+                        ledgerWriter.flush()
+                        ledgerWriter.close()
+
+                        val ledgerCode = ledgerConn.responseCode
+                        Log.d(TAG, "Supabase atomic ledger sync response: $ledgerCode")
+                    } catch (le: Exception) {
+                        Log.w(TAG, "Ledger atomic sync note: ${le.message}")
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed background sync to Supabase: ${e.message}")

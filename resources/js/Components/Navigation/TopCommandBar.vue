@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Zap,
@@ -17,12 +17,28 @@ import {
   Download,
   MapPin,
   Sparkles,
+  Search,
+  Users,
+  Sliders,
+  Heart,
+  ChevronDown,
+  Settings,
+  Briefcase,
+  Activity,
+  Crown,
+  Check,
+  Eye,
+  EyeOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
   isJyoti: { type: Boolean, default: false },
   isAshish: { type: Boolean, default: false },
   displayName: { type: String, default: 'User' },
+  activeProtocolName: { type: String, default: 'Master Protocol' },
+  allProtocols: { type: Array, default: () => [] },
+  activeProtocolId: { type: String, default: '' },
+  isPartnerPaired: { type: Boolean, default: false },
   levelData: { type: Object, required: true },
   levelTitle: { type: String, default: 'Starter' },
   totalXP: { type: Number, default: 0 },
@@ -38,6 +54,7 @@ const props = defineProps({
   activeTab: { type: String, default: 'today' },
   timerRunning: { type: Boolean, default: false },
   notificationsEnabled: { type: Boolean, default: false },
+  zenMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -45,11 +62,58 @@ const emit = defineEmits([
   'prev-month',
   'next-month',
   'toggle-theme',
+  'toggle-zen',
   'set-tab',
   'open-install-modal',
+  'open-spotlight',
+  'open-calendar-sync',
+  'open-partner-sync',
+  'open-partner-pair',
+  'open-protocol-wizard',
+  'open-protocol-settings',
+  'switch-protocol',
 ]);
 
 const showLevelInfo = ref(false);
+const isProtocolMenuOpen = ref(false);
+const protocolMenuRef = ref(null);
+
+const toggleProtocolMenu = () => {
+  isProtocolMenuOpen.value = !isProtocolMenuOpen.value;
+};
+
+const handleSelectProtocol = (id) => {
+  emit('switch-protocol', id);
+  isProtocolMenuOpen.value = false;
+};
+
+const handleOpenWizard = () => {
+  emit('open-protocol-wizard');
+  isProtocolMenuOpen.value = false;
+};
+
+const handleOpenSettings = () => {
+  emit('open-protocol-settings');
+  isProtocolMenuOpen.value = false;
+};
+
+const onDocumentClick = (e) => {
+  if (protocolMenuRef.value && !protocolMenuRef.value.contains(e.target)) {
+    isProtocolMenuOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', onDocumentClick);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', onDocumentClick);
+  }
+});
 </script>
 
 <template>
@@ -65,6 +129,115 @@ const showLevelInfo = ref(false);
         <span v-else-if="isAshish">Ashish's System</span>
         <span v-else>{{ displayName }}'s System</span>
       </span>
+
+      <!-- Dynamic Protocol Badge / Switcher Button & Dropdown -->
+      <div class="hero-protocol-menu-wrap" ref="protocolMenuRef">
+        <button
+          type="button"
+          class="hero-protocol-chip"
+          :class="{ 'hero-protocol-chip--open': isProtocolMenuOpen }"
+          @click.stop="toggleProtocolMenu"
+          :title="`Current Protocol: ${activeProtocolName} • Click to switch or customize`"
+        >
+          <Sliders class="icon-xs icon-gold" />
+          <span class="hero-protocol-chip__name truncate">{{ activeProtocolName }}</span>
+          <ChevronDown class="icon-xxs hero-protocol-chip__arrow" :class="{ 'hero-protocol-chip__arrow--open': isProtocolMenuOpen }" />
+        </button>
+
+        <!-- Floating Protocol Quick Switcher Menu -->
+        <Transition name="proto-drop">
+          <div v-if="isProtocolMenuOpen" class="hero-protocol-dropdown" role="menu">
+            <div class="hero-protocol-dropdown__header">
+              <span class="hero-protocol-dropdown__title">Routine Protocols</span>
+              <span class="hero-protocol-dropdown__hint">Quick Switch</span>
+            </div>
+
+            <div class="hero-protocol-dropdown__list">
+              <button
+                type="button"
+                class="hero-protocol-option"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-founder' || (!activeProtocolId && !isAshish && !isJyoti) }"
+                @click="handleSelectProtocol('archetype-founder')"
+              >
+                <div class="hero-protocol-option__icon"><Briefcase class="icon-xs" /></div>
+                <div class="hero-protocol-option__info">
+                  <span class="hero-protocol-option__name">Founder Executive</span>
+                  <span class="hero-protocol-option__sub">16 habits • Deep Work Focus</span>
+                </div>
+                <Check v-if="activeProtocolId === 'archetype-founder' || (!activeProtocolId && !isAshish && !isJyoti)" class="icon-xs icon-gold ml-auto" />
+              </button>
+
+              <button
+                type="button"
+                class="hero-protocol-option"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-longevity' }"
+                @click="handleSelectProtocol('archetype-longevity')"
+              >
+                <div class="hero-protocol-option__icon text-emerald-400"><Activity class="icon-xs" /></div>
+                <div class="hero-protocol-option__info">
+                  <span class="hero-protocol-option__name">Mind-Body Longevity</span>
+                  <span class="hero-protocol-option__sub">18 habits • Circadian & Health</span>
+                </div>
+                <Check v-if="activeProtocolId === 'archetype-longevity'" class="icon-xs icon-gold ml-auto" />
+              </button>
+
+              <button
+                type="button"
+                class="hero-protocol-option"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-postpartum' }"
+                @click="handleSelectProtocol('archetype-postpartum')"
+              >
+                <div class="hero-protocol-option__icon text-rose-400"><Heart class="icon-xs" /></div>
+                <div class="hero-protocol-option__info">
+                  <span class="hero-protocol-option__name">Postpartum & Family</span>
+                  <span class="hero-protocol-option__sub">16 habits • Rest & Recovery</span>
+                </div>
+                <Check v-if="activeProtocolId === 'archetype-postpartum'" class="icon-xs icon-gold ml-auto" />
+              </button>
+
+              <button
+                type="button"
+                class="hero-protocol-option"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId) }"
+                @click="handleSelectProtocol('archetype-ashish')"
+              >
+                <div class="hero-protocol-option__icon icon-gold"><Crown class="icon-xs" /></div>
+                <div class="hero-protocol-option__info">
+                  <span class="hero-protocol-option__name">Ashish Master Protocol</span>
+                  <span class="hero-protocol-option__sub">68 habits • 4 Office day types</span>
+                </div>
+                <Check v-if="activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)" class="icon-xs icon-gold ml-auto" />
+              </button>
+
+              <button
+                type="button"
+                class="hero-protocol-option"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId) }"
+                @click="handleSelectProtocol('archetype-jyoti')"
+              >
+                <div class="hero-protocol-option__icon text-pink-400"><Sparkles class="icon-xs" /></div>
+                <div class="hero-protocol-option__info">
+                  <span class="hero-protocol-option__name">Jyoti Master Protocol</span>
+                  <span class="hero-protocol-option__sub">37 habits • Maternal & Study</span>
+                </div>
+                <Check v-if="activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId)" class="icon-xs icon-gold ml-auto" />
+              </button>
+            </div>
+
+            <div class="hero-protocol-dropdown__footer">
+              <button type="button" class="hero-protocol-action-link" @click="handleOpenWizard">
+                <Sparkles class="icon-xs icon-gold" />
+                <span>Archetype Quiz (Wizard)</span>
+              </button>
+              <button type="button" class="hero-protocol-action-link" @click="handleOpenSettings">
+                <Settings class="icon-xs" />
+                <span>Scoring & Slot Settings</span>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
       <span class="hero-version-tag">PRO</span>
 
       <!-- Level & XP Chip (Clickable for info) -->
@@ -165,6 +338,19 @@ const showLevelInfo = ref(false);
         </button>
       </div>
 
+      <!-- Spotlight Command Palette Launcher -->
+      <button
+        type="button"
+        class="hero-spotlight-btn"
+        @click="emit('open-spotlight')"
+        title="Spotlight Command Palette (Ctrl+K / Cmd+K)"
+        aria-label="Open Command Palette"
+      >
+        <Search class="icon-xs" />
+        <span class="hero-spotlight-text">Search</span>
+        <kbd class="hero-spotlight-kbd">⌘K</kbd>
+      </button>
+
       <!-- App & Alerts Hub Button (Desktop PWA & Notifications) -->
       <button
         type="button"
@@ -174,6 +360,53 @@ const showLevelInfo = ref(false);
       >
         <Download class="icon-xs" />
         <span class="hero-app-install-text">App / Alerts</span>
+      </button>
+
+      <!-- Calendar Focus Sync Button -->
+      <button
+        type="button"
+        class="hero-icon-btn"
+        @click="emit('open-calendar-sync')"
+        title="Sync Today's Focus Blocks to Google / Outlook Calendar"
+        aria-label="Calendar Sync"
+      >
+        <Calendar class="icon-sm" />
+      </button>
+
+      <!-- Shared Couple Cockpit Button -->
+      <button
+        type="button"
+        class="hero-icon-btn"
+        :class="{ 'hero-icon-btn--paired': isPartnerPaired }"
+        @click="emit('open-partner-sync')"
+        title="Shared Couple Cockpit (Live Sync)"
+        aria-label="Partner Cockpit"
+      >
+        <Users class="icon-sm" />
+      </button>
+
+      <!-- Universal Partner Pairing Link / Invite Button -->
+      <button
+        type="button"
+        class="hero-icon-btn"
+        @click="emit('open-partner-pair')"
+        title="Partner Connection & 6-Char Invite Code"
+        aria-label="Pair with Partner"
+      >
+        <Heart class="icon-sm text-rose-400" />
+      </button>
+
+      <!-- Zen Focus Mode Toggle Button -->
+      <button
+        type="button"
+        class="hero-icon-btn hero-icon-btn--zen"
+        :class="{ 'hero-icon-btn--zen-active': zenMode }"
+        @click="emit('toggle-zen')"
+        :title="zenMode ? 'Exit Zen Mode (Press Z)' : 'Enter Zen Focus Mode: Distraction-Free Flow (Press Z)'"
+        aria-label="Toggle Zen Focus Mode"
+      >
+        <Eye v-if="zenMode" class="icon-sm text-amber-400" />
+        <EyeOff v-else class="icon-sm" />
       </button>
 
       <!-- Theme Switcher -->

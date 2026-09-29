@@ -6,6 +6,7 @@ import {
   Sparkles,
   Plus,
   RotateCcw,
+  Sliders,
 } from 'lucide-vue-next';
 import TimeSlotAccordion from './TimeSlotAccordion.vue';
 import HabitCard from './HabitCard.vue';
@@ -20,6 +21,7 @@ const props = defineProps({
   activeTimeFilter: { type: String, default: 'all' },
   timeSlotCounts: { type: Object, required: true },
   timeSlotCompleted: { type: Object, required: true },
+  timeSlotDefinitions: { type: Object, default: () => ({}) },
   getCurrentTimeBlock: { type: Function, required: true },
   isAshish: { type: Boolean, default: false },
   mobileDayCompleted: { type: Number, default: 0 },
@@ -65,7 +67,21 @@ const emit = defineEmits([
   'toggle-schedule-filter',
   'add-habit',
   'edit-habit',
+  'batch-complete-slot',
+  'open-protocol-wizard',
 ]);
+
+const availableTimeSlots = computed(() => {
+  const defs = props.timeSlotDefinitions || {};
+  return Object.keys(defs)
+    .filter(key => (props.timeSlotCounts[key] || 0) > 0)
+    .map(key => ({
+      key,
+      label: key === 'work' && props.isWeekend ? 'Weekend' : (defs[key]?.label || key),
+      emoji: defs[key]?.emoji || '⚡',
+      color: defs[key]?.color || '#D4A03E',
+    }));
+});
 </script>
 
 <template>
@@ -126,7 +142,7 @@ const emit = defineEmits([
       <button type="button" class="btn-jump-today">Jump to Today</button>
     </div>
 
-    <!-- Time-Slot Filter Carousel Pills (Compact & Smooth) -->
+    <!-- Time-Slot Filter Carousel Pills (Dynamic & Smooth) -->
     <div class="time-filter-bar">
       <button
         class="time-filter-pill"
@@ -134,61 +150,20 @@ const emit = defineEmits([
         @click="emit('update:activeTimeFilter', 'all')"
       >
         <span class="time-filter-pill__label">All</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.all }}/{{ timeSlotCounts.all }}</span>
+        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.all || 0 }}/{{ timeSlotCounts.all || 0 }}</span>
       </button>
       <button
-        v-if="timeSlotCounts.morning > 0"
+        v-for="slot in availableTimeSlots"
+        :key="slot.key"
         class="time-filter-pill"
         :class="{
-          'time-filter-pill--active': activeTimeFilter === 'morning',
-          'time-filter-pill--current': getCurrentTimeBlock() === 'morning' && activeTimeFilter === 'all'
+          'time-filter-pill--active': activeTimeFilter === slot.key,
+          'time-filter-pill--current': getCurrentTimeBlock() === slot.key && activeTimeFilter === 'all'
         }"
-        @click="emit('update:activeTimeFilter', activeTimeFilter === 'morning' ? 'all' : 'morning')"
+        @click="emit('update:activeTimeFilter', activeTimeFilter === slot.key ? 'all' : slot.key)"
       >
-        <span class="time-filter-pill__label">Morning</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.morning }}/{{ timeSlotCounts.morning }}</span>
-      </button>
-      <button
-        v-if="timeSlotCounts.work > 0"
-        class="time-filter-pill"
-        :class="{
-          'time-filter-pill--active': activeTimeFilter === 'work',
-          'time-filter-pill--current': getCurrentTimeBlock() === 'work' && activeTimeFilter === 'all'
-        }"
-        @click="emit('update:activeTimeFilter', activeTimeFilter === 'work' ? 'all' : 'work')"
-      >
-        <span class="time-filter-pill__label">{{ isWeekend ? 'Weekend' : 'Work' }}</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.work }}/{{ timeSlotCounts.work }}</span>
-      </button>
-      <button
-        v-if="timeSlotCounts.evening > 0"
-        class="time-filter-pill"
-        :class="{
-          'time-filter-pill--active': activeTimeFilter === 'evening',
-          'time-filter-pill--current': getCurrentTimeBlock() === 'evening' && activeTimeFilter === 'all'
-        }"
-        @click="emit('update:activeTimeFilter', activeTimeFilter === 'evening' ? 'all' : 'evening')"
-      >
-        <span class="time-filter-pill__label">Evening</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.evening }}/{{ timeSlotCounts.evening }}</span>
-      </button>
-      <button
-        v-if="timeSlotCounts.anytime > 0"
-        class="time-filter-pill"
-        :class="{ 'time-filter-pill--active': activeTimeFilter === 'anytime' }"
-        @click="emit('update:activeTimeFilter', activeTimeFilter === 'anytime' ? 'all' : 'anytime')"
-      >
-        <span class="time-filter-pill__label">Health</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.anytime }}/{{ timeSlotCounts.anytime }}</span>
-      </button>
-      <button
-        v-if="timeSlotCounts.weekly > 0"
-        class="time-filter-pill"
-        :class="{ 'time-filter-pill--active': activeTimeFilter === 'weekly' }"
-        @click="emit('update:activeTimeFilter', activeTimeFilter === 'weekly' ? 'all' : 'weekly')"
-      >
-        <span class="time-filter-pill__label">Weekly</span>
-        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted.weekly }}/{{ timeSlotCounts.weekly }}</span>
+        <span class="time-filter-pill__label">{{ slot.label }}</span>
+        <span class="time-filter-pill__count mono-num">{{ timeSlotCompleted[slot.key] || 0 }}/{{ timeSlotCounts[slot.key] || 0 }}</span>
       </button>
     </div>
 
@@ -213,12 +188,14 @@ const emit = defineEmits([
         <div class="checklist-empty__icon"><Sparkles class="icon-md" /></div>
         <h3 class="checklist-empty__title">Your checklist is empty</h3>
         <p class="checklist-empty__body">
-          Add habits that fit your life — even 3–5 to start is enough.
-          You can archive or remove any of them anytime.
+          Launch our 60-second Archetype Quiz to auto-calibrate your routine, or add custom habits manually.
         </p>
         <div class="checklist-empty__actions">
-          <button class="btn btn--primary-action" @click="emit('start-editing')">
-            <Plus class="icon-sm" /> <span>Add Your First Habits</span>
+          <button class="btn btn--primary-action" @click="emit('open-protocol-wizard')">
+            <Sliders class="icon-sm" /> <span>Generate Protocol (Archetype Quiz)</span>
+          </button>
+          <button class="btn btn--secondary" @click="emit('start-editing')">
+            <Plus class="icon-sm" /> <span>Add Custom Habits</span>
           </button>
           <button v-if="missingDefaultHabits.length > 0" class="btn btn--secondary" @click="emit('restore-defaults')">
             <RotateCcw class="icon-sm" /> <span>Load Starter Preset ({{ missingDefaultHabits.length }})</span>
@@ -234,6 +211,7 @@ const emit = defineEmits([
           :is-collapsed="isSlotCollapsed(group.slot, group.habits, mobileDay)"
           :completed-count="group.habits.filter(h => hasCompletedDay(h, mobileDay)).length"
           @toggle-collapse="emit('toggle-slot-collapse', group.slot, group.habits, mobileDay)"
+          @batch-complete-slot="g => emit('batch-complete-slot', g)"
         />
 
         <!-- Render habits in slot when not collapsed -->

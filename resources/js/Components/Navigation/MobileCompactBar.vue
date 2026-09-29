@@ -15,6 +15,11 @@ import {
   BellOff,
   MapPin,
   Calendar,
+  Search,
+  Users,
+  Sliders,
+  Eye,
+  EyeOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -38,23 +43,32 @@ const props = defineProps({
   isSyncing: { type: Boolean, default: false },
   notificationsSupported: { type: Boolean, default: false },
   dueNowNotificationsEnabled: { type: Boolean, default: false },
+  tierThresholds: { type: Object, default: () => ({ floor: 4, half: 8, full: 15, target: 15 }) },
+  zenMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'toggle-up-next',
   'toggle-theme',
+  'toggle-zen',
   'toggle-travel',
   'share-scorecard',
   'reload-app',
   'toggle-notifications',
+  'open-spotlight',
+  'open-calendar-sync',
+  'open-partner-sync',
+  'open-partner-pair',
+  'open-protocol-wizard',
 ]);
 
 const autoProtocolBadge = computed(() => {
   const pts = props.todayPoints;
-  if (pts >= 15) return { label: '👑 Full', class: 'mcb-auto-badge--full' };
-  if (pts >= 8)  return { label: '⚡ Half', class: 'mcb-auto-badge--half' };
-  if (pts >= 4)  return { label: '🛡️ Floor', class: 'mcb-auto-badge--floor' };
-  return { label: `${pts}/15p`, class: 'mcb-auto-badge--base' };
+  const tiers = props.tierThresholds || { floor: 4, half: 8, full: 15, target: 15 };
+  if (pts >= tiers.full) return { label: '👑 Full', class: 'mcb-auto-badge--full' };
+  if (pts >= tiers.half)  return { label: '⚡ Half', class: 'mcb-auto-badge--half' };
+  if (pts >= tiers.floor)  return { label: '🛡️ Floor', class: 'mcb-auto-badge--floor' };
+  return { label: `${pts}/${tiers.target}p`, class: 'mcb-auto-badge--base' };
 });
 </script>
 
@@ -121,6 +135,67 @@ const autoProtocolBadge = computed(() => {
           aria-label="Share Daily Scorecard"
         >
           <Share2 class="icon-xs" />
+        </button>
+
+        <!-- Spotlight Search & Commands -->
+        <button
+          id="mcb-btn-spotlight"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--spotlight"
+          @click="emit('open-spotlight')"
+          title="Spotlight Search & Commands (Ctrl+K)"
+          aria-label="Spotlight Search & Commands"
+        >
+          <Search class="icon-xs" />
+        </button>
+
+        <!-- Calendar Sync Button -->
+        <button
+          id="mcb-btn-calendar"
+          type="button"
+          class="mcb-icon-btn"
+          @click="emit('open-calendar-sync')"
+          title="Calendar Focus Projection"
+          aria-label="Calendar Focus Projection"
+        >
+          <Calendar class="icon-xs" />
+        </button>
+
+        <!-- Partner Sync Button -->
+        <button
+          id="mcb-btn-partner"
+          type="button"
+          class="mcb-icon-btn"
+          @click="emit('open-partner-sync')"
+          title="Shared Couple Cockpit"
+          aria-label="Shared Couple Cockpit"
+        >
+          <Users class="icon-xs" />
+        </button>
+
+        <!-- Protocol Switcher / Wizard Button -->
+        <button
+          id="mcb-btn-protocol"
+          type="button"
+          class="mcb-icon-btn"
+          @click="emit('open-protocol-wizard')"
+          title="Dynamic Protocol Builder & Switcher"
+          aria-label="Dynamic Protocol Builder"
+        >
+          <Sliders class="icon-xs" />
+        </button>
+
+        <!-- Zen Focus Mode Switcher -->
+        <button
+          id="mcb-btn-zen"
+          type="button"
+          class="mcb-icon-btn mcb-icon-btn--zen"
+          @click="emit('toggle-zen')"
+          :title="zenMode ? 'Exit Zen Focus Mode (Press Z)' : 'Enter Zen Focus Mode (Press Z)'"
+          aria-label="Toggle Zen Focus Mode"
+        >
+          <Eye v-if="zenMode" class="icon-xs text-amber-400" />
+          <EyeOff v-else class="icon-xs" />
         </button>
 
         <!-- Dark / Light Mode Switcher -->

@@ -46,6 +46,259 @@ export const playTimerChime = (type = 'complete') => {
   }
 };
 
+// ── Procedural Ambient Soundscapes (Web Audio API) ──
+let ambientAudioCtx = null;
+let activeSoundscapeNodes = null;
+
+const getAmbientAudioContext = () => {
+  if (typeof window === 'undefined') return null;
+  if (!ambientAudioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      ambientAudioCtx = new AudioCtx();
+    }
+  }
+  if (ambientAudioCtx && ambientAudioCtx.state === 'suspended') {
+    ambientAudioCtx.resume().catch(() => {});
+  }
+  return ambientAudioCtx;
+};
+
+// 1. 40Hz Gamma Binaural Beats (200Hz Left / 240Hz Right)
+const createBinauralBeats = (ctx, masterGain) => {
+  const merger = ctx.createChannelMerger(2);
+
+  // Left ear: 200 Hz
+  const oscL = ctx.createOscillator();
+  const gainL = ctx.createGain();
+  oscL.type = 'sine';
+  oscL.frequency.value = 200;
+  gainL.gain.value = 0.5;
+  oscL.connect(gainL);
+  gainL.connect(merger, 0, 0); // into left channel
+
+  // Right ear: 240 Hz (40Hz beat frequency for gamma cognitive focus)
+  const oscR = ctx.createOscillator();
+  const gainR = ctx.createGain();
+  oscR.type = 'sine';
+  oscR.frequency.value = 240;
+  gainR.gain.value = 0.5;
+  oscR.connect(gainR);
+  gainR.connect(merger, 0, 1); // into right channel
+
+  merger.connect(masterGain);
+  oscL.start();
+  oscR.start();
+
+  return {
+    stop: () => {
+      try {
+        oscL.stop();
+        oscR.stop();
+        oscL.disconnect();
+        oscR.disconnect();
+        gainL.disconnect();
+        gainR.disconnect();
+        merger.disconnect();
+      } catch (_) {}
+    },
+  };
+};
+
+// 2. Brown Noise (Deep Focus Blanket)
+const createBrownNoise = (ctx, masterGain) => {
+  const bufferSize = ctx.sampleRate * 4; // 4 seconds loop
+  const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
+
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      lastOut = (lastOut + 0.02 * white) / 1.02;
+      data[i] = lastOut * 3.5;
+    }
+  }
+
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = buffer;
+  noiseSource.loop = true;
+
+  // Warm low-pass filter
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 450;
+  filter.Q.value = 0.8;
+
+  noiseSource.connect(filter);
+  filter.connect(masterGain);
+  noiseSource.start();
+
+  return {
+    stop: () => {
+      try {
+        noiseSource.stop();
+        noiseSource.disconnect();
+        filter.disconnect();
+      } catch (_) {}
+    },
+  };
+};
+
+// 3. Gentle Rainfall (Multi-filtered noise with organic modulation)
+const createGentleRain = (ctx, masterGain) => {
+  const bufferSize = ctx.sampleRate * 4;
+  const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
+
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buffer.getChannelData(ch);
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      data[i] = (b0 + b1 + b2) * 0.4;
+    }
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 1600;
+
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = 'highpass';
+  highpass.frequency.value = 180;
+
+  // Gentle wind/rain swell LFO
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.frequency.value = 0.2; // slow 5-second swell
+  lfoGain.gain.value = 0.15;
+  lfo.connect(lfoGain.gain);
+
+  source.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(masterGain);
+  source.start();
+  lfo.start();
+
+  return {
+    stop: () => {
+      try {
+        source.stop();
+        lfo.stop();
+        source.disconnect();
+        highpass.disconnect();
+        lowpass.disconnect();
+        lfo.disconnect();
+        lfoGain.disconnect();
+      } catch (_) {}
+    },
+  };
+};
+
+// Soundscape State
+const initialSoundscape = typeof window !== 'undefined' ? (localStorage.getItem('habuilt_soundscape_type') || 'off') : 'off';
+const initialSoundVol = typeof window !== 'undefined' ? Number(localStorage.getItem('habuilt_soundscape_vol') || '0.35') : 0.35;
+
+const soundscapeType = ref(initialSoundscape);
+const soundscapeVolume = ref(isNaN(initialSoundVol) ? 0.35 : initialSoundVol);
+const isSoundscapePlaying = ref(false);
+let masterSoundscapeGain = null;
+
+const stopSoundscapeAudio = (immediate = false) => {
+  if (!activeSoundscapeNodes) {
+    isSoundscapePlaying.value = false;
+    return;
+  }
+  const ctx = getAmbientAudioContext();
+  if (ctx && masterSoundscapeGain && !immediate) {
+    // Smooth 0.5s fade-out
+    try {
+      masterSoundscapeGain.gain.setValueAtTime(masterSoundscapeGain.gain.value, ctx.currentTime);
+      masterSoundscapeGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      setTimeout(() => {
+        if (activeSoundscapeNodes) {
+          activeSoundscapeNodes.stop();
+          activeSoundscapeNodes = null;
+        }
+        isSoundscapePlaying.value = false;
+      }, 420);
+      return;
+    } catch (_) {}
+  }
+  if (activeSoundscapeNodes) {
+    activeSoundscapeNodes.stop();
+    activeSoundscapeNodes = null;
+  }
+  isSoundscapePlaying.value = false;
+};
+
+const startSoundscapeAudio = (type = soundscapeType.value) => {
+  if (type === 'off') {
+    stopSoundscapeAudio();
+    return;
+  }
+  const ctx = getAmbientAudioContext();
+  if (!ctx) return;
+
+  stopSoundscapeAudio(true);
+
+  masterSoundscapeGain = ctx.createGain();
+  masterSoundscapeGain.gain.setValueAtTime(0.001, ctx.currentTime);
+  masterSoundscapeGain.gain.linearRampToValueAtTime(soundscapeVolume.value, ctx.currentTime + 0.6);
+  masterSoundscapeGain.connect(ctx.destination);
+
+  if (type === 'binaural_40hz') {
+    activeSoundscapeNodes = createBinauralBeats(ctx, masterSoundscapeGain);
+  } else if (type === 'brown_noise') {
+    activeSoundscapeNodes = createBrownNoise(ctx, masterSoundscapeGain);
+  } else if (type === 'rain') {
+    activeSoundscapeNodes = createGentleRain(ctx, masterSoundscapeGain);
+  }
+
+  isSoundscapePlaying.value = true;
+};
+
+const updateSoundscapeVolume = (val) => {
+  const num = Math.max(0, Math.min(1, Number(val)));
+  soundscapeVolume.value = num;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('habuilt_soundscape_vol', String(num));
+  }
+  if (masterSoundscapeGain && ambientAudioCtx) {
+    try {
+      masterSoundscapeGain.gain.setValueAtTime(num, ambientAudioCtx.currentTime);
+    } catch (_) {}
+  }
+};
+
+const setSoundscapeType = (type) => {
+  soundscapeType.value = type;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('habuilt_soundscape_type', type);
+  }
+  if (timerState.value?.running || isSoundscapePlaying.value) {
+    startSoundscapeAudio(type);
+  }
+};
+
+const toggleSoundscapeManual = () => {
+  if (isSoundscapePlaying.value) {
+    stopSoundscapeAudio();
+  } else {
+    if (soundscapeType.value === 'off') {
+      setSoundscapeType('binaural_40hz');
+    }
+    startSoundscapeAudio(soundscapeType.value);
+  }
+};
+
 // Global reactive timer state across all components
 const timerState = ref(null);
 const timerLauncherDuration = ref(25);
@@ -125,6 +378,9 @@ export function useDeepWorkTimer(options = {}) {
         playTimerChime(isBreak ? 'break' : 'complete');
       }
 
+      // Stop ambient soundscape on completion
+      stopSoundscapeAudio();
+
       if (linkedHabitId && !isBreak && onHabitAutoComplete) {
         onHabitAutoComplete(linkedHabitId);
       }
@@ -164,6 +420,11 @@ export function useDeepWorkTimer(options = {}) {
       _autoCompleted: false,
     };
     startInterval();
+
+    // Auto-trigger ambient soundscape if configured
+    if (soundscapeType.value !== 'off') {
+      startSoundscapeAudio(soundscapeType.value);
+    }
   };
 
   const pauseDeepWorkTimer = () => {
@@ -177,6 +438,7 @@ export function useDeepWorkTimer(options = {}) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    stopSoundscapeAudio();
   };
 
   const resumeDeepWorkTimer = () => {
@@ -185,6 +447,10 @@ export function useDeepWorkTimer(options = {}) {
     timerState.value.startedAt = Date.now();
     timerState.value.running = true;
     startInterval();
+
+    if (soundscapeType.value !== 'off') {
+      startSoundscapeAudio(soundscapeType.value);
+    }
   };
 
   const stopDeepWorkTimer = () => {
@@ -194,6 +460,7 @@ export function useDeepWorkTimer(options = {}) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    stopSoundscapeAudio();
   };
 
   const startBreakTimer = (durationMin = 5) => {
@@ -208,6 +475,7 @@ export function useDeepWorkTimer(options = {}) {
       _autoCompleted: false,
     };
     startInterval();
+    stopSoundscapeAudio();
   };
 
   const onCustomTimerInput = () => {
@@ -226,6 +494,9 @@ export function useDeepWorkTimer(options = {}) {
   onMounted(() => {
     if (!timerInterval && timerState.value && timerState.value.running) {
       startInterval();
+      if (soundscapeType.value !== 'off' && !isSoundscapePlaying.value) {
+        startSoundscapeAudio(soundscapeType.value);
+      }
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -249,6 +520,13 @@ export function useDeepWorkTimer(options = {}) {
     timerRemainingFormatted,
     timerLinkedHabit,
     timerHabitOptions,
+    // Ambient soundscapes
+    soundscapeType,
+    soundscapeVolume,
+    isSoundscapePlaying,
+    setSoundscapeType,
+    updateSoundscapeVolume,
+    toggleSoundscapeManual,
     startDeepWorkTimer,
     pauseDeepWorkTimer,
     resumeDeepWorkTimer,

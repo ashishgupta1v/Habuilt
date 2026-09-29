@@ -4,19 +4,330 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('[Habuilt] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables.');
+  console.warn('[Habuilt] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables.');
 }
+
+export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  supabaseAnonKey || 'placeholder',
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  }
 );
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1. ATOMIC ROW-LEVEL CHECK-IN LEDGER (Normalized Event Persistence)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Fetches the user monthly state document.
- * @param {string} userId
- * @param {string} monthKey (e.g. "2024-11")
+ * Inserts a habit check-in record into the normalized ledger.
  */
+export const recordHabitCheckIn = async ({
+  userId,
+  habitId,
+  habitName = '',
+  monthKey,
+  day,
+  completedOn,
+  points = 1,
+  canonicalKey = '',
+  source = 'web',
+}) => {
+  if (!userId || !habitId || !monthKey || !day) return false;
+
+  const dateStr = completedOn || `${monthKey}-${String(day).padStart(2, '0')}`;
+
+  const { data, error } = await supabase
+    .from('habit_check_ins')
+    .upsert(
+      {
+        user_id: userId,
+        habit_id: String(habitId),
+        habit_name: habitName,
+        month_key: monthKey,
+        day: Number(day),
+        completed_on: dateStr,
+        points: Number(points) || 1,
+        canonical_key: canonicalKey || null,
+        source: source,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id,habit_id,month_key,day',
+      }
+    );
+
+  if (error) {
+    console.warn('[Habuilt Ledger] Error inserting check-in:', error.message);
+    queueOfflineAction({
+      type: 'INSERT',
+      payload: { userId, habitId, habitName, monthKey, day, completedOn: dateStr, points, canonicalKey, source },
+    });
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Removes a habit check-in record from the normalized ledger.
+ */
+export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => {
+  if (!userId || !habitId || !monthKey || !day) return false;
+
+  const { error } = await supabase
+    .from('habit_check_ins')
+    .delete()
+    .eq('user_id', userId)
+    .eq('habit_id', String(habitId))
+    .eq('month_key', monthKey)
+    .eq('day', Number(day));
+
+  if (error) {
+    console.warn('[Habuilt Ledger] Error removing check-in:', error.message);
+    queueOfflineAction({
+      type: 'DELETE',
+      payload: { userId, habitId, monthKey, day },
+    });
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Fetches all normalized check-ins for a user in a specific month.
+ */
+export const loadMonthCheckIns = async (userId, monthKey) => {
+  if (!userId || !monthKey) return [];
+
+  const { data, error } = await supabase
+    .from('habit_check_ins')
+    .select('id, habit_id, habit_name, day, completed_on, points, canonical_key, source, created_at')
+    .eq('user_id', userId)
+    .eq('month_key', monthKey);
+
+  if (error) {
+    // If table doesn't exist yet in user's Supabase, fall back gracefully
+    console.warn('[Habuilt Ledger] Check-in fetch note:', error.message);
+    return null;
+  }
+
+  return data || [];
+};
+
+/**
+ * Fetches all check-ins across all months for a user (lifetime analytics & streaks).
+ */
+export const loadAllCheckIns = async (userId) => {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('habit_check_ins')
+    .select('habit_id, month_key, day, completed_on, points, canonical_key')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.warn('[Habuilt Ledger] Lifetime check-ins fetch note:', error.message);
+    return [];
+  }
+
+  return data || [];
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. USER SETTINGS & REVIEWS STORE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const saveUserSettings = async (userId, settingsPayload) => {
+  if (!userId) return false;
+
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert(
+      {
+        user_id: userId,
+        progressive_settings: settingsPayload.progressiveSettings || {},
+        custom_habits: settingsPayload.customHabits || [],
+        rewards: settingsPayload.rewards || [],
+        reward_ledger: settingsPayload.rewardLedger || [],
+        weekly_reviews: settingsPayload.weeklyReviews || {},
+        enhanced_state: settingsPayload.enhancedState || {},
+        day_type: settingsPayload.dayType || 'home',
+        dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id',
+      }
+    );
+
+  if (error) {
+    console.warn('[Habuilt Settings] Error saving user settings:', error.message);
+    return false;
+  }
+
+  return true;
+};
+
+export const loadUserSettings = async (userId) => {
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[Habuilt Settings] Note on loading settings:', error.message);
+    return null;
+  }
+
+  return data || null;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. REALTIME SYNC & PARTNER BROADCASTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Subscribes to real-time check-in mutations (INSERT, DELETE, UPDATE) for a user.
+ */
+export const subscribeToHabitCheckIns = (userId, onCheckInChange) => {
+  if (!userId) return null;
+
+  const channel = supabase
+    .channel(`habuilt-user-checkins-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'habit_check_ins',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        if (typeof onCheckInChange === 'function') {
+          onCheckInChange({
+            eventType: payload.eventType, // 'INSERT', 'DELETE', 'UPDATE'
+            new: payload.new,
+            old: payload.old,
+          });
+        }
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Connected to real-time stream
+      }
+    });
+
+  return channel;
+};
+
+/**
+ * Broadcasts an instant event to the shared couple channel.
+ */
+let coupleChannel = null;
+
+export const initCoupleBroadcastChannel = (onPartnerMessage) => {
+  if (coupleChannel) {
+    try {
+      coupleChannel.unsubscribe();
+    } catch {}
+  }
+
+  coupleChannel = supabase.channel('habuilt:couple_live_channel', {
+    config: {
+      broadcast: { ack: false, self: false },
+    },
+  });
+
+  coupleChannel
+    .on('broadcast', { event: 'partner_activity' }, ({ payload }) => {
+      if (typeof onPartnerMessage === 'function') {
+        onPartnerMessage(payload);
+      }
+    })
+    .subscribe();
+
+  return coupleChannel;
+};
+
+export const broadcastPartnerEvent = async (eventData) => {
+  if (!coupleChannel) {
+    initCoupleBroadcastChannel();
+  }
+
+  try {
+    await coupleChannel.send({
+      type: 'broadcast',
+      event: 'partner_activity',
+      payload: {
+        ...eventData,
+        timestamp: Date.now(),
+      },
+    });
+  } catch (e) {
+    console.warn('[Habuilt Couple] Broadcast warning:', e);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. OFFLINE IDEMPOTENT QUEUE & SILENT RECONCILIATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const OFFLINE_QUEUE_KEY = 'habuilt.offline_checkin_queue';
+
+export const queueOfflineAction = (action) => {
+  try {
+    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    const queue = raw ? JSON.parse(raw) : [];
+    queue.push({ ...action, queuedAt: Date.now() });
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  } catch (e) {
+    console.warn('[Habuilt Queue] Could not queue offline action:', e);
+  }
+};
+
+export const flushOfflineQueue = async () => {
+  try {
+    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    if (!raw) return;
+    const queue = JSON.parse(raw);
+    if (!Array.isArray(queue) || queue.length === 0) return;
+
+    localStorage.removeItem(OFFLINE_QUEUE_KEY);
+
+    for (const item of queue) {
+      if (item.type === 'INSERT') {
+        await recordHabitCheckIn(item.payload);
+      } else if (item.type === 'DELETE') {
+        await removeHabitCheckIn(item.payload);
+      }
+    }
+  } catch (e) {
+    console.warn('[Habuilt Queue] Error flushing offline queue:', e);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    flushOfflineQueue();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. LEGACY FALLBACK API (Maintained for Backward Compatibility)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export const loadUserMonthlyState = async (userId, monthKey) => {
   if (!userId) return null;
   const { data, error } = await supabase
@@ -27,44 +338,34 @@ export const loadUserMonthlyState = async (userId, monthKey) => {
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching state:', error);
     return null;
   }
   return data?.state_data || null;
 };
 
-/**
- * Upserts the user monthly state document.
- * @param {string} userId
- * @param {string} monthKey
- * @param {object} stateData
- */
 export const saveUserMonthlyState = async (userId, monthKey, stateData) => {
   if (!userId) return false;
   
   const { error } = await supabase
     .from('user_monthly_states')
-    .upsert({
-      user_id: userId,
-      month_key: monthKey,
-      state_data: stateData,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'user_id,month_key'
-    });
+    .upsert(
+      {
+        user_id: userId,
+        month_key: monthKey,
+        state_data: stateData,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id,month_key',
+      }
+    );
 
   if (error) {
-    console.error('Error saving state:', error);
     return false;
   }
-  
   return true;
 };
 
-/**
- * Fetches all monthly state documents for a user.
- * @param {string} userId
- */
 export const loadAllUserMonthlyStates = async (userId) => {
   if (!userId) return [];
   const { data, error } = await supabase
@@ -73,8 +374,49 @@ export const loadAllUserMonthlyStates = async (userId) => {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Error fetching all states:', error);
     return [];
   }
   return data || [];
+};
+
+/**
+ * Silently migrates completed days from legacy monthly JSON to normalized habit_check_ins.
+ */
+export const silentBackfillLegacyState = async (userId, monthKey, habits) => {
+  if (!userId || !monthKey || !Array.isArray(habits)) return 0;
+
+  const rowsToInsert = [];
+  for (const habit of habits) {
+    if (!habit || !Array.isArray(habit.completed_days)) continue;
+    for (const d of habit.completed_days) {
+      const dayNum = Number(d);
+      if (dayNum >= 1 && dayNum <= 31) {
+        rowsToInsert.push({
+          user_id: userId,
+          habit_id: String(habit.id),
+          habit_name: habit.name || '',
+          month_key: monthKey,
+          day: dayNum,
+          completed_on: `${monthKey}-${String(dayNum).padStart(2, '0')}`,
+          points: Number(habit.points) || 1,
+          source: 'auto_backfill',
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  if (rowsToInsert.length === 0) return 0;
+
+  // Insert in batches of 50 with onConflict ignore
+  let count = 0;
+  for (let i = 0; i < rowsToInsert.length; i += 50) {
+    const chunk = rowsToInsert.slice(i, i + 50);
+    const { error } = await supabase
+      .from('habit_check_ins')
+      .upsert(chunk, { onConflict: 'user_id,habit_id,month_key,day', ignoreDuplicates: true });
+    if (!error) count += chunk.length;
+  }
+
+  return count;
 };

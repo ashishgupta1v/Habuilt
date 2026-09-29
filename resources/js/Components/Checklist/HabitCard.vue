@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
   Check,
   Clock,
@@ -43,8 +43,46 @@ const emit = defineEmits([
 const sharedInfo = computed(() => getSharedHabitInfo(props.habit?.id));
 const isSharedActivity = computed(() => !!sharedInfo.value || (props.habit?.name || '').startsWith('★'));
 
+// Micro-celebration state
+const celebratingNow = ref(false);
+
+/**
+ * Synthesise a short crisp completion chime via Web Audio (no external file needed)
+ */
+function playCompletionChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.16);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.26);
+    osc.onended = () => {
+      try { ctx.close(); } catch { /* ignore */ }
+    };
+  } catch { /* audio not supported — silent fail */ }
+}
+
 const handleCardClick = () => {
   if (props.isPending) return;
+  // If marking DONE (not undoing), fire celebration
+  if (!props.isDone) {
+    celebratingNow.value = true;
+    playCompletionChime();
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
+    setTimeout(() => { celebratingNow.value = false; }, 700);
+  }
   emit('toggle-check');
 };
 </script>
@@ -58,6 +96,7 @@ const handleCardClick = () => {
         'mobile-daily__card--shared': isSharedActivity,
         'mobile-daily__card--up-next': mobileDayIsToday && isUpNext && !isDone,
         'mobile-daily__card--future': mobileDayIsFuture,
+        'mobile-daily__card--celebrating': celebratingNow,
         [`mobile-daily__card--cat-${getHabitCategory(habit)}`]: true
       }"
       tabindex="0"
@@ -67,6 +106,16 @@ const handleCardClick = () => {
       @keydown.enter.prevent="handleCardClick"
       @keydown.space.prevent="handleCardClick"
     >
+      <!-- 8 CSS micro-confetti particles (visible only during celebration) -->
+      <span v-if="celebratingNow" class="completion-particle completion-particle--1" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--2" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--3" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--4" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--5" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--6" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--7" aria-hidden="true"></span>
+      <span v-if="celebratingNow" class="completion-particle completion-particle--8" aria-hidden="true"></span>
+
       <span v-if="mobileDayIsToday && isUpNext && !isDone" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }">
         <Clock class="icon-xs" /> {{ upNextInfo?.badgeText || 'UP NEXT' }}
       </span>

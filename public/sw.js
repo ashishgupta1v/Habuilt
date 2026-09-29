@@ -330,3 +330,18 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// ── Background Sync Event (Replay Offline Check-Ins) ──
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'habuilt-sync-queue' || event.tag === 'habuilt-offline-checkins') {
+    event.waitUntil(
+      (async () => {
+        const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+        for (const client of allClients) {
+          client.postMessage({ type: 'FLUSH_OFFLINE_QUEUE' });
+        }
+      })()
+    );
+  }
+});
+

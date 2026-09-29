@@ -11,7 +11,10 @@ import {
   Sparkles,
   Zap,
   Clock,
-  ChevronDown,
+  Waves,
+  Headphones,
+  CloudRain,
+  Radio,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -27,6 +30,9 @@ const props = defineProps({
   timerHabitOptions: { type: Array, default: () => [] },
   currentDay: { type: Number, default: 1 },
   hasCompletedDay: { type: Function, required: true },
+  soundscapeType: { type: String, default: 'off' },
+  soundscapeVolume: { type: Number, default: 0.35 },
+  isSoundscapePlaying: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -34,6 +40,9 @@ const emit = defineEmits([
   'update:timerLauncherDuration',
   'update:timerLauncherHabitId',
   'update:timerSoundEnabled',
+  'set-soundscape-type',
+  'update-soundscape-volume',
+  'toggle-soundscape-manual',
   'start-timer',
   'pause-timer',
   'resume-timer',
@@ -159,6 +168,53 @@ const emit = defineEmits([
           <X class="icon-sm" /> End Early
         </button>
       </div>
+
+      <!-- Active Ambient Soundscape Bar -->
+      <div v-if="soundscapeType !== 'off'" class="focus-station-soundscape-bar">
+        <div class="focus-soundscape-status">
+          <div class="focus-soundscape-icon-wrap" :class="{ 'focus-soundscape-icon-wrap--active': isSoundscapePlaying }">
+            <Waves v-if="soundscapeType === 'brown_noise'" class="icon-xs" />
+            <Headphones v-else-if="soundscapeType === 'binaural_40hz'" class="icon-xs" />
+            <CloudRain v-else-if="soundscapeType === 'rain'" class="icon-xs" />
+            <Radio v-else class="icon-xs" />
+            <div v-if="isSoundscapePlaying" class="focus-soundscape-waves">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="focus-soundscape-info">
+            <span class="focus-soundscape-title">
+              {{ soundscapeType === 'binaural_40hz' ? '40Hz Gamma Binaural Beats' : soundscapeType === 'brown_noise' ? 'Deep Brown Noise Mask' : soundscapeType === 'rain' ? 'Gentle Rainfall' : 'Soundscape Muted' }}
+            </span>
+            <span class="focus-soundscape-sub">
+              {{ isSoundscapePlaying ? 'Active Flow Frequency' : 'Procedural Audio Engine' }}
+            </span>
+          </div>
+        </div>
+        <div class="focus-soundscape-controls">
+          <button
+            type="button"
+            class="focus-soundscape-toggle-btn"
+            :class="{ 'focus-soundscape-toggle-btn--active': isSoundscapePlaying }"
+            @click="emit('toggle-soundscape-manual')"
+            :title="isSoundscapePlaying ? 'Pause soundscape' : 'Play soundscape'"
+          >
+            {{ isSoundscapePlaying ? 'Pause' : 'Play' }}
+          </button>
+          <div class="focus-soundscape-vol-group">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              :value="soundscapeVolume"
+              @input="emit('update-soundscape-volume', $event.target.value)"
+              class="focus-soundscape-slider"
+              title="Soundscape Volume"
+            />
+            <span class="focus-soundscape-vol-val mono-num">{{ Math.round(soundscapeVolume * 100) }}%</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Launcher Setup View -->
@@ -195,6 +251,87 @@ const emit = defineEmits([
             />
             <span class="focus-custom-unit">min</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Ambient Focus Soundscape Selection -->
+      <div class="focus-station-section">
+        <div class="focus-station-soundscape-header">
+          <label class="focus-station-section-label">
+            <Headphones class="icon-xs" />
+            <span>Ambient Focus Soundscape (Zero Latency &bull; Offline)</span>
+          </label>
+          <div v-if="soundscapeType !== 'off'" class="focus-soundscape-vol-inline">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              :value="soundscapeVolume"
+              @input="emit('update-soundscape-volume', $event.target.value)"
+              class="focus-soundscape-slider"
+              title="Soundscape Volume"
+            />
+            <span class="focus-soundscape-vol-val mono-num">{{ Math.round(soundscapeVolume * 100) }}%</span>
+            <button
+              type="button"
+              class="focus-soundscape-preview-btn"
+              :class="{ 'focus-soundscape-preview-btn--active': isSoundscapePlaying }"
+              @click="emit('toggle-soundscape-manual')"
+            >
+              {{ isSoundscapePlaying ? 'Stop' : 'Test' }}
+            </button>
+          </div>
+        </div>
+        <div class="focus-soundscape-grid">
+          <button
+            type="button"
+            class="focus-soundscape-card"
+            :class="{ 'focus-soundscape-card--active': soundscapeType === 'off' }"
+            @click="emit('set-soundscape-type', 'off')"
+          >
+            <Radio class="icon-xs" />
+            <div class="focus-soundscape-card-text">
+              <span class="focus-soundscape-card-name">Silent</span>
+              <span class="focus-soundscape-card-desc">Standard timer</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="focus-soundscape-card"
+            :class="{ 'focus-soundscape-card--active': soundscapeType === 'binaural_40hz' }"
+            @click="emit('set-soundscape-type', 'binaural_40hz')"
+          >
+            <Headphones class="icon-xs" />
+            <div class="focus-soundscape-card-text">
+              <span class="focus-soundscape-card-name">40Hz Binaural</span>
+              <span class="focus-soundscape-card-desc">Gamma sync beats</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="focus-soundscape-card"
+            :class="{ 'focus-soundscape-card--active': soundscapeType === 'brown_noise' }"
+            @click="emit('set-soundscape-type', 'brown_noise')"
+          >
+            <Waves class="icon-xs" />
+            <div class="focus-soundscape-card-text">
+              <span class="focus-soundscape-card-name">Brown Noise</span>
+              <span class="focus-soundscape-card-desc">Deep waterfall mask</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="focus-soundscape-card"
+            :class="{ 'focus-soundscape-card--active': soundscapeType === 'rain' }"
+            @click="emit('set-soundscape-type', 'rain')"
+          >
+            <CloudRain class="icon-xs" />
+            <div class="focus-soundscape-card-text">
+              <span class="focus-soundscape-card-name">Gentle Rain</span>
+              <span class="focus-soundscape-card-desc">Organic showers</span>
+            </div>
+          </button>
         </div>
       </div>
 
