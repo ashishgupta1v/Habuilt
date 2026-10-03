@@ -64,15 +64,6 @@ const nextMilestoneReward = computed(() => {
             <Award class="icon-xs icon-vault-gold" />
             <span>Habuilt Reward Wallet</span>
           </div>
-          <button
-            type="button"
-            class="reward-vault-edit-btn"
-            @click="emit('start-editing')"
-            title="Edit Rewards Catalog"
-          >
-            <Edit3 class="icon-xs" />
-            <span>Edit Catalog</span>
-          </button>
         </div>
 
         <div class="reward-vault-balance-row">

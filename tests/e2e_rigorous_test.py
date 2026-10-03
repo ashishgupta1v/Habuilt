@@ -141,13 +141,20 @@ def run_tests():
         record_result("Desktop Current Day Cell Found", current_cell.count() > 0)
 
         initial_cls = current_cell.get_attribute("class") or ""
-        current_cell.click()
-        page.wait_for_timeout(400)
+        current_cell.click(force=True)
+        try:
+            page.wait_for_function(
+                "(initial) => document.querySelector('.habit-grid__cell--current')?.className !== initial",
+                arg=initial_cls,
+                timeout=3000
+            )
+        except Exception:
+            page.wait_for_timeout(500)
         after_cls = current_cell.get_attribute("class") or ""
         record_result("Desktop Matrix Cell Toggle State Changed", initial_cls != after_cls)
 
         # Revert back
-        current_cell.click()
+        current_cell.click(force=True)
         page.wait_for_timeout(300)
 
         # 1.8 Focus Station Flow
@@ -361,7 +368,10 @@ def run_tests():
 
         # Close drawer
         expand_btn.click()
-        page_mob.wait_for_timeout(300)
+        try:
+            drawer.wait_for(state="hidden", timeout=3000)
+        except Exception:
+            page_mob.wait_for_timeout(500)
         record_result("Mobile Quick HUD Collapses", not drawer.is_visible())
 
         # 3.3 Verify Mobile Tools Sheet

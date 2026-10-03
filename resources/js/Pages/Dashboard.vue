@@ -3158,9 +3158,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Mobile Compact Bar (Top Summary + Live UP NEXT for Today tab) -->
+    <!-- Mobile Compact Bar (Persistent across Today, Focus, Stats & Rewards tabs) -->
     <MobileCompactBar
-      v-if="activeMobileTab === 'today'"
       :time-greeting="timeGreeting"
       :performance-grade="performanceGrade"
       :system-streak="systemStreak"
