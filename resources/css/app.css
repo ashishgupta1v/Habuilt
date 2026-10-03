@@ -25,10 +25,19 @@
   --hero-text: #090d16;
   --hero-muted: #64748b;
   
-  --accent: #10b981;
-  --accent-strong: #059669;
-  --accent-light: #ecfdf5;
-  --accent-glow: rgba(16, 185, 129, 0.18);
+  --accent: #9a6e18;
+  --accent-strong: #78350f;
+  --accent-light: rgba(154, 110, 24, 0.08);
+  --accent-glow: rgba(154, 110, 24, 0.16);
+  
+  --brand-gold: #9a6e18;
+  --brand-gold-solid: #b45309;
+  --brand-gold-subtle: rgba(154, 110, 24, 0.08);
+  --brand-gold-glow: rgba(154, 110, 24, 0.16);
+  --brand-gold-border: rgba(154, 110, 24, 0.25);
+  
+  --semantic-success: #059669;
+  --semantic-success-subtle: #ecfdf5;
   
   --brand-sky: #0ea5e9;
   --brand-indigo: #6366f1;
@@ -38,7 +47,7 @@
   --danger-light: #fef2f2;
   
   --card-bg: #ffffff;
-  --card-border: rgba(15, 23, 42, 0.08);
+  --card-border: #e2e8f0;
   --muted-bg: #f1f5f9;
   --hover-bg: #f8fafc;
   
@@ -85,10 +94,19 @@ body.dark-mode {
   --hero-text: #f8fafc;
   --hero-muted: #94a3b8;
   
-  --accent: #10b981;
-  --accent-strong: #34d399;
-  --accent-light: rgba(16, 185, 129, 0.12);
-  --accent-glow: rgba(16, 185, 129, 0.22);
+  --accent: #C8A456;
+  --accent-strong: #e5b95f;
+  --accent-light: rgba(200, 164, 86, 0.1);
+  --accent-glow: rgba(200, 164, 86, 0.22);
+  
+  --brand-gold: #C8A456;
+  --brand-gold-solid: #C8A456;
+  --brand-gold-subtle: rgba(200, 164, 86, 0.1);
+  --brand-gold-glow: rgba(200, 164, 86, 0.22);
+  --brand-gold-border: rgba(200, 164, 86, 0.28);
+  
+  --semantic-success: #10b981;
+  --semantic-success-subtle: rgba(16, 185, 129, 0.12);
   
   --brand-sky: #38bdf8;
   --brand-indigo: #818cf8;
@@ -98,7 +116,7 @@ body.dark-mode {
   --danger-light: rgba(239, 68, 68, 0.14);
   
   --card-bg: #0d1424;
-  --card-border: rgba(255, 255, 255, 0.07);
+  --card-border: rgba(255, 255, 255, 0.08);
   --muted-bg: #121c30;
   --hover-bg: #15223a;
   
@@ -16423,5 +16441,251 @@ body:not(.theme-dark) .warrior-ai-body {
   border-top-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOVEREIGN ENTERPRISE UI STANDARDIZATION & HARMONY
+   Unified 3-Tier Button Architecture, Clean Semantic Badges & 100% Theme Harmony
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* 1. TIER BADGES & METADATA CHIPS (Eliminates stark white boxes & neon circus) */
+.tier-badge,
+.tier-pill--t1 {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  padding: 1px 6px !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
 
+.tier-pill--t2 {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #7dd3fc !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  padding: 1px 6px !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+.tier-pill--t3 {
+  background: rgba(200, 164, 86, 0.12) !important;
+  color: #e5b95f !important;
+  border: 1px solid rgba(200, 164, 86, 0.25) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  padding: 1px 6px !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+.tier-pill--t4 {
+  background: rgba(168, 85, 247, 0.12) !important;
+  color: #d8b4fe !important;
+  border: 1px solid rgba(168, 85, 247, 0.25) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  padding: 1px 6px !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+body:not(.theme-dark) .tier-badge,
+body:not(.theme-dark) .tier-pill--t1 {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body:not(.theme-dark) .tier-pill--t2 {
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+body:not(.theme-dark) .tier-pill--t3 {
+  background: rgba(154, 110, 24, 0.08) !important;
+  color: #9a6e18 !important;
+  border: 1px solid rgba(154, 110, 24, 0.22) !important;
+}
+
+body:not(.theme-dark) .tier-pill--t4 {
+  background: #faf5ff !important;
+  color: #7c3aed !important;
+  border: 1px solid #e9d5ff !important;
+}
+
+/* 2. ROUTINE PROGRESS COUNTER (Replaces neon cyan/purple with refined slate/gold) */
+.timeline-slot-count {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+}
+
+body:not(.theme-dark) .timeline-slot-count {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.timeline-slot-count.timeline-slot-complete-badge,
+.timeline-slot-complete-badge {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.28) !important;
+}
+
+body:not(.theme-dark) .timeline-slot-count.timeline-slot-complete-badge,
+body:not(.theme-dark) .timeline-slot-complete-badge {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid rgba(5, 150, 105, 0.28) !important;
+}
+
+/* 3. TIER 2 BUTTONS: BATCH ACTION & TIME FILTER PILLS */
+.timeline-slot-batch-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(200, 164, 86, 0.25) !important;
+  background: rgba(200, 164, 86, 0.08) !important;
+  color: var(--brand-gold, #C8A456) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-right: 6px !important;
+}
+
+.timeline-slot-batch-btn:hover {
+  background: var(--brand-gold, #C8A456) !important;
+  color: #070a11 !important;
+  transform: translateY(-1px) !important;
+}
+
+body:not(.theme-dark) .timeline-slot-batch-btn {
+  background: rgba(154, 110, 24, 0.08) !important;
+  border-color: rgba(154, 110, 24, 0.25) !important;
+  color: #9a6e18 !important;
+}
+
+body:not(.theme-dark) .timeline-slot-batch-btn:hover {
+  background: #9a6e18 !important;
+  color: #ffffff !important;
+}
+
+/* 4. SCHEDULE MODE CHIP (Sophisticated tinted capsule) */
+.mobile-daily__schedule-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 0.68rem !important;
+  font-weight: 750 !important;
+  color: #C8A456 !important;
+  background: rgba(200, 164, 86, 0.1) !important;
+  border: 1px solid rgba(200, 164, 86, 0.25) !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+body:not(.theme-dark) .mobile-daily__schedule-chip {
+  color: #9a6e18 !important;
+  background: rgba(154, 110, 24, 0.08) !important;
+  border: 1px solid rgba(154, 110, 24, 0.25) !important;
+}
+
+/* 5. EXECUTIVE GRADE BADGE [D] (Muted rose-amber instead of raw red) */
+.grade-badge.grade--d,
+.grade--d {
+  background: rgba(244, 63, 94, 0.12) !important;
+  border: 1px solid rgba(244, 63, 94, 0.28) !important;
+  color: #fb7185 !important;
+}
+
+body:not(.theme-dark) .grade-badge.grade--d,
+body:not(.theme-dark) .grade--d {
+  background: rgba(244, 63, 94, 0.08) !important;
+  border: 1px solid rgba(244, 63, 94, 0.2) !important;
+  color: #e11d48 !important;
+}
+
+/* 6. SHARE MODAL & PREVIEW CONTAINER (100% Light/Dark Theme Adaptation) */
+body:not(.theme-dark) .share-modal-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12), 0 0 30px rgba(200, 164, 86, 0.08) !important;
+}
+
+body:not(.theme-dark) .share-modal-title {
+  color: #090d16 !important;
+}
+
+body:not(.theme-dark) .share-modal-sub {
+  color: #64748b !important;
+}
+
+body:not(.theme-dark) .share-modal-preview-container {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* 7. BOTTOM NAVIGATION BAR COLOR HARMONIZATION */
+body.theme-dark .mobile-bottom-nav__item--active {
+  color: var(--brand-gold, #C8A456) !important;
+}
+
+body.theme-dark .mobile-bottom-nav__item--active .mobile-bottom-nav__icon {
+  filter: drop-shadow(0 0 6px rgba(200, 164, 86, 0.6)) !important;
+}
+
+body.theme-dark .mobile-bottom-nav__item--active::after {
+  background: var(--brand-gold, #C8A456) !important;
+  box-shadow: 0 0 8px rgba(200, 164, 86, 0.6) !important;
+}
+
+body:not(.theme-dark) .mobile-bottom-nav__item--active {
+  color: #9a6e18 !important;
+}
+
+body:not(.theme-dark) .mobile-bottom-nav__item--active .mobile-bottom-nav__icon {
+  filter: drop-shadow(0 0 4px rgba(154, 110, 24, 0.35)) !important;
+}
+
+body:not(.theme-dark) .mobile-bottom-nav__item--active::after {
+  background: #9a6e18 !important;
+  box-shadow: 0 0 6px rgba(154, 110, 24, 0.35) !important;
+}

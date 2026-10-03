@@ -20,10 +20,17 @@
   --font-size-xl: 22px;
   --font-size-2xl: 28px;
 
-  /* Light Theme Canvas & Hierarchy */
+  /* Light Theme Canvas & Surface Depth */
   --page-bg: #f8fafc;
   --shell-bg: #ffffff;
   --shell-border: #e2e8f0;
+  
+  --surface-ground: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-inset: #f1f5f9;
+  --surface-border: #e2e8f0;
+  --surface-border-subtle: rgba(15, 23, 42, 0.06);
   
   --text-primary: #090d16;
   --text-secondary: #334155;
@@ -37,33 +44,63 @@
   --hero-muted: #64748b;
   
   --card-bg: #ffffff;
-  --card-border: rgba(15, 23, 42, 0.08);
+  --card-border: #e2e8f0;
   --card-border-hover: rgba(15, 23, 42, 0.16);
   --muted-bg: #f1f5f9;
   --hover-bg: #f8fafc;
 
-  /* Functional Accents (Restrained & Purposeful) */
-  --accent: #10b981;
-  --accent-strong: #059669;
-  --accent-light: #ecfdf5;
-  --accent-glow: rgba(16, 185, 129, 0.18);
+  /* Signature Sovereign Accent (Light Mode) */
+  --brand-gold: #9a6e18;
+  --brand-gold-solid: #b45309;
+  --brand-gold-subtle: rgba(154, 110, 24, 0.08);
+  --brand-gold-glow: rgba(154, 110, 24, 0.16);
+  --brand-gold-border: rgba(154, 110, 24, 0.25);
+
+  /* Semantic State Tokens (Light Mode) */
+  --semantic-success: #059669;
+  --semantic-success-subtle: #ecfdf5;
+  --semantic-success-border: rgba(5, 150, 105, 0.25);
+  --accent: #9a6e18;
+  --accent-strong: #78350f;
+  --accent-light: rgba(154, 110, 24, 0.08);
+  --accent-glow: rgba(154, 110, 24, 0.16);
   
-  --brand-emerald: #10b981;
-  --brand-emerald-subtle: rgba(16, 185, 129, 0.12);
-  --brand-amber: #f59e0b;
-  --brand-amber-subtle: rgba(245, 158, 11, 0.12);
-  --brand-violet: #8b5cf6;
-  --brand-violet-subtle: rgba(139, 92, 246, 0.12);
-  --brand-sky: #0ea5e9;
-  --brand-sky-subtle: rgba(14, 165, 233, 0.12);
+  /* 3-Tier Enterprise Button Tokens (Light Mode) */
+  --btn-primary-bg: #9a6e18;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-border: #cbd5e1;
+  --btn-secondary-text: #334155;
+  --btn-secondary-hover-bg: #f1f5f9;
+  --btn-ghost-hover-bg: rgba(15, 23, 42, 0.05);
+
+  /* Micro-tokens & Badges (Light Mode) */
+  --badge-tier-bg: #f1f5f9;
+  --badge-tier-text: #475569;
+  --badge-tier-border: #e2e8f0;
+  --badge-count-bg: #f8fafc;
+  --badge-count-text: #64748b;
+  --badge-count-border: #e2e8f0;
+  --badge-grade-bg: rgba(244, 63, 94, 0.1);
+  --badge-grade-text: #e11d48;
+  --badge-grade-border: rgba(244, 63, 94, 0.2);
+
+  --brand-emerald: #059669;
+  --brand-emerald-subtle: rgba(5, 150, 105, 0.1);
+  --brand-amber: #d97706;
+  --brand-amber-subtle: rgba(217, 119, 6, 0.1);
+  --brand-violet: #7c3aed;
+  --brand-violet-subtle: rgba(124, 58, 237, 0.1);
+  --brand-sky: #0284c7;
+  --brand-sky-subtle: rgba(2, 132, 199, 0.1);
   
   --danger: #ef4444;
   --danger-light: #fef2f2;
   
   /* Glassmorphism & Elevation */
-  --glass-bg: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(15, 23, 42, 0.08);
-  --glass-border-specular: rgba(15, 23, 42, 0.14);
+  --glass-bg: rgba(255, 255, 255, 0.94);
+  --glass-border: #e2e8f0;
+  --glass-border-specular: rgba(15, 23, 42, 0.12);
   --glass-blur: blur(16px);
   --glass-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
 
@@ -91,6 +128,13 @@ body.dark-mode {
   --shell-bg: #0b101b;
   --shell-border: rgba(255, 255, 255, 0.07);
   
+  --surface-ground: #070a11;
+  --surface-card: #0d1424;
+  --surface-overlay: #10192d;
+  --surface-inset: #090f1b;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-border-subtle: rgba(255, 255, 255, 0.04);
+
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
@@ -103,17 +147,47 @@ body.dark-mode {
   --hero-muted: #94a3b8;
   
   --card-bg: #0d1424;
-  --card-border: rgba(255, 255, 255, 0.07);
-  --card-border-hover: rgba(255, 255, 255, 0.15);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: rgba(255, 255, 255, 0.16);
   --muted-bg: #121c30;
   --hover-bg: #15223a;
   
-  /* Restrained Accents */
-  --accent: #10b981;
-  --accent-strong: #34d399;
-  --accent-light: rgba(16, 185, 129, 0.12);
-  --accent-glow: rgba(16, 185, 129, 0.2);
-  
+  /* Signature Sovereign Accent (Dark Mode) */
+  --brand-gold: #C8A456;
+  --brand-gold-solid: #C8A456;
+  --brand-gold-subtle: rgba(200, 164, 86, 0.1);
+  --brand-gold-glow: rgba(200, 164, 86, 0.22);
+  --brand-gold-border: rgba(200, 164, 86, 0.28);
+
+  /* Semantic State Tokens (Dark Mode) */
+  --semantic-success: #10b981;
+  --semantic-success-subtle: rgba(16, 185, 129, 0.12);
+  --semantic-success-border: rgba(16, 185, 129, 0.25);
+  --accent: #C8A456;
+  --accent-strong: #e5b95f;
+  --accent-light: rgba(200, 164, 86, 0.1);
+  --accent-glow: rgba(200, 164, 86, 0.22);
+
+  /* 3-Tier Enterprise Button Tokens (Dark Mode) */
+  --btn-primary-bg: #C8A456;
+  --btn-primary-text: #070a11;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.04);
+  --btn-secondary-border: rgba(255, 255, 255, 0.08);
+  --btn-secondary-text: #cbd5e1;
+  --btn-secondary-hover-bg: rgba(255, 255, 255, 0.08);
+  --btn-ghost-hover-bg: rgba(255, 255, 255, 0.06);
+
+  /* Micro-tokens & Badges (Dark Mode) */
+  --badge-tier-bg: rgba(148, 163, 184, 0.12);
+  --badge-tier-text: #cbd5e1;
+  --badge-tier-border: rgba(148, 163, 184, 0.18);
+  --badge-count-bg: rgba(255, 255, 255, 0.05);
+  --badge-count-text: #94a3b8;
+  --badge-count-border: rgba(255, 255, 255, 0.08);
+  --badge-grade-bg: rgba(244, 63, 94, 0.15);
+  --badge-grade-text: #fb7185;
+  --badge-grade-border: rgba(244, 63, 94, 0.25);
+
   --brand-emerald: #10b981;
   --brand-emerald-subtle: rgba(16, 185, 129, 0.14);
   --brand-amber: #f59e0b;
@@ -126,9 +200,9 @@ body.dark-mode {
   --danger: #f87171;
   --danger-light: rgba(239, 68, 68, 0.14);
   
-  /* Hairline Crisp Glassmorphism without Heavy Gold Halos */
-  --glass-bg: rgba(13, 20, 36, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.07);
+  /* Hairline Crisp Glassmorphism */
+  --glass-bg: rgba(13, 20, 36, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-specular: rgba(255, 255, 255, 0.15);
   --glass-blur: blur(20px);
   --glass-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.65);
