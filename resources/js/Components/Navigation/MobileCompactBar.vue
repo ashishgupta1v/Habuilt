@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   Flame,
   Award,
@@ -25,6 +26,7 @@ import {
   MoreHorizontal,
   X,
   Heart,
+  LogOut,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -50,6 +52,7 @@ const props = defineProps({
   dueNowNotificationsEnabled: { type: Boolean, default: false },
   tierThresholds: { type: Object, default: () => ({ floor: 4, half: 8, full: 15, target: 15 }) },
   zenMode: { type: Boolean, default: false },
+  isGuestActive: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -65,6 +68,7 @@ const emit = defineEmits([
   'open-partner-sync',
   'open-partner-pair',
   'open-protocol-wizard',
+  'sign-out',
 ]);
 
 const isExpanded = ref(false);
@@ -84,8 +88,9 @@ const autoProtocolBadge = computed(() => {
   <header class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
     <!-- Slim 52px Primary Bar -->
     <div class="mcb-primary-bar">
-      <!-- Left: Identity & Auto-Protocol Pill -->
+      <!-- Left: Brand Logo, Identity & Auto-Protocol Pill -->
       <div class="mcb-identity" @click="isExpanded = !isExpanded">
+        <HabuiltLogo size="xs" :with-text="false" class="mcb-brand-icon" />
         <span class="mcb-user-name">{{ displayName || (isAshish ? 'Ashish' : (timeGreeting?.name || 'User')) }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
         <span class="mcb-auto-badge" :class="autoProtocolBadge.class">
@@ -268,6 +273,11 @@ const autoProtocolBadge = computed(() => {
                 </div>
                 <span>{{ zenMode ? 'Exit Zen' : 'Zen Mode' }}</span>
               </button>
+
+              <button type="button" class="mcb-tool-item mcb-tool-item--signout" @click="emit('sign-out'); isToolsOpen = false;">
+                <div class="mcb-tool-icon text-rose-400"><LogOut class="icon-sm" /></div>
+                <span>{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -283,7 +293,10 @@ const autoProtocolBadge = computed(() => {
   z-index: 80;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
   margin: 0 !important;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
@@ -294,9 +307,14 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mobile-compact-bar.mcb--dark {
-  background: rgba(7, 10, 17, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(9, 13, 22, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.mcb-brand-icon {
+  flex-shrink: 0;
+  margin-right: 2px;
 }
 
 @media (min-width: 769px) {

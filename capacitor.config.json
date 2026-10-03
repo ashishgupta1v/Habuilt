@@ -10,5 +10,11 @@
   "android": {
     "allowMixedContent": true,
     "backgroundColor": "#090d16"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#090d16"
+    }
   }
 }

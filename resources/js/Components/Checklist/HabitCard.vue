@@ -7,6 +7,7 @@ import {
   Info,
   FileText,
   Edit2,
+  MoreVertical,
 } from 'lucide-vue-next';
 import HabitGuidanceCard from './HabitGuidanceCard.vue';
 import { getSharedHabitInfo } from '../../Composables/useHabitsState.js';
@@ -167,18 +168,7 @@ const handleCardClick = () => {
           +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
         </span>
 
-        <!-- Edit Habit Button (Isolated Touch Area) -->
-        <button
-          type="button"
-          class="habit-action-btn habit-edit-card-btn"
-          @click.stop="emit('edit-habit', habit)"
-          title="Edit habit details, time & points"
-          aria-label="Edit habit"
-        >
-          <Edit2 class="icon-xs" />
-        </button>
-
-        <!-- Habit Instruction & Note Toggle (Isolated Touch Area) -->
+        <!-- Habit Options / Details & Note Toggle (Isolated Touch Area) -->
         <button
           type="button"
           class="habit-action-btn habit-note-btn"
@@ -188,18 +178,29 @@ const handleCardClick = () => {
             'habit-note-btn--hint': !!habit.hint
           }"
           @click.stop="emit('toggle-note')"
-          :title="habit.hint ? 'View instructions & daily note' : 'Add quick note'"
+          :title="habit.hint ? 'View instructions & daily note' : 'Habit options & notes'"
           :aria-label="'Instructions and notes for ' + habit.name"
         >
           <Info v-if="habit.hint && !noteValue" class="icon-xs habit-note-btn__icon" />
           <FileText v-else-if="noteValue" class="icon-xs habit-note-btn__icon" />
-          <MessageSquare v-else class="icon-xs habit-note-btn__icon" />
+          <MoreVertical v-else class="icon-xs habit-note-btn__icon" />
         </button>
       </div>
     </div>
 
     <!-- Habit Note Input & Guidance Drawer -->
     <div v-if="noteOpen" class="habit-note-input" @click.stop>
+      <div class="habit-drawer-toolbar">
+        <button
+          type="button"
+          class="habit-drawer-edit-btn habit-edit-card-btn"
+          @click.stop="emit('edit-habit', habit)"
+          title="Edit habit details, time & points"
+        >
+          <Edit2 class="icon-xs" />
+          <span>Edit Habit & Points</span>
+        </button>
+      </div>
       <div v-if="sharedInfo" class="habit-shared-partner-notice">
         <span class="habit-shared-partner-notice__icon">👫</span>
         <div class="habit-shared-partner-notice__content">

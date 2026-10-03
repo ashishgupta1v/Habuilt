@@ -210,6 +210,11 @@ const displayName = computed(() => {
   return props.userId && props.userId !== 'guest' ? props.userId : 'Champion';
 });
 const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
+const isGuestActive = computed(() => {
+  return resolvedEmail.value === 'guest@habuilt.com' ||
+         effectiveUserId.value === 'guest' ||
+         (typeof localStorage !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
+});
 
 // Reactive real-time clock ticker
 const currentClock = ref(new Date());
@@ -3178,6 +3183,7 @@ onBeforeUnmount(() => {
       :notifications-supported="notificationsSupported"
       :due-now-notifications-enabled="dueNowNotificationsEnabled"
       :tier-thresholds="tierThresholds"
+      :is-guest-active="isGuestActive"
       @toggle-up-next="toggleHabitForDay"
       @toggle-theme="toggleTheme"
       @toggle-zen="toggleZenMode"
@@ -3190,6 +3196,7 @@ onBeforeUnmount(() => {
       @open-partner-sync="partnerViewOpen = true"
       @open-partner-pair="isUniversalPartnerPairModalOpen = true"
       @open-protocol-wizard="isProtocolWizardOpen = true"
+      @sign-out="emit('sign-out')"
     />
 
     <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
@@ -3972,6 +3979,19 @@ onBeforeUnmount(() => {
         @unpaired="handlePartnerUnpaired"
         @toast="msg => showToast(msg)"
       />
+
+      <!-- Android Floating Action Button (FAB) for Quick Add Habit -->
+      <button
+        v-if="activeMobileTab === 'today'"
+        id="mobile-habits-fab"
+        type="button"
+        class="mobile-fab"
+        @click="openAddHabitModal('morning')"
+        aria-label="Add Habit"
+        title="Add Habit"
+      >
+        <Plus class="mobile-fab__icon" />
+      </button>
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
       <MobileBottomNav

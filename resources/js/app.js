@@ -4,6 +4,18 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import '../css/app.css';
 import '../css/landing.css';
 import MainSPA from './Pages/Main.vue';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
+
+// Native Android Status Bar Harmony
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  try {
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#090d16' }).catch(() => {});
+  } catch {
+    // Non-native / fallback
+  }
+}
 
 const rootElement = document.getElementById('app');
 const mountMainSPA = () => {
