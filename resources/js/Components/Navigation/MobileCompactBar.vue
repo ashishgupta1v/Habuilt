@@ -181,6 +181,7 @@ const autoProtocolBadge = computed(() => {
       <Transition name="tools-fade">
         <div v-if="isToolsOpen" class="mcb-tools-overlay" @click.self="isToolsOpen = false">
           <div class="mcb-tools-sheet">
+            <div class="mcb-tools-grabber"></div>
             <div class="mcb-tools-header">
               <span class="mcb-tools-title">Quick Actions & Integrations</span>
               <button type="button" class="mcb-tools-close" @click="isToolsOpen = false" aria-label="Close tools">
@@ -611,27 +612,38 @@ body:not(.theme-dark) .mcb-upnext-name {
 .mcb-tools-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 999;
+  z-index: 2000;
   display: flex;
   align-items: flex-end;
+  overscroll-behavior: contain;
 }
 
 .mcb-tools-sheet {
   position: relative;
-  z-index: 1000;
+  z-index: 2001;
   pointer-events: auto;
   width: 100%;
+  max-height: min(76vh, 520px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--card-bg, #0d1424);
   border-top: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
   border-radius: 20px 20px 0 0;
-  padding: 16px 16px 28px;
+  padding: 8px 16px calc(36px + env(safe-area-inset-bottom, 20px));
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75);
+}
+
+.mcb-tools-sheet::-webkit-scrollbar {
+  display: none;
 }
 
 body:not(.theme-dark) .mcb-tools-sheet {
@@ -640,7 +652,26 @@ body:not(.theme-dark) .mcb-tools-sheet {
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
 }
 
+.mcb-tools-grabber {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 4px auto 0;
+  flex-shrink: 0;
+}
+
+body:not(.theme-dark) .mcb-tools-grabber {
+  background: rgba(0, 0, 0, 0.15);
+}
+
 .mcb-tools-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+  padding-top: 4px;
+  padding-bottom: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
