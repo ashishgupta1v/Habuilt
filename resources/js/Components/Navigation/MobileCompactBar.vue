@@ -86,54 +86,25 @@ const autoProtocolBadge = computed(() => {
 
 <template>
   <header class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
-    <!-- Slim 52px Primary Bar -->
+    <!-- Slim 52px Executive Bar -->
     <div class="mcb-primary-bar">
-      <!-- Left: Brand Logo, Identity & Auto-Protocol Pill -->
+      <!-- Left: Brand Logo & User Grade -->
       <div class="mcb-identity" @click="isExpanded = !isExpanded">
         <HabuiltLogo size="xs" :with-text="false" class="mcb-brand-icon" />
         <span class="mcb-user-name">{{ displayName || (isAshish ? 'Ashish' : (timeGreeting?.name || 'User')) }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-        <span class="mcb-auto-badge" :class="autoProtocolBadge.class">
-          {{ autoProtocolBadge.label }}
-        </span>
       </div>
 
-      <!-- Right: Streak, Quick Actions, Tools & Expand Drawer -->
+      <!-- Center: Combined Streak & Protocol Progress Pill -->
+      <div class="mcb-combined-pill" @click="isExpanded = !isExpanded" :title="`Streak: ${systemStreak.current}d | Points: ${todayPoints}/${tierThresholds.target}p`">
+        <Flame class="icon-xs icon-flame" />
+        <span class="mono-num">{{ systemStreak.current }}d</span>
+        <span class="mcb-pill-dot">&bull;</span>
+        <span class="mono-num">{{ todayPoints }}/{{ tierThresholds.target }}p</span>
+      </div>
+
+      <!-- Right: Quick Tools & Expand Drawer Triggers -->
       <div class="mcb-actions">
-        <!-- Streak Chip -->
-        <div class="mcb-streak-chip" :title="`Current streak: ${systemStreak.current} days`">
-          <Flame class="icon-xs icon-flame" />
-          <span class="mono-num">{{ systemStreak.current }}d</span>
-        </div>
-
-        <!-- Day Type Toggle (Ashish only) -->
-        <button
-          v-if="isAshish"
-          type="button"
-          class="mcb-btn mcb-btn--travel"
-          :class="{ 'mcb-btn--travel-active': travelMode, 'mcb-btn--half': dayType === 'half-day', 'mcb-btn--holiday': dayType === 'holiday' }"
-          @click="emit('toggle-travel')"
-          :title="`Current: ${dayTypeLabel} • Tap to cycle`"
-          aria-label="Cycle Day Type"
-        >
-          <Plane v-if="travelMode" class="icon-xs" />
-          <Calendar v-else-if="dayType === 'half-day' || dayType === 'holiday'" class="icon-xs" />
-          <MapPin v-else class="icon-xs" />
-          <span class="mcb-travel-text">{{ dayType === 'home' ? 'Home' : dayType === 'half-day' ? '½d' : dayType === 'holiday' ? 'Holi' : 'Off' }}</span>
-        </button>
-
-        <!-- Theme Switcher -->
-        <button
-          type="button"
-          class="mcb-btn"
-          @click="emit('toggle-theme')"
-          :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-          aria-label="Toggle Theme"
-        >
-          <Sun v-if="darkMode" class="icon-xs icon-sun" />
-          <Moon v-else class="icon-xs icon-moon" />
-        </button>
-
         <!-- Quick Tools Menu Trigger -->
         <button
           type="button"
@@ -218,6 +189,16 @@ const autoProtocolBadge = computed(() => {
             </div>
 
             <div class="mcb-tools-grid">
+              <button type="button" class="mcb-tool-item" @click="emit('toggle-theme'); isToolsOpen = false;">
+                <div class="mcb-tool-icon icon-amber"><Sun v-if="darkMode" class="icon-sm" /><Moon v-else class="icon-sm" /></div>
+                <span>{{ darkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+              </button>
+
+              <button v-if="isAshish" type="button" class="mcb-tool-item" @click="emit('toggle-travel'); isToolsOpen = false;">
+                <div class="mcb-tool-icon icon-sky"><Plane v-if="travelMode" class="icon-sm" /><Calendar v-else class="icon-sm" /></div>
+                <span>{{ dayTypeLabel }}</span>
+              </button>
+
               <button type="button" class="mcb-tool-item" @click="emit('open-spotlight'); isToolsOpen = false;">
                 <div class="mcb-tool-icon icon-amber"><Search class="icon-sm" /></div>
                 <span>Command (⌘K)</span>
@@ -359,6 +340,32 @@ const autoProtocolBadge = computed(() => {
   padding: 1px 5px;
   border-radius: 5px;
   flex-shrink: 0;
+}
+
+.mcb-combined-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(200, 164, 86, 0.12);
+  border: 1px solid rgba(200, 164, 86, 0.28);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 750;
+  color: var(--brand-gold, #C8A456);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.mcb--light .mcb-combined-pill {
+  background: rgba(200, 164, 86, 0.1);
+  border-color: rgba(200, 164, 86, 0.35);
+  color: #b45309;
+}
+.mcb-pill-dot {
+  opacity: 0.5;
+  font-size: 0.6rem;
 }
 
 .mcb-auto-badge {
