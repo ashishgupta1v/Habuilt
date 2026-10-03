@@ -81,6 +81,15 @@ repositories {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force "androidx.browser:browser:${rootProject.ext.androidxBrowserVersion}"
+        force "androidx.core:core:${rootProject.ext.androidxCoreVersion}"
+        force "androidx.core:core-ktx:${rootProject.ext.androidxCoreVersion}"
+        force "androidx.activity:activity:${rootProject.ext.androidxActivityVersion}"
+    }
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"

@@ -22,6 +22,15 @@ allprojects {
         google()
         mavenCentral()
     }
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.browser:browser:${rootProject.ext.androidxBrowserVersion}"
+            force "androidx.core:core:${rootProject.ext.androidxCoreVersion}"
+            force "androidx.core:core-ktx:${rootProject.ext.androidxCoreVersion}"
+            force "androidx.activity:activity:${rootProject.ext.androidxActivityVersion}"
+            force "androidx.appcompat:appcompat:${rootProject.ext.androidxAppCompatVersion}"
+        }
+    }
 }
 
 task clean(type: Delete) {
