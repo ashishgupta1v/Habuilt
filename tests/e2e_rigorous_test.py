@@ -78,16 +78,23 @@ def run_tests():
         record_result("Quick Tools Dropdown Closes on Re-click", not tools_dropdown.is_visible())
 
         # 1.4 Test Day Type Cycle Button
-        travel_btn = page.locator(".hero-travel-btn")
-        travel_text_el = page.locator(".hero-travel-text")
+        travel_btn = page.locator(".hero-command-bar .hero-travel-btn").first
+        travel_text_el = page.locator(".hero-command-bar .hero-travel-text").first
         if travel_btn.count() > 0 and travel_text_el.count() > 0:
             initial_text = travel_text_el.inner_text().strip()
-            travel_btn.click()
-            page.wait_for_timeout(500)
+            travel_btn.click(force=True)
+            try:
+                page.wait_for_function(
+                    "(initial) => document.querySelector('.hero-command-bar .hero-travel-text')?.innerText.trim() !== initial",
+                    arg=initial_text,
+                    timeout=3000
+                )
+            except Exception:
+                page.wait_for_timeout(500)
             new_text = travel_text_el.inner_text().strip()
             record_result("Day Type Cycle Button Works", initial_text != new_text, f"({initial_text} -> {new_text})")
             # cycle back
-            travel_btn.click()
+            travel_btn.click(force=True)
             page.wait_for_timeout(300)
 
         # 1.5 Test Desktop Navigation Tabs
@@ -397,9 +404,12 @@ def run_tests():
         # 3.5 Test Habit Check on Mobile
         mob_card = page_mob.locator(".mobile-daily__card").first
         mob_check = mob_card.locator(".mobile-daily__card-check-btn")
+        was_done = "mobile-daily__card--done" in (mob_card.get_attribute("class") or "")
+        mob_check.scroll_into_view_if_needed()
         mob_check.click()
         page_mob.wait_for_timeout(400)
-        record_result("Mobile 44px Checkbox Toggles Successfully", "mobile-daily__card--done" in (mob_card.get_attribute("class") or ""))
+        is_done_now = "mobile-daily__card--done" in (mob_card.get_attribute("class") or "")
+        record_result("Mobile 44px Checkbox Toggles Successfully", was_done != is_done_now, f"(was_done={was_done}, is_done_now={is_done_now})")
         mob_check.click()
         page_mob.wait_for_timeout(300)
 

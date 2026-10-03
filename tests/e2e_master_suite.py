@@ -5,6 +5,8 @@ import time
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from e2e_rigorous_test import run_tests as run_core_suite
 from e2e_advanced_suite import run_advanced_tests as run_advanced_suite
 

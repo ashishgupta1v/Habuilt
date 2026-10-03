@@ -222,7 +222,7 @@ export function useDueNowNotifications({
 
   // Schedule upcoming habit alerts for the entire day (Runs once per day/schedule load)
   const scheduleDailyHabitAlerts = async (force = false) => {
-    if (!isNative || !notificationsEnabled.value || permissionState.value !== 'granted') return;
+    if (!notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) return;
 
     const day = Number(currentDay?.value || new Date().getDate());
@@ -238,6 +238,7 @@ export function useDueNowNotifications({
       const now = new Date();
       const habitList = habits?.value || [];
       const notifsToSchedule = [];
+      const webAlerts = [];
 
       for (const h of habitList) {
         // Skip if already done today
@@ -252,29 +253,44 @@ export function useDueNowNotifications({
         const [sh, sm] = sched.start.split(':').map(Number);
         const [eh, em] = (sched.end || '23:59').split(':').map(Number);
         const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0);
+        const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em, 0);
 
         // If start time is in the future today (at least 15 seconds from now)
         if (startTime.getTime() > now.getTime() + 15000) {
           const copy = getNotificationCopy(h, sched, `${sched.start} – ${sched.end}`);
-          notifsToSchedule.push({
-            id: hashHabitId(h.id),
-            title: copy.title,
-            body: copy.body,
-            channelId: 'habuilt_reminders',
-            actionTypeId: 'HABUILT_HABIT_ACTION',
-            extra: {
+
+          if (isNative) {
+            notifsToSchedule.push({
+              id: hashHabitId(h.id),
+              title: copy.title,
+              body: copy.body,
+              channelId: 'habuilt_reminders',
+              actionTypeId: 'HABUILT_HABIT_ACTION',
+              extra: {
+                habitId: h.id,
+                day: day,
+              },
+              schedule: { at: startTime },
+              sound: 'default',
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#10B981',
+            });
+          } else {
+            webAlerts.push({
               habitId: h.id,
+              habitName: h.name || 'Habit',
+              title: copy.title,
+              body: copy.body,
+              triggerTimestamp: startTime.getTime(),
+              expiryTimestamp: endTime.getTime(),
+              points: h.points || 1,
               day: day,
-            },
-            schedule: { at: startTime },
-            sound: 'default',
-            smallIcon: 'ic_launcher_round',
-            iconColor: '#10B981',
-          });
+            });
+          }
         }
       }
 
-      if (notifsToSchedule.length > 0) {
+      if (isNative && notifsToSchedule.length > 0) {
         const idsToCancel = notifsToSchedule.map(n => ({ id: n.id }));
         try {
           await LocalNotifications.cancel({ notifications: idsToCancel });
@@ -283,6 +299,13 @@ export function useDueNowNotifications({
         await LocalNotifications.schedule({
           notifications: notifsToSchedule,
         });
+      } else if (!isNative && webAlerts.length > 0) {
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SCHEDULE_HABIT_ALERTS',
+            payload: webAlerts,
+          });
+        }
       }
 
       if (typeof localStorage !== 'undefined') {
@@ -388,6 +411,12 @@ export function useDueNowNotifications({
         type: 'DISMISS_DUE_NOW_NOTIFICATION',
         payload: { habitId },
       });
+      if (habitId) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CANCEL_SCHEDULED_ALERT',
+          payload: { habitId },
+        });
+      }
     }
   };
 

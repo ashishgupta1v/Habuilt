@@ -98,6 +98,7 @@ self.addEventListener('fetch', (event) => {
 // ══════════════════════════════════════════════════════════════════════
 
 let activeExpiryTimer = null;
+const scheduledAlarms = new Map();
 
 const dismissDueNowNotifications = async (targetHabitId = null) => {
   try {
@@ -192,6 +193,74 @@ self.addEventListener('message', (event) => {
   if (data.type === 'DISMISS_DUE_NOW_NOTIFICATION') {
     if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
     dismissDueNowNotifications(data.payload?.habitId);
+  }
+
+  // Ahead-of-time scheduled habit alarms engine
+  if (data.type === 'SCHEDULE_HABIT_ALERTS') {
+    const list = Array.isArray(data.payload) ? data.payload : [];
+    for (const item of list) {
+      if (!item || !item.habitId || !item.triggerTimestamp) continue;
+      const now = Date.now();
+      const delay = item.triggerTimestamp - now;
+
+      if (scheduledAlarms.has(item.habitId)) {
+        clearTimeout(scheduledAlarms.get(item.habitId));
+        scheduledAlarms.delete(item.habitId);
+      }
+
+      if (delay > 0 && delay < 86400000) {
+        const timer = setTimeout(async () => {
+          try {
+            const title = item.title || `⚡ Due Now: ${item.habitName}`;
+            const options = {
+              body: item.body || `⏰ Scheduled habit • +${item.points || 1} pts\nTap [Mark Done] to complete.`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/badge-monochrome-96.png',
+              tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
+              renotify: true,
+              requireInteraction: true,
+              vibrate: [100, 50, 100],
+              data: {
+                habitId: item.habitId,
+                habitName: item.habitName,
+                points: item.points || 1,
+                day: item.day,
+                expiryTimestamp: item.expiryTimestamp,
+                url: '/',
+              },
+              actions: [
+                { action: 'mark-done', title: '✅ Mark Done' },
+                { action: 'open-dashboard', title: '🚀 Open Dashboard' },
+              ],
+            };
+
+            await self.registration.showNotification(title, options);
+
+            if (item.expiryTimestamp && item.expiryTimestamp > Date.now()) {
+              const expDelay = item.expiryTimestamp - Date.now();
+              setTimeout(() => {
+                checkAndPurgeExpiredNotifications();
+              }, expDelay + 500);
+            }
+          } catch (err) {
+            console.warn('[SW] Error showing scheduled notification:', err);
+          } finally {
+            scheduledAlarms.delete(item.habitId);
+          }
+        }, delay);
+
+        scheduledAlarms.set(item.habitId, timer);
+      }
+    }
+  }
+
+  if (data.type === 'CANCEL_SCHEDULED_ALERT') {
+    const habitId = data.payload?.habitId;
+    if (habitId && scheduledAlarms.has(habitId)) {
+      clearTimeout(scheduledAlarms.get(habitId));
+      scheduledAlarms.delete(habitId);
+    }
+    dismissDueNowNotifications(habitId);
   }
 
   if (data.type === 'CHECK_EXPIRED_NOTIFICATIONS') {
