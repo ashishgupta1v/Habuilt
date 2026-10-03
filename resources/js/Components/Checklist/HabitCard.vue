@@ -10,6 +10,7 @@ import {
 } from 'lucide-vue-next';
 import HabitGuidanceCard from './HabitGuidanceCard.vue';
 import { getSharedHabitInfo } from '../../Composables/useHabitsState.js';
+import { useAudioHapticFeedback } from '../../Composables/useAudioHapticFeedback.js';
 
 const props = defineProps({
   habit: { type: Object, required: true },
@@ -40,55 +41,33 @@ const emit = defineEmits([
   'edit-habit',
 ]);
 
+const { triggerCelebrationFeedback } = useAudioHapticFeedback();
 const sharedInfo = computed(() => getSharedHabitInfo(props.habit?.id));
 const isSharedActivity = computed(() => !!sharedInfo.value || (props.habit?.name || '').startsWith('★'));
 
-// Micro-celebration state
+// Silky micro-celebration ripple
 const celebratingNow = ref(false);
 
-/**
- * Synthesise a short crisp completion chime via Web Audio (no external file needed)
- */
-function playCompletionChime() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.08);
-    osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.16);
-    gain.gain.setValueAtTime(0.18, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.26);
-    osc.onended = () => {
-      try { ctx.close(); } catch { /* ignore */ }
-    };
-  } catch { /* audio not supported — silent fail */ }
-}
-
-const handleCardClick = () => {
+const handleCheckToggle = () => {
   if (props.isPending) return;
-  // If marking DONE (not undoing), fire celebration
   if (!props.isDone) {
     celebratingNow.value = true;
-    playCompletionChime();
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
-    setTimeout(() => { celebratingNow.value = false; }, 700);
+    triggerCelebrationFeedback();
+    setTimeout(() => {
+      celebratingNow.value = false;
+    }, 600);
   }
   emit('toggle-check');
+};
+
+const handleCardClick = () => {
+  // Fast 1-tap card toggle for high-speed habit checkoffs
+  handleCheckToggle();
 };
 </script>
 
 <template>
-  <div>
+  <div class="habit-card-wrapper">
     <div
       class="mobile-daily__card"
       :class="{
@@ -101,69 +80,97 @@ const handleCardClick = () => {
       }"
       tabindex="0"
       role="button"
-      style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+      :aria-label="`${habit.name}, ${isDone ? 'Completed' : 'Pending'}. +${habit.points} points.`"
       @click="handleCardClick"
       @keydown.enter.prevent="handleCardClick"
       @keydown.space.prevent="handleCardClick"
     >
-      <!-- 8 CSS micro-confetti particles (visible only during celebration) -->
-      <span v-if="celebratingNow" class="completion-particle completion-particle--1" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--2" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--3" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--4" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--5" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--6" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--7" aria-hidden="true"></span>
-      <span v-if="celebratingNow" class="completion-particle completion-particle--8" aria-hidden="true"></span>
-
-      <span v-if="mobileDayIsToday && isUpNext && !isDone" class="mobile-daily__up-next-badge" :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }">
+      <!-- UP NEXT Banner for active flow habit -->
+      <span
+        v-if="mobileDayIsToday && isUpNext && !isDone"
+        class="mobile-daily__up-next-badge"
+        :class="{ 'mobile-daily__up-next-badge--due': upNextInfo?.status === 'due' }"
+      >
         <Clock class="icon-xs" /> {{ upNextInfo?.badgeText || 'UP NEXT' }}
       </span>
 
-      <div class="mobile-daily__card-check" @click.stop="handleCardClick">
-        <span v-if="isPending" class="mobile-daily__spinner">…</span>
-        <span v-else-if="isDone" class="mobile-daily__checkmark">
-          <Check class="icon-check-mobile" />
-        </span>
-        <span v-else class="mobile-daily__circle"></span>
-      </div>
+      <!-- 44×44px Accessible Isolated Check Target -->
+      <button
+        type="button"
+        class="mobile-daily__card-check-btn"
+        :class="{ 'mobile-daily__card-check-btn--done': isDone }"
+        @click.stop="handleCheckToggle"
+        :title="isDone ? 'Mark as incomplete' : 'Mark complete (+ ' + habit.points + ' XP)'"
+        :aria-label="isDone ? 'Mark habit as incomplete' : 'Mark habit completed'"
+      >
+        <div class="mobile-daily__card-check">
+          <span v-if="isPending" class="mobile-daily__spinner">…</span>
+          <span v-else-if="isDone" class="mobile-daily__checkmark">
+            <Check class="icon-check-mobile" />
+          </span>
+          <span v-else class="mobile-daily__circle"></span>
+        </div>
+      </button>
 
-      <div class="mobile-daily__card-body" @click.stop="handleCardClick">
+      <!-- Habit Body Info -->
+      <div class="mobile-daily__card-body">
         <span class="mobile-daily__card-name">{{ habit.name }}</span>
         <span class="mobile-daily__card-meta">
           <span class="mobile-daily__card-category">{{ groupMeta.label }}</span>
-          <span v-if="sharedInfo" class="habit-shared-badge" :title="'Aligned with ' + sharedInfo.partnerName + ': ' + sharedInfo.partnerAction">
+          <span
+            v-if="sharedInfo"
+            class="habit-shared-badge"
+            :title="'Aligned with ' + sharedInfo.partnerName + ': ' + sharedInfo.partnerAction"
+          >
             {{ sharedInfo.badge }}
           </span>
           <span v-if="habit.scheduleLabel && scheduleFilterMode === 'all'" class="habit-schedule-badge">
             {{ habit.scheduleLabel }}
           </span>
-          <span class="tier-badge tier-badge--inline" :class="tierColorClass(tier)" @click.stop="emit('toggle-tier-detail')">
+          <button
+            type="button"
+            class="tier-badge tier-badge--inline"
+            :class="tierColorClass(tier)"
+            @click.stop="emit('toggle-tier-detail')"
+            :title="`Tier ${tier}: Click to switch target tier`"
+          >
             T{{ tier }}
-          </span>
+          </button>
         </span>
 
-        <!-- Tier Detail Expand -->
+        <!-- Tier Detail Expandable Selector -->
         <div v-if="tierDetailExpanded" class="tier-detail-expand" @click.stop>
-          <div v-for="t in 4" :key="'td-' + t" class="tier-detail-row" :class="{ 'tier-detail-row--current': tier === t }">
+          <div
+            v-for="t in 4"
+            :key="'td-' + t"
+            class="tier-detail-row"
+            :class="{ 'tier-detail-row--current': tier === t }"
+          >
             <span class="tier-detail-label" :class="tierColorClass(t)">T{{ t }}</span>
             <span class="tier-detail-desc">{{ tierDescriptions[t - 1] }}</span>
-            <button v-if="tier !== t" class="tier-detail-set" @click.stop="emit('set-tier', t)">Set</button>
+            <button
+              v-if="tier !== t"
+              type="button"
+              class="tier-detail-set"
+              @click.stop="emit('set-tier', t)"
+            >
+              Set
+            </button>
             <Check v-else class="icon-xs tier-detail-active" />
           </div>
         </div>
       </div>
 
-      <!-- Right Meta: Points & Instructions/Note Action -->
-      <div class="mobile-daily__card-right">
-        <span class="mobile-daily__card-pts">
+      <!-- Right Meta: Points & Isolated Action Buttons -->
+      <div class="mobile-daily__card-right" @click.stop>
+        <span class="mobile-daily__card-pts mono-num">
           +{{ habit.points }}<small>pt{{ habit.points !== 1 ? 's' : '' }}</small>
         </span>
 
-        <!-- Edit Habit Button -->
+        <!-- Edit Habit Button (Isolated Touch Area) -->
         <button
           type="button"
-          class="habit-edit-card-btn"
+          class="habit-action-btn habit-edit-card-btn"
           @click.stop="emit('edit-habit', habit)"
           title="Edit habit details, time & points"
           aria-label="Edit habit"
@@ -171,10 +178,10 @@ const handleCardClick = () => {
           <Edit2 class="icon-xs" />
         </button>
 
-        <!-- Habit Instruction & Note Toggle -->
+        <!-- Habit Instruction & Note Toggle (Isolated Touch Area) -->
         <button
           type="button"
-          class="habit-note-btn"
+          class="habit-action-btn habit-note-btn"
           :class="{
             'habit-note-btn--has': !!noteValue,
             'habit-note-btn--open': noteOpen,

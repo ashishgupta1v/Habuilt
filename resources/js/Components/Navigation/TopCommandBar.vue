@@ -29,6 +29,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  MoreHorizontal,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -77,9 +78,17 @@ const emit = defineEmits([
 const showLevelInfo = ref(false);
 const isProtocolMenuOpen = ref(false);
 const protocolMenuRef = ref(null);
+const isToolsMenuOpen = ref(false);
+const toolsMenuRef = ref(null);
 
 const toggleProtocolMenu = () => {
   isProtocolMenuOpen.value = !isProtocolMenuOpen.value;
+  if (isProtocolMenuOpen.value) isToolsMenuOpen.value = false;
+};
+
+const toggleToolsMenu = () => {
+  isToolsMenuOpen.value = !isToolsMenuOpen.value;
+  if (isToolsMenuOpen.value) isProtocolMenuOpen.value = false;
 };
 
 const handleSelectProtocol = (id) => {
@@ -100,6 +109,9 @@ const handleOpenSettings = () => {
 const onDocumentClick = (e) => {
   if (protocolMenuRef.value && !protocolMenuRef.value.contains(e.target)) {
     isProtocolMenuOpen.value = false;
+  }
+  if (toolsMenuRef.value && !toolsMenuRef.value.contains(e.target)) {
+    isToolsMenuOpen.value = false;
   }
 };
 
@@ -307,7 +319,14 @@ onBeforeUnmount(() => {
         <Plane v-if="travelMode" class="icon-xs icon-plane" />
         <Calendar v-else-if="dayType === 'half-day' || dayType === 'holiday'" class="icon-xs" />
         <MapPin v-else class="icon-xs" />
-        <span class="hero-travel-text">{{ dayType === 'home' ? 'Home' : dayType === 'half-day' ? '½ Day' : dayType === 'holiday' ? 'Holiday' : 'Office' }}</span>
+        <span class="hero-travel-text">{{
+          dayType === 'home' ? 'Home' :
+          dayType === 'office-mon' ? 'Off (Mon)' :
+          dayType === 'office-mid' ? 'Off (Mid)' :
+          dayType === 'office-fri' ? 'Off (Fri)' :
+          dayType === 'half-day' ? '½ Day' :
+          dayType === 'holiday' ? 'Holiday' : 'Office'
+        }}</span>
       </button>
 
       <!-- Month Controls -->
@@ -351,64 +370,6 @@ onBeforeUnmount(() => {
         <kbd class="hero-spotlight-kbd">⌘K</kbd>
       </button>
 
-      <!-- App & Alerts Hub Button (Desktop PWA & Notifications) -->
-      <button
-        type="button"
-        class="hero-app-install-btn"
-        @click="emit('open-install-modal')"
-        title="Install Windows Desktop App & Enable Notifications"
-      >
-        <Download class="icon-xs" />
-        <span class="hero-app-install-text">App / Alerts</span>
-      </button>
-
-      <!-- Calendar Focus Sync Button -->
-      <button
-        type="button"
-        class="hero-icon-btn"
-        @click="emit('open-calendar-sync')"
-        title="Sync Today's Focus Blocks to Google / Outlook Calendar"
-        aria-label="Calendar Sync"
-      >
-        <Calendar class="icon-sm" />
-      </button>
-
-      <!-- Shared Couple Cockpit Button -->
-      <button
-        type="button"
-        class="hero-icon-btn"
-        :class="{ 'hero-icon-btn--paired': isPartnerPaired }"
-        @click="emit('open-partner-sync')"
-        title="Shared Couple Cockpit (Live Sync)"
-        aria-label="Partner Cockpit"
-      >
-        <Users class="icon-sm" />
-      </button>
-
-      <!-- Universal Partner Pairing Link / Invite Button -->
-      <button
-        type="button"
-        class="hero-icon-btn"
-        @click="emit('open-partner-pair')"
-        title="Partner Connection & 6-Char Invite Code"
-        aria-label="Pair with Partner"
-      >
-        <Heart class="icon-sm text-rose-400" />
-      </button>
-
-      <!-- Zen Focus Mode Toggle Button -->
-      <button
-        type="button"
-        class="hero-icon-btn hero-icon-btn--zen"
-        :class="{ 'hero-icon-btn--zen-active': zenMode }"
-        @click="emit('toggle-zen')"
-        :title="zenMode ? 'Exit Zen Mode (Press Z)' : 'Enter Zen Focus Mode: Distraction-Free Flow (Press Z)'"
-        aria-label="Toggle Zen Focus Mode"
-      >
-        <Eye v-if="zenMode" class="icon-sm text-amber-400" />
-        <EyeOff v-else class="icon-sm" />
-      </button>
-
       <!-- Theme Switcher -->
       <button
         type="button"
@@ -420,6 +381,93 @@ onBeforeUnmount(() => {
         <Sun v-if="darkMode" class="icon-sm icon-sun" />
         <Moon v-else class="icon-sm icon-moon" />
       </button>
+
+      <!-- Quick Tools Consolidated Menu [•••] -->
+      <div class="hero-tools-menu-wrap" ref="toolsMenuRef">
+        <button
+          type="button"
+          class="hero-icon-btn hero-tools-trigger"
+          :class="{ 'hero-icon-btn--active': isToolsMenuOpen, 'hero-icon-btn--paired': isPartnerPaired }"
+          @click.stop="toggleToolsMenu"
+          title="Quick Tools (Calendar, Partner, Alerts, Zen)"
+          aria-label="Quick Tools"
+        >
+          <MoreHorizontal class="icon-sm" />
+        </button>
+
+        <Transition name="proto-drop">
+          <div v-if="isToolsMenuOpen" class="hero-tools-dropdown" role="menu">
+            <div class="hero-tools-dropdown__header">
+              <span class="hero-tools-dropdown__title">Tools & Integrations</span>
+            </div>
+
+            <div class="hero-tools-dropdown__list">
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('open-calendar-sync'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon icon-sky"><Calendar class="icon-xs" /></div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">Calendar Sync</span>
+                  <span class="hero-tools-item__sub">Google & Outlook Focus</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('open-partner-sync'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon icon-indigo"><Users class="icon-xs" /></div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">Partner Cockpit</span>
+                  <span class="hero-tools-item__sub">{{ isPartnerPaired ? 'Live Synced' : 'Couple Sync' }}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('open-partner-pair'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon text-rose-400"><Heart class="icon-xs" /></div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">Pair Connection</span>
+                  <span class="hero-tools-item__sub">Invite Code & Sync</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('open-install-modal'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon icon-emerald"><Download class="icon-xs" /></div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">Install Desktop App</span>
+                  <span class="hero-tools-item__sub">PWA & Notifications</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('toggle-zen'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon" :class="zenMode ? 'text-amber-400' : 'text-slate-400'">
+                  <Eye v-if="zenMode" class="icon-xs" />
+                  <EyeOff v-else class="icon-xs" />
+                </div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">{{ zenMode ? 'Exit Zen Mode' : 'Zen Focus Mode' }}</span>
+                  <span class="hero-tools-item__sub">Press 'Z' shortcut</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
     </div>
 
     <!-- Level & XP Popover Modal – Teleported to body to escape stacking context -->

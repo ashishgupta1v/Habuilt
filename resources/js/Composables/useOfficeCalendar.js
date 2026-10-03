@@ -133,9 +133,9 @@ export function getDayTypeLabel(dayType) {
 export function getDayTypeShortLabel(dayType) {
   const labels = {
     'home':       'Home',
-    'office-mon': 'Office',
-    'office-mid': 'Office',
-    'office-fri': 'Office',
+    'office-mon': 'Off (Mon)',
+    'office-mid': 'Off (Mid)',
+    'office-fri': 'Off (Fri)',
     'half-day':   '½ Day',
     'holiday':    'Holiday',
   };

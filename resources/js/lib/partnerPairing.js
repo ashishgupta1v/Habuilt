@@ -15,6 +15,11 @@ export function generateRandomCode() {
   return `HAB-${rand}`;
 }
 
+const isGuestUser = (uid) => {
+  if (typeof window === 'undefined') return false;
+  return (localStorage.getItem('habuilt_guest_mode') === 'true' && uid === 'guest') || uid === 'guest';
+};
+
 /**
  * Get or create an invite code for the current user.
  */
@@ -27,7 +32,7 @@ export async function getOrCreateInviteCode(userId) {
 
   let code = generateRandomCode();
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && !isGuestUser(userId)) {
     try {
       // Check if user already has an existing connection row with invite_code
       const { data, error } = await supabase
@@ -160,7 +165,7 @@ export async function getPartnerConnection(userId) {
     } catch (_) {}
   }
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && !isGuestUser(userId)) {
     try {
       const { data, error } = await supabase
         .from('partner_connections')
@@ -209,5 +214,78 @@ export async function disconnectPartner(userId) {
     } catch (e) {
       console.warn('[PartnerPairing] Revoke error:', e);
     }
+  }
+}
+
+/**
+ * Subscribes to realtime updates on partner_connections.
+ */
+export function subscribeToPartnerConnection(userId, onPartnerChange) {
+  if (!isSupabaseConfigured() || !userId || isGuestUser(userId)) return null;
+
+  const channel = supabase
+    .channel(`habuilt-partner-sync-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'partner_connections',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        if (typeof onPartnerChange === 'function') {
+          onPartnerChange(payload);
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'partner_connections',
+        filter: `partner_user_id=eq.${userId}`,
+      },
+      (payload) => {
+        if (typeof onPartnerChange === 'function') {
+          onPartnerChange(payload);
+        }
+      }
+    )
+    .subscribe();
+
+  return channel;
+}
+
+/**
+ * Loads partner's live progress metrics from habit_check_ins.
+ */
+export async function loadPartnerLiveMetrics(partnerUserId, monthKey) {
+  if (!isSupabaseConfigured() || !partnerUserId) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('habit_check_ins')
+      .select('points, day, completed_on')
+      .eq('user_id', partnerUserId)
+      .eq('month_key', monthKey);
+
+    if (error || !data) return null;
+
+    const totalPoints = data.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
+    const uniqueDays = new Set(data.map(d => Number(d.day)));
+    const today = new Date().getDate();
+    const isTodayActive = uniqueDays.has(today);
+
+    return {
+      totalPoints,
+      completedDaysCount: uniqueDays.size,
+      checkInsCount: data.length,
+      isTodayActive
+    };
+  } catch (e) {
+    console.warn('[PartnerPairing] loadPartnerLiveMetrics note:', e);
+    return null;
   }
 }

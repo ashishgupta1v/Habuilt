@@ -237,7 +237,8 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
       }
 
       // 3. Load from Supabase if connected
-      if (isSupabaseConfigured() && userId && userId !== 'guest') {
+      const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+      if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
         const { data, error } = await supabase
           .from('user_protocols')
           .select('*')
@@ -283,7 +284,8 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
     localStorage.setItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`, protocolId);
 
     // Sync to Supabase if logged in
-    if (isSupabaseConfigured() && userId && userId !== 'guest') {
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
       try {
         // Set all to inactive first
         await supabase
@@ -332,7 +334,8 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
     await switchProtocol(id);
 
     // Sync to Supabase
-    if (isSupabaseConfigured() && userId && userId !== 'guest') {
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
       try {
         await supabase.from('user_protocols').upsert({
           id: id.startsWith('custom-') ? undefined : id,

@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ashish's Master Operating Plan · ZoetiCoach & Digital Builders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --midnight: #0E1322;
+    --night: #182033;
+    --forest: #0E6B67;
+    --forest-subtle: rgba(14, 107, 103, 0.08);
+    --gold: #B5811F;
+    --gold-subtle: rgba(181, 129, 31, 0.09);
+    --leaf: #2D8C4E;
+    --leaf-subtle: rgba(45, 140, 78, 0.08);
+    --surface: #FFFFFF;
+    --bg-page: #FBFBF9;
+    --bg-alt: #F4F2EC;
+    --ink: #171C24;
+    --ink-light: #525C6A;
+    --ink-muted: #7E8997;
+    --border: #E4E1D8;
+    --border-light: #EEECE6;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 14mm 12mm;
+    @bottom-right {
+      content: "Page " counter(page);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #7E8997;
+    }
+    @bottom-left {
+      content: "Ashish's Operating Plan · ZoetiCoach & Digital Builders";
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #7E8997;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-page);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-size: 9pt;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    word-break: break-word;
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #FFFFFF;
+  }
+
+  /* QUICK NAV BAR */
+  .quick-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    margin: -24px -24px 20px -24px;
+    padding: 10px 24px;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .quick-nav::-webkit-scrollbar { display: none; }
+  .nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.2pt;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 20px;
+    background: var(--bg-alt);
+    color: var(--ink);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .nav-pill:active, .nav-pill:hover {
+    background: var(--forest);
+    color: #FFFFFF;
+    border-color: var(--forest);
+  }
+  .nav-pill.pill-alert {
+    background: #FEE2E2;
+    color: #991B1B;
+    border-color: #FCA5A5;
+  }
+  .nav-pill.pill-alert:active, .nav-pill.pill-alert:hover {
+    background: #DC2626;
+    color: #FFFFFF;
+    border-color: #DC2626;
+  }
+
+  /* COVER HEADER */
+  .cover {
+    background: linear-gradient(135deg, #182033 0%, #0E1322 100%);
+    color: #FFFFFF;
+    padding: 24px 26px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(14, 19, 34, 0.08);
+    page-break-after: avoid;
+  }
+  .cover .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6EE7A0;
+    margin-bottom: 8px;
+  }
+  .cover h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22pt;
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+  }
+  .cover .sub {
+    font-size: 9.3pt;
+    color: rgba(238, 240, 245, 0.88);
+    max-width: 96%;
+    margin-bottom: 15px;
+    line-height: 1.4;
+  }
+  .cover-pillars {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .pillar-item b {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 11pt;
+    color: #FFFFFF;
+    line-height: 1.2;
+  }
+  .pillar-item span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.2pt;
+    text-transform: uppercase;
+    color: rgba(238, 240, 245, 0.7);
+    letter-spacing: 0.04em;
+  }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--midnight);
+    margin: 18px 0 10px 0;
+    padding-bottom: 4px;
+    border-bottom: 1.5px solid var(--border);
+    page-break-after: avoid;
+    scroll-margin-top: 50px;
+  }
+  h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 10.8pt;
+    font-weight: 600;
+    color: var(--forest);
+    margin: 12px 0 6px 0;
+    page-break-after: avoid;
+  }
+
+  p { margin: 0 0 6px 0; }
+  strong { color: var(--midnight); font-weight: 600; }
+
+  /* CARDS & GRIDS */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+  }
+
+  .card {
+    background: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+  }
+  .card-title {
+    font-weight: 700;
+    font-size: 8.8pt;
+    color: var(--midnight);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-desc {
+    color: var(--ink-light);
+    font-size: 8.3pt;
+    line-height: 1.4;
+  }
+
+  .track-card {
+    background: #FCFAF6;
+    border-left: 3.5px solid var(--forest);
+    border-top: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: 10px 12px;
+    border-radius: 0 6px 6px 0;
+    page-break-inside: avoid;
+  }
+  .track-card strong { color: var(--forest); }
+
+  .rule-card {
+    background: #FCFAF6;
+    border-left: 3.5px solid var(--gold);
+    border-top: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: 8px 10px;
+    border-radius: 0 5px 5px 0;
+    page-break-inside: avoid;
+    font-size: 8.3pt;
+    line-height: 1.38;
+  }
+  .rule-card strong { color: var(--gold); }
+
+  .protocol-box {
+    background: #F5F9F7;
+    border: 1px solid rgba(45, 140, 78, 0.2);
+    border-left: 4px solid var(--leaf);
+    border-radius: 5px;
+    padding: 9px 12px;
+    margin-bottom: 9px;
+    page-break-inside: avoid;
+    font-size: 8.3pt;
+    line-height: 1.4;
+  }
+  .protocol-box h4 {
+    margin: 0 0 5px 0;
+    font-size: 8.6pt;
+    font-weight: 700;
+    color: var(--leaf);
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 12px 0;
+    font-size: 8.3pt;
+  }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  th {
+    background: var(--midnight);
+    color: #FFFFFF;
+    text-align: left;
+    padding: 6px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.3pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #FAF9F6; }
+
+  .time-slot {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 7.5pt;
+    color: var(--forest);
+    white-space: nowrap;
+  }
+  .phase-header {
+    background: #EFECE4 !important;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 8.6pt;
+    color: var(--midnight);
+    padding: 4px 8px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7pt;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .badge-home { background: var(--forest-subtle); color: var(--forest); border: 1px solid rgba(14, 107, 103, 0.2); }
+  .badge-chd { background: var(--gold-subtle); color: var(--gold); border: 1px solid rgba(181, 129, 31, 0.2); }
+  .badge-biz { background: rgba(43, 108, 176, 0.1); color: #2B6CB0; border: 1px solid rgba(43, 108, 176, 0.25); }
+  .badge-current { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+  /* CURRENT ROUTINE HIGHLIGHT */
+  .current-routine-wrapper {
+    background: #FEF2F2;
+    border: 1.5px solid #FECACA;
+    border-left: 5px solid #EF4444;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 16px 0 20px 0;
+    page-break-inside: avoid;
+    scroll-margin-top: 50px;
+  }
+  .current-routine-wrapper table {
+    background: #FFFFFF;
+    border: 1px solid #FECACA;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0 10px 0;
+  }
+  .current-routine-wrapper th {
+    background: #7F1D1D;
+    color: #FFFFFF;
+    border-bottom: 2px solid #991B1B;
+  }
+  .current-routine-wrapper td {
+    border-bottom: 1px solid #FEE2E2;
+  }
+  .current-routine-wrapper tbody tr:nth-child(even) {
+    background: #FFF8F8;
+  }
+  .current-routine-wrapper .time-slot {
+    color: #B91C1C;
+    font-weight: 700;
+  }
+
+  .page-break { page-break-before: always; }
+
+  /* ========================================================
+     MOBILE RESPONSIVE SYSTEM (Touch-First & Fluid Layout)
+     ======================================================== */
+  @media (max-width: 768px) {
+    body {
+      font-size: 9.5pt;
+      line-height: 1.48;
+    }
+    .wrap {
+      padding: 12px 14px;
+      max-width: 100%;
+    }
+
+    /* Sticky quick navigation on phones */
+    .quick-nav {
+      margin: -12px -14px 14px -14px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-pill {
+      font-size: 7.2pt;
+      padding: 5px 9px;
+    }
+
+    /* Cover section on phones */
+    .cover {
+      padding: 18px 16px;
+      margin-bottom: 14px;
+      border-radius: 8px;
+    }
+    .cover h1 {
+      font-size: 17pt;
+      line-height: 1.18;
+    }
+    .cover .sub {
+      font-size: 8.8pt;
+      max-width: 100%;
+      margin-bottom: 12px;
+    }
+    .cover-pillars {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 8px 10px;
+    }
+    .pillar-item b {
+      font-size: 9.8pt;
+    }
+    .pillar-item span {
+      font-size: 6.8pt;
+    }
+
+    /* Headings on phones */
+    h2 {
+      font-size: 12pt;
+      margin: 16px 0 8px 0;
+      scroll-margin-top: 46px;
+    }
+    h3 {
+      font-size: 10.2pt;
+      margin: 10px 0 4px 0;
+    }
+
+    /* Multi-column grid collapsing */
+    .grid-2, .grid-3 {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .rule-card {
+      grid-column: span 1 !important;
+      font-size: 8.5pt;
+      padding: 9px 11px;
+    }
+
+    /* Tables convert to responsive cards for native phone readability */
+    table, thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead tr {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+    }
+    table {
+      margin: 6px 0 10px 0;
+      border: none !important;
+    }
+    tbody tr {
+      margin-bottom: 9px;
+      border: 1px solid var(--border-light);
+      border-radius: 7px;
+      background: #FFFFFF;
+      padding: 9px 11px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+    tbody tr:nth-child(even) {
+      background: #FFFFFF;
+    }
+    td {
+      padding: 2px 0 !important;
+      border: none !important;
+    }
+    td.time-slot {
+      display: inline-block;
+      font-size: 7.6pt;
+      background: var(--forest-subtle);
+      color: var(--forest);
+      border: 1px solid rgba(14, 107, 103, 0.22);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+    td:nth-of-type(2) {
+      font-size: 9.2pt;
+      font-weight: 700;
+      color: var(--midnight);
+      margin-bottom: 3px;
+    }
+    td:nth-of-type(3) {
+      font-size: 8.5pt;
+      color: var(--ink-light);
+      line-height: 1.42;
+    }
+
+    /* Phase dividing headers on phones */
+    td.phase-header {
+      display: block !important;
+      width: 100% !important;
+      background: #EFECE4 !important;
+      border-radius: 6px;
+      padding: 6px 9px !important;
+      margin: 14px 0 6px 0 !important;
+      font-weight: 700;
+      font-size: 8.2pt !important;
+      letter-spacing: 0.04em;
+      color: var(--midnight);
+      box-shadow: none;
+    }
+
+    /* Current baseline wrapper on phones */
+    .current-routine-wrapper {
+      padding: 12px 14px;
+      margin: 14px 0 16px 0;
+      scroll-margin-top: 46px;
+    }
+    .current-routine-wrapper table {
+      background: transparent;
+      border: none;
+    }
+    .current-routine-wrapper tbody tr {
+      background: #FFFFFF;
+      border: 1px solid #FECACA;
+    }
+    .current-routine-wrapper tbody tr:nth-child(even) {
+      background: #FFFFFF;
+    }
+    .current-routine-wrapper td.time-slot {
+      background: #FEE2E2;
+      color: #991B1B;
+      border-color: #FCA5A5;
+    }
+
+    /* Avoid page-breaks cutting abruptly on mobile view */
+    .page-break {
+      page-break-before: auto;
+      margin-top: 14px;
+    }
+  }
+
+  /* PRINT PRESERVATION */
+  @media print {
+    .quick-nav {
+      display: none !important;
+    }
+    .wrap {
+      padding: 0;
+      max-width: 100%;
+    }
+    table, thead, tbody, th, td, tr {
+      display: table !important;
+    }
+    thead {
+      display: table-header-group !important;
+    }
+    tbody tr {
+      display: table-row !important;
+      border: none !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    th, td {
+      display: table-cell !important;
+    }
+    .grid-2 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .grid-3 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr 1fr !important;
+    }
+    .cover-pillars {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+    }
+    .page-break {
+      page-break-before: always !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- QUICK NAVIGATION BAR -->
+<nav class="quick-nav">
+  <a href="#section-baseline" class="nav-pill pill-alert">⚡ Current Routine</a>
+  <a href="#section-track1" class="nav-pill">🏡 Track 1: Home</a>
+  <a href="#section-track2" class="nav-pill">🏢 Track 2: Chandigarh</a>
+  <a href="#section-weekends" class="nav-pill">🌱 Weekends</a>
+  <a href="#section-flat-rules" class="nav-pill">🍲 Flat Rules</a>
+  <a href="#section-shield" class="nav-pill">🛡️ Spine & Eyes</a>
+  <a href="#section-protocols" class="nav-pill">💊 Health Protocols</a>
+</nav>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="eyebrow">Monthly Dual-Track Blueprint · Business Build & Vitality</div>
+  <h1>Ashish's Master Operating Plan</h1>
+  <div class="sub">Direct operational manual: building <strong>businesses (ZoetiCoach & Digital Builders)</strong> in all free time, completing Infosys deliverables, and protecting spine & eye health during laptop hours.</div>
+  <div class="cover-pillars">
+    <div class="pillar-item"><b>ZoetiCoach</b><span>Flagship Product Build</span></div>
+    <div class="pillar-item"><b>Digital Builders</b><span>Venture & Tech Execution</span></div>
+    <div class="pillar-item"><b>2h Meetings</b><span>Alt Days (Physical/Online)</span></div>
+    <div class="pillar-item"><b>Health Guardrails</b><span>Spine, Eyes & 21:00 Shutdown</span></div>
+  </div>
+</div>
+
+<!-- SECTION 1: THE DUAL-TRACK ARCHITECTURE -->
+<h2 id="section-architecture">1. The Monthly Dual-Track Architecture</h2>
+<p style="color:var(--ink-light);margin-bottom:8px;">Monthly structure balancing home base productivity with solo build weeks in Chandigarh:</p>
+
+<div class="grid-2">
+  <div class="track-card">
+    <div class="card-title"><span class="badge badge-home">Track 1</span> Home Base Rhythm (3 Weeks / Month + All Weekends)</div>
+    <div class="card-desc">
+      • <strong>Base:</strong> Ludhiana home with all personal resources, kitchen setup, and family support.<br>
+      • <strong>Allocation:</strong> Infosys deliverables + dedicated laptop build blocks for <strong>businesses</strong>. All free time routes to laptop work.<br>
+      • <strong>Key Anchors:</strong> Morning sadhana & workout, deep daytime blocks, 16:15–18:15 alternate-day 2h meetings, 18:15 walk, 19:00–20:15 office meetings, 21:00 hard laptop shutdown.<br>
+      • <strong>Weekends:</strong> Full-day laptop sprints on Saturday & Sunday for your businesses up to 21:00 shutdown.
+    </div>
+  </div>
+  <div class="track-card" style="border-left-color:var(--gold);">
+    <div class="card-title"><span class="badge badge-chd">Track 2</span> Chandigarh Solo Sprint (1 Week / Month, Mon–Fri)</div>
+    <div class="card-desc">
+      • <strong>Base:</strong> Chandigarh flat living solo (simple 1-pot meals, self-reliant chores).<br>
+      • <strong>Office Mandate:</strong> 4 hours on-site at Infosys campus.<br>
+      • <strong>Build Studio:</strong> All flat free time (mornings, afternoons, evenings) channels into laptop building for your <strong>businesses</strong>.<br>
+      • <strong>Key Anchors:</strong> 16:15–18:15 alternate-day 2h meetings, 18:15 walk, 19:00–20:15 office syncs, 21:00 hard laptop shutdown.<br>
+      • <strong>Commute:</strong> Monday 05:30 outbound drive; Friday 14:00–17:00 (2:00–5:00 PM) return drive to Ludhiana.
+    </div>
+  </div>
+</div>
+
+<!-- SECTION: CURRENT BASELINE ROUTINE -->
+<div class="current-routine-wrapper" id="section-baseline">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+    <h2 style="margin:0;padding:0;border:none;color:#7F1D1D;font-size:13pt;">Current Baseline: Present Daily Routine (As-Is Reality)</h2>
+    <span class="badge badge-current" style="font-size:7.2pt;padding:2px 7px;">Active Present Reality</span>
+  </div>
+  <p style="color:#7F1D1D;opacity:0.9;margin-bottom:10px;font-size:8.5pt;">
+    Ashish's current everyday schedule, nutrition cadence, ~13h laptop flow, and active supplement stack:
+  </p>
+
+  <div class="grid-3" style="margin-bottom:10px;">
+    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #DC2626;">
+      <div class="card-title" style="color:#7F1D1D;">⏰ Wake & Sleep Cycle</div>
+      <div class="card-desc">
+        • <strong>Wake Up:</strong> 08:00 AM (8h 15m rest window)<br>
+        • <strong>Bedtime Sleep:</strong> 11:15 PM<br>
+        • <strong>Hydration:</strong> 1.0L pure water on waking
+      </div>
+    </div>
+    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #B91C1C;">
+      <div class="card-title" style="color:#7F1D1D;">💻 Laptop Flow (~13h)</div>
+      <div class="card-desc">
+        • <strong>Morning Work:</strong> 08:15 – 10:30 AM<br>
+        • <strong>Day Sprints:</strong> 10:45 – 15:30<br>
+        • <strong>Evening & Night:</strong> 16:00 – 23:00
+      </div>
+    </div>
+    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #991B1B;">
+      <div class="card-title" style="color:#7F1D1D;">🥗 Active Supplements</div>
+      <div class="card-desc">
+        • <strong>Triphala:</strong> Alternate nights (digestion & detox)<br>
+        • <strong>Vitamin D3:</strong> Weekend dosing<br>
+        • <strong>Diet Staples:</strong> Jau roti, dahi, lemon, ghee, seeds
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:15%">Time Window</th>
+        <th style="width:28%">Anchor / Activity</th>
+        <th style="width:57%">Directives & Execution Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="time-slot">08:00 – 08:15</td>
+        <td><strong>Wake Up & Morning Nutrition</strong></td>
+        <td>Wake 08:00. Drink 1L water. ½ apple + soaked dry fruits, raw nuts, and seeds for steady brain fuel.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">08:15 – 10:30</td>
+        <td><strong>Morning Laptop Work (2h 15m)</strong></td>
+        <td>Immediate laptop start after hydration. Priority engineering and core architecture deliverables.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">10:30 – 10:45</td>
+        <td><strong>Milkshake Refuel Pause</strong></td>
+        <td>Nutrient-dense milkshake for protein and energy. Stand, stretch, and reset eyes.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">10:45 – 13:00</td>
+        <td><strong>Mid-Day Laptop Sprint (2h 15m)</strong></td>
+        <td>Continuous focus on feature implementation, system coding, and tech backlog.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">13:00 – 13:15</td>
+        <td><strong>Fruit & Seed Plate</strong></td>
+        <td>Fresh bowl: papaya + pomegranate + pumpkin seeds (enzymes, zinc, antioxidants).</td>
+      </tr>
+      <tr>
+        <td class="time-slot">13:15 – 15:30</td>
+        <td><strong>Afternoon Laptop Sprint (2h 15m)</strong></td>
+        <td>Code reviews, automated tests, pipeline deployments, and technical documentation.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">15:30 – 16:00</td>
+        <td><strong>Late Lunch</strong></td>
+        <td>2 chapatis + cooked sabzi + fresh dahi (curd for probiotics).</td>
+      </tr>
+      <tr>
+        <td class="time-slot">16:00 – 20:00</td>
+        <td><strong>Extended Afternoon / Evening Work (4h)</strong></td>
+        <td>Heavy build block: Infosys deliverables, client communication, core venture engineering.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">20:00 – 20:30</td>
+        <td><strong>Dinner & Lipid Nourishment</strong></td>
+        <td>Jau (barley) roti + cooked sabzi with fresh lemon & desi ghee + crunchy raw salad.</td>
+      </tr>
+      <tr>
+        <td class="time-slot">20:30 – 23:00</td>
+        <td><strong>Night Laptop Work & Wrap (2.5h)</strong></td>
+        <td>Finalizing daily commits, documentation, and wrap. <strong>Hard laptop shutdown at 23:00 (11:00 PM).</strong></td>
+      </tr>
+      <tr>
+        <td class="time-slot">23:00 – 23:15</td>
+        <td><strong>Bedtime Wind-Down & Supplement</strong></td>
+        <td><strong>Alternate Nights:</strong> Triphala with warm water for colon motility. Dark room, <strong>sleep at 23:15</strong>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="protocol-box" style="background:#FFFFFF;border:1px solid #FECACA;border-left:4px solid #DC2626;margin-top:10px;margin-bottom:0;">
+    <h4 style="color:#991B1B;">Active Present Supplements & Dietary Guardrails</h4>
+    • <strong>Triphala (Alternate Nights):</strong> 1 tsp in warm water at bedtime for gentle gut motility and natural detox.<br>
+    • <strong>Vitamin D3 (Weekends):</strong> High-potency weekend dosing with healthy fats for bone, muscle, and immune health.<br>
+    • <strong>Nutritional Staples:</strong> Jau (barley) for beta-glucan cholesterol control, desi ghee & lemon for joint lubrication and nutrient absorption, fresh fruits and seeds for essential micronutrients.
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- SECTION 2: TRACK 1 - HOME BASE DAILY BLUEPRINT -->
+<h2 id="section-track1">2. Track 1: Home Base Daily Schedule (3 Weeks / Month) <span class="badge badge-home" style="margin-left:6px;vertical-align:middle;">Target Proposed</span></h2>
+<p style="color:var(--ink-light);margin-bottom:8px;">Standard Monday through Friday WFH operating schedule in Ludhiana:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:15%">Time Window</th>
+      <th style="width:28%">Anchor / Activity</th>
+      <th style="width:57%">Directives & Execution Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- PHASE 1 -->
+    <tr>
+      <td colspan="3" class="phase-header">PHASE 1: SUNRISE & PHYSICAL AWAKENING (04:45 – 07:05)</td>
+    </tr>
+    <tr>
+      <td class="time-slot">04:45 – 04:55</td>
+      <td><strong>Bed Spinal Mobility</strong></td>
+      <td>Cat-cow, knees-to-chest, pelvic tilts, supine twists. Decompresses spine before rising.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">04:55 – 05:00</td>
+      <td><strong>Wake Up & Morning Water</strong></td>
+      <td>Out of bed, zero snooze. 500ml warm water + lemon + Sublingual B12 (1000 mcg) + Alpha Lipoic Acid.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">05:00 – 06:00</td>
+      <td><strong>MOVERS Sadhana</strong></td>
+      <td>Padma Sadhana (20m) → Sudarshan Kriya (15m) → Meditation (10m) → 15m mental rehearsal & stiffness log.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">06:00 – 06:05</td>
+      <td><strong>Sunlight & Horizon View</strong></td>
+      <td>Natural morning light exposure; distant horizon view to reset circadian rhythm and relax eye muscles.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">06:05 – 06:35</td>
+      <td><strong>Workout or Yoga Flow</strong></td>
+      <td><strong>M/W/F:</strong> 30m Core & Calisthenics (pull-ups, push-ups; zero heavy barbells). <strong>T/Th:</strong> 20m spine yoga.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">06:35 – 07:05</td>
+      <td><strong>Stretch, Abhyanga & Shower</strong></td>
+      <td>10m foam roll → 10m warm sesame oil massage on joints and back → Warm shower.</td>
+    </tr>
+
+    <!-- PHASE 2 -->
+    <tr>
+      <td colspan="3" class="phase-header">PHASE 2: NOURISHMENT & WORKSTATION SETUP (07:05 – 08:30)</td>
+    </tr>
+    <tr>
+      <td class="time-slot">07:05 – 07:35</td>
+      <td><strong>Clean Breakfast & Walk</strong></td>
+      <td>Soaked nuts + papaya + protein + <strong>2 tbsp freshly ground flaxseed</strong>. 10m post-meal walk.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">07:35 – 07:45</td>
+      <td><strong>Hydration Rail Setup</strong></td>
+      <td>Fill 2L bottle (water + pink salt + lemon). Start daily 3L hydration rail.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">07:45 – 08:30</td>
+      <td><strong>Sprint Planning & Desk Setup</strong></td>
+      <td>Humidifier on, screen 15–20° below eye level. Set top 3 daily priorities across businesses and Infosys.</td>
+    </tr>
+
+    <!-- PHASE 3 -->
+    <tr>
+      <td colspan="3" class="phase-header">PHASE 3: DAYTIME DEEP LAPTOP WORK (08:30 – 14:00)</td>
+    </tr>
+    <tr>
+      <td class="time-slot">08:30 – 10:15</td>
+      <td><strong>Deep Block 1: Product Build (90m)</strong></td>
+      <td>Core focus: Heavy engineering and architecture for your <strong>businesses</strong>. Phone away.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">10:30 – 11:00</td>
+      <td><strong>Eye Rest, CCF Sip & Multivitamin</strong></td>
+      <td>20-20-20 eye break + 10 blinks. Warm CCF infusion. Take daily multivitamin (Iron 0).</td>
+    </tr>
+    <tr>
+      <td class="time-slot">11:00 – 12:30</td>
+      <td><strong>Deep Block 2: Business & Core Work (90m)</strong></td>
+      <td>Critical feature implementation, test suites, core Infosys tasks, and system optimization.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">12:30 – 12:45</td>
+      <td><strong>Movement & Hydration Pause</strong></td>
+      <td>Stand, stretch, drink water, quick eye reset.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">12:45 – 14:00</td>
+      <td><strong>Deep Block 3: Code & Review (75m)</strong></td>
+      <td>Code reviews, PR merges, automated deployments, and documentation.</td>
+    </tr>
+
+    <!-- PHASE 4 -->
+    <tr>
+      <td colspan="3" class="phase-header">PHASE 4: NOURISHMENT & AFTERNOON TASKS (14:00 – 18:15)</td>
+    </tr>
+    <tr>
+      <td class="time-slot">13:45 – 14:00</td>
+      <td><strong>Pre-Lunch Isabgol</strong></td>
+      <td>1 heaped tsp psyllium husk in 300ml warm water 15m pre-lunch (LDL & glucose blunting).</td>
+    </tr>
+    <tr>
+      <td class="time-slot">14:00 – 14:45</td>
+      <td><strong>Wholesome Lunch & Supplements</strong></td>
+      <td>Dal + 1 tsp ghee, barley/oats roti, cooked sabzi, curd. Take Vitamin D3 + Omega-3 + Curcumin.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">14:50 – 15:15</td>
+      <td><strong>Post-Lunch Walk & Eye Drops</strong></td>
+      <td>10m stroll to blunt glucose spike. Instill preservative-free eye drops.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">15:15 – 16:15</td>
+      <td><strong>Deep Block 4: Business Ops & Build (60m)</strong></td>
+      <td>Operations, client messaging, architecture documentation for your <strong>businesses</strong>.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">16:15 – 18:15</td>
+      <td><strong>★ Business Meetings / Deep Build (2 Hours)</strong></td>
+      <td><strong>Alternate Days:</strong> 2h dedicated Business Meetings (physical in-person or online calls).<br><em>On non-meeting days:</em> Uninterrupted deep engineering & build sprint for your <strong>businesses</strong>.</td>
+    </tr>
+
+    <!-- PHASE 5 -->
+    <tr>
+      <td colspan="3" class="phase-header">PHASE 5: EVENING FITNESS, OFFICE WRAP & RESTORATION (18:15 – 22:00)</td>
+    </tr>
+    <tr>
+      <td class="time-slot">18:15 – 19:00</td>
+      <td><strong>Outdoor Fitness Walk (45m)</strong></td>
+      <td>45m brisk outdoor walk at sunset. Distant horizon gaze and spinal decompression.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">19:00 – 20:15</td>
+      <td><strong>★ Infosys Office Block: Meetings & Final Works (75m)</strong></td>
+      <td>Dedicated window for office deliverables: live meetings, team syncs, and closing daily office work. <em>(On light office days: converts to business build).</em></td>
+    </tr>
+    <tr>
+      <td class="time-slot">20:15 – 21:00</td>
+      <td><strong>Dinner & Laptop Wrap</strong></td>
+      <td>20:00 Isabgol → Dinner with soy protein (chunks/tofu) + cooked veg + 10m stroll. Wrap daily notes. <strong>★ HARD LAPTOP SHUTDOWN AT 21:00 (9:00 PM).</strong></td>
+    </tr>
+    <tr>
+      <td class="time-slot">21:00 – 21:30</td>
+      <td><strong>Workspace Reset & Evening Supplement</strong></td>
+      <td>Clean desk (10m), log 3 wins. Magnesium Glycinate in warm water/haldi milk. Layout next-day clothes & bottle.</td>
+    </tr>
+    <tr>
+      <td class="time-slot">21:30 – 22:00</td>
+      <td><strong>Spinal Wind-Down & Heated Eye Mask</strong></td>
+      <td>Screen blackout. 10m spinal stretches (supine twists, legs-up-the-wall) → 10m heated eye mask. Sleep by 22:00 (7h rest).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- SECTION 3: TRACK 2 - CHANDIGARH SPRINT WEEK -->
+<h2 id="section-track2">3. Track 2: Chandigarh Sprint Week (Infosys + Solo Business Studio) <span class="badge badge-chd" style="margin-left:6px;vertical-align:middle;">Target Proposed</span></h2>
+<p style="color:var(--ink-light);margin-bottom:8px;">During this 1 week/month, after your 4-hour Infosys shift, use your flat as an uninterrupted build studio for your <strong>businesses</strong>:</p>
+
+<div class="card" style="margin-bottom:10px;border-top:3.5px solid var(--gold);">
+  <div class="card-title">🚗 Monday: Transit, Infosys Shift & Flat Studio Setup</div>
+  <div class="card-desc">
+    • <strong>04:45–05:30:</strong> Bed mobility → Warm water + B12/ALA → Light snack/nuts → Load car with lumbar cushion and prepped food.<br>
+    • <strong>05:30–08:45:</strong> Drive Ludhiana → Chandigarh with active lumbar support. Sip mineral water.<br>
+    • <strong>09:00–13:00 ★ Infosys 4h Shift:</strong> On-site office sprint. Stand every 45 min; eye drops at 09:30 & 12:00.<br>
+    • <strong>13:00–13:30:</strong> Drive to flat. 3-minute standing back extension before entering.<br>
+    • <strong>13:30–14:15:</strong> Unpack, eat packed lunch from Ludhiana, workstation setup.<br>
+    • <strong>14:15–16:15 ★ AFTERNOON LAPTOP BUILD (2.0h):</strong> All afternoon free time goes straight to laptop engineering for your <strong>businesses</strong>.<br>
+    • <strong>16:15–18:15 ★ Business Meetings / Build Window (2.0h):</strong> Alternate Days: 2h business meetings (online from flat or physical in tricity). On off-days: deep laptop build.<br>
+    • <strong>18:15–19:00:</strong> 45m Outdoor fitness walk in neighborhood.<br>
+    • <strong>19:00–20:15 ★ Infosys Evening Office Block (75m):</strong> Online office meetings and finalizing deliverables from flat.<br>
+    • <strong>20:15–21:00:</strong> Quick 1-pot dinner & wrap. <strong>★ HARD LAPTOP SHUTDOWN AT 21:00 (9:00 PM).</strong><br>
+    • <strong>21:00–22:00:</strong> Flat reset, magnesium drink, spinal stretch, heated eye mask, sleep by 22:00.
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:10px;border-top:3.5px solid var(--forest);">
+  <div class="card-title">🏢 Tuesday – Thursday: Morning Build, Afternoon Office & Flat Studio</div>
+  <div class="card-desc">
+    • <strong>05:00–07:05 Morning Sadhana & Vitality:</strong> Bed mobility → Warm water + B12/ALA → MOVERS (Padma Sadhana 20m, Kriya 15m, Meditation 10m) → Workout/spine yoga (25m) → Shower.<br>
+    • <strong>07:05–08:00:</strong> Breakfast (papaya, nuts, flaxseed) + 10m walk + quick 1-pot meal prep.<br>
+    • <strong>08:00–10:30 ★ MORNING LAPTOP BUILD BLOCK (2.5h Uninterrupted):</strong> All morning free time dedicated to heavy coding and features for your <strong>businesses</strong> at flat.<br>
+    • <strong>10:30–11:00:</strong> Drive from flat to Infosys campus.<br>
+    • <strong>11:00–15:00 ★ Infosys 4h Shift:</strong> On-site office sprint. Stand every 45 min; eye drops at 11:30 & 14:00.<br>
+    • <strong>15:00–15:30:</strong> Drive back to flat.<br>
+    • <strong>15:30–16:15:</strong> Quick chore check and async office wrap.<br>
+    • <strong>16:15–18:15 ★ PRIME BUSINESS SPRINT & MEETINGS (2.0h):</strong><br>
+    &nbsp;&nbsp;– <strong>Alternate Days:</strong> 2h Business Meetings (physical in tricity or online via flat).<br>
+    &nbsp;&nbsp;– <strong>Non-Meeting Days:</strong> 2h deep laptop build for your <strong>businesses</strong>.<br>
+    • <strong>18:15–19:00:</strong> 45m Outdoor fitness walk in fresh evening air.<br>
+    • <strong>19:00–20:15 ★ Infosys Evening Office Block (75m):</strong> Office meetings and deliverables wrap from flat.<br>
+    • <strong>20:15–21:00:</strong> 20:00 Isabgol → Simple 1-pot dinner with soy protein → quick wash. <strong>★ HARD LAPTOP SHUTDOWN AT 21:00 (9:00 PM).</strong><br>
+    • <strong>21:00–22:00:</strong> Space reset, magnesium drink, spinal stretch, heated eye mask, sleep by 22:00.
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:10px;border-top:3.5px solid #2B6CB0;">
+  <div class="card-title">🚗 Friday: Morning Shift, Checkout & Return Drive to Ludhiana (2:00–5:00 PM)</div>
+  <div class="card-desc">
+    • <strong>05:00–08:30:</strong> Bed mobility → Sadhana → Shower → Breakfast + flaxseed.<br>
+    • <strong>08:30–09:30 Flat Checkout & Packing:</strong> Pack bags, clean kitchen, clear trash, lock flat, load car.<br>
+    • <strong>09:30–10:00:</strong> Drive to Infosys campus.<br>
+    • <strong>10:00–14:00 ★ Infosys 4h Shift:</strong> Weekly deliverables wrap.<br>
+    • <strong>14:00–17:00 (2:00–5:00 PM) ★ RETURN DRIVE TO LUDHIANA:</strong> Active lumbar cushion; audio/podcasts; steady hydration.<br>
+    • <strong>17:00–17:30:</strong> Arrive Ludhiana home. 15m spinal foam rolling and legs-up-the-wall.<br>
+    • <strong>17:30–18:15 ★ HOMECOMING LAPTOP BUILD (45m):</strong> Channel evening free time into laptop development for your <strong>businesses</strong>.<br>
+    • <strong>18:15–19:00:</strong> 45m Outdoor fitness walk & spine decompression.<br>
+    • <strong>19:00–20:15:</strong> Weekly office handoffs & syncs (or weekend transition).<br>
+    • <strong>20:15–21:00:</strong> Dinner + daily wrap. <strong>★ HARD SHUTDOWN AT 21:00.</strong><br>
+    • <strong>21:00–22:00:</strong> Home comfort, wind-down, heated eye mask, sleep by 22:00.
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- SECTION 4: ALL WEEKENDS -->
+<h2 id="section-weekends">4. All Weekends: Building Businesses & Recharging (At Home Base)</h2>
+<p style="color:var(--ink-light);margin-bottom:8px;">All 4 weekends every month are spent at your Ludhiana home base with full resources:</p>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🌱 Saturday: Full-Day Laptop Build Sprints</div>
+    <div class="card-desc">
+      • <strong>06:05–06:40:</strong> 35m Low-Impact Cardio (skipping, bag footwork; no road running) → Shower.<br>
+      • <strong>08:30–12:30 ★ MORNING LAPTOP BUILD (4.0h):</strong> Uninterrupted deep architecture and coding for your <span class="badge badge-biz">Businesses</span>.<br>
+      • <strong>12:30–13:30:</strong> Wholesome lunch + 15m walk.<br>
+      • <strong>13:30–18:30 ★ AFTERNOON LAPTOP BUILD (5.0h):</strong> All daytime free time dedicated to feature engineering, testing, and product builds.<br>
+      • <strong>18:30–19:15:</strong> 45m Outdoor fitness walk & sunset posture reset.<br>
+      • <strong>19:15–20:00:</strong> Wholesome dinner + 10m digestive walk.<br>
+      • <strong>20:00–21:00 ★ NIGHT LAPTOP SPRINT (60m):</strong> Code commits, PR reviews, daily wrap. <strong>★ HARD SHUTDOWN AT 21:00 (9:00 PM).</strong><br>
+      • <strong>21:00–22:00:</strong> Desk reset → Magnesium drink → 10m spinal wind-down → Heated eye mask → Sleep by 22:00.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🎯 Sunday: Review, Batch Cooking & Laptop Sprints</div>
+    <div class="card-desc">
+      • <strong>06:00–06:40:</strong> 40m Restorative Yoga & foam rolling.<br>
+      • <strong>08:00–09:30 ★ EARLY LAPTOP BUILD (1.5h):</strong> Feature development and tech backlog clearance.<br>
+      • <strong>09:30–10:30 ★ Business Milestone Review (1h):</strong> Progress audit across <span class="badge badge-biz">ZoetiCoach</span> & <span class="badge badge-biz">Digital Builders</span>, OKRs, sprint planning.<br>
+      • <strong>10:30–11:30 ★ LAPTOP SPRINT (1h):</strong> Immediate execution on roadmap priorities from review.<br>
+      • <strong>11:30–13:30 Batch Cooking (2h):</strong> Prep sprouted moong, lentils, and healthy base gravies for the week.<br>
+      • <strong>13:30–14:30:</strong> Lunch + Weekly D3 Sachet (60,000 IU) with fats + 15m walk.<br>
+      • <strong>14:30–18:30 ★ AFTERNOON LAPTOP BUILD (4.0h):</strong> Core laptop engineering, UI polish, and backend deployments.<br>
+      • <strong>18:30–19:15:</strong> 45m Outdoor fitness walk & spine decompression.<br>
+      • <strong>19:15–20:00:</strong> Wholesome dinner + 10m digestive walk.<br>
+      • <strong>20:00–21:00 ★ NIGHT LAPTOP SPRINT (60m):</strong> Lock roadmap for upcoming week. <strong>★ HARD SHUTDOWN AT 21:00 (9:00 PM).</strong><br>
+      • <strong>21:00–22:00:</strong> Space reset → Magnesium drink → Spinal wind-down → Heated eye mask → Sleep by 22:00.
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: SOLO FLAT LIVING & LIMITED RESOURCE STRATEGIES -->
+<h2 id="section-flat-rules">5. Solo Flat Living & Limited Resource Strategies</h2>
+<div class="grid-2">
+  <div class="rule-card">
+    <strong>1. Hybrid Meal Kit (Ludhiana Pack):</strong><br>
+    Bring pre-portioned nuts, ground flaxseed, spices, and oats/dal from home every Monday. Eliminates grocery hunting in Chandigarh.
+  </div>
+  <div class="rule-card">
+    <strong>2. 1-Pot / 1-Pan Cooking Method:</strong><br>
+    Rely on quick high-nutrient meals (soya bhurji, paneer stir-fry, moong khichdi) ready in 15–20 minutes with minimal washing up.
+  </div>
+  <div class="rule-card">
+    <strong>3. Immediate Chore Zero-State:</strong><br>
+    Wash cookware and plates immediately after eating. Keeping surfaces clear preserves mental energy for evening build blocks.
+  </div>
+  <div class="rule-card">
+    <strong>4. Transit Posture & Lumbar Cushion:</strong><br>
+    Keep an inflatable lumbar cushion active behind lower back during the drive both ways. Never slump in car seat.
+  </div>
+  <div class="rule-card" style="grid-column: span 2;">
+    <strong>5. Modular 2-Hour Meeting Window (Alternate Days):</strong><br>
+    Scheduled on alternate days (physical or online) in the 16:15–18:15 slot before the evening walk, preserving the 19:00–20:15 office block. On off-days, this time converts into deep laptop build sprints for your businesses.
+  </div>
+</div>
+
+<!-- SECTION 6: SPINE & EYE SHIELD FOR HIGH LAPTOP HOURS -->
+<h2 id="section-shield">6. Spine & Eye Shield (For High Laptop Hours)</h2>
+<div class="grid-2">
+  <div class="rule-card">
+    <strong>1. Spine-First Morning Law:</strong><br>
+    Complete 10 minutes of bed decompression (cat-cow, pelvic tilts, knees-to-chest) before feet touch the floor.
+  </div>
+  <div class="rule-card">
+    <strong>2. 45-Minute Movement Timer:</strong><br>
+    Stand every 45 minutes during laptop work, walk 2–3 minutes, and perform one gentle standing back extension.
+  </div>
+  <div class="rule-card">
+    <strong>3. Ocular Protection Rail:</strong><br>
+    Preservative-free eye drops 4× daily (09:00, 12:00, 15:00, 18:00), desk humidifier active, and 10m heated eye compress before bed.
+  </div>
+  <div class="rule-card">
+    <strong>4. Strict Barbell Embargo:</strong><br>
+    Strictly ZERO heavy deadlifts, squats, or overhead barbell presses until cleared by specialist. Focus on pull-ups, push-ups, and core isometrics.
+  </div>
+  <div class="rule-card">
+    <strong>5. Metabolic Timing (Isabgol + Walks):</strong><br>
+    1 tsp Isabgol in warm water 15 minutes pre-lunch and pre-dinner. Mandatory 10-minute walk after every meal.
+  </div>
+  <div class="rule-card">
+    <strong>6. 21:00 Hard Laptop Shutdown (9:00 PM):</strong><br>
+    All laptop work strictly concludes at 21:00, securing a 60-minute screen-free buffer to ensure sleep by 22:00 (7h rest).
+  </div>
+  <div class="rule-card" style="grid-column: span 2; border-left-color: var(--forest);">
+    <strong>7. The Laptop Work-First Law (Zero-Idle Principle):</strong><br>
+    All unallocated, transitional, or free time across any day (home base, Chandigarh flat, weekends) unconditionally channels into active laptop engineering for your <strong>businesses</strong> up to the 21:00 shutdown.
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- SECTION 7: CLINICAL HEALTH PROTOCOLS -->
+<h2 id="section-protocols">7. Essential Clinical & Nutritional Protocols</h2>
+
+<div class="protocol-box">
+  <h4>1. Spine, Back & Joint Health (Target: ESR 25 → Normal)</h4>
+  • <strong>Bed Decompression:</strong> 10m cat-cow, knees-to-chest, and supine twists before rising.<br>
+  • <strong>Gym Embargo:</strong> Zero heavy deadlifts, squats, or overhead barbell presses. Focus on calisthenics, pull-ups, and core holds.<br>
+  • <strong>45-Minute Movement Timer:</strong> Stand every 45 min during work, walk 2 min, and do one gentle backward standing extension.<br>
+  • <strong>Warm Sesame Abhyanga:</strong> 10m joint massage before warm shower to soothe joints.<br>
+  • <strong>Nightly Unloading:</strong> 10m spinal stretches (supine twists, legs-up-the-wall) at 21:30.
+</div>
+
+<div class="protocol-box">
+  <h4>2. Ocular & Dry Eye Protocol</h4>
+  • <strong>Preservative-Free Drops:</strong> 1 drop in each eye 4× daily: <strong>09:00 · 12:00 · 15:00 · 18:00</strong>.<br>
+  • <strong>Workstation Setup:</strong> Ultrasonic humidifier running at desk. Monitor positioned 15–20° below eye level.<br>
+  • <strong>20-20-20 Rule:</strong> Every 20 minutes look 20 feet away for 20 seconds + 10 deliberate blinks.<br>
+  • <strong>Heated Eye Compress:</strong> 10 minutes nightly over closed lids at 21:40 to melt meibomian secretions.
+</div>
+
+<div class="protocol-box">
+  <h4>3. Metabolic, Lipid & Glucose Optimization (LDL 146 → &lt;130 · Glucose 108 → &lt;95)</h4>
+  • <strong>Isabgol (Psyllium Husk):</strong> 1 heaped tsp in 300ml warm water <strong>15m pre-lunch and 15m pre-dinner</strong> (keep 2h apart from supplements).<br>
+  • <strong>Ground Flaxseed:</strong> Add <strong>2 tbsp freshly ground flaxseed</strong> to morning breakfast.<br>
+  • <strong>Grain Swaps:</strong> Replace refined wheat rotis with barley (<em>jau</em>) or oats.<br>
+  • <strong>Daily Soy Protein:</strong> Soya chunks or organic tofu every evening at dinner.<br>
+  • <strong>Post-Meal Walking:</strong> Mandatory 10-minute relaxed stroll after breakfast, lunch, and dinner.
+</div>
+
+<div class="protocol-box">
+  <h4>4. Daily Supplement & Hydration Stack</h4>
+  • <strong>04:55 (Fasting):</strong> Sublingual Methylcobalamin B12 (1000 mcg) + Alpha Lipoic Acid with warm lemon water.<br>
+  • <strong>10:30 (Morning Snack):</strong> Daily Multivitamin (<strong>Iron 0</strong>; Ferritin 68.7 is replete).<br>
+  • <strong>14:45 (With Lunch Fats):</strong> Vitamin D3 + Algal Omega-3 DHA/EPA + Curcumin with piperine.<br>
+  • <strong>21:15 (Night Drink):</strong> Magnesium Glycinate in warm water or haldi milk.<br>
+  • <strong>Sunday Lunch:</strong> Vitamin D3 Sachet (60,000 IU) with healthy meal fats.<br>
+  • <strong>Baseline Stack:</strong> Triphala (alternate nights) + Weekend D3.<br>
+  • <strong>Hydration Rail:</strong> 3.0L daily minimum (500ml by 08:30 · 1.0L by 11:00 · 2.0L by 15:00 · 3.0L by 20:30). Stop water 30m before meals; resume 45m post-meal.
+</div>
+
+<div style="margin-top:18px;padding:12px;background:var(--midnight);color:#FFFFFF;border-radius:6px;text-align:center;">
+  <span style="font-family:'Fraunces',serif;font-size:11pt;font-style:italic;color:#6EE7A0;">
+    "Protect your spine and eyes so you can build your businesses with maximum stamina."
+  </span><br>
+  <span style="font-size:8pt;color:rgba(238,240,245,0.75);font-family:'IBM Plex Mono',monospace;">
+    ZoetiCoach · Digital Builders · Infosys 4h · 7 Hours Restorative Sleep Nightly
+  </span>
+</div>
+
+</div>
+</body>
+</html>

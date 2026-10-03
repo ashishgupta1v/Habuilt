@@ -420,3 +420,86 @@ export const silentBackfillLegacyState = async (userId, monthKey, habits) => {
 
   return count;
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. USER BIOMARKERS & WELLNESS LOGS (Stiffness, Hydration, Energy)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Saves or updates a daily biomarker record for a user.
+ */
+export const saveUserBiomarker = async ({
+  userId,
+  logDate,
+  stiffnessMinutes = 0,
+  hydrationMl = 0,
+  energyLevel = null,
+  sleepHours = 0,
+  notes = '',
+}) => {
+  if (!userId || !logDate) return false;
+
+  const payload = {
+    user_id: userId,
+    log_date: logDate,
+    stiffness_minutes: Number(stiffnessMinutes) || 0,
+    hydration_ml: Number(hydrationMl) || 0,
+    energy_level: energyLevel ? Number(energyLevel) : null,
+    sleep_hours: Number(sleepHours) || 0,
+    notes: notes || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('user_biomarkers')
+    .upsert(payload, { onConflict: 'user_id,log_date' });
+
+  if (error) {
+    console.warn('[Habuilt Biomarkers] Error saving biomarker log:', error.message);
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Loads recent biomarker records for a user.
+ */
+export const loadUserBiomarkers = async (userId, limit = 30) => {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('user_biomarkers')
+    .select('*')
+    .eq('user_id', userId)
+    .order('log_date', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn('[Habuilt Biomarkers] Note on loading biomarkers:', error.message);
+    return [];
+  }
+
+  return data || [];
+};
+
+/**
+ * Loads today's biomarker record for a user.
+ */
+export const loadLatestBiomarker = async (userId, logDate) => {
+  if (!userId || !logDate) return null;
+
+  const { data, error } = await supabase
+    .from('user_biomarkers')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('log_date', logDate)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[Habuilt Biomarkers] Note on loading latest biomarker:', error.message);
+    return null;
+  }
+
+  return data || null;
+};

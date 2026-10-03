@@ -236,7 +236,7 @@ onMounted(async () => {
     localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
     pushAppHistoryEntry();
   } else if (isGuestActive.value) {
-    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+    activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
     pushAppHistoryEntry();
   } else if (!activeUser.value) {
     activeUser.value = null;
@@ -249,7 +249,7 @@ onMounted(async () => {
       localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
       pushAppHistoryEntry();
     } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
-      activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+      activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
     } else {
       activeUser.value = null;
       localStorage.removeItem('habuilt_cached_user');

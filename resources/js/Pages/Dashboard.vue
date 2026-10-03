@@ -17,6 +17,8 @@ import {
   silentBackfillLegacyState,
   saveUserSettings,
   loadUserSettings,
+  saveUserBiomarker,
+  loadLatestBiomarker,
 } from '@/lib/supabase';
 import {
   computeLifetimeStats,
@@ -50,7 +52,7 @@ import RheumatologyClinicalAnalytics from '@/Components/Analytics/RheumatologyCl
 
 // Composables & Data
 import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
-import { getPartnerConnection, pairWithInviteCode } from '@/lib/partnerPairing';
+import { getPartnerConnection, pairWithInviteCode, subscribeToPartnerConnection } from '@/lib/partnerPairing';
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
 import { useConfetti } from '@/Composables/useConfetti';
 import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
@@ -328,6 +330,7 @@ const partnerLoading = ref(false);
 // Realtime subscriptions
 let realtimeCheckInsChannel = null;
 let coupleLiveChannel = null;
+let realtimePartnerChannel = null;
 
 // ── MOBILE PWA SPA 4-TAB ROUTING & DAY NAV ──
 const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
@@ -586,15 +589,6 @@ const handlePartnerUnpaired = () => {
   showToast('Partner connection disconnected');
 };
 
-// Milestone 4: Dynamic PWA Badging Integration
-const remainingTodayHabitsCount = computed(() => {
-  const sched = todayScheduledCount.value || 0;
-  const comp = todayCompletedCount.value || 0;
-  return Math.max(0, sched - comp);
-});
-useAppBadging({
-  remainingCount: remainingTodayHabitsCount,
-});
 
 const {
   timerState,
@@ -1411,6 +1405,16 @@ const getDayTotal = (day) => {
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 
+// Milestone 4: Dynamic PWA Badging Integration
+const remainingTodayHabitsCount = computed(() => {
+  const sched = todayScheduledCount.value || 0;
+  const comp = todayCompletedCount.value || 0;
+  return Math.max(0, sched - comp);
+});
+useAppBadging({
+  remainingCount: remainingTodayHabitsCount,
+});
+
 // ── Celebration Milestones Watcher (Dynamic Floor, Half, Full) ──
 const celebratedMilestones = ref(new Set());
 watch(todayPoints, (newPts, oldPts) => {
@@ -1870,11 +1874,37 @@ const handleUpdateBiomarkers = (updatedBio) => {
   biomarkersState.value = { ...biomarkersState.value, ...updatedBio };
   debouncedSaveState();
   showToast('🧬 Biometrics & morning stiffness updated!');
+
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    saveUserBiomarker({
+      userId: effectiveUserId.value,
+      logDate: todayIso,
+      stiffnessMinutes: updatedBio.stiffnessMin !== undefined ? updatedBio.stiffnessMin : biomarkersState.value.stiffnessMin,
+      hydrationMl: hydrationMlState.value,
+      energyLevel: updatedBio.energyRating !== undefined ? updatedBio.energyRating : biomarkersState.value.energyRating,
+      notes: updatedBio.note !== undefined ? updatedBio.note : biomarkersState.value.note,
+    });
+  }
 };
 
 const handleUpdateHydration = (amountMl) => {
   hydrationMlState.value = amountMl;
   debouncedSaveState();
+
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    saveUserBiomarker({
+      userId: effectiveUserId.value,
+      logDate: todayIso,
+      stiffnessMinutes: biomarkersState.value.stiffnessMin,
+      hydrationMl: amountMl,
+      energyLevel: biomarkersState.value.energyRating,
+      notes: biomarkersState.value.note,
+    });
+  }
 };
 
 // ── Milestone 3: Data Portability & Backup Restore Handler ──
@@ -2485,7 +2515,14 @@ const syncCloudState = async (force = false) => {
     const settingsData = await loadUserSettings(effectiveUserId.value);
     if (settingsData) {
       if (settingsData.day_type) dayType.value = settingsData.day_type;
-      if (settingsData.dark_mode !== undefined) darkMode.value = settingsData.dark_mode;
+      if (settingsData.dark_mode !== undefined) {
+        const explicitTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('habuilt_theme') : null;
+        if (explicitTheme) {
+          darkMode.value = explicitTheme === 'dark';
+        } else {
+          darkMode.value = settingsData.dark_mode;
+        }
+      }
       if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
       if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
       if (Array.isArray(settingsData.reward_ledger)) rewardLedger.value = settingsData.reward_ledger;
@@ -2493,6 +2530,17 @@ const syncCloudState = async (force = false) => {
       if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
       if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
       if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
+    }
+
+    // 3. Load latest daily biomarker from user_biomarkers
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    const latestBio = await loadLatestBiomarker(effectiveUserId.value, todayIso);
+    if (latestBio) {
+      if (latestBio.stiffness_minutes !== undefined) biomarkersState.value.stiffnessMin = Number(latestBio.stiffness_minutes);
+      if (latestBio.hydration_ml !== undefined) hydrationMlState.value = Number(latestBio.hydration_ml);
+      if (latestBio.energy_level !== undefined) biomarkersState.value.energyRating = Number(latestBio.energy_level);
+      if (latestBio.notes) biomarkersState.value.note = latestBio.notes;
     }
 
     lastSyncTimestamp = Date.now();
@@ -2897,6 +2945,17 @@ onMounted(() => {
       }
     });
 
+    // ── Realtime Partner Connection Sync Listener ──
+    realtimePartnerChannel = subscribeToPartnerConnection(effectiveUserId.value, async (payload) => {
+      if (payload?.new && payload.new.status === 'connected') {
+        const partnerName = payload.new.alias || (payload.new.partner_user_id === 'ashish' ? 'Ashish' : (payload.new.partner_user_id === 'jyoti' ? 'Jyoti' : 'Partner'));
+        showToast(`🤝 Connected with ${partnerName}! Real-time synchronization active. ✨`, 4500);
+        firePartnerCelebration();
+        const updated = await getPartnerConnection(effectiveUserId.value);
+        if (updated) partnerConnection.value = updated;
+      }
+    });
+
     // ── Realtime Couple Broadcast Listener ──
     coupleLiveChannel = initCoupleBroadcastChannel((msg) => {
       if (msg && msg.type === 'shared_habit_done') {
@@ -3038,6 +3097,9 @@ onBeforeUnmount(() => {
   if (cloudSyncInterval) clearInterval(cloudSyncInterval);
   if (realtimeCheckInsChannel) {
     try { realtimeCheckInsChannel.unsubscribe(); } catch {}
+  }
+  if (realtimePartnerChannel) {
+    try { realtimePartnerChannel.unsubscribe(); } catch {}
   }
   if (coupleLiveChannel) {
     try { coupleLiveChannel.unsubscribe(); } catch {}
@@ -3798,6 +3860,7 @@ onBeforeUnmount(() => {
         :active-tab="activeMobileTab"
         :due-now-notifications-enabled="dueNowNotificationsEnabled"
         @close="isSpotlightOpen = false"
+        @open="isSpotlightOpen = true"
         @toggle-habit="habit => toggleHabitForDay(habit, props.currentDay)"
         @start-timer="(min, hId) => { activeMobileTab = 'focus'; startDeepWorkTimer(min, hId); }"
         @set-tab="tab => activeMobileTab = tab"

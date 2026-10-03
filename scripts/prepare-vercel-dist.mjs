@@ -14,6 +14,13 @@ await cp(sourceBuildDir, targetBuildDir, { recursive: true });
 // Also place an index.html at dist root so / resolves to the app immediately.
 await cp('public/build/index.html', 'dist/index.html');
 
+// Also copy assets directory to dist/assets so both root /assets and /build/assets resolve
+try {
+	await cp('public/build/assets', 'dist/assets', { recursive: true });
+} catch {
+	// Ignore if missing
+}
+
 const copyIfExists = async (from, to) => {
 	try {
 		await access(from);

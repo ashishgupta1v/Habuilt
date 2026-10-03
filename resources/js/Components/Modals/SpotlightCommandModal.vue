@@ -47,6 +47,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'close',
+  'open',
   'toggle-habit',
   'start-timer',
   'set-tab',
@@ -437,14 +438,19 @@ const executeCommand = (cmd) => {
   }
 };
 
-// Global Cmd+K / Ctrl+K listener
+// Global Cmd+K / Ctrl+K and Escape listener
 const handleGlobalHotkey = (e) => {
+  if (e.key === 'Escape' && props.isOpen) {
+    e.preventDefault();
+    emit('close');
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     if (props.isOpen) {
       emit('close');
     } else {
-      emit('close', false); // triggers toggle in parent
+      emit('open');
     }
   }
 };
