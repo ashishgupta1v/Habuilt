@@ -88,7 +88,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(swUrl)
-      .then((reg) => {
+      .then(async (reg) => {
         reg.addEventListener('updatefound', () => {
           const newSW = reg.installing;
           if (newSW) {
@@ -99,6 +99,21 @@ if ('serviceWorker' in navigator) {
             });
           }
         });
+
+        // Register Periodic Background Sync (Android Chrome / Edge PWA)
+        if ('periodicSync' in reg) {
+          try {
+            const status = await navigator.permissions?.query({ name: 'periodic-background-sync' }).catch(() => null);
+            if (!status || status.state === 'granted') {
+              await reg.periodicSync.register('habuilt-periodic-sync', {
+                minInterval: 12 * 60 * 60 * 1000,
+              });
+              console.debug('[SW] Periodic background sync registered: habuilt-periodic-sync');
+            }
+          } catch (e) {
+            console.debug('[SW] Periodic background sync skipped:', e?.message || e);
+          }
+        }
       })
       .catch(() => {
         // SW registration failed — app works fine without it

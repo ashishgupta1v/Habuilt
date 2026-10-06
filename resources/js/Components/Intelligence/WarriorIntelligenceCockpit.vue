@@ -463,7 +463,7 @@ defineExpose({
         </div>
         <div class="warrior-ai-title-wrap">
           <div class="warrior-ai-title-row">
-            <h2 class="warrior-ai-title">Warrior Intelligence Copilot</h2>
+            <h2 class="warrior-ai-title">Sovereign Intelligence Copilot</h2>
             <span class="warrior-ai-live-badge">REALTIME AI</span>
           </div>
           <p class="warrior-ai-sub">Circadian bio-rhythms &bull; Daily briefing &bull; Partner alignment</p>

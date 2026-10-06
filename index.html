@@ -7,25 +7,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260418" />
     <link rel="shortcut icon" href="/favicon.svg?v=20260418" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#070a11" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Habuilt" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <!-- iOS Startup Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-universal.png" media="(orientation: portrait) and (max-device-width: 768px)" />
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-ipad.png" media="(min-device-width: 769px)" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="description" content="Track habits, build discipline, 1% daily improvement. Progressive atomic habits system." />
+    <meta name="description" content="High-leverage atomic habit protocol, circadian execution station, and executive consistency index." />
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://habuilt.com/" />
-    <meta property="og:title" content="Habuilt — Progressive Habit Tracker" />
-    <meta property="og:description" content="50 habits, 4 tiers, 26 weeks. 1% better every day. Track progressive atomic habits with streaks, XP, and milestone badges." />
+    <meta property="og:title" content="Habuilt — Executive Habit Protocol" />
+    <meta property="og:description" content="50 habits, 4 tiers, 26 weeks. High-leverage atomic habit protocol with live timelines, deep work focus stations, and executive protocol mastery." />
     <meta property="og:image" content="https://habuilt.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Habuilt — Progressive Habit Tracker" />
-    <meta name="twitter:description" content="50 habits, 4 tiers, 26 weeks. 1% better every day." />
+    <meta name="twitter:title" content="Habuilt — Executive Habit Protocol" />
+    <meta name="twitter:description" content="High-leverage atomic habit protocol and circadian executive command center." />
     <meta name="twitter:image" content="https://habuilt.com/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,6 +36,40 @@
     <script type="module" src="/resources/js/app.js"></script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Zero-Blank-Flash Executive Pre-boot Splash -->
+      <div id="habuilt-boot-splash" style="position:fixed;inset:0;background:#070a11;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;color:#ffffff;user-select:none;">
+        <style>
+          @keyframes habuiltPulseGlow {
+            0% { transform: scale(0.96); opacity: 0.75; filter: drop-shadow(0 0 14px rgba(52,211,153,0.25)); }
+            100% { transform: scale(1.04); opacity: 1; filter: drop-shadow(0 0 30px rgba(52,211,153,0.5)); }
+          }
+          .habuilt-boot-pulse { animation: habuiltPulseGlow 2.2s ease-in-out infinite alternate; }
+        </style>
+        <div class="habuilt-boot-pulse" style="position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 64 64" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="boot-bg" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="#0f172a" />
+                <stop offset="100%" stop-color="#082f49" />
+              </linearGradient>
+              <linearGradient id="boot-accent" x1="18" y1="17" x2="46" y2="47">
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="100%" stop-color="#22d3ee" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#boot-bg)" stroke="rgba(255,255,255,0.16)" stroke-width="1.5" />
+            <path d="M18 17h9v12h10V17h9v30h-9V37H27v10h-9z" fill="url(#boot-accent)" />
+            <circle cx="50" cy="14" r="4" fill="#34d399" opacity="0.95" />
+          </svg>
+        </div>
+        <div style="margin-top:18px;font-size:1.1rem;font-weight:750;letter-spacing:0.06em;background:linear-gradient(135deg, #ffffff 40%, #C8A456 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+          HABUILT
+        </div>
+        <div style="margin-top:4px;font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.45);font-weight:600;">
+          Executive Habit Protocol
+        </div>
+      </div>
+    </div>
   </body>
 </html>

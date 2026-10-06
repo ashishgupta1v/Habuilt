@@ -3,10 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('[Habuilt] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables.');
-}
-
+// Local-first architecture: when VITE_SUPABASE_URL is unconfigured, system operates silently in local peer mode.
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = createClient(
@@ -233,50 +230,104 @@ export const subscribeToHabitCheckIns = (userId, onCheckInChange) => {
 };
 
 /**
+ * Generates a deterministic, collision-free pair channel name for any two users.
+ */
+export const getPairChannelId = (userId1, userId2) => {
+  if (!userId1 || !userId2) return 'habuilt:couple_live_channel';
+  const u1 = String(userId1).trim().toLowerCase();
+  const u2 = String(userId2).trim().toLowerCase();
+  const sorted = [u1, u2].sort();
+  return `habuilt:partner_pair_${sorted[0]}__${sorted[1]}`;
+};
+
+/**
  * Broadcasts an instant event to the shared couple channel.
  */
 let coupleChannel = null;
+let currentChannelName = 'habuilt:couple_live_channel';
+let localBroadcastChannel = null;
 
-export const initCoupleBroadcastChannel = (onPartnerMessage) => {
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    localBroadcastChannel = new BroadcastChannel('habuilt_local_partner_sync');
+  } catch (_) {}
+}
+
+export const initCoupleBroadcastChannel = (onPartnerMessage, channelName = 'habuilt:couple_live_channel') => {
+  const targetChannelName = channelName || 'habuilt:couple_live_channel';
+
+  // Listen to local tab BroadcastChannel for local/dual-context test speed
+  if (localBroadcastChannel) {
+    localBroadcastChannel.onmessage = (event) => {
+      if (event?.data && typeof onPartnerMessage === 'function') {
+        onPartnerMessage(event.data);
+      }
+    };
+  }
+
+  if (coupleChannel && currentChannelName === targetChannelName) {
+    return coupleChannel;
+  }
+
   if (coupleChannel) {
     try {
       coupleChannel.unsubscribe();
     } catch {}
+    coupleChannel = null;
   }
 
-  coupleChannel = supabase.channel('habuilt:couple_live_channel', {
-    config: {
-      broadcast: { ack: false, self: false },
-    },
-  });
+  currentChannelName = targetChannelName;
 
-  coupleChannel
-    .on('broadcast', { event: 'partner_activity' }, ({ payload }) => {
-      if (typeof onPartnerMessage === 'function') {
-        onPartnerMessage(payload);
-      }
-    })
-    .subscribe();
+  try {
+    coupleChannel = supabase.channel(targetChannelName, {
+      config: {
+        broadcast: { ack: false, self: false },
+      },
+    });
+
+    coupleChannel
+      .on('broadcast', { event: 'partner_activity' }, ({ payload }) => {
+        if (typeof onPartnerMessage === 'function') {
+          onPartnerMessage(payload);
+        }
+      })
+      .subscribe();
+  } catch (err) {
+    console.warn('[Habuilt Couple] Realtime subscription init note:', err);
+  }
 
   return coupleChannel;
 };
 
-export const broadcastPartnerEvent = async (eventData) => {
-  if (!coupleChannel) {
-    initCoupleBroadcastChannel();
+export const broadcastPartnerEvent = async (eventData, channelName = null) => {
+  const targetChannel = channelName || currentChannelName || 'habuilt:couple_live_channel';
+  const payload = {
+    ...eventData,
+    timestamp: Date.now(),
+  };
+
+  // 1. Send via local browser BroadcastChannel (instant for local tabs/contexts)
+  if (localBroadcastChannel) {
+    try {
+      localBroadcastChannel.postMessage(payload);
+    } catch (_) {}
   }
 
-  try {
-    await coupleChannel.send({
-      type: 'broadcast',
-      event: 'partner_activity',
-      payload: {
-        ...eventData,
-        timestamp: Date.now(),
-      },
-    });
-  } catch (e) {
-    console.warn('[Habuilt Couple] Broadcast warning:', e);
+  // 2. Send via Supabase Realtime WebSocket for cross-device peering
+  if (!coupleChannel || currentChannelName !== targetChannel) {
+    initCoupleBroadcastChannel(null, targetChannel);
+  }
+
+  if (coupleChannel) {
+    try {
+      await coupleChannel.send({
+        type: 'broadcast',
+        event: 'partner_activity',
+        payload,
+      });
+    } catch (e) {
+      console.warn('[Habuilt Couple] Broadcast warning:', e);
+    }
   }
 };
 

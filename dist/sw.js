@@ -414,3 +414,38 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+// ── Periodic Background Sync Event (Partner Presence & Habit Checklists) ──
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'habuilt-periodic-sync') {
+    event.waitUntil(
+      (async () => {
+        console.debug('[SW] Periodic background sync running:', event.tag);
+        const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+
+        // 1. Dispatch periodic sync wakeup to any running or idle clients
+        for (const client of allClients) {
+          client.postMessage({
+            type: 'HABUILT_PERIODIC_SYNC',
+            timestamp: Date.now(),
+            tag: event.tag,
+          });
+        }
+
+        // 2. Offline Action Queue Drain & Check-In Reconciliation
+        try {
+          const cache = await caches.open('habuilt-action-queue');
+          const queued = await cache.match('/queued-completions');
+          if (queued) {
+            for (const client of allClients) {
+              client.postMessage({ type: 'FLUSH_OFFLINE_QUEUE' });
+            }
+          }
+        } catch (e) {
+          console.debug('[SW] Periodic sync cache access fallback:', e);
+        }
+      })()
+    );
+  }
+});
+
+

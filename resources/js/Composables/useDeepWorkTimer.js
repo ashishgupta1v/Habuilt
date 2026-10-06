@@ -378,6 +378,13 @@ export function useDeepWorkTimer(options = {}) {
         playTimerChime(isBreak ? 'break' : 'complete');
       }
 
+      // Native micro-haptics on deep work block completion
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate([12, 50, 12, 50, 24]);
+        } catch (_) {}
+      }
+
       // Stop ambient soundscape on completion
       stopSoundscapeAudio();
 

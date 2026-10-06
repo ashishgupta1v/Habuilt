@@ -101,7 +101,7 @@ const handleCardClick = () => {
         class="mobile-daily__card-check-btn"
         :class="{ 'mobile-daily__card-check-btn--done': isDone }"
         @click.stop="handleCheckToggle"
-        :title="isDone ? 'Mark as incomplete' : 'Mark complete (+ ' + habit.points + ' XP)'"
+        :title="isDone ? 'Mark as incomplete' : 'Mark complete (+ ' + habit.points + ' pts)'"
         :aria-label="isDone ? 'Mark habit as incomplete' : 'Mark habit completed'"
       >
         <div class="mobile-daily__card-check">

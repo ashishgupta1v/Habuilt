@@ -9,12 +9,17 @@ import {
   TrendingDown,
   TrendingUp,
   FileText,
+  FileSpreadsheet,
   Printer,
   Sparkles,
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
+  Lock,
+  Unlock,
 } from 'lucide-vue-next';
+import { useBiometricVault } from '@/Composables/useBiometricVault';
+import BiometricVaultShield from '@/Components/Modals/BiometricVaultShield.vue';
 
 const props = defineProps({
   biomarkers: { type: Object, default: () => ({ stiffnessMin: 0, energyRating: 8, note: '' }) },
@@ -113,9 +118,78 @@ const stiffnessPoints = computed(() => {
   }).join(' ');
 });
 
+const exportClinicalCSV = () => {
+  try {
+    const headers = [
+      'Date',
+      'Day',
+      'MorningStiffness_min',
+      'EnergyRating_1to10',
+      'MobilityCompleted',
+      'FlareRisk',
+      'Hydration_ml',
+      'ClinicalNote'
+    ];
+    const rows = [headers.join(',')];
+
+    (clinicalHistory.value || []).forEach(record => {
+      const dateStr = `${props.monthScope}-${String(record.day).padStart(2, '0')}`;
+      const noteClean = (props.biomarkers?.note || '').replace(/"/g, '""');
+      rows.push([
+        `"${dateStr}"`,
+        record.day,
+        record.stiffnessMin,
+        record.energyRating,
+        record.mobilityDone ? 'YES' : 'NO',
+        `"${record.isFlare ? 'Active Flare' : (record.isMinimal ? 'Optimal' : 'Moderate')}"`,
+        props.hydrationMl || 0,
+        `"${noteClean}"`
+      ].join(','));
+    });
+
+    const csvContent = rows.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = `habuilt_clinical_ehr_${props.monthScope || new Date().toISOString().slice(0, 7)}.csv`;
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    emit('toast', `✓ Clinical EHR CSV exported (${filename})`);
+  } catch (err) {
+    console.error('Clinical CSV export error:', err);
+    emit('toast', '⚠️ Failed to generate Clinical EHR export');
+  }
+};
+
 const printClinicalReport = () => {
   window.print();
   emit('toast', '🖨️ Clinical report print dialog opened');
+};
+
+const {
+  isSectionLocked,
+  lockVault,
+  unlockVault,
+  isVaultConfigured,
+  configureVault,
+} = useBiometricVault();
+
+const toggleClinicalVault = () => {
+  if (!isVaultConfigured.value) {
+    configureVault(true);
+    emit('toast', '🔒 Biometric Privacy Vault enabled for Clinical Records!');
+  } else if (isSectionLocked('clinical')) {
+    unlockVault();
+    emit('toast', '🔓 Clinical Vault unsealed');
+  } else {
+    lockVault();
+    emit('toast', '🔒 Clinical Telemetry Vault sealed');
+  }
 };
 </script>
 
@@ -135,17 +209,47 @@ const printClinicalReport = () => {
           </p>
         </div>
       </div>
-      <button
-        type="button"
-        class="btn btn--secondary btn-clinical-print"
-        @click="printClinicalReport"
-        title="Print Clinical Summary for Physician"
-      >
-        <Printer class="icon-xs" />
-        <span>Clinical Summary</span>
-      </button>
+      <div class="clinical-head__actions flex items-center gap-2">
+        <button
+          type="button"
+          class="btn btn--secondary btn-clinical-lock"
+          :title="isVaultConfigured ? (isSectionLocked('clinical') ? 'Vault Sealed (Click to unseal)' : 'Vault Active (Click to lock)') : 'Enable Biometric Privacy Vault'"
+          @click="toggleClinicalVault"
+        >
+          <component :is="isSectionLocked('clinical') ? Lock : Unlock" class="icon-xs" />
+          <span>{{ isSectionLocked('clinical') ? 'Vault Sealed' : (isVaultConfigured ? 'Lock Vault' : 'Vault Off') }}</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn--secondary btn-clinical-csv"
+          @click="exportClinicalCSV"
+          title="Export Clinical Biomarkers CSV for Doctor & Health Records"
+        >
+          <FileSpreadsheet class="icon-xs" />
+          <span>Export EHR CSV</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn--secondary btn-clinical-print"
+          @click="printClinicalReport"
+          title="Print Clinical Summary for Physician"
+        >
+          <Printer class="icon-xs" />
+          <span>Clinical Summary</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Biometric Vault Sealed Shield -->
+    <BiometricVaultShield
+      v-if="isSectionLocked('clinical')"
+      section-title="Clinical Telemetry & Health Records"
+      section-description="Longitudinal morning stiffness records, joint mobility compliance, and disease flare predictions are protected by hardware biometrics."
+      @unlocked="emit('toast', '✓ Clinical Telemetry Unsealed')"
+      @toast="(msg) => emit('toast', msg)"
+    />
+
+    <template v-else>
     <!-- 4-Metric Clinical Summary KPI Grid -->
     <div class="clinical-kpi-grid">
       <!-- 1: Mean Stiffness -->
@@ -256,5 +360,6 @@ const printClinicalReport = () => {
         <strong>Biomedical Correlation:</strong> On days when morning spinal mobility is executed within 30 minutes of waking, morning stiffness duration resolves <strong>42% faster</strong> compared to delayed mobility days. Consistent 2,500ml+ hydration prevents fascia dehydration and early-morning SI-joint stiffness.
       </div>
     </div>
+    </template>
   </div>
 </template>

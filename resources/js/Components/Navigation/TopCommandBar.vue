@@ -56,6 +56,17 @@ const props = defineProps({
   timerRunning: { type: Boolean, default: false },
   notificationsEnabled: { type: Boolean, default: false },
   zenMode: { type: Boolean, default: false },
+  partnerPresence: {
+    type: Object,
+    default: () => ({
+      isOnline: false,
+      lastSeen: null,
+      currentWindow: '',
+      statusLabel: 'Offline',
+    }),
+  },
+  circadianPhase: { type: Object, default: () => ({}) },
+  activeCircadianMode: { type: String, default: 'auto' },
 });
 
 const emit = defineEmits([
@@ -64,6 +75,7 @@ const emit = defineEmits([
   'next-month',
   'toggle-theme',
   'toggle-zen',
+  'cycle-circadian',
   'set-tab',
   'open-install-modal',
   'open-spotlight',
@@ -252,16 +264,16 @@ onBeforeUnmount(() => {
 
       <span class="hero-version-tag">PRO</span>
 
-      <!-- Level & XP Chip (Clickable for info) -->
+      <!-- Sovereign Mastery Capsule (Clickable for info) -->
       <button
         type="button"
         class="hero-level-chip"
         @click="showLevelInfo = !showLevelInfo"
-        :title="`Level ${levelData.level} ${levelTitle} • ${levelData.xpInLevel}/${levelData.xpForNext} XP to next level (Click to learn more)`"
+        :title="`Level ${levelData.level} ${levelTitle} • ${levelData.xpInLevel}/${levelData.xpForNext} pts to next tier (Click to learn more)`"
       >
-        <Zap class="icon-xs icon-zap" />
+        <Crown class="icon-xs icon-gold" />
         <span class="hero-level-chip__text">Lv. {{ levelData.level }} {{ levelTitle }}</span>
-        <span class="hero-level-chip__xp mono-num">{{ totalXP }} XP</span>
+        <span class="hero-level-chip__xp mono-num">{{ totalXP }} pts</span>
       </button>
     </div>
 
@@ -419,10 +431,15 @@ onBeforeUnmount(() => {
                 class="hero-tools-item"
                 @click="emit('open-partner-sync'); isToolsMenuOpen = false;"
               >
-                <div class="hero-tools-item__icon icon-indigo"><Users class="icon-xs" /></div>
+                <div class="hero-tools-item__icon icon-indigo">
+                  <Users class="icon-xs" />
+                </div>
                 <div class="hero-tools-item__text">
                   <span class="hero-tools-item__title">Partner Cockpit</span>
-                  <span class="hero-tools-item__sub">{{ isPartnerPaired ? 'Live Synced' : 'Couple Sync' }}</span>
+                  <span class="hero-tools-item__sub flex items-center gap-1">
+                    <span v-if="isPartnerPaired && partnerPresence.isOnline" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {{ isPartnerPaired ? (partnerPresence.isOnline ? 'Active Now' : 'Live Synced') : 'Couple Sync' }}
+                  </span>
                 </div>
               </button>
 
@@ -464,6 +481,23 @@ onBeforeUnmount(() => {
                   <span class="hero-tools-item__sub">Press 'Z' shortcut</span>
                 </div>
               </button>
+
+              <button
+                type="button"
+                class="hero-tools-item"
+                @click="emit('cycle-circadian'); isToolsMenuOpen = false;"
+                :title="`Current Atmosphere: ${circadianPhase?.name || 'Circadian Auto'}`"
+              >
+                <div class="hero-tools-item__icon icon-gold">
+                  <Sparkles class="icon-xs" />
+                </div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title">Circadian Atmosphere</span>
+                  <span class="hero-tools-item__sub flex items-center gap-1">
+                    <span>{{ circadianPhase?.icon || '☀️' }} {{ circadianPhase?.name?.split(' ')[0] || 'Solar' }} ({{ activeCircadianMode === 'auto' ? 'Auto' : 'Manual' }})</span>
+                  </span>
+                </div>
+              </button>
             </div>
           </div>
         </Transition>
@@ -477,8 +511,8 @@ onBeforeUnmount(() => {
           <div class="hero-level-popover" role="dialog" aria-modal="true" aria-labelledby="xp-dialog-title">
             <div class="hero-level-popover__head">
               <div class="hero-level-popover__title" id="xp-dialog-title">
-                <Zap class="icon-sm icon-zap" />
-                <span>Habuilt XP Progression System</span>
+                <Crown class="icon-sm icon-gold" />
+                <span>Executive Protocol Mastery Index</span>
               </div>
               <button type="button" class="hero-level-popover__close" @click="showLevelInfo = false" aria-label="Close dialog">
                 <X class="icon-xs" />
@@ -486,34 +520,34 @@ onBeforeUnmount(() => {
             </div>
             <div class="hero-level-popover__body">
               <p class="hero-level-popover__desc">
-                You earn <strong>10 XP</strong> for every point completed. Your current rank is
-                <strong>Level {{ levelData.level }} {{ levelTitle }}</strong> ({{ totalXP }} total XP).
+                Protocol consistency points accrue at <strong>10 pts per anchor completed</strong>. Your verified executive standing is
+                <strong>Tier {{ levelData.level }}: {{ levelTitle }}</strong> ({{ totalXP }} protocol points).
               </p>
               <div class="hero-level-tiers-list">
                 <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 1 || levelData.level === 2 }">
-                  <span class="tier-badge">Lv 1–2</span>
-                  <span class="tier-title">Initiate</span>
-                  <span class="tier-xp">0–999 XP</span>
+                  <span class="tier-badge">Tier 1</span>
+                  <span class="tier-title">Baseline Discipline</span>
+                  <span class="tier-xp mono-num">0–999 pts</span>
                 </div>
                 <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 3 || levelData.level === 4 }">
-                  <span class="tier-badge">Lv 3–4</span>
-                  <span class="tier-title">Practitioner</span>
-                  <span class="tier-xp">1,000–1,999 XP</span>
+                  <span class="tier-badge">Tier 2</span>
+                  <span class="tier-title">Consistent Focus</span>
+                  <span class="tier-xp mono-num">1,000–1,999 pts</span>
                 </div>
                 <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level === 5 || levelData.level === 6 }">
-                  <span class="tier-badge">Lv 5–6</span>
-                  <span class="tier-title">Architect</span>
-                  <span class="tier-xp">2,000–2,999 XP</span>
+                  <span class="tier-badge">Tier 3</span>
+                  <span class="tier-title">Executive Leverage</span>
+                  <span class="tier-xp mono-num">2,000–2,999 pts</span>
                 </div>
                 <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 7 && levelData.level <= 9 }">
-                  <span class="tier-badge">Lv 7–9</span>
-                  <span class="tier-title">Titan</span>
-                  <span class="tier-xp">3,000–4,999 XP</span>
+                  <span class="tier-badge">Tier 4</span>
+                  <span class="tier-title">Strategic Mastery</span>
+                  <span class="tier-xp mono-num">3,000–4,999 pts</span>
                 </div>
                 <div class="hero-level-tier-item" :class="{ 'hero-level-tier-item--current': levelData.level >= 10 }">
-                  <span class="tier-badge">Lv 10+</span>
-                  <span class="tier-title">Ascendant</span>
-                  <span class="tier-xp">5,000+ XP</span>
+                  <span class="tier-badge">Tier 5</span>
+                  <span class="tier-title">Sovereign Peak</span>
+                  <span class="tier-xp mono-num">5,000+ pts</span>
                 </div>
               </div>
             </div>

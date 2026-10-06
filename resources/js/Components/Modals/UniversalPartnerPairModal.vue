@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   X,
   Users,
@@ -21,11 +21,12 @@ import {
   getPartnerConnection,
   disconnectPartner
 } from '@/lib/partnerPairing';
+import { broadcastPartnerEvent } from '@/lib/supabase';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   userId: { type: String, default: 'guest' },
-  displayName: { type: String, default: 'Warrior' },
+  displayName: { type: String, default: 'Sovereign' },
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false }
 });
@@ -73,6 +74,12 @@ const loadState = async () => {
 
 onMounted(() => {
   loadState();
+});
+
+watch(() => props.isOpen, (open) => {
+  if (open) {
+    loadState();
+  }
 });
 
 const handleCopyCode = async () => {
@@ -127,6 +134,14 @@ const handleDisconnect = async () => {
     return;
   }
   if (!confirm('Are you sure you want to disconnect from your partner?')) return;
+
+  try {
+    await broadcastPartnerEvent({
+      type: 'partner_unpair',
+      partner: props.displayName,
+      userId: props.userId,
+    });
+  } catch (_) {}
 
   await disconnectPartner(props.userId);
   activeConnection.value = null;

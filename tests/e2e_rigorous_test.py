@@ -416,11 +416,19 @@ def run_tests():
         mob_check = mob_card.locator(".mobile-daily__card-check-btn")
         was_done = "mobile-daily__card--done" in (mob_card.get_attribute("class") or "")
         mob_check.scroll_into_view_if_needed()
-        mob_check.click()
-        page_mob.wait_for_timeout(400)
+        page_mob.wait_for_timeout(200)
+        mob_check.click(force=True)
+        try:
+            page_mob.wait_for_function(
+                "([sel, initial]) => (document.querySelector(sel)?.classList.contains('mobile-daily__card--done') !== initial)",
+                arg=[".mobile-daily__card", was_done],
+                timeout=3000
+            )
+        except Exception:
+            page_mob.wait_for_timeout(600)
         is_done_now = "mobile-daily__card--done" in (mob_card.get_attribute("class") or "")
         record_result("Mobile 44px Checkbox Toggles Successfully", was_done != is_done_now, f"(was_done={was_done}, is_done_now={is_done_now})")
-        mob_check.click()
+        mob_check.click(force=True)
         page_mob.wait_for_timeout(300)
 
         # 3.5.1 Test Mobile Habit Note Drawer

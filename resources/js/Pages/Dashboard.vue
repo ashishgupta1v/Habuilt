@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
   loadUserMonthlyState,
@@ -14,6 +15,7 @@ import {
   subscribeToHabitCheckIns,
   initCoupleBroadcastChannel,
   broadcastPartnerEvent,
+  getPairChannelId,
   silentBackfillLegacyState,
   saveUserSettings,
   loadUserSettings,
@@ -25,6 +27,12 @@ import {
   getMonthlyHabits,
   getHabitCompletedDays,
 } from '@/lib/lifetimeStats';
+import {
+  playSharedAnchorSync,
+  playPartnerHighFive,
+  playPartnerEmote,
+  playPartnerNudge,
+} from '@/lib/soundEffects';
 
 // Subcomponents
 import TopCommandBar from '@/Components/Navigation/TopCommandBar.vue';
@@ -52,12 +60,19 @@ import RheumatologyClinicalAnalytics from '@/Components/Analytics/RheumatologyCl
 
 // Composables & Data
 import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
-import { getPartnerConnection, pairWithInviteCode, subscribeToPartnerConnection } from '@/lib/partnerPairing';
+import {
+  getPartnerConnection,
+  pairWithInviteCode,
+  subscribeToPartnerConnection,
+  loadPartnerLiveMetrics,
+  computeSharedAnchorsStatus,
+} from '@/lib/partnerPairing';
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
 import { useConfetti } from '@/Composables/useConfetti';
 import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
 import { useNativeWidget } from '@/Composables/useNativeWidget';
 import { useAppBadging } from '@/Composables/useAppBadging';
+import { useCircadianAtmosphere } from '@/Composables/useCircadianAtmosphere';
 import {
   ashishHabits,
   jyotiHabits,
@@ -258,6 +273,143 @@ const partnerDisplayName = computed(() => {
   return activePartnerConnection.value?.alias || 'Partner';
 });
 
+const partnerUserId = computed(() => {
+  if (isAshish.value) return 'jyoti';
+  if (isJyoti.value) return 'ashish';
+  return activePartnerConnection.value?.partner_user_id || null;
+});
+
+const pairChannelId = computed(() => {
+  if (partnerUserId.value) {
+    return getPairChannelId(effectiveUserId.value, partnerUserId.value);
+  }
+  return 'habuilt:couple_live_channel';
+});
+
+const partnerLiveMetrics = ref(null);
+const partnerPointsToday = ref(0);
+const partnerCompletedCountToday = ref(0);
+const partnerTotalHabitsCount = ref(0);
+const dynamicSharedAnchors = ref([]);
+const partnerAlignmentScore = ref(0);
+const partnerLiveOffline = ref(false);
+const partnerPresence = ref({
+  isOnline: false,
+  lastSeen: null,
+  currentWindow: '',
+  statusLabel: 'Offline',
+});
+
+const sendPartnerHeartbeat = () => {
+  if (!isPartnerPaired.value) return;
+  broadcastPartnerEvent({
+    type: 'partner_heartbeat',
+    userId: effectiveUserId.value,
+    userName: displayName.value,
+    window: currentRoutineWindow.value?.name || 'Active Execution Block',
+  }, pairChannelId.value);
+};
+
+const handleSendPartnerNudge = (nudge) => {
+  if (!isPartnerPaired.value) return;
+  broadcastPartnerEvent({
+    type: 'partner_nudge',
+    nudge,
+    from: displayName.value,
+    window: currentRoutineWindow.value?.name || 'Active',
+  }, pairChannelId.value);
+  showToast(`Sent ${nudge.label || 'nudge'} to ${partnerDisplayName.value}! ✨`);
+};
+
+const refreshPartnerLiveMetrics = async () => {
+  const pId = partnerUserId.value;
+  if (!pId) {
+    partnerPointsToday.value = 0;
+    partnerCompletedCountToday.value = 0;
+    partnerTotalHabitsCount.value = 0;
+    dynamicSharedAnchors.value = [];
+    partnerAlignmentScore.value = 0;
+    return;
+  }
+
+  try {
+    const metrics = await loadPartnerLiveMetrics(pId, monthScope.value, props.currentDay);
+    if (metrics) {
+      partnerLiveMetrics.value = metrics;
+      partnerPointsToday.value = metrics.todayPoints || 0;
+      partnerCompletedCountToday.value = metrics.todayCompletedCount || 0;
+      partnerLiveOffline.value = !!metrics.isOfflineCache;
+
+      if (pId === 'ashish') partnerTotalHabitsCount.value = 68;
+      else if (pId === 'jyoti') partnerTotalHabitsCount.value = 37;
+      else partnerTotalHabitsCount.value = Math.max(metrics.todayCompletedCount, (localHabits.value || []).length);
+
+      const anchorCalc = computeSharedAnchorsStatus(
+        localHabits.value,
+        metrics,
+        isAshish.value,
+        isJyoti.value,
+        props.currentDay
+      );
+
+      dynamicSharedAnchors.value = anchorCalc.anchors || [];
+      partnerAlignmentScore.value = anchorCalc.alignmentPercentage || 0;
+    }
+  } catch (err) {
+    console.warn('[Dashboard] refreshPartnerLiveMetrics error:', err);
+  }
+};
+
+// ── Throttled System / Push Notification Bridge for Partner Activity ──
+let lastPartnerNotifTime = 0;
+const PARTNER_NOTIF_COOLDOWN_MS = 3000;
+
+const dispatchPartnerNotification = async ({ title, body }) => {
+  const now = Date.now();
+  if (now - lastPartnerNotifTime < PARTNER_NOTIF_COOLDOWN_MS) {
+    return; // Suppress duplicate notification alert storms (e.g. rapid habit checking)
+  }
+  lastPartnerNotifTime = now;
+
+  const isNativePlatform = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  const isWebSupported = typeof window !== 'undefined' && 'Notification' in window;
+  const isBackgrounded = typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+
+  // Only trigger heads-up push if on native mobile OR backgrounded web tab
+  if (!isNativePlatform && !isBackgrounded) {
+    return;
+  }
+
+  if (isNativePlatform) {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: title || '⚡ Partner Update',
+            body: body || 'Your partner completed an activity in Habuilt.',
+            id: Math.floor(Math.random() * 900000) + 1000,
+            channelId: 'habuilt_reminders',
+            sound: 'default',
+            actionTypeId: 'HABUILT_HABIT_ACTION',
+          },
+        ],
+      });
+    } catch (e) {
+      console.debug('[PartnerNotification] Native dispatch note:', e);
+    }
+  } else if (isWebSupported && Notification.permission === 'granted') {
+    try {
+      new Notification(title || '⚡ Partner Update', {
+        body: body || 'Your partner completed an activity in Habuilt.',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+      });
+    } catch (e) {
+      console.debug('[PartnerNotification] Web dispatch note:', e);
+    }
+  }
+};
+
 const activeProtocolDisplayName = computed(() => {
   if (isAshish.value && (!activeProtocolId.value || activeProtocolId.value === 'archetype-ashish' || activeProtocolId.value === 'ashishMaster')) {
     return 'Ashish Master Protocol';
@@ -299,6 +451,7 @@ const focusDay = ref(props.currentDay);
 const focusTasksByDay = ref({});
 const newFocusTask = ref('');
 const rewardLedger = ref([]);
+const claimedSynergyRewards = ref([]);
 const newWeeklyCheck = ref('');
 const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
@@ -587,10 +740,12 @@ const handlePartnerPaired = (connection) => {
   activePartnerConnection.value = connection;
   showToast(`🌸 Connected with ${connection.alias || 'Partner'}!`);
   firePartnerCelebration();
+  refreshPartnerLiveMetrics();
 };
 
 const handlePartnerUnpaired = () => {
   activePartnerConnection.value = null;
+  refreshPartnerLiveMetrics();
   showToast('Partner connection disconnected');
 };
 
@@ -662,6 +817,35 @@ const defaultRewards = [
 ];
 const rewards = ref(defaultRewards.map(r => ({ ...r })));
 
+const defaultCoupleSynergyRewards = [
+  {
+    id: 'couple-candlelight-dinner',
+    item: '🥂 Candlelight Date Night & Dinner',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Celebrate weekly alignment with uninterrupted conversation and wholesome dining.',
+    icon: '🥂',
+  },
+  {
+    id: 'couple-sunday-nature',
+    item: '🌲 Sunday Nature Trail & Artisanal Coffee',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Screen-free morning walk, crisp fresh air, and deep reflection together.',
+    icon: '🌲',
+  },
+  {
+    id: 'couple-recovery-spa',
+    item: '💆 Joint Rest, Foot Soak & Recovery Evening',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Joint physical recovery, soothing herbal tea, and complete offline relaxation.',
+    icon: '💆',
+  },
+];
+const coupleSynergyRewards = ref(defaultCoupleSynergyRewards.map(r => ({ ...r })));
+const coupleSynergyRewardsDraft = ref([]);
+
 const createDefaultWeeklyReview = () => ({
   reviewDate: '',
   metrics: { weeklyPoints: '', weeklyStickiness: '', monthlyPoints: '', monthlyStickiness: '' },
@@ -674,6 +858,13 @@ const createDefaultWeeklyReview = () => ({
     { text: 'I graduated max one habit this week (1% rule).', done: false },
   ],
   reflections: { wins: '', misses: '', triggerPlan: '', rewardTune: '', habitScale: '', healthCheck: '', nextWeekFocus: '' },
+  coupleChecks: [
+    { text: 'We synchronized at least one shared anchor daily without friction.', done: false },
+    { text: 'Encouraged partner during intense focus windows without projecting pressure.', done: false },
+    { text: 'Held our evening wind-down ritual together with zero late phone interruptions.', done: false },
+    { text: 'Celebrated our weekly joint consistency and validated each other\'s progress.', done: false },
+  ],
+  coupleReflections: { wins: '', friction: '', commitments: '' },
 });
 const weeklyReview = ref(createDefaultWeeklyReview());
 
@@ -716,6 +907,45 @@ const fillSundayMetrics = () => {
   showToast('✨ Weekly metrics auto-filled & saved!');
 };
 
+// ── Couple Synergy Milestone Rewards Handlers & Status ──
+const combinedWeeklyPoints = computed(() => {
+  return (calculatePastWeekPoints() || 0) + ((partnerPointsToday.value || 0) * 7);
+});
+
+const isCoupleSynergyUnlocked = computed(() => {
+  if (!isPartnerPaired.value) return false;
+  return (partnerAlignmentScore.value >= 80) || (combinedWeeklyPoints.value >= 200);
+});
+
+const handleRedeemSynergyReward = (reward) => {
+  if (!reward || claimedSynergyRewards.value.includes(reward.id)) return;
+  claimedSynergyRewards.value.push(reward.id);
+  saveState();
+
+  // Broadcast celebration to partner
+  broadcastPartnerEvent({
+    type: 'partner_synergy_claim',
+    reward: reward.item,
+    by: displayName.value,
+  }, pairChannelId.value);
+
+  playSharedAnchorSync();
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([40, 80, 40, 80]);
+  }
+  showToast(`🎉 Claimed Couple Synergy Reward: "${reward.item}"! Enjoy together with ${partnerDisplayName.value}! ❤️`, 5000);
+};
+
+const handleOpenRewardVault = () => {
+  activeMobileTab.value = 'rewards';
+  setTimeout(() => {
+    const el = document.getElementById('rewards');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+  showToast('🎁 Navigated to Reward Vault!');
+};
+
 // Theme Management (Dark / Light Mode)
 const darkMode = ref(
   typeof window !== 'undefined'
@@ -749,6 +979,29 @@ watch(darkMode, (newVal) => {
     localStorage.setItem('habuilt_theme', newVal ? 'dark' : 'light');
   }
 }, { immediate: true });
+
+// ── Circadian Auto-Ambient Glow Engine ──
+const {
+  CIRCADIAN_PHASES,
+  activeCircadianMode,
+  currentPhaseKey: circadianPhaseKey,
+  currentPhase: circadianPhase,
+  setCircadianMode,
+  cycleNextPhase: cycleCircadianPhase,
+} = useCircadianAtmosphere(computed(() => darkMode.value));
+
+const handleCycleCircadianAtmosphere = () => {
+  const next = cycleCircadianPhase();
+  showToast(`✨ Atmosphere: ${next.name} (${activeCircadianMode.value})`);
+};
+
+// ── Service Worker Periodic Background Sync Listener ──
+const handleSwPeriodicSync = (event) => {
+  if (event.data?.type === 'HABUILT_PERIODIC_SYNC') {
+    refreshPartnerLiveMetrics();
+    syncCloudState(false);
+  }
+};
 
 // Distraction-Free Zen Focus Mode (Apple / Linear Grade Flow)
 const zenMode = ref(
@@ -788,6 +1041,12 @@ watch(zenMode, (newVal) => {
   }
 });
 
+watch(partnerViewOpen, (open) => {
+  if (open) {
+    refreshPartnerLiveMetrics();
+  }
+});
+
 onMounted(async () => {
   applyTheme(darkMode.value);
   await loadProtocols();
@@ -795,7 +1054,10 @@ onMounted(async () => {
   // Load partner connection
   try {
     const conn = await getPartnerConnection(effectiveUserId.value);
-    if (conn) activePartnerConnection.value = conn;
+    if (conn) {
+      activePartnerConnection.value = conn;
+      refreshPartnerLiveMetrics();
+    }
   } catch (e) {
     console.warn('[Dashboard] partner init error:', e);
   }
@@ -807,6 +1069,7 @@ onMounted(async () => {
       try {
         const conn = await pairWithInviteCode(effectiveUserId.value, rawPairCode);
         activePartnerConnection.value = conn;
+        refreshPartnerLiveMetrics();
         showToast(`❤️ Partner connection established via invite link (${rawPairCode})!`);
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       } catch (err) {
@@ -1527,11 +1790,11 @@ const levelData = computed(() => {
 });
 const levelTitle = computed(() => {
   const lv = levelData.value.level;
-  if (lv >= 10) return 'Ascendant';
-  if (lv >= 7) return 'Titan';
-  if (lv >= 5) return 'Architect';
-  if (lv >= 3) return 'Practitioner';
-  return 'Initiate';
+  if (lv >= 10) return 'Sovereign Peak';
+  if (lv >= 7) return 'Strategic Mastery';
+  if (lv >= 5) return 'Executive Leverage';
+  if (lv >= 3) return 'Consistent Focus';
+  return 'Baseline Discipline';
 });
 
 // Heatmap Data
@@ -1696,15 +1959,16 @@ const toggleHabitForDay = (habit, day) => {
       });
 
       const sharedInfo = getSharedHabitInfo(habit.id);
-      if (sharedInfo) {
+      if (sharedInfo || isPartnerPaired.value) {
         broadcastPartnerEvent({
-          type: 'shared_habit_done',
+          type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
           partner: isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value),
+          userId: effectiveUserId.value,
           habitId: habit.id,
           habitName: habit.name,
           points: habit.points || 1,
           day: numDay,
-        });
+        }, pairChannelId.value);
       }
     } else {
       removeHabitCheckIn({
@@ -1713,6 +1977,20 @@ const toggleHabitForDay = (habit, day) => {
         monthKey: monthScope.value,
         day: numDay,
       });
+    }
+  } else {
+    // Guest or offline/local pairing mode: broadcast to local tab channel if paired
+    if (nextDone && isPartnerPaired.value) {
+      const sharedInfo = getSharedHabitInfo(habit.id);
+      broadcastPartnerEvent({
+        type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
+        partner: displayName.value,
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        habitName: habit.name,
+        points: habit.points || 1,
+        day: numDay,
+      }, pairChannelId.value);
     }
   }
 
@@ -1737,7 +2015,9 @@ const toggleHabitForDay = (habit, day) => {
   }
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(nextDone ? [15, 30, 15] : [20]);
+    try {
+      navigator.vibrate([12]);
+    } catch (_) {}
   }
 };
 
@@ -1832,7 +2112,9 @@ const markHabitCompletedDirectly = (habitId, day) => {
   const habitName = targetHabit ? targetHabit.name : 'Habit';
   showToast(`✅ "${habitName}" marked done!`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate([15, 30, 15]);
+    try {
+      navigator.vibrate([12]);
+    } catch (_) {}
   }
 };
 
@@ -1866,7 +2148,7 @@ const sendWarriorHighFive = async () => {
   await broadcastPartnerEvent({
     type: 'warrior_high_five',
     partner: sender,
-  });
+  }, pairChannelId.value);
   fireDualCannons();
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([30, 60, 30]);
@@ -1954,7 +2236,7 @@ const handleSendPartnerEmote = async (emote) => {
     emoteId: emote.id,
     label: emote.label,
     message: emote.message,
-  });
+  }, pairChannelId.value);
   fireDualCannons();
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([25, 50, 25]);
@@ -2232,22 +2514,38 @@ const applyLoadedState = (data, isRemote = false) => {
       cost: Number(r.cost) || 10,
     }));
   }
+  if (Array.isArray(data.coupleSynergyRewards)) {
+    coupleSynergyRewards.value = data.coupleSynergyRewards.map((r, idx) => ({
+      id: r.id || `couple-reward-${idx}-${Date.now()}`,
+      item: r.item || '',
+      type: r.type || 'Couple Synergy',
+      cost: Number(r.cost) || 0,
+      description: r.description || '',
+      icon: r.icon || '🎁',
+    }));
+  }
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
   if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
   if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
   if (data.weeklyReview && typeof data.weeklyReview === 'object') {
+    const defaultRev = createDefaultWeeklyReview();
     weeklyReview.value = {
-      ...createDefaultWeeklyReview(),
+      ...defaultRev,
       ...data.weeklyReview,
       metrics: {
-        ...createDefaultWeeklyReview().metrics,
+        ...defaultRev.metrics,
         ...(data.weeklyReview.metrics || {}),
       },
       reflections: {
-        ...createDefaultWeeklyReview().reflections,
+        ...defaultRev.reflections,
         ...(data.weeklyReview.reflections || {}),
       },
-      checks: Array.isArray(data.weeklyReview.checks) ? data.weeklyReview.checks : createDefaultWeeklyReview().checks,
+      checks: Array.isArray(data.weeklyReview.checks) ? data.weeklyReview.checks : defaultRev.checks,
+      coupleChecks: Array.isArray(data.weeklyReview.coupleChecks) ? data.weeklyReview.coupleChecks : defaultRev.coupleChecks,
+      coupleReflections: {
+        ...defaultRev.coupleReflections,
+        ...(data.weeklyReview.coupleReflections || {}),
+      },
     };
   }
   if (data.dayType !== undefined) dayType.value = data.dayType;
@@ -2266,13 +2564,18 @@ const applyLoadedState = (data, isRemote = false) => {
   } else if (data.hydrationMl !== undefined) {
     hydrationMlState.value = Number(data.hydrationMl) || 0;
   }
+  if (Array.isArray(data.claimedSynergyRewards)) {
+    claimedSynergyRewards.value = data.claimedSynergyRewards;
+  }
 
   try {
     const payload = {
       habits: localHabits.value,
       allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
       rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
       weeklyReview: weeklyReview.value,
@@ -2299,7 +2602,9 @@ const debouncedSaveState = (delayMs = 400) => {
       habits: localHabits.value,
       allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
       rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
       weeklyReview: weeklyReview.value,
@@ -2324,7 +2629,9 @@ const saveState = async () => {
       habits: localHabits.value,
       allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
       rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
       weeklyReview: weeklyReview.value,
@@ -2678,11 +2985,25 @@ const startEditingRewards = () => {
     item: r.item || '',
     cost: Number(r.cost) !== undefined && !isNaN(Number(r.cost)) ? Number(r.cost) : 10,
   }));
+
+  const coupleSource = (coupleSynergyRewards.value && coupleSynergyRewards.value.length > 0)
+    ? coupleSynergyRewards.value
+    : defaultCoupleSynergyRewards;
+  coupleSynergyRewardsDraft.value = coupleSource.map((r, idx) => ({
+    id: r.id || `couple-reward-${Date.now()}-${idx}`,
+    type: r.type || 'Couple Synergy',
+    item: r.item || '',
+    cost: 0,
+    description: r.description || '',
+    icon: r.icon || '🎁',
+  }));
+
   rewardsEditing.value = true;
 };
 
 const cancelEditingRewards = () => {
   rewardsEditing.value = false;
+  coupleSynergyRewardsDraft.value = [];
 };
 
 const saveRewardsCatalog = () => {
@@ -2698,8 +3019,36 @@ const saveRewardsCatalog = () => {
   if (sanitized.length > 0) {
     rewards.value = sanitized;
   }
+
+  const sanitizedCouple = (coupleSynergyRewardsDraft.value || [])
+    .filter(r => r.item && r.item.trim().length > 0)
+    .map(r => ({
+      id: r.id || `couple-reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'Couple Synergy',
+      item: r.item.trim(),
+      cost: 0,
+      description: r.description ? r.description.trim() : '',
+      icon: r.icon && r.icon.trim().length > 0 ? r.icon.trim() : '🎁',
+    }));
+
+  let coupleUpdated = false;
+  if (sanitizedCouple.length > 0) {
+    coupleSynergyRewards.value = sanitizedCouple;
+    coupleUpdated = true;
+  }
+
   rewardsEditing.value = false;
   saveState();
+
+  if (coupleUpdated && isPartnerPaired.value) {
+    broadcastPartnerEvent({
+      type: 'partner_couple_rewards_update',
+      rewards: coupleSynergyRewards.value,
+      by: displayName.value,
+    }, pairChannelId.value);
+  }
+
+  showToast('✅ Rewards catalog updated successfully!');
 };
 
 const restoreDefaultRewards = () => {
@@ -2709,6 +3058,27 @@ const restoreDefaultRewards = () => {
   }));
   rewardsEditing.value = false;
   saveState();
+  showToast('🔄 Restored default personal rewards!');
+};
+
+const restoreDefaultSynergyRewards = () => {
+  coupleSynergyRewards.value = defaultCoupleSynergyRewards.map((r, i) => ({
+    id: `default-couple-reward-${i}`,
+    ...r,
+  }));
+  coupleSynergyRewardsDraft.value = defaultCoupleSynergyRewards.map((r, i) => ({
+    id: `default-couple-reward-${i}`,
+    ...r,
+  }));
+  saveState();
+  if (isPartnerPaired.value) {
+    broadcastPartnerEvent({
+      type: 'partner_couple_rewards_update',
+      rewards: coupleSynergyRewards.value,
+      by: displayName.value,
+    }, pairChannelId.value);
+  }
+  showToast('🔄 Restored default couple synergy rewards!');
 };
 
 const addDraftReward = () => {
@@ -2722,6 +3092,21 @@ const addDraftReward = () => {
 
 const removeDraftReward = (index) => {
   rewardsDraft.value.splice(index, 1);
+};
+
+const addDraftSynergyReward = () => {
+  coupleSynergyRewardsDraft.value.push({
+    id: `couple-reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: 'Couple Synergy',
+    item: '',
+    cost: 0,
+    description: '',
+    icon: '🎁',
+  });
+};
+
+const removeDraftSynergyReward = (index) => {
+  coupleSynergyRewardsDraft.value.splice(index, 1);
 };
 
 const isRewardClaimedThisMonth = (rewardId) => {
@@ -2818,10 +3203,12 @@ const handlePopState = (e) => {
 
 let clockInterval = null;
 let cloudSyncInterval = null;
+let partnerHeartbeatInterval = null;
 
 const handleAppResume = async () => {
-  // 1. Immediately update clock time
+  // 1. Immediately update clock time and partner heartbeat
   updateCurrentClock();
+  sendPartnerHeartbeat();
 
   // 2. Check if date rolled over midnight
   const now = new Date();
@@ -2898,6 +3285,10 @@ onMounted(() => {
   window.addEventListener('keydown', handleZenKeyDown);
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleSwPeriodicSync);
+  }
+
   // ── Desktop PWA Install Prompt Capture (Chrome / Edge / Windows) ──
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -2957,23 +3348,41 @@ onMounted(() => {
         showToast(`🤝 Connected with ${partnerName}! Real-time synchronization active. ✨`, 4500);
         firePartnerCelebration();
         const updated = await getPartnerConnection(effectiveUserId.value);
-        if (updated) partnerConnection.value = updated;
+        if (updated) {
+          activePartnerConnection.value = updated;
+          refreshPartnerLiveMetrics();
+        }
+      } else if (payload?.new && payload.new.status === 'revoked') {
+        activePartnerConnection.value = null;
+        refreshPartnerLiveMetrics();
+        showToast('Partner connection unlinked. Switched to Standalone mode.');
       }
     });
 
     // ── Realtime Couple Broadcast Listener ──
-    coupleLiveChannel = initCoupleBroadcastChannel((msg) => {
-      if (msg && msg.type === 'shared_habit_done') {
+    const handlePartnerBroadcastMessage = (msg) => {
+      if (msg && (msg.type === 'shared_habit_done' || msg.type === 'habit_completed')) {
         const sender = msg.partner || 'Partner';
         const currentIsAshish = isAshish.value;
         const currentIsJyoti = isJyoti.value;
         if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
           showToast(`🌸 ${sender} completed "${msg.habitName}"! (+${msg.points} pts) ✨`, 4500);
           firePartnerCelebration();
+          playSharedAnchorSync();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([25, 50, 25]);
           }
+          dispatchPartnerNotification({
+            title: `🌸 ${sender} crushed "${msg.habitName}"! (+${msg.points || 1} pts)`,
+            body: 'Keep your warrior momentum synced! Tap to open your protocol.',
+          });
+          refreshPartnerLiveMetrics();
         }
+      } else if (msg && msg.type === 'partner_unpair') {
+        const sender = msg.partner || 'Partner';
+        showToast(`Partner (${sender}) unlinked. Switched to Standalone mode.`);
+        activePartnerConnection.value = null;
+        refreshPartnerLiveMetrics();
       } else if (msg && msg.type === 'warrior_high_five') {
         const sender = msg.partner || 'Partner';
         const currentIsAshish = isAshish.value;
@@ -2981,9 +3390,14 @@ onMounted(() => {
         if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
           showToast(`🙌 ${sender} just sent you a Warrior High-Five! Keep conquering! ⚡`, 5000);
           fireDualCannons();
+          playPartnerHighFive();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([50, 100, 50, 100]);
           }
+          dispatchPartnerNotification({
+            title: `🙌 High-Five from ${sender}!`,
+            body: `${sender} sent you warrior energy! Keep conquering today's habits.`,
+          });
         }
       } else if (msg && msg.type === 'partner_emote') {
         const sender = msg.partner || 'Partner';
@@ -2992,12 +3406,84 @@ onMounted(() => {
         if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
           showToast(`${msg.label || '💌'} ${sender} ${msg.message || 'sent you encouragement!'}`, 5500);
           fireDualCannons();
+          playPartnerEmote();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([35, 70, 35, 70]);
           }
+          dispatchPartnerNotification({
+            title: `${msg.label || '💌'} ${sender}`,
+            body: `${sender} ${msg.message || 'sent you encouragement!'}`,
+          });
+        }
+      } else if (msg && msg.type === 'partner_heartbeat') {
+        const isOwn = (msg.userId === effectiveUserId.value) ||
+          (isAshish.value && msg.userId === 'ashish') ||
+          (isJyoti.value && msg.userId === 'jyoti');
+        if (!isOwn) {
+          const windowName = msg.window || 'Active Protocol';
+          partnerPresence.value = {
+            isOnline: true,
+            lastSeen: Date.now(),
+            currentWindow: windowName,
+            statusLabel: `Active in ${windowName}`,
+          };
+        }
+      } else if (msg && msg.type === 'partner_nudge') {
+        const sender = msg.from || 'Partner';
+        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
+        if (!isOwn) {
+          const nudge = msg.nudge || {};
+          showToast(`${nudge.icon || '🔔'} ${sender}: ${nudge.label || 'Gentle Nudge'} — ${nudge.message || 'Stay focused!'}`, 5500);
+          playPartnerNudge();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([40, 80, 40]);
+          }
+          dispatchPartnerNotification({
+            title: `${nudge.icon || '🔔'} ${nudge.label || 'Partner Nudge'} from ${sender}`,
+            body: nudge.message || 'Stay focused and conquer your protocol!',
+          });
+          const windowName = msg.window || 'Active Protocol';
+          partnerPresence.value = {
+            isOnline: true,
+            lastSeen: Date.now(),
+            currentWindow: windowName,
+            statusLabel: `Active in ${windowName}`,
+          };
+        }
+      } else if (msg && msg.type === 'partner_synergy_claim') {
+        const sender = msg.by || 'Partner';
+        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
+        if (!isOwn) {
+          showToast(`🎉 ${sender} claimed Couple Synergy Reward: "${msg.reward}"! Celebrated together! ❤️`, 6000);
+          playSharedAnchorSync();
+          fireDualCannons();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([50, 100, 50, 100]);
+          }
+        }
+      } else if (msg && msg.type === 'partner_couple_rewards_update') {
+        const sender = msg.by || 'Partner';
+        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
+        if (!isOwn && Array.isArray(msg.rewards)) {
+          coupleSynergyRewards.value = msg.rewards;
+          saveState();
+          showToast(`🎁 ${sender} updated the Couple Synergy Rewards catalog!`, 4000);
         }
       }
-    });
+    };
+
+    coupleLiveChannel = initCoupleBroadcastChannel(handlePartnerBroadcastMessage, pairChannelId.value);
+
+    // Initial heartbeat pulse and 25s recurring presence cycle
+    sendPartnerHeartbeat();
+    partnerHeartbeatInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      sendPartnerHeartbeat();
+      if (partnerPresence.value.isOnline && partnerPresence.value.lastSeen && (Date.now() - partnerPresence.value.lastSeen > 45000)) {
+        partnerPresence.value.isOnline = false;
+        partnerPresence.value.statusLabel = 'Offline';
+      }
+    }, 25000);
   }
 
   // ── Native Android Hardware / Gesture Back Button Handler ──
@@ -3100,6 +3586,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (clockInterval) clearInterval(clockInterval);
   if (cloudSyncInterval) clearInterval(cloudSyncInterval);
+  if (partnerHeartbeatInterval) clearInterval(partnerHeartbeatInterval);
   if (realtimeCheckInsChannel) {
     try { realtimeCheckInsChannel.unsubscribe(); } catch {}
   }
@@ -3114,6 +3601,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('pageshow', handleAppResume);
   window.removeEventListener('keydown', handleZenKeyDown);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', handleSwPeriodicSync);
+  }
 });
 </script>
 
@@ -3252,6 +3742,10 @@ onBeforeUnmount(() => {
           :active-tab="activeMobileTab"
           :timer-running="timerState && timerState.running"
           :notifications-enabled="dueNowNotificationsEnabled"
+          :partner-presence="partnerPresence"
+          :circadian-phase="circadianPhase"
+          :active-circadian-mode="activeCircadianMode"
+          @cycle-circadian="handleCycleCircadianAtmosphere"
           @set-tab="tab => activeMobileTab = tab"
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
@@ -3772,6 +4266,14 @@ onBeforeUnmount(() => {
           :is-redeeming="false"
           :is-claimed-this-month="isRewardClaimedThisMonth"
           :can-afford-reward="r => availableWallet >= r.cost"
+          :is-partner-paired="isPartnerPaired"
+          :partner-display-name="partnerDisplayName"
+          :alignment-score="partnerAlignmentScore || 0"
+          :combined-weekly-points="combinedWeeklyPoints"
+          :is-synergy-unlocked="isCoupleSynergyUnlocked"
+          :claimed-synergy-rewards="claimedSynergyRewards"
+          :active-couple-synergy-rewards="coupleSynergyRewards"
+          :couple-synergy-rewards-draft="coupleSynergyRewardsDraft"
           @toggle-expand="() => {}"
           @start-editing="startEditingRewards"
           @cancel-editing="cancelEditingRewards"
@@ -3780,6 +4282,10 @@ onBeforeUnmount(() => {
           @add-draft-reward="addDraftReward"
           @remove-draft-reward="removeDraftReward"
           @redeem-reward="handleRedeemReward"
+          @redeem-synergy-reward="handleRedeemSynergyReward"
+          @add-draft-synergy-reward="addDraftSynergyReward"
+          @remove-draft-synergy-reward="removeDraftSynergyReward"
+          @restore-default-synergy-rewards="restoreDefaultSynergyRewards"
         />
       </section>
 
@@ -3796,9 +4302,17 @@ onBeforeUnmount(() => {
           :weekly-points="calculatePastWeekPoints()"
           :monthly-points="monthlyTotalEarned"
           :weekly-review="weeklyReview"
+          :is-partner-paired="isPartnerPaired"
+          :partner-display-name="partnerDisplayName"
+          :partner-points="partnerPointsToday || 0"
+          :shared-anchors="dynamicSharedAnchors"
+          :alignment-score="partnerAlignmentScore || 0"
           @toggle-expand="weeklyReviewExpanded = !weeklyReviewExpanded"
           @fill-metrics="fillSundayMetrics"
           @save-review="saveState"
+          @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+          @open-reward-vault="handleOpenRewardVault"
+          @toast="msg => showToast(msg)"
         />
       </section>
 
@@ -3825,8 +4339,14 @@ onBeforeUnmount(() => {
         :performance-grade="performanceGrade"
         :completed-habits-list="todayCompletedHabitsList"
         :date-label="mobileDayIsToday ? '' : mobileDayLabel"
+        :is-partner-paired="isPartnerPaired"
+        :partner-display-name="partnerDisplayName"
+        :partner-points="partnerPointsToday || 0"
+        :shared-anchors="dynamicSharedAnchors"
+        :alignment-score="partnerAlignmentScore || 0"
         @close="isShareModalOpen = false"
         @toast="msg => showToast(msg)"
+        @open-partner-pair="isUniversalPartnerPairModalOpen = true"
       />
 
       <!-- Single Habit Add/Edit Modal (Time Pickers, Custom Schedule & Points) -->
@@ -3927,12 +4447,17 @@ onBeforeUnmount(() => {
         :is-jyoti="isJyoti"
         :display-name="displayName"
         :partner-name="partnerDisplayName"
-        :partner-completed-count="isJyoti ? 18 : 34"
-        :partner-total-count="isJyoti ? 37 : 68"
-        :partner-points="isJyoti ? 14 : 16"
+        :partner-completed-count="partnerCompletedCountToday"
+        :partner-total-count="partnerTotalHabitsCount"
+        :partner-points="partnerPointsToday"
         :current-day="props.currentDay"
+        :shared-anchors="dynamicSharedAnchors"
+        :alignment-score="partnerAlignmentScore"
+        :is-offline="partnerLiveOffline"
+        :partner-presence="partnerPresence"
         @close="partnerViewOpen = false"
         @send-emote="handleSendPartnerEmote"
+        @send-nudge="handleSendPartnerNudge"
         @toast="msg => showToast(msg)"
       />
 

@@ -93,19 +93,25 @@ export function useAudioHapticFeedback() {
     try {
       switch (type) {
         case 'light':
-          navigator.vibrate(10);
+        case 'micro':
+        case 'checklist':
+          navigator.vibrate([12]);
+          break;
+        case 'timerComplete':
+        case 'focusComplete':
+          navigator.vibrate([12, 50, 12, 50, 24]);
           break;
         case 'medium':
-          navigator.vibrate(22);
+          navigator.vibrate([18]);
           break;
         case 'success':
           navigator.vibrate([12, 35, 20]);
           break;
         case 'warning':
-          navigator.vibrate([30, 50, 30]);
+          navigator.vibrate([25, 40, 25]);
           break;
         default:
-          navigator.vibrate(15);
+          navigator.vibrate([12]);
       }
     } catch {}
   }

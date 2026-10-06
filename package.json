@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-vercel-dist.mjs",
     "build:vercel": "vite build && node scripts/prepare-vercel-dist.mjs",
-    "preview": "vite preview",
+    "preview": "vite preview --outDir dist",
     "cap:add": "cap add android",
     "cap:sync": "npm run build && cap sync android",
     "cap:build": "npm run build && cap sync android",

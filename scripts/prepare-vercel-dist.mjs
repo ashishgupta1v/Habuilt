@@ -49,3 +49,4 @@ const copyDirIfExists = async (from, to) => {
 	}
 };
 await copyDirIfExists('public/icons', 'dist/icons');
+await copyDirIfExists('public/screenshots', 'dist/screenshots');

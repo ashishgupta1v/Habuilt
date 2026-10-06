@@ -259,33 +259,229 @@ export function subscribeToPartnerConnection(userId, onPartnerChange) {
 }
 
 /**
- * Loads partner's live progress metrics from habit_check_ins.
+ * Loads partner's live progress metrics from habit_check_ins, with offline fallback cache.
  */
-export async function loadPartnerLiveMetrics(partnerUserId, monthKey) {
-  if (!isSupabaseConfigured() || !partnerUserId) return null;
+export async function loadPartnerLiveMetrics(partnerUserId, monthKey, targetDay = null) {
+  if (!partnerUserId) return null;
 
-  try {
-    const { data, error } = await supabase
-      .from('habit_check_ins')
-      .select('points, day, completed_on')
-      .eq('user_id', partnerUserId)
-      .eq('month_key', monthKey);
+  const todayNum = targetDay !== null ? Number(targetDay) : new Date().getDate();
+  const cacheKey = `habuilt_partner_metrics_${partnerUserId}_${monthKey}`;
 
-    if (error || !data) return null;
-
-    const totalPoints = data.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
-    const uniqueDays = new Set(data.map(d => Number(d.day)));
-    const today = new Date().getDate();
-    const isTodayActive = uniqueDays.has(today);
+  // Helper to process raw check-in rows
+  const processCheckIns = (checkIns, isCached = false) => {
+    const list = Array.isArray(checkIns) ? checkIns : [];
+    const todayCheckIns = list.filter(d => Number(d.day) === todayNum);
+    const todayPoints = todayCheckIns.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
+    const todayCompletedHabitIds = todayCheckIns.map(d => String(d.habit_id || d.habitId));
+    const uniqueDays = new Set(list.map(d => Number(d.day)));
+    const totalMonthPoints = list.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
 
     return {
-      totalPoints,
+      todayPoints,
+      todayCompletedCount: todayCheckIns.length,
+      todayCompletedHabitIds,
+      todayCheckIns,
+      totalMonthPoints,
       completedDaysCount: uniqueDays.size,
-      checkInsCount: data.length,
-      isTodayActive
+      checkInsCount: list.length,
+      isTodayActive: todayCheckIns.length > 0,
+      isOfflineCache: isCached,
+      lastUpdated: new Date().toISOString(),
     };
-  } catch (e) {
-    console.warn('[PartnerPairing] loadPartnerLiveMetrics note:', e);
-    return null;
+  };
+
+  // If Supabase is configured and not guest, fetch live
+  if (isSupabaseConfigured() && !isGuestUser(partnerUserId)) {
+    try {
+      const { data, error } = await supabase
+        .from('habit_check_ins')
+        .select('habit_id, habit_name, points, day, completed_on, canonical_key')
+        .eq('user_id', partnerUserId)
+        .eq('month_key', monthKey);
+
+      if (!error && Array.isArray(data)) {
+        const metrics = processCheckIns(data, false);
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(metrics));
+        } catch (_) {}
+        return metrics;
+      }
+    } catch (e) {
+      console.warn('[PartnerPairing] loadPartnerLiveMetrics online fetch warning:', e);
+    }
   }
+
+  // Fallback: Read from local cache if online fetch failed or offline
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      return { ...parsed, isOfflineCache: true };
+    }
+  } catch (_) {}
+
+  // If local pair simulation (e.g. Ashish & Jyoti on local test mode)
+  try {
+    const partnerStateKey = `habuilt_state_${partnerUserId}_${monthKey}`;
+    const rawLocal = localStorage.getItem(partnerStateKey);
+    if (rawLocal) {
+      const parsed = JSON.parse(rawLocal);
+      const habits = parsed.habits || [];
+      const syntheticCheckIns = [];
+      habits.forEach(h => {
+        const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+        cds.forEach(day => {
+          syntheticCheckIns.push({
+            habit_id: h.id,
+            habit_name: h.name,
+            points: h.points || 1,
+            day,
+          });
+        });
+      });
+      return processCheckIns(syntheticCheckIns, true);
+    }
+  } catch (_) {}
+
+  return {
+    todayPoints: 0,
+    todayCompletedCount: 0,
+    todayCompletedHabitIds: [],
+    todayCheckIns: [],
+    totalMonthPoints: 0,
+    completedDaysCount: 0,
+    checkInsCount: 0,
+    isTodayActive: false,
+    isOfflineCache: false,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Dynamically computes couple shared anchors and calculates live alignment %
+ */
+export function computeSharedAnchorsStatus(userHabits = [], partnerMetrics = null, isAshish = false, isJyoti = false, currentDay = 1) {
+  const curDay = Number(currentDay) || 1;
+  const partnerCompletedIds = new Set(partnerMetrics?.todayCompletedHabitIds || []);
+
+  const isHabitCompletedByUser = (habitIds) => {
+    const ids = Array.isArray(habitIds) ? habitIds : [habitIds];
+    return (userHabits || []).some(h => {
+      if (ids.includes(String(h.id))) {
+        const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+        return cds.includes(curDay);
+      }
+      return false;
+    });
+  };
+
+  const isHabitCompletedByPartner = (habitIds) => {
+    const ids = Array.isArray(habitIds) ? habitIds : [habitIds];
+    return ids.some(id => partnerCompletedIds.has(String(id)));
+  };
+
+  // Flagship couple anchor definitions with exact reciprocal habit ID mappings
+  let rawAnchors = [];
+
+  if (isAshish || isJyoti) {
+    const ashishUser = isAshish;
+    rawAnchors = [
+      {
+        id: 'anchor-lunch',
+        time: '13:30 - 14:15',
+        title: 'Shared Wholesome Lunch',
+        subtitle: 'Warm nourishing food, zero screens, active listening',
+        badge: 'Nutrition',
+        userHabitIds: ashishUser ? ['a-29'] : ['j-6'],
+        partnerHabitIds: ashishUser ? ['j-6'] : ['a-29'],
+      },
+      {
+        id: 'anchor-stroller',
+        time: '18:35 - 19:15',
+        title: 'Shaarvi Stroller Park Walk',
+        subtitle: 'Outdoor metabolic walk, fresh air, baby bonding',
+        badge: 'Family',
+        userHabitIds: ashishUser ? ['a-20', 'at-17', 'af-21'] : ['j-18'],
+        partnerHabitIds: ashishUser ? ['j-18'] : ['a-20', 'at-17', 'af-21'],
+      },
+      {
+        id: 'anchor-dinner',
+        time: '19:25 - 20:15',
+        title: 'Family Dinner Preparation',
+        subtitle: 'Cooking together, table setup & peaceful evening meal',
+        badge: 'Household',
+        userHabitIds: ashishUser ? ['a-21', 'at-18', 'af-23'] : ['j-19'],
+        partnerHabitIds: ashishUser ? ['j-19'] : ['a-21', 'at-18', 'af-23'],
+      },
+      {
+        id: 'anchor-diya',
+        time: '20:35 - 20:50',
+        title: 'Evening Diya & Gratitude',
+        subtitle: 'Lighting the lamp, quiet reflection & daily thanks',
+        badge: 'Spiritual',
+        userHabitIds: ashishUser ? ['a-76'] : ['j-21'],
+        partnerHabitIds: ashishUser ? ['j-21'] : ['a-76'],
+      },
+    ];
+  } else {
+    // Universal dynamic matching for generic paired warriors:
+    // Match habits with '★', 'shared', or matching titles
+    const candidateHabits = (userHabits || []).filter(h => {
+      const n = (h.name || '').toLowerCase();
+      return n.includes('★') || n.includes('shared') || n.includes('walk') || n.includes('lunch') || n.includes('dinner');
+    }).slice(0, 4);
+
+    if (candidateHabits.length > 0) {
+      rawAnchors = candidateHabits.map((h, idx) => ({
+        id: `custom-anchor-${h.id}`,
+        time: 'Daily Shared',
+        title: h.name,
+        subtitle: h.hint || 'Synchronized co-warrior commitment',
+        badge: 'Shared Goal',
+        userHabitIds: [String(h.id)],
+        partnerHabitIds: [String(h.id)],
+      }));
+    } else {
+      rawAnchors = [
+        {
+          id: 'anchor-generic-focus',
+          time: 'Morning Focus',
+          title: 'Daily Primary Anchor',
+          subtitle: 'Synchronized morning execution and focus block',
+          badge: 'Focus',
+          userHabitIds: [(userHabits[0]?.id || '1')],
+          partnerHabitIds: [(userHabits[0]?.id || '1')],
+        }
+      ];
+    }
+  }
+
+  const computedAnchors = rawAnchors.map(anchor => {
+    const completedByUser = isHabitCompletedByUser(anchor.userHabitIds);
+    const completedByPartner = isHabitCompletedByPartner(anchor.partnerHabitIds);
+    const completedTogether = completedByUser && completedByPartner;
+
+    return {
+      ...anchor,
+      completedByUser,
+      completedByPartner,
+      completedTogether,
+    };
+  });
+
+  const total = computedAnchors.length;
+  const completedTogetherCount = computedAnchors.filter(a => a.completedTogether).length;
+  const userCompletedCount = computedAnchors.filter(a => a.completedByUser).length;
+  const partnerCompletedCount = computedAnchors.filter(a => a.completedByPartner).length;
+
+  const alignmentPercentage = total > 0 ? Math.round((completedTogetherCount / total) * 100) : 0;
+
+  return {
+    anchors: computedAnchors,
+    totalAnchors: total,
+    completedTogetherCount,
+    userCompletedCount,
+    partnerCompletedCount,
+    alignmentPercentage,
+  };
 }
