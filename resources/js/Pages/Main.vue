@@ -434,29 +434,55 @@ onMounted(async () => {
     const handleDeepLinkUrl = async (url) => {
       if (!url) return;
       try { await Browser.close(); } catch { /* ignore */ }
-      const rawUrl = url
-        .replace('habuilt://', 'https://www.habuilt.com/')
-        .replace('com.habuilt.app://', 'https://www.habuilt.com/');
-      try {
-        const parsed = new URL(rawUrl);
-        const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-        const accessToken  = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const code = parsed.searchParams.get('code') || hashParams.get('code');
 
-        if (accessToken && refreshToken) {
-          const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      let searchStr = '';
+      let hashStr = '';
+      try {
+        const rawUrl = url
+          .replace('habuilt://', 'https://www.habuilt.com/')
+          .replace('com.habuilt.app://', 'https://www.habuilt.com/');
+        const parsed = new URL(rawUrl);
+        searchStr = parsed.search.replace(/^\?/, '');
+        hashStr = parsed.hash.replace(/^#/, '');
+      } catch {}
+
+      if (!searchStr && !hashStr) {
+        const queryIdx = url.indexOf('?');
+        const hashIdx = url.indexOf('#');
+        if (queryIdx !== -1) searchStr = url.substring(queryIdx + 1).split('#')[0];
+        if (hashIdx !== -1) hashStr = url.substring(hashIdx + 1);
+      }
+
+      const hashParams = new URLSearchParams(hashStr);
+      const searchParams = new URLSearchParams(searchStr);
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+      const code = searchParams.get('code') || hashParams.get('code');
+      const errorDesc = hashParams.get('error_description') || searchParams.get('error_description') || hashParams.get('error') || searchParams.get('error');
+
+      if (accessToken && refreshToken) {
+        try {
+          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (error) throw error;
           if (data?.user) {
             enterUserSession(data.user);
           }
-        } else if (code) {
-          const { data } = await supabase.auth.exchangeCodeForSession(code);
-          if (data?.user) {
-            enterUserSession(data.user);
-          }
+        } catch (e) {
+          console.warn('[MainDeepLink] Error setting session:', e);
         }
-      } catch (e) {
-        console.warn('Error parsing deep link auth:', e);
+      } else if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+          }
+        } catch (e) {
+          console.warn('[MainDeepLink] Error exchanging code:', e);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainDeepLink] OAuth error:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
       }
     };
 
