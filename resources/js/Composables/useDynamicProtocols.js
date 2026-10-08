@@ -130,15 +130,15 @@ export const PROTOCOL_ARCHETYPES = {
   ashishMaster: {
     id: 'archetype-ashish',
     key: 'ashish-master',
-    name: 'Ashish Master Protocol (Flagship 68-Step)',
+    name: 'Ashish Master Operating Plan (Dual-Track)',
     badge: '👑 Master Blueprint',
     icon: 'crown',
-    tagline: 'MOVERS Sadhana, Clinical Rheumatology layer, 4 Office day types.',
-    description: 'The complete micro-sequenced 68-step master blueprint engineered with integrated time blocks, clinical biomarker logging, and partner anchors.',
+    tagline: 'ZoetiCoach & Digital Builders Studio, Infosys 4h, Spine/Eye Shield & 21:00 Shutdown.',
+    description: 'The complete dual-track operating system: Home base deep laptop build blocks, Chandigarh solo sprint week, 2h alternate-day meetings, spine & ocular preservation, and strict 21:00 hard laptop shutdown.',
     wakeTime: '04:45',
     sleepTime: '22:00',
     workStart: '08:30',
-    workEnd: '18:30',
+    workEnd: '21:00',
     habits: ashishHabits
   },
 

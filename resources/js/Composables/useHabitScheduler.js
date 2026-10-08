@@ -30,6 +30,23 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
     const [weh, wem] = workEndStr.split(':').map(Number);
     const workEndMins = (weh * 60 + wem) || 1080;
 
+    if (workEndMins >= 1200) {
+      // Dual-track master routine (work until 21:00 shutdown)
+      if (mins < workStartMins) {
+        return { name: 'Morning Protocol', time: `${wakeStr} – ${workStartStr}`, icon: '🌅' };
+      } else if (mins < 14 * 60) {
+        return { name: 'Deep Build Block', time: `${workStartStr} – 14:00`, icon: '⚡' };
+      } else if (mins < 18 * 60 + 15) {
+        return { name: 'Afternoon Build & Meetings', time: '14:00 – 18:15', icon: '☀️' };
+      } else if (mins < workEndMins) {
+        return { name: 'Evening Fitness, Office & Shutdown', time: `18:15 – ${workEndStr}`, icon: '🌙' };
+      } else if (mins < workEndMins + 60) {
+        return { name: 'Spinal Wind-Down & Heated Eye Mask', time: `${workEndStr} – 22:00`, icon: '🛡️' };
+      } else {
+        return { name: 'Night Sanctuary & Rest', time: `22:00 – ${wakeStr}`, icon: '✨' };
+      }
+    }
+
     if (mins < workStartMins) {
       return { name: 'Morning Protocol', time: `${wakeStr} – ${workStartStr}`, icon: '🌅' };
     } else if (mins < workStartMins + 240) {

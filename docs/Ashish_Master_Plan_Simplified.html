@@ -339,41 +339,6 @@
   .badge-home { background: var(--forest-subtle); color: var(--forest); border: 1px solid rgba(14, 107, 103, 0.2); }
   .badge-chd { background: var(--gold-subtle); color: var(--gold); border: 1px solid rgba(181, 129, 31, 0.2); }
   .badge-biz { background: rgba(43, 108, 176, 0.1); color: #2B6CB0; border: 1px solid rgba(43, 108, 176, 0.25); }
-  .badge-current { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
-
-  /* CURRENT ROUTINE HIGHLIGHT */
-  .current-routine-wrapper {
-    background: #FEF2F2;
-    border: 1.5px solid #FECACA;
-    border-left: 5px solid #EF4444;
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin: 16px 0 20px 0;
-    page-break-inside: avoid;
-    scroll-margin-top: 50px;
-  }
-  .current-routine-wrapper table {
-    background: #FFFFFF;
-    border: 1px solid #FECACA;
-    border-radius: 6px;
-    overflow: hidden;
-    margin: 8px 0 10px 0;
-  }
-  .current-routine-wrapper th {
-    background: #7F1D1D;
-    color: #FFFFFF;
-    border-bottom: 2px solid #991B1B;
-  }
-  .current-routine-wrapper td {
-    border-bottom: 1px solid #FEE2E2;
-  }
-  .current-routine-wrapper tbody tr:nth-child(even) {
-    background: #FFF8F8;
-  }
-  .current-routine-wrapper .time-slot {
-    color: #B91C1C;
-    font-weight: 700;
-  }
 
   .page-break { page-break-before: always; }
 
@@ -517,28 +482,7 @@
       box-shadow: none;
     }
 
-    /* Current baseline wrapper on phones */
-    .current-routine-wrapper {
-      padding: 12px 14px;
-      margin: 14px 0 16px 0;
-      scroll-margin-top: 46px;
-    }
-    .current-routine-wrapper table {
-      background: transparent;
-      border: none;
-    }
-    .current-routine-wrapper tbody tr {
-      background: #FFFFFF;
-      border: 1px solid #FECACA;
-    }
-    .current-routine-wrapper tbody tr:nth-child(even) {
-      background: #FFFFFF;
-    }
-    .current-routine-wrapper td.time-slot {
-      background: #FEE2E2;
-      color: #991B1B;
-      border-color: #FCA5A5;
-    }
+
 
     /* Avoid page-breaks cutting abruptly on mobile view */
     .page-break {
@@ -595,7 +539,6 @@
 
 <!-- QUICK NAVIGATION BAR -->
 <nav class="quick-nav">
-  <a href="#section-baseline" class="nav-pill pill-alert">⚡ Current Routine</a>
   <a href="#section-track1" class="nav-pill">🏡 Track 1: Home</a>
   <a href="#section-track2" class="nav-pill">🏢 Track 2: Chandigarh</a>
   <a href="#section-weekends" class="nav-pill">🌱 Weekends</a>
@@ -643,119 +586,7 @@
   </div>
 </div>
 
-<!-- SECTION: CURRENT BASELINE ROUTINE -->
-<div class="current-routine-wrapper" id="section-baseline">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
-    <h2 style="margin:0;padding:0;border:none;color:#7F1D1D;font-size:13pt;">Current Baseline: Present Daily Routine (As-Is Reality)</h2>
-    <span class="badge badge-current" style="font-size:7.2pt;padding:2px 7px;">Active Present Reality</span>
-  </div>
-  <p style="color:#7F1D1D;opacity:0.9;margin-bottom:10px;font-size:8.5pt;">
-    Ashish's current everyday schedule, nutrition cadence, ~13h laptop flow, and active supplement stack:
-  </p>
 
-  <div class="grid-3" style="margin-bottom:10px;">
-    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #DC2626;">
-      <div class="card-title" style="color:#7F1D1D;">⏰ Wake & Sleep Cycle</div>
-      <div class="card-desc">
-        • <strong>Wake Up:</strong> 08:00 AM (8h 15m rest window)<br>
-        • <strong>Bedtime Sleep:</strong> 11:15 PM<br>
-        • <strong>Hydration:</strong> 1.0L pure water on waking
-      </div>
-    </div>
-    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #B91C1C;">
-      <div class="card-title" style="color:#7F1D1D;">💻 Laptop Flow (~13h)</div>
-      <div class="card-desc">
-        • <strong>Morning Work:</strong> 08:15 – 10:30 AM<br>
-        • <strong>Day Sprints:</strong> 10:45 – 15:30<br>
-        • <strong>Evening & Night:</strong> 16:00 – 23:00
-      </div>
-    </div>
-    <div class="card" style="background:#FFFFFF;border:1px solid #FECACA;border-left:3.5px solid #991B1B;">
-      <div class="card-title" style="color:#7F1D1D;">🥗 Active Supplements</div>
-      <div class="card-desc">
-        • <strong>Triphala:</strong> Alternate nights (digestion & detox)<br>
-        • <strong>Vitamin D3:</strong> Weekend dosing<br>
-        • <strong>Diet Staples:</strong> Jau roti, dahi, lemon, ghee, seeds
-      </div>
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:15%">Time Window</th>
-        <th style="width:28%">Anchor / Activity</th>
-        <th style="width:57%">Directives & Execution Notes</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class="time-slot">08:00 – 08:15</td>
-        <td><strong>Wake Up & Morning Nutrition</strong></td>
-        <td>Wake 08:00. Drink 1L water. ½ apple + soaked dry fruits, raw nuts, and seeds for steady brain fuel.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">08:15 – 10:30</td>
-        <td><strong>Morning Laptop Work (2h 15m)</strong></td>
-        <td>Immediate laptop start after hydration. Priority engineering and core architecture deliverables.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">10:30 – 10:45</td>
-        <td><strong>Milkshake Refuel Pause</strong></td>
-        <td>Nutrient-dense milkshake for protein and energy. Stand, stretch, and reset eyes.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">10:45 – 13:00</td>
-        <td><strong>Mid-Day Laptop Sprint (2h 15m)</strong></td>
-        <td>Continuous focus on feature implementation, system coding, and tech backlog.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">13:00 – 13:15</td>
-        <td><strong>Fruit & Seed Plate</strong></td>
-        <td>Fresh bowl: papaya + pomegranate + pumpkin seeds (enzymes, zinc, antioxidants).</td>
-      </tr>
-      <tr>
-        <td class="time-slot">13:15 – 15:30</td>
-        <td><strong>Afternoon Laptop Sprint (2h 15m)</strong></td>
-        <td>Code reviews, automated tests, pipeline deployments, and technical documentation.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">15:30 – 16:00</td>
-        <td><strong>Late Lunch</strong></td>
-        <td>2 chapatis + cooked sabzi + fresh dahi (curd for probiotics).</td>
-      </tr>
-      <tr>
-        <td class="time-slot">16:00 – 20:00</td>
-        <td><strong>Extended Afternoon / Evening Work (4h)</strong></td>
-        <td>Heavy build block: Infosys deliverables, client communication, core venture engineering.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">20:00 – 20:30</td>
-        <td><strong>Dinner & Lipid Nourishment</strong></td>
-        <td>Jau (barley) roti + cooked sabzi with fresh lemon & desi ghee + crunchy raw salad.</td>
-      </tr>
-      <tr>
-        <td class="time-slot">20:30 – 23:00</td>
-        <td><strong>Night Laptop Work & Wrap (2.5h)</strong></td>
-        <td>Finalizing daily commits, documentation, and wrap. <strong>Hard laptop shutdown at 23:00 (11:00 PM).</strong></td>
-      </tr>
-      <tr>
-        <td class="time-slot">23:00 – 23:15</td>
-        <td><strong>Bedtime Wind-Down & Supplement</strong></td>
-        <td><strong>Alternate Nights:</strong> Triphala with warm water for colon motility. Dark room, <strong>sleep at 23:15</strong>.</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="protocol-box" style="background:#FFFFFF;border:1px solid #FECACA;border-left:4px solid #DC2626;margin-top:10px;margin-bottom:0;">
-    <h4 style="color:#991B1B;">Active Present Supplements & Dietary Guardrails</h4>
-    • <strong>Triphala (Alternate Nights):</strong> 1 tsp in warm water at bedtime for gentle gut motility and natural detox.<br>
-    • <strong>Vitamin D3 (Weekends):</strong> High-potency weekend dosing with healthy fats for bone, muscle, and immune health.<br>
-    • <strong>Nutritional Staples:</strong> Jau (barley) for beta-glucan cholesterol control, desi ghee & lemon for joint lubrication and nutrient absorption, fresh fruits and seeds for essential micronutrients.
-  </div>
-</div>
-
-<div class="page-break"></div>
 
 <!-- SECTION 2: TRACK 1 - HOME BASE DAILY BLUEPRINT -->
 <h2 id="section-track1">2. Track 1: Home Base Daily Schedule (3 Weeks / Month) <span class="badge badge-home" style="margin-left:6px;vertical-align:middle;">Target Proposed</span></h2>
