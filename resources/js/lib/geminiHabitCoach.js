@@ -151,10 +151,12 @@ export function generateHeuristicBriefing(ctx, personaKey = 'executive') {
 
   // Partner Synergy Anchor
   let partnerSynergy = '';
-  if (ctx.isAshish || ctx.isJyoti) {
-    partnerSynergy = `Shared couple anchors today: sync on the 18:35 joint stroller walk and 20:35 evening diya with Shaarvi.`;
+  if (ctx.partnerName && ctx.partnerName !== 'Partner') {
+    partnerSynergy = `Accountability link with ${ctx.partnerName} is synchronized. Sync on today's shared anchors and send a live cheer when you hit targets.`;
+  } else if (ctx.isAshish || ctx.isJyoti) {
+    partnerSynergy = `Shared couple anchors today: sync on the midday meal, evening walk, and night gratitude window.`;
   } else {
-    partnerSynergy = `Accountability link with ${ctx.partnerName} is synchronized. Send a live cheer when you hit today's targets.`;
+    partnerSynergy = `Daily alignment active. Stay focused on your primary commitments and protect your recovery window.`;
   }
 
   const fullSpeechText = `${hook} ${progressNote} ${clinicalNote} ${keystone} ${partnerSynergy}`;

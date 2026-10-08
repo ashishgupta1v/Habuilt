@@ -32,8 +32,33 @@ import {
   KeyRound,
   Smartphone,
   Navigation,
+  Tag,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  Dumbbell,
+  Apple,
+  Bed,
+  Book,
+  Flame,
+  Target,
+  Coffee,
+  Users,
+  Edit2,
+  Palette,
+  Copy,
+  Download,
+  Upload,
+  Share2,
+  FileText,
 } from 'lucide-vue-next';
-import { PROTOCOL_ARCHETYPES } from '@/Composables/useDynamicProtocols';
+import { PROTOCOL_ARCHETYPES, useDynamicProtocols } from '@/Composables/useDynamicProtocols';
+import {
+  useCategoryTaxonomy,
+  DEFAULT_CATEGORIES,
+  CATEGORY_ICON_OPTIONS,
+  COLOR_PALETTE_PRESETS,
+} from '@/Composables/useCategoryTaxonomy';
 import {
   isSoundEnabled,
   setSoundEnabled,
@@ -53,10 +78,14 @@ const props = defineProps({
   todayPossibleDailyPoints: { type: Number, default: 15 },
   timeSlotDefinitions: { type: Object, default: () => ({}) },
   allProtocols: { type: Array, default: () => [] },
+  customProtocols: { type: Array, default: () => [] },
   activeProtocol: { type: Object, default: null },
   activeProtocolId: { type: String, default: '' },
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false },
+  displayName: { type: String, default: 'Member' },
+  habits: { type: Array, default: () => [] },
+  userId: { type: String, default: 'guest' },
 });
 
 const emit = defineEmits([
@@ -65,9 +94,14 @@ const emit = defineEmits([
   'switch-protocol',
   'open-wizard',
   'toast',
+  'update-habits',
+  'create-protocol',
+  'clone-protocol',
+  'delete-protocol',
+  'import-protocol',
 ]);
 
-const activeTab = ref('scoring'); // 'scoring' | 'slots' | 'presets' | 'audio' | 'security'
+const activeTab = ref('scoring'); // 'scoring' | 'slots' | 'presets' | 'audio' | 'security' | 'taxonomy'
 
 // ── PROCEDURAL AUDIO & HAPTICS STATE ──
 const soundEnabled = ref(true);
@@ -120,6 +154,352 @@ const newPinInput = ref('');
 const isGpsLocating = ref(false);
 const isEnrollingDevice = ref(false);
 const passkeyStatusMsg = ref('');
+
+// ── TAXONOMY & REORDERING ENGINE ──
+const taxonomySubTab = ref('categories'); // 'categories' | 'order'
+const {
+  categories: taxonomyCategories,
+  reloadCategories: reloadTaxonomyCategories,
+  saveCategory: saveTaxonomyCategory,
+  deleteCategory: deleteTaxonomyCategory,
+  resetToDefaults: resetTaxonomyDefaults,
+  getCategoryMeta,
+  applyHabitOrder,
+  moveHabitUp,
+  moveHabitDown,
+} = useCategoryTaxonomy(
+  () => props.activeProtocolId || props.activeProtocol?.id || 'default',
+  () => props.userId || 'guest'
+);
+
+const localHabitList = ref([]);
+watch(
+  () => [props.habits, props.isOpen],
+  () => {
+    if (props.isOpen) {
+      if (typeof reloadTaxonomyCategories === 'function') {
+        reloadTaxonomyCategories();
+      }
+      if (Array.isArray(props.habits)) {
+        localHabitList.value = applyHabitOrder(JSON.parse(JSON.stringify(props.habits)));
+      }
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+const isEditingCategory = ref(false);
+const isCategoryFormOpen = ref(false);
+const editingCategory = ref({
+  id: '',
+  label: '',
+  accentColor: '#10b981',
+  icon: 'Activity',
+  defaultPoints: 2,
+});
+
+const ICON_MAP = {
+  Dumbbell, Apple, Briefcase, Heart, Bed, Activity,
+  Zap, Sun, Moon, Book, Shield, Flame, Sparkles,
+  Compass, Crown, Target, Coffee, Users
+};
+const resolveCategoryIconComponent = (iconName) => ICON_MAP[iconName] || Activity;
+
+const openNewCategoryForm = () => {
+  editingCategory.value = {
+    id: '',
+    label: '',
+    accentColor: '#10b981',
+    icon: 'Activity',
+    defaultPoints: 2,
+  };
+  isEditingCategory.value = false;
+  isCategoryFormOpen.value = true;
+};
+
+const openEditCategoryForm = (cat) => {
+  editingCategory.value = { ...cat };
+  isEditingCategory.value = true;
+  isCategoryFormOpen.value = true;
+};
+
+const handleSaveCategory = () => {
+  if (!editingCategory.value.label.trim()) {
+    emit('toast', '⚠️ Category name cannot be empty');
+    return;
+  }
+  saveTaxonomyCategory(editingCategory.value);
+  isCategoryFormOpen.value = false;
+  emit('toast', `✅ Category "${editingCategory.value.label}" saved!`);
+};
+
+const handleDeleteCategory = (catId) => {
+  deleteTaxonomyCategory(catId);
+  emit('toast', '🗑️ Category removed');
+};
+
+const handleResetCategories = () => {
+  resetTaxonomyDefaults();
+  emit('toast', '🔄 Categories reset to system defaults');
+};
+
+const handleMoveHabitUp = (habitId) => {
+  localHabitList.value = moveHabitUp(localHabitList.value, habitId);
+  emit('update-habits', localHabitList.value);
+};
+
+const handleMoveHabitDown = (habitId) => {
+  localHabitList.value = moveHabitDown(localHabitList.value, habitId);
+  emit('update-habits', localHabitList.value);
+};
+
+const handleHabitCategoryChange = (habitId, newCatId) => {
+  const idx = localHabitList.value.findIndex(h => String(h.id) === String(habitId));
+  if (idx >= 0) {
+    localHabitList.value[idx].category = newCatId;
+    localHabitList.value = [...localHabitList.value];
+    emit('update-habits', localHabitList.value);
+    emit('toast', `🏷️ Category updated to ${newCatId}`);
+  }
+};
+
+// ── PROTOCOL STUDIO & INTEROPERABILITY ENGINE ──
+const {
+  exportProtocolJson,
+  generateShareableProtocolUrl,
+} = useDynamicProtocols(() => props.userId || 'guest');
+
+const isStudioEditorOpen = ref(false);
+const editingStudioProtocol = ref({
+  id: '',
+  name: '',
+  badge: '👤 Custom Protocol',
+  icon: 'award',
+  tagline: '',
+  description: '',
+  wakeTime: '05:30',
+  workStart: '08:30',
+  workEnd: '18:00',
+  sleepTime: '22:00',
+  habits: [],
+});
+const starterHabitOption = ref('current');
+const presetToCloneId = ref('archetype-founder');
+
+const isShareModalOpen = ref(false);
+const shareModalMode = ref('export'); // 'export' | 'import'
+const exportTargetProtocol = ref(null);
+const exportJsonString = ref('');
+const exportShareUrl = ref('');
+const importJsonInput = ref('');
+const importValidationError = ref('');
+const copySuccessType = ref(null);
+
+const resolveProtocolIconComponent = (iconName) => {
+  const map = {
+    briefcase: Briefcase,
+    activity: Activity,
+    heart: Heart,
+    crown: Crown,
+    sparkles: Sparkles,
+    award: Trophy,
+    sun: Sun,
+    moon: Moon,
+    zap: Zap,
+    edit: Edit2,
+  };
+  return map[iconName?.toLowerCase()] || Briefcase;
+};
+
+const resolvedAllProtocols = computed(() => {
+  if (Array.isArray(props.allProtocols) && props.allProtocols.length > 0) {
+    return props.allProtocols;
+  }
+  return [
+    PROTOCOL_ARCHETYPES.founder,
+    PROTOCOL_ARCHETYPES.longevity,
+    PROTOCOL_ARCHETYPES.postpartum,
+    PROTOCOL_ARCHETYPES.ashishMaster,
+    PROTOCOL_ARCHETYPES.jyotiMaster,
+    ...(props.customProtocols || [])
+  ];
+});
+
+const computedEditorWindows = computed(() => {
+  const p = editingStudioProtocol.value;
+  return {
+    morning: `${p.wakeTime || '05:30'}–${p.workStart || '08:30'}`,
+    work: `${p.workStart || '08:30'}–${p.workEnd || '18:00'}`,
+    evening: `${p.workEnd || '18:00'}–${p.sleepTime || '22:00'}`,
+  };
+});
+
+const openCreateProtocol = () => {
+  starterHabitOption.value = 'current';
+  editingStudioProtocol.value = {
+    id: '',
+    name: 'My Custom Protocol',
+    badge: '👤 Custom',
+    icon: 'award',
+    tagline: 'Personal daily circadian rhythm & habits',
+    description: '',
+    wakeTime: '05:30',
+    workStart: '08:30',
+    workEnd: '18:00',
+    sleepTime: '22:00',
+    habits: Array.isArray(props.habits) && props.habits.length > 0
+      ? JSON.parse(JSON.stringify(props.habits))
+      : [
+          { id: `c-${Date.now()}-1`, name: 'Morning Sunlight & Hydration', points: 1, category: 'nutrition', timeSlot: 'morning' },
+          { id: `c-${Date.now()}-2`, name: 'Spinal Mobility & Movement', points: 2, category: 'fitness', timeSlot: 'morning' },
+          { id: `c-${Date.now()}-3`, name: 'Deep Architecture Focus Block', points: 3, category: 'work', timeSlot: 'work' },
+          { id: `c-${Date.now()}-4`, name: 'Family & Evening Disconnect', points: 2, category: 'family', timeSlot: 'evening' },
+          { id: `c-${Date.now()}-5`, name: 'Target Lights Out Recovery', points: 2, category: 'rest', timeSlot: 'evening' },
+        ],
+  };
+  isStudioEditorOpen.value = true;
+};
+
+const openCloneProtocol = (proto) => {
+  starterHabitOption.value = 'preset';
+  presetToCloneId.value = proto.id;
+  editingStudioProtocol.value = {
+    id: '',
+    name: `${proto.name} (Custom)`,
+    badge: '👤 Custom',
+    icon: proto.icon || 'award',
+    tagline: proto.tagline || '',
+    description: proto.description || '',
+    wakeTime: proto.wakeTime || '05:30',
+    workStart: proto.workStart || '08:30',
+    workEnd: proto.workEnd || '18:00',
+    sleepTime: proto.sleepTime || '22:00',
+    habits: Array.isArray(proto.habits) ? JSON.parse(JSON.stringify(proto.habits)) : [],
+  };
+  isStudioEditorOpen.value = true;
+};
+
+const handleStarterOptionChange = (option) => {
+  starterHabitOption.value = option;
+  if (option === 'current') {
+    editingStudioProtocol.value.habits = Array.isArray(props.habits) ? JSON.parse(JSON.stringify(props.habits)) : [];
+  } else if (option === 'blank') {
+    editingStudioProtocol.value.habits = [
+      { id: `c-${Date.now()}-1`, name: 'Morning Water & Sunlight', points: 1, category: 'nutrition', timeSlot: 'morning' },
+      { id: `c-${Date.now()}-2`, name: 'Daily Movement (30 min)', points: 2, category: 'fitness', timeSlot: 'morning' },
+      { id: `c-${Date.now()}-3`, name: 'Primary Focus Sprints', points: 3, category: 'work', timeSlot: 'work' },
+      { id: `c-${Date.now()}-4`, name: 'Evening Walk / Disconnect', points: 1, category: 'family', timeSlot: 'evening' },
+      { id: `c-${Date.now()}-5`, name: 'Target Sleep Lights Out', points: 2, category: 'rest', timeSlot: 'evening' },
+    ];
+  } else if (option === 'preset') {
+    const found = (resolvedAllProtocols.value || []).find(p => p.id === presetToCloneId.value || p.key === presetToCloneId.value);
+    if (found && Array.isArray(found.habits)) {
+      editingStudioProtocol.value.habits = JSON.parse(JSON.stringify(found.habits));
+    }
+  }
+};
+
+const handleSaveStudioProtocol = () => {
+  if (!editingStudioProtocol.value.name.trim()) {
+    emit('toast', '⚠️ Protocol name is required');
+    return;
+  }
+  emit('create-protocol', editingStudioProtocol.value);
+  isStudioEditorOpen.value = false;
+  emit('toast', `✨ Protocol "${editingStudioProtocol.value.name}" Saved & Activated!`);
+};
+
+const handleDeleteStudioProtocol = (protoId) => {
+  emit('delete-protocol', protoId);
+  emit('toast', '🗑️ Custom Protocol Removed');
+};
+
+const openExportProtocol = (proto) => {
+  exportTargetProtocol.value = proto;
+  exportJsonString.value = exportProtocolJson(proto);
+  exportShareUrl.value = generateShareableProtocolUrl(proto);
+  shareModalMode.value = 'export';
+  copySuccessType.value = null;
+  isShareModalOpen.value = true;
+};
+
+const openImportProtocolModal = () => {
+  importJsonInput.value = '';
+  importValidationError.value = '';
+  shareModalMode.value = 'import';
+  copySuccessType.value = null;
+  isShareModalOpen.value = true;
+};
+
+const handleCopyJson = async () => {
+  try {
+    await navigator.clipboard.writeText(exportJsonString.value);
+    copySuccessType.value = 'json';
+    emit('toast', '📋 JSON copied to clipboard!');
+    setTimeout(() => { copySuccessType.value = null; }, 2000);
+  } catch (e) {
+    emit('toast', '⚠️ Copy failed');
+  }
+};
+
+const handleCopyShareUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(exportShareUrl.value);
+    copySuccessType.value = 'url';
+    emit('toast', '🔗 Shareable link copied!');
+    setTimeout(() => { copySuccessType.value = null; }, 2000);
+  } catch (e) {
+    emit('toast', '⚠️ Copy failed');
+  }
+};
+
+const handleDownloadJson = () => {
+  try {
+    const protoName = (exportTargetProtocol.value?.name || 'custom-protocol').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const blob = new Blob([exportJsonString.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `habuilt-${protoName}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    emit('toast', '💾 Protocol JSON downloaded!');
+  } catch (e) {
+    emit('toast', '⚠️ Download failed');
+  }
+};
+
+const handleImportFileUpload = (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    importJsonInput.value = e.target.result;
+  };
+  reader.readAsText(file);
+};
+
+const handleSubmitImport = () => {
+  if (!importJsonInput.value.trim()) {
+    importValidationError.value = 'Please paste JSON payload or choose a file.';
+    return;
+  }
+  try {
+    const parsed = JSON.parse(importJsonInput.value);
+    const proto = parsed.protocol || parsed;
+    if (!proto.name) {
+      importValidationError.value = 'Invalid format: protocol name is missing.';
+      return;
+    }
+    emit('import-protocol', parsed);
+    isShareModalOpen.value = false;
+    emit('toast', `📥 Protocol "${proto.name}" Imported & Activated!`);
+  } catch (err) {
+    importValidationError.value = 'Syntax error: Invalid JSON syntax.';
+  }
+};
 
 // Sync state on open
 watch(
@@ -251,7 +631,10 @@ const handleSaveAll = () => {
   setSoundProfile(soundProfile.value);
 
   emit('save-settings', updatedSettings);
-  emit('toast', '⚡ Protocol, Scoring & Audio Settings saved!');
+  if (localHabitList.value.length > 0) {
+    emit('update-habits', localHabitList.value);
+  }
+  emit('toast', '⚡ Protocol, Scoring & Taxonomy saved!');
   emit('close');
 };
 
@@ -354,12 +737,12 @@ const handleEnrollPasskey = async () => {
   isEnrollingDevice.value = true;
   passkeyStatusMsg.value = '';
   try {
-    const defaultLabel = props.isAshish ? "Ashish's Primary Hardware Key" : props.isJyoti ? "Jyoti's Primary Hardware Key" : 'Personal Device Hardware Key';
+    const defaultLabel = `${props.displayName}'s Hardware Key`;
     const dName = newDeviceName.value.trim() || defaultLabel;
     const cred = await registerBiometricDevice({
       deviceName: dName,
-      userHandle: props.isAshish ? 'user_ashish' : props.isJyoti ? 'user_jyoti' : 'user_primary',
-      userName: props.isAshish ? 'Ashish' : props.isJyoti ? 'Jyoti' : 'Habuilt Member',
+      userHandle: `user_${(props.displayName || 'member').toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      userName: props.displayName || 'Habuilt Member',
     });
     passkeyStatusMsg.value = `Enrolled: ${cred.deviceName}`;
     newDeviceName.value = '';
@@ -380,7 +763,7 @@ const handleDeletePasskey = async (id, name) => {
 
 <template>
   <div v-if="isOpen" class="modal-backdrop" @click.self="emit('close')">
-    <div class="modal-card modal-card--lg proto-settings-modal" role="dialog" aria-modal="true">
+    <div class="modal-card modal-card--lg proto-settings-modal modal-card--protocol-settings" role="dialog" aria-modal="true">
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-title-wrap">
@@ -422,9 +805,10 @@ const handleDeletePasskey = async (id, name) => {
           class="proto-settings-tab"
           :class="{ 'proto-settings-tab--active': activeTab === 'presets' }"
           @click="activeTab = 'presets'"
+          id="proto-tab-presets"
         >
           <Layers class="icon-xs" />
-          <span>Preset Library</span>
+          <span>Protocol Studio</span>
         </button>
         <button
           type="button"
@@ -444,6 +828,16 @@ const handleDeletePasskey = async (id, name) => {
         >
           <Shield class="icon-xs text-amber-400" />
           <span>Vault &amp; Solar</span>
+        </button>
+        <button
+          type="button"
+          class="proto-settings-tab proto-settings-tab--taxonomy"
+          :class="{ 'proto-settings-tab--active': activeTab === 'taxonomy' }"
+          @click="activeTab = 'taxonomy'"
+          id="proto-tab-taxonomy"
+        >
+          <Tag class="icon-xs text-amber-400" />
+          <span>Categories &amp; Order</span>
         </button>
       </div>
 
@@ -661,146 +1055,430 @@ const handleDeletePasskey = async (id, name) => {
           </div>
         </div>
 
-        <!-- ── TAB 3: PRESET ROUTINE LIBRARY ── -->
-        <div v-else-if="activeTab === 'presets'" class="proto-section">
-          <div class="proto-info-banner">
-            <Layers class="icon-sm icon-gold" />
-            <p>
-              Switch routines instantly or launch the Archetype Wizard. Daily check-ins are preserved
-              across matching habits automatically.
-            </p>
+        <!-- ── TAB 3: PROTOCOL STUDIO & ARCHETYPES ── -->
+        <div v-else-if="activeTab === 'presets'" class="proto-section proto-section--studio animate-fadeIn">
+          <div class="proto-studio-header flex items-center justify-between mb-3 pb-3 border-b border-white/10">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <Layers class="icon-xs icon-gold" />
+                <span>Protocol Studio &amp; Archetypes</span>
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Design custom protocols, clone blueprints, or export and share your routine.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="btn btn--secondary btn--xs"
+                @click="openImportProtocolModal"
+                id="proto-studio-import-btn"
+                title="Import protocol from JSON or share link"
+              >
+                <Upload class="icon-xs" />
+                <span>Import JSON</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn--primary-action btn--xs"
+                @click="openCreateProtocol"
+                id="proto-studio-create-btn"
+              >
+                <Plus class="icon-xs" />
+                <span>+ Create Protocol</span>
+              </button>
+            </div>
           </div>
 
           <div class="proto-presets-grid">
-            <!-- Founder -->
             <div
+              v-for="proto in (resolvedAllProtocols || [])"
+              :key="proto.id"
               class="proto-preset-card"
-              :class="{ 'proto-preset-card--active': activeProtocolId === 'archetype-founder' || (!activeProtocolId && !isAshish && !isJyoti) }"
+              :class="{ 'proto-preset-card--active': activeProtocolId === proto.id || activeProtocol?.id === proto.id }"
+              :id="`proto-card-${proto.id}`"
             >
               <div class="proto-preset-card__head">
-                <div class="proto-preset-card__icon"><Briefcase class="icon-sm" /></div>
+                <div class="proto-preset-card__icon">
+                  <component :is="resolveProtocolIconComponent(proto.icon)" class="icon-sm" />
+                </div>
                 <div class="proto-preset-card__info">
-                  <h4 class="proto-preset-card__title">Founder Executive</h4>
-                  <span class="proto-preset-card__badge">16 Habits • 24 Pts</span>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h4 class="proto-preset-card__title">{{ proto.name }}</h4>
+                    <span v-if="proto.id.startsWith('custom-') || proto.isRemote" class="proto-cat-custom-pill">Custom</span>
+                  </div>
+                  <span class="proto-preset-card__badge">
+                    {{ (proto.habits || []).length }} Habits • {{ proto.badge || 'Blueprint' }}
+                  </span>
                 </div>
               </div>
-              <p class="proto-preset-card__desc">Deep work focus sprints, physical vitality, zero-friction shutdown.</p>
-              <button
-                type="button"
-                class="btn btn--sm w-full"
-                :class="activeProtocolId === 'archetype-founder' ? 'btn--secondary' : 'btn--primary-action'"
-                @click="handleSelectProtocol('archetype-founder')"
-              >
-                <Check v-if="activeProtocolId === 'archetype-founder'" class="icon-xs" />
-                <span>{{ activeProtocolId === 'archetype-founder' ? 'Active Protocol' : 'Switch to Founder' }}</span>
-              </button>
-            </div>
 
-            <!-- Longevity -->
-            <div
-              class="proto-preset-card"
-              :class="{ 'proto-preset-card--active': activeProtocolId === 'archetype-longevity' }"
-            >
-              <div class="proto-preset-card__head">
-                <div class="proto-preset-card__icon"><Activity class="icon-sm text-emerald-400" /></div>
-                <div class="proto-preset-card__info">
-                  <h4 class="proto-preset-card__title">Mind-Body Longevity</h4>
-                  <span class="proto-preset-card__badge">18 Habits • 24 Pts</span>
-                </div>
-              </div>
-              <p class="proto-preset-card__desc">Circadian optimization, spinal health, clean fuel, parasympathetic balance.</p>
-              <button
-                type="button"
-                class="btn btn--sm w-full"
-                :class="activeProtocolId === 'archetype-longevity' ? 'btn--secondary' : 'btn--primary-action'"
-                @click="handleSelectProtocol('archetype-longevity')"
-              >
-                <Check v-if="activeProtocolId === 'archetype-longevity'" class="icon-xs" />
-                <span>{{ activeProtocolId === 'archetype-longevity' ? 'Active Protocol' : 'Switch to Longevity' }}</span>
-              </button>
-            </div>
+              <p class="proto-preset-card__desc">{{ proto.tagline || proto.description }}</p>
 
-            <!-- Postpartum -->
-            <div
-              class="proto-preset-card"
-              :class="{ 'proto-preset-card--active': activeProtocolId === 'archetype-postpartum' }"
-            >
-              <div class="proto-preset-card__head">
-                <div class="proto-preset-card__icon"><Heart class="icon-sm text-rose-400" /></div>
-                <div class="proto-preset-card__info">
-                  <h4 class="proto-preset-card__title">Postpartum Mother & Family</h4>
-                  <span class="proto-preset-card__badge">16 Habits • 24 Pts</span>
-                </div>
+              <!-- Circadian Anchors Pill -->
+              <div class="proto-circadian-pill mono-num text-[10px] text-gray-400 bg-black/30 border border-white/5 px-2 py-1.5 rounded-lg mb-2 flex items-center justify-between">
+                <span>🌅 {{ proto.wakeTime || '05:00' }}</span>
+                <span>⚡ {{ proto.workStart || '08:30' }}–{{ proto.workEnd || '18:00' }}</span>
+                <span>🌙 {{ proto.sleepTime || '22:00' }}</span>
               </div>
-              <p class="proto-preset-card__desc">Protected sleep recovery, gentle pelvic resetting, maternal nutrition & family joy.</p>
-              <button
-                type="button"
-                class="btn btn--sm w-full"
-                :class="activeProtocolId === 'archetype-postpartum' ? 'btn--secondary' : 'btn--primary-action'"
-                @click="handleSelectProtocol('archetype-postpartum')"
-              >
-                <Check v-if="activeProtocolId === 'archetype-postpartum'" class="icon-xs" />
-                <span>{{ activeProtocolId === 'archetype-postpartum' ? 'Active Protocol' : 'Switch to Postpartum' }}</span>
-              </button>
-            </div>
 
-            <!-- Ashish Master -->
-            <div
-              class="proto-preset-card"
-              :class="{ 'proto-preset-card--active': activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId) }"
-            >
-              <div class="proto-preset-card__head">
-                <div class="proto-preset-card__icon"><Crown class="icon-sm icon-gold" /></div>
-                <div class="proto-preset-card__info">
-                  <h4 class="proto-preset-card__title">Ashish Master Protocol</h4>
-                  <span class="proto-preset-card__badge">68 Habits • Flagship</span>
-                </div>
-              </div>
-              <p class="proto-preset-card__desc">Complete clinical rheumatology layer, MOVERS Sadhana, 4 office day types.</p>
-              <button
-                type="button"
-                class="btn btn--sm w-full"
-                :class="(activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)) ? 'btn--secondary' : 'btn--primary-action'"
-                @click="handleSelectProtocol('archetype-ashish')"
-              >
-                <Check v-if="activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)" class="icon-xs" />
-                <span>{{ (activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)) ? 'Active Protocol' : 'Switch to Ashish' }}</span>
-              </button>
-            </div>
+              <!-- Action Bar -->
+              <div class="proto-card-actions-row flex items-center gap-2 mt-auto">
+                <button
+                  type="button"
+                  class="btn btn--sm flex-1"
+                  :class="(activeProtocolId === proto.id || activeProtocol?.id === proto.id) ? 'btn--secondary' : 'btn--primary-action'"
+                  :id="`proto-switch-btn-${proto.id}`"
+                  @click="handleSelectProtocol(proto.id)"
+                >
+                  <Check v-if="activeProtocolId === proto.id || activeProtocol?.id === proto.id" class="icon-xs" />
+                  <span>{{ (activeProtocolId === proto.id || activeProtocol?.id === proto.id) ? 'Active' : 'Activate' }}</span>
+                </button>
 
-            <!-- Jyoti Master -->
-            <div
-              class="proto-preset-card"
-              :class="{ 'proto-preset-card--active': activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId) }"
-            >
-              <div class="proto-preset-card__head">
-                <div class="proto-preset-card__icon"><Sparkles class="icon-sm text-pink-400" /></div>
-                <div class="proto-preset-card__info">
-                  <h4 class="proto-preset-card__title">Jyoti Master Protocol</h4>
-                  <span class="proto-preset-card__badge">37 Habits • Flagship</span>
-                </div>
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--subtle"
+                  title="Clone as Custom Protocol"
+                  :id="`proto-clone-btn-${proto.id}`"
+                  @click="openCloneProtocol(proto)"
+                >
+                  <Copy class="icon-xs" />
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-icon btn-icon--subtle"
+                  title="Export / Share Protocol"
+                  :id="`proto-export-btn-${proto.id}`"
+                  @click="openExportProtocol(proto)"
+                >
+                  <Share2 class="icon-xs" />
+                </button>
+
+                <button
+                  v-if="proto.id.startsWith('custom-') || proto.isRemote"
+                  type="button"
+                  class="btn-icon btn-icon--danger"
+                  title="Delete Custom Protocol"
+                  :id="`proto-del-btn-${proto.id}`"
+                  @click="handleDeleteStudioProtocol(proto.id)"
+                >
+                  <Trash2 class="icon-xs" />
+                </button>
               </div>
-              <p class="proto-preset-card__desc">Postpartum healing, maternal nutrition, career upskilling & Shaarvi milestones.</p>
-              <button
-                type="button"
-                class="btn btn--sm w-full"
-                :class="(activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId)) ? 'btn--secondary' : 'btn--primary-action'"
-                @click="handleSelectProtocol('archetype-jyoti')"
-              >
-                <Check v-if="activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId)" class="icon-xs" />
-                <span>{{ (activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId)) ? 'Active Protocol' : 'Switch to Jyoti' }}</span>
-              </button>
             </div>
           </div>
 
-          <div class="proto-wizard-launch-strip">
+          <div class="proto-wizard-launch-strip mt-4">
             <div>
-              <strong>Need a customized protocol?</strong>
+              <strong>Looking for guided protocol generation?</strong>
               <p>Run the 4-step interactive Archetype Quiz to tailor circadian windows and habits.</p>
             </div>
             <button type="button" class="btn btn--secondary btn--sm" @click="handleOpenWizard">
               <Sparkles class="icon-xs icon-gold" /> <span>Launch Archetype Wizard</span>
             </button>
+          </div>
+
+          <!-- ── SUB-MODAL 1: PROTOCOL STUDIO BUILDER / EDITOR ── -->
+          <div v-if="isStudioEditorOpen" class="proto-cat-form-overlay" id="proto-studio-editor-modal">
+            <div class="proto-cat-form-card max-w-lg">
+              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                  <Layers class="icon-xs icon-gold" />
+                  <span>Custom Protocol Studio</span>
+                </h4>
+                <button type="button" class="btn-icon" @click="isStudioEditorOpen = false">
+                  <X class="icon-xs" />
+                </button>
+              </div>
+
+              <div class="proto-cat-form-body space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1">Protocol Name</label>
+                  <input
+                    type="text"
+                    v-model="editingStudioProtocol.name"
+                    id="proto-editor-name-input"
+                    placeholder="e.g. Deep Work & Biohacking"
+                    class="proto-text-input"
+                  />
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Badge Pill</label>
+                    <input
+                      type="text"
+                      v-model="editingStudioProtocol.badge"
+                      id="proto-editor-badge-input"
+                      placeholder="e.g. ⚡ Performance"
+                      class="proto-text-input"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Tagline</label>
+                    <input
+                      type="text"
+                      v-model="editingStudioProtocol.tagline"
+                      id="proto-editor-tagline-input"
+                      placeholder="e.g. Daily sprint routine"
+                      class="proto-text-input"
+                    />
+                  </div>
+                </div>
+
+                <!-- Circadian Anchors -->
+                <div class="bg-black/30 border border-white/10 rounded-lg p-2.5">
+                  <span class="block text-xs font-bold text-amber-400 mb-2">Circadian Schedule Anchors</span>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span class="text-gray-400 block mb-0.5">🌅 Wake-Up Target</span>
+                      <input
+                        type="time"
+                        v-model="editingStudioProtocol.wakeTime"
+                        id="proto-editor-wake-input"
+                        class="proto-text-input mono-num"
+                      />
+                    </div>
+                    <div>
+                      <span class="text-gray-400 block mb-0.5">🌙 Sleep / Lights Out</span>
+                      <input
+                        type="time"
+                        v-model="editingStudioProtocol.sleepTime"
+                        id="proto-editor-sleep-input"
+                        class="proto-text-input mono-num"
+                      />
+                    </div>
+                    <div>
+                      <span class="text-gray-400 block mb-0.5">⚡ Work Block Start</span>
+                      <input
+                        type="time"
+                        v-model="editingStudioProtocol.workStart"
+                        id="proto-editor-work-start-input"
+                        class="proto-text-input mono-num"
+                      />
+                    </div>
+                    <div>
+                      <span class="text-gray-400 block mb-0.5">🏁 Work Block End</span>
+                      <input
+                        type="time"
+                        v-model="editingStudioProtocol.workEnd"
+                        id="proto-editor-work-end-input"
+                        class="proto-text-input mono-num"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400 mono-num flex items-center justify-between">
+                    <span>Morning: {{ computedEditorWindows.morning }}</span>
+                    <span>Work: {{ computedEditorWindows.work }}</span>
+                    <span>Evening: {{ computedEditorWindows.evening }}</span>
+                  </div>
+                </div>
+
+                <!-- Starter Habit Source Selector -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1.5">Starter Habits Source</label>
+                  <div class="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      class="btn btn--xs"
+                      :class="starterHabitOption === 'current' ? 'btn--primary-action' : 'btn--secondary'"
+                      @click="handleStarterOptionChange('current')"
+                    >
+                      Current ({{ (habits || []).length }})
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--xs"
+                      :class="starterHabitOption === 'blank' ? 'btn--primary-action' : 'btn--secondary'"
+                      @click="handleStarterOptionChange('blank')"
+                    >
+                      Blank Canvas (5)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--xs"
+                      :class="starterHabitOption === 'preset' ? 'btn--primary-action' : 'btn--secondary'"
+                      @click="handleStarterOptionChange('preset')"
+                    >
+                      From Blueprint
+                    </button>
+                  </div>
+                  <div v-if="starterHabitOption === 'preset'" class="mt-2">
+                    <select
+                      v-model="presetToCloneId"
+                      @change="handleStarterOptionChange('preset')"
+                      class="proto-cat-select w-full max-w-none"
+                    >
+                      <option v-for="p in resolvedAllProtocols" :key="p.id" :value="p.id">
+                        {{ p.name }} ({{ (p.habits || []).length }} habits)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Included Habits Preview -->
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-semibold text-gray-300">
+                      Included Habits ({{ (editingStudioProtocol.habits || []).length }})
+                    </span>
+                  </div>
+                  <div class="max-h-36 overflow-y-auto space-y-1 bg-black/20 p-2 rounded-lg border border-white/5">
+                    <div
+                      v-for="(h, idx) in (editingStudioProtocol.habits || [])"
+                      :key="h.id || idx"
+                      class="text-xs text-gray-300 flex items-center justify-between py-0.5 border-b border-white/5 last:border-0"
+                    >
+                      <span class="truncate mr-2">#{{ idx + 1 }} {{ h.name }}</span>
+                      <span class="text-amber-400 mono-num text-[11px] shrink-0">+{{ h.points }} pts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 border-t border-white/10">
+                <button type="button" class="btn btn--secondary btn--sm" @click="isStudioEditorOpen = false">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--primary-action btn--sm"
+                  @click="handleSaveStudioProtocol"
+                  id="proto-editor-save-btn"
+                >
+                  <Check class="icon-xs" />
+                  <span>Save &amp; Activate</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── SUB-MODAL 2: EXPORT / IMPORT / SHARE MODAL ── -->
+          <div v-if="isShareModalOpen" class="proto-cat-form-overlay" id="proto-studio-share-modal">
+            <div class="proto-cat-form-card max-w-md">
+              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                  <Share2 class="icon-xs text-sky-400" />
+                  <span>{{ shareModalMode === 'export' ? 'Export & Share Protocol' : 'Import Protocol' }}</span>
+                </h4>
+                <button type="button" class="btn-icon" @click="isShareModalOpen = false">
+                  <X class="icon-xs" />
+                </button>
+              </div>
+
+              <!-- Export Mode -->
+              <div v-if="shareModalMode === 'export'" class="space-y-3">
+                <div class="text-xs text-gray-400">
+                  Share <strong>{{ exportTargetProtocol?.name }}</strong> via one-click link or JSON file.
+                </div>
+
+                <!-- One-Click Shareable Link -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1">Shareable Universal URL</label>
+                  <div class="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      readonly
+                      :value="exportShareUrl"
+                      id="proto-share-url-input"
+                      class="proto-text-input mono-num text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn--secondary btn--sm shrink-0"
+                      @click="handleCopyShareUrl"
+                      id="proto-copy-share-url-btn"
+                    >
+                      <Check v-if="copySuccessType === 'url'" class="icon-xs text-emerald-400" />
+                      <Copy v-else class="icon-xs" />
+                      <span>{{ copySuccessType === 'url' ? 'Copied' : 'Copy' }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- JSON Payload -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1">JSON Blueprint Manifest</label>
+                  <textarea
+                    readonly
+                    :value="exportJsonString"
+                    id="proto-export-json-textarea"
+                    rows="6"
+                    class="proto-text-input mono-num text-[10px] font-mono leading-tight"
+                  ></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    class="btn btn--secondary btn--sm"
+                    @click="handleCopyJson"
+                    id="proto-copy-json-btn"
+                  >
+                    <Copy class="icon-xs" />
+                    <span>Copy JSON</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--primary-action btn--sm"
+                    @click="handleDownloadJson"
+                    id="proto-download-json-btn"
+                  >
+                    <Download class="icon-xs" />
+                    <span>Download .json</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Import Mode -->
+              <div v-else class="space-y-3">
+                <div class="text-xs text-gray-400">
+                  Paste a JSON protocol manifest or upload a downloaded <code>.json</code> file.
+                </div>
+
+                <div v-if="importValidationError" class="habit-modal__alert text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 p-2 rounded">
+                  {{ importValidationError }}
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1">Paste JSON Manifest</label>
+                  <textarea
+                    v-model="importJsonInput"
+                    id="proto-import-json-input"
+                    placeholder='{"protocol": { "name": "Biohacker Protocol", "wakeTime": "05:00", ... }}'
+                    rows="7"
+                    class="proto-text-input mono-num text-[10px] font-mono leading-tight"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-gray-300 mb-1">Or Upload JSON File</label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    @change="handleImportFileUpload"
+                    id="proto-import-file-input"
+                    class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-white/10 file:text-white"
+                  />
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                  <button type="button" class="btn btn--secondary btn--sm" @click="isShareModalOpen = false">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--primary-action btn--sm"
+                    @click="handleSubmitImport"
+                    id="proto-import-submit-btn"
+                  >
+                    <Upload class="icon-xs" />
+                    <span>Validate &amp; Import</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1194,7 +1872,7 @@ const handleDeletePasskey = async (id, name) => {
                     type="text"
                     v-model="newDeviceName"
                     class="proto-text-input"
-                    :placeholder="props.isAshish ? 'Ashish Pixel 9 Pro' : props.isJyoti ? 'Jyoti Galaxy S24' : 'Personal Hardware Key'"
+                    :placeholder="`${props.displayName} Device (e.g. Pixel / iPhone)`"
                   />
                   <button
                     type="button"
@@ -1234,6 +1912,285 @@ const handleDeletePasskey = async (id, name) => {
                 </button>
               </div>
               <small class="proto-subtext">Used if biometric hardware is unavailable or in non-secure browser contexts.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ TAB 6: CATEGORIES & ORDER TAXONOMY ══ -->
+        <div v-if="activeTab === 'taxonomy'" class="proto-section proto-section--taxonomy animate-fadeIn">
+          <!-- Info Banner -->
+          <div class="proto-info-banner">
+            <Sparkles class="icon-sm icon-gold shrink-0" />
+            <div>
+              <strong>Custom Category &amp; Habit Sequence Engine:</strong>
+              Design bespoke categories with tailored colors and icons, and prioritize your daily habits with fluid Up/Down ordering.
+            </div>
+          </div>
+
+          <!-- Sub-Tab Navigation -->
+          <div class="proto-taxonomy-subtabs">
+            <button
+              type="button"
+              class="proto-taxonomy-subtab"
+              :class="{ 'proto-taxonomy-subtab--active': taxonomySubTab === 'categories' }"
+              @click="taxonomySubTab = 'categories'"
+              id="proto-subtab-categories"
+            >
+              <Palette class="icon-xs" />
+              <span>Category Manager ({{ taxonomyCategories.length }})</span>
+            </button>
+            <button
+              type="button"
+              class="proto-taxonomy-subtab"
+              :class="{ 'proto-taxonomy-subtab--active': taxonomySubTab === 'order' }"
+              @click="taxonomySubTab = 'order'"
+              id="proto-subtab-order"
+            >
+              <Sliders class="icon-xs" />
+              <span>Habit Sequence ({{ localHabitList.length }})</span>
+            </button>
+          </div>
+
+          <!-- ── SUBSECTION 1: CATEGORY MANAGER ── -->
+          <div v-if="taxonomySubTab === 'categories'" class="proto-taxonomy-view">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs text-gray-400">
+                Click any category to edit its color, icon, or point weight.
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn--secondary btn--xs"
+                  @click="handleResetCategories"
+                  title="Reset to default system categories"
+                  id="proto-reset-categories-btn"
+                >
+                  <RotateCcw class="icon-xs" />
+                  <span>Reset Defaults</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--primary-action btn--xs"
+                  @click="openNewCategoryForm"
+                  id="proto-add-category-btn"
+                >
+                  <Plus class="icon-xs" />
+                  <span>New Category</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Categories Grid -->
+            <div class="proto-categories-grid">
+              <div
+                v-for="cat in taxonomyCategories"
+                :key="cat.id"
+                class="proto-category-card"
+                :style="{ borderColor: cat.accentColor + '55', boxShadow: '0 4px 14px ' + cat.accentColor + '15' }"
+                :id="`proto-category-card-${cat.id}`"
+              >
+                <div class="proto-cat-icon-badge" :style="{ background: cat.accentColor + '20', color: cat.accentColor }">
+                  <component :is="resolveCategoryIconComponent(cat.icon)" class="icon-sm" />
+                </div>
+                <div class="proto-cat-details">
+                  <div class="proto-cat-title-row">
+                    <strong class="proto-cat-name">{{ cat.label }}</strong>
+                    <span v-if="cat.isCustom" class="proto-cat-custom-pill">Custom</span>
+                  </div>
+                  <div class="proto-cat-meta-row">
+                    <span class="proto-cat-id mono-num">#{{ cat.id }}</span>
+                    <span class="proto-cat-points mono-num">+{{ cat.defaultPoints }} pts</span>
+                  </div>
+                </div>
+                <div class="proto-cat-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--subtle"
+                    title="Edit category"
+                    :id="`proto-edit-cat-${cat.id}`"
+                    @click="openEditCategoryForm(cat)"
+                  >
+                    <Edit2 class="icon-xs" />
+                  </button>
+                  <button
+                    v-if="cat.isCustom"
+                    type="button"
+                    class="btn-icon btn-icon--danger"
+                    title="Delete custom category"
+                    :id="`proto-delete-cat-${cat.id}`"
+                    @click="handleDeleteCategory(cat.id)"
+                  >
+                    <Trash2 class="icon-xs" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inline Category Edit Modal / Form -->
+            <div v-if="isCategoryFormOpen" class="proto-cat-form-overlay" id="proto-category-modal">
+              <div class="proto-cat-form-card">
+                <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                  <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <Palette class="icon-xs text-amber-400" />
+                    <span>{{ isEditingCategory ? 'Edit Category' : 'Create Custom Category' }}</span>
+                  </h4>
+                  <button type="button" class="btn-icon" @click="isCategoryFormOpen = false">
+                    <X class="icon-xs" />
+                  </button>
+                </div>
+
+                <div class="proto-cat-form-body space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Category Name</label>
+                    <input
+                      type="text"
+                      v-model="editingCategory.label"
+                      id="proto-category-name-input"
+                      placeholder="e.g. Biohacking & Recovery"
+                      class="proto-text-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">Accent Color Swatch</label>
+                    <div class="proto-color-swatches">
+                      <button
+                        v-for="color in COLOR_PALETTE_PRESETS"
+                        :key="color"
+                        type="button"
+                        class="proto-color-dot"
+                        :style="{ backgroundColor: color }"
+                        :class="{ 'proto-color-dot--active': editingCategory.accentColor === color }"
+                        @click="editingCategory.accentColor = color"
+                        :title="color"
+                      >
+                        <Check v-if="editingCategory.accentColor === color" class="icon-xs text-white" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">Category Icon</label>
+                    <div class="proto-icon-picker-grid">
+                      <button
+                        v-for="iconName in CATEGORY_ICON_OPTIONS"
+                        :key="iconName"
+                        type="button"
+                        class="proto-icon-btn"
+                        :class="{ 'proto-icon-btn--active': editingCategory.icon === iconName }"
+                        @click="editingCategory.icon = iconName"
+                      >
+                        <component :is="resolveCategoryIconComponent(iconName)" class="icon-xs" />
+                        <span class="text-[9px] truncate">{{ iconName }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Default Habit Points</label>
+                    <div class="flex items-center gap-2">
+                      <button
+                        v-for="pts in [1, 2, 3, 5]"
+                        :key="'pts-' + pts"
+                        type="button"
+                        class="btn btn--xs"
+                        :class="editingCategory.defaultPoints === pts ? 'btn--primary-action' : 'btn--secondary'"
+                        @click="editingCategory.defaultPoints = pts"
+                      >
+                        +{{ pts }} pt{{ pts > 1 ? 's' : '' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 border-t border-white/10">
+                  <button type="button" class="btn btn--secondary btn--sm" @click="isCategoryFormOpen = false">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--primary-action btn--sm"
+                    @click="handleSaveCategory"
+                    id="proto-save-category-btn"
+                  >
+                    <Check class="icon-xs" />
+                    <span>Save Category</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── SUBSECTION 2: HABIT SEQUENCE REORDERING ── -->
+          <div v-else-if="taxonomySubTab === 'order'" class="proto-taxonomy-view">
+            <div class="text-xs text-gray-400 mb-2">
+              Move habits up or down to set their sequence on the daily tracker.
+            </div>
+
+            <div v-if="localHabitList.length === 0" class="proto-empty-keys">
+              <p>No active habits loaded for this protocol.</p>
+            </div>
+
+            <div v-else class="proto-habits-reorder-list">
+              <div
+                v-for="(habit, idx) in localHabitList"
+                :key="habit.id"
+                class="proto-reorder-row"
+                :id="`proto-habit-row-${habit.id}`"
+              >
+                <div class="proto-reorder-left">
+                  <span class="proto-drag-grip text-gray-500">
+                    <GripVertical class="icon-xs" />
+                  </span>
+                  <span class="proto-order-badge mono-num">#{{ idx + 1 }}</span>
+                  <div class="proto-habit-info">
+                    <strong class="proto-habit-title">{{ habit.name }}</strong>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="proto-habit-pts mono-num">+{{ habit.points }} pts</span>
+                      <span class="proto-habit-slot-pill">{{ habit.timeSlot || 'anytime' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="proto-reorder-right">
+                  <!-- Category Selector Dropdown -->
+                  <select
+                    class="proto-cat-select"
+                    :value="habit.category || 'ops'"
+                    @change="handleHabitCategoryChange(habit.id, $event.target.value)"
+                    :title="`Reassign category for ${habit.name}`"
+                    :id="`proto-habit-cat-select-${habit.id}`"
+                  >
+                    <option v-for="c in taxonomyCategories" :key="c.id" :value="c.id">
+                      {{ c.label }}
+                    </option>
+                  </select>
+
+                  <!-- Reorder Chevrons -->
+                  <div class="proto-chevron-btns">
+                    <button
+                      type="button"
+                      class="btn-icon btn-icon--xs"
+                      :disabled="idx === 0"
+                      :id="`proto-move-up-${habit.id}`"
+                      @click="handleMoveHabitUp(habit.id)"
+                      title="Move Up"
+                    >
+                      <ArrowUp class="icon-xs" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-icon btn-icon--xs"
+                      :disabled="idx === localHabitList.length - 1"
+                      :id="`proto-move-down-${habit.id}`"
+                      @click="handleMoveHabitDown(habit.id)"
+                      title="Move Down"
+                    >
+                      <ArrowDown class="icon-xs" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2078,5 +3035,267 @@ const handleDeletePasskey = async (id, name) => {
 .proto-enroll-msg {
   font-size: 0.72rem;
   color: #34d399;
+}
+
+/* ── Taxonomy Tab Styles ── */
+.proto-settings-tab--taxonomy {
+  border-bottom-color: transparent;
+}
+.proto-taxonomy-subtabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+}
+.proto-taxonomy-subtab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.proto-taxonomy-subtab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+.proto-taxonomy-subtab--active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.4);
+  color: #f8fafc;
+}
+.proto-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+.proto-category-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.proto-cat-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.proto-cat-details {
+  flex: 1;
+  min-width: 0;
+}
+.proto-cat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.proto-cat-name {
+  font-size: 0.825rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.proto-cat-custom-pill {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.2);
+  color: #f59e0b;
+  font-weight: 700;
+}
+.proto-cat-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.proto-cat-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+/* Reorder rows */
+.proto-habits-reorder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.proto-reorder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  gap: 0.5rem;
+  transition: background 0.15s ease;
+}
+.proto-reorder-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.proto-reorder-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+.proto-order-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d4af37;
+  min-width: 26px;
+}
+.proto-habit-info {
+  min-width: 0;
+  flex: 1;
+}
+.proto-habit-title {
+  display: block;
+  font-size: 0.8rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.proto-habit-pts {
+  font-size: 10px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+.proto-habit-slot-pill {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+.proto-reorder-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.proto-cat-select {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 3px 6px;
+  outline: none;
+  max-width: 130px;
+}
+.proto-chevron-btns {
+  display: flex;
+  gap: 2px;
+}
+/* Form Overlay */
+.proto-cat-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 1rem;
+}
+.proto-cat-form-card {
+  width: 100%;
+  max-width: 440px;
+  background: #0e1626;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+.proto-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.proto-color-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.proto-color-dot--active {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+.proto-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.35rem;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+.proto-icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.proto-icon-btn--active {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: #d4af37;
+  color: #fff;
+}
+.proto-circadian-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+.proto-card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
 }
 </style>

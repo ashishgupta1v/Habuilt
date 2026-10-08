@@ -44,6 +44,7 @@ def run_partner_sync_e2e():
         page_a.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_{ashish_user["id"]}', 'true');
         """)
 
         page_a.goto(APP_URL, wait_until='networkidle')
@@ -106,6 +107,7 @@ def run_partner_sync_e2e():
         page_b.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(jyoti_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_{jyoti_user["id"]}', 'true');
         """)
 
         page_b.goto(APP_URL, wait_until='networkidle')

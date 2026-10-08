@@ -60,8 +60,8 @@ const fallbackAnchors = [
   {
     id: 'anchor-stroller',
     time: '18:35 - 19:15',
-    title: 'Shaarvi Stroller Park Walk',
-    subtitle: 'Outdoor metabolic walk, fresh air, baby bonding',
+    title: 'Outdoor Evening Walk',
+    subtitle: 'Outdoor metabolic walk, fresh air, partner connection',
     badge: 'Family',
     completedByUser: false,
     completedByPartner: false,
@@ -70,7 +70,7 @@ const fallbackAnchors = [
   {
     id: 'anchor-dinner',
     time: '19:25 - 20:15',
-    title: 'Family Dinner Preparation',
+    title: 'Family Dinner & Reconnect',
     subtitle: 'Cooking together, table setup & peaceful evening meal',
     badge: 'Household',
     completedByUser: false,
@@ -80,8 +80,8 @@ const fallbackAnchors = [
   {
     id: 'anchor-diya',
     time: '20:35 - 20:50',
-    title: 'Evening Diya & Gratitude',
-    subtitle: 'Lighting the lamp, quiet reflection & daily thanks',
+    title: 'Evening Wind-Down & Gratitude',
+    subtitle: 'Quiet reflection, daily thanks & partner appreciation',
     badge: 'Spiritual',
     completedByUser: false,
     completedByPartner: false,

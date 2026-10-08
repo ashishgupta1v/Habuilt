@@ -43,6 +43,7 @@ const props = defineProps({
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false },
   displayName: { type: String, default: 'Warrior' },
+  partnerName: { type: String, default: 'Partner' },
   dayType: { type: String, default: 'home' },
   dayTypeLabel: { type: String, default: '🏠 Home' },
   currentDay: { type: Number, default: 1 },
@@ -132,7 +133,7 @@ const refreshAIBriefing = async () => {
       systemStreak: props.systemStreak?.current || 0,
       stiffnessMinutes: localStiffness.value,
       hydrationMl: localHydration.value,
-      partnerName: props.isAshish ? 'Jyoti' : props.isJyoti ? 'Ashish' : 'Partner',
+      partnerName: props.partnerName || (props.isAshish ? 'Jyoti' : props.isJyoti ? 'Ashish' : 'Partner'),
       activeHabitName: props.todayHabits.find(h => !props.hasCompletedDay(h, props.currentDay))?.name || ''
     });
 
@@ -376,27 +377,28 @@ const correlationInsights = computed(() => {
 
 // Partner Status Context
 const partnerContext = computed(() => {
+  const pName = props.partnerName || (props.isAshish ? 'Jyoti' : props.isJyoti ? 'Ashish' : 'Partner');
   if (props.isAshish) {
     return {
-      partnerName: 'Jyoti',
-      stage: 'Protected Postpartum Recovery & SAP IBP Study',
-      sharedAnchors: ['14:00 Shared Lunch', '18:35 Stroller Walk', '20:35 Evening Diya'],
+      partnerName: pName,
+      stage: 'Protected Postpartum Recovery & Professional Upskilling',
+      sharedAnchors: ['13:30 Shared Lunch', '18:35 Evening Walk', '20:35 Evening Wind-Down'],
       avatarEmoji: '🌸',
       tagline: 'Partnering in life, family, and mindful mastery.',
     };
   } else if (props.isJyoti) {
     return {
-      partnerName: 'Ashish',
+      partnerName: pName,
       stage: 'Engineering Leadership & Circadian Protocol',
-      sharedAnchors: ['14:00 Shared Lunch', '18:35 Stroller Walk', '20:35 Evening Diya'],
+      sharedAnchors: ['13:30 Shared Lunch', '18:35 Evening Walk', '20:35 Evening Wind-Down'],
       avatarEmoji: '⚡',
       tagline: 'Partnering in life, family, and mindful mastery.',
     };
   }
   return {
-    partnerName: 'Partner',
+    partnerName: pName,
     stage: 'Shared Warrior Protocol',
-    sharedAnchors: ['Shared Lunch', 'Evening Walk', 'Evening Diya'],
+    sharedAnchors: ['Midday Shared Meal', 'Evening Walk', 'Evening Gratitude'],
     avatarEmoji: '🤝',
     tagline: 'Synchronized shared accountability.',
   };
@@ -426,7 +428,7 @@ const copyAIPrompt = () => {
   const tHalf = props.tierThresholds?.half ?? 8;
   const tFull = props.tierThresholds?.full ?? 15;
   const text = `### Habuilt Warrior Daily Debrief (${now.value.toLocaleDateString()})
-- User: ${props.displayName} (${props.isAshish ? "Ashish's System" : props.isJyoti ? "Jyoti's System" : "Warrior System"})
+- User: ${props.displayName} (${props.isAshish ? "Ashish's System" : props.isJyoti ? "Jyoti's System" : `${props.displayName}'s System`})
 - Day Type: ${props.dayTypeLabel}
 - Daily Points: ${props.todayPoints}/${tFull} pts (Tier: ${props.todayPoints >= tFull ? 'Full Target' : props.todayPoints >= tHalf ? 'Half Protocol' : props.todayPoints >= tFloor ? 'Floor Baseline' : 'Incomplete'})
 - Streak: ${props.systemStreak.current} days (Best: ${props.systemStreak.best})

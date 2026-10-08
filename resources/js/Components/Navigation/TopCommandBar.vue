@@ -149,9 +149,7 @@ onBeforeUnmount(() => {
       <!-- User / Track System Pill -->
       <span class="hero-track-pill" :class="isJyoti ? 'hero-track-pill--jyoti' : (isAshish ? 'hero-track-pill--ashish' : 'hero-track-pill--generic')">
         <Sparkles class="icon-xs" />
-        <span v-if="isJyoti">Jyoti's System</span>
-        <span v-else-if="isAshish">Ashish's System</span>
-        <span v-else>{{ displayName }}'s System</span>
+        <span>{{ displayName }}'s System</span>
       </span>
 
       <!-- Dynamic Protocol Badge / Switcher Button & Dropdown -->
@@ -321,7 +319,7 @@ onBeforeUnmount(() => {
     <div class="hero-command-bar__right">
       <!-- Day Type Cycle Button (Office Calendar Aware) -->
       <button
-        v-if="isAshish"
+        v-if="isAshish || activeProtocolId === 'archetype-ashish' || activeProtocolId === 'ashishMaster' || activeProtocolName?.toLowerCase().includes('ashish') || travelMode || dayType !== 'home'"
         type="button"
         class="hero-travel-btn"
         :class="{ 'hero-travel-btn--active': travelMode, 'hero-travel-btn--half': dayType === 'half-day', 'hero-travel-btn--holiday': dayType === 'holiday' }"

@@ -50,6 +50,30 @@ const halfDays = {
   '2026-12-24': 'Christmas Eve',
 };
 
+const LOCAL_CUSTOM_CALENDAR_KEY = 'habuilt_custom_calendar_schedule';
+
+export function getCustomCalendarSchedule() {
+  if (typeof localStorage !== 'undefined') {
+    const raw = localStorage.getItem(LOCAL_CUSTOM_CALENDAR_KEY);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+export function saveCustomCalendarSchedule(schedule) {
+  if (typeof localStorage !== 'undefined') {
+    if (schedule) {
+      localStorage.setItem(LOCAL_CUSTOM_CALENDAR_KEY, JSON.stringify(schedule));
+    } else {
+      localStorage.removeItem(LOCAL_CUSTOM_CALENDAR_KEY);
+    }
+  }
+}
+
 /**
  * Format a Date as 'YYYY-MM-DD' in local timezone.
  */
@@ -67,7 +91,9 @@ function toDateKey(date) {
  */
 function getOfficeBlock(date) {
   const key = toDateKey(date);
-  for (const block of officeBlockWeeks) {
+  const custom = getCustomCalendarSchedule();
+  const activeBlocks = (custom && Array.isArray(custom.officeBlockWeeks)) ? custom.officeBlockWeeks : officeBlockWeeks;
+  for (const block of activeBlocks) {
     if (key >= block.start && key <= block.end) {
       return block;
     }
@@ -118,9 +144,9 @@ export function getDayType(date) {
 export function getDayTypeLabel(dayType) {
   const labels = {
     'home':       '🏠 Home',
-    'office-mon': '🏢 Office (Mon · LDH→CHD)',
-    'office-mid': '🏢 Office (Flat→Office)',
-    'office-fri': '🏢 Office (Fri · →LDH)',
+    'office-mon': '🏢 Office (Commute Transit)',
+    'office-mid': '🏢 Office (Core On-Site)',
+    'office-fri': '🏢 Office (Return & Wrap)',
     'half-day':   '½ Half Day',
     'holiday':    '🎉 Holiday',
   };

@@ -160,10 +160,11 @@ export const PROTOCOL_ARCHETYPES = {
 
 /**
  * Composable for dynamic protocols management
+ * Supports explicit archetype IDs, saved preferences, and fallback archetypes.
  */
-export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti = false) {
+export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null, legacyJyotiParam = false) {
   const customProtocols = ref([]);
-  const activeProtocolId = ref(null);
+  const activeProtocolId = ref(typeof localStorage !== 'undefined' ? (localStorage.getItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`) || null) : null);
   const isLoading = ref(false);
 
   // Compute available list of all protocols (built-in archetypes + user custom protocols)
@@ -187,17 +188,30 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
       if (found) return found;
     }
 
-    // 2. Default for Ashish
-    if (isAshish) {
-      return PROTOCOL_ARCHETYPES.ashishMaster;
+    // 2. If defaultArchetypeId string is passed, look up matching archetype
+    if (typeof defaultArchetypeId === 'string' && defaultArchetypeId.trim()) {
+      const found = allProtocols.value.find(p => p.id === defaultArchetypeId || p.key === defaultArchetypeId);
+      if (found) return found;
     }
 
-    // 3. Default for Jyoti
-    if (isJyoti) {
+    // 3. Handle backward compatibility for legacy boolean flags (isAshish, isJyoti)
+    if (defaultArchetypeId === true) {
+      return PROTOCOL_ARCHETYPES.ashishMaster;
+    }
+    if (legacyJyotiParam === true) {
       return PROTOCOL_ARCHETYPES.jyotiMaster;
     }
 
-    // 4. Default for new/guest users: Founder Executive
+    // 4. Backward-compatible default for legacy user IDs
+    const lowerUid = String(userId || '').toLowerCase();
+    if (lowerUid === 'ashish') {
+      return PROTOCOL_ARCHETYPES.ashishMaster;
+    }
+    if (lowerUid === 'jyoti') {
+      return PROTOCOL_ARCHETYPES.jyotiMaster;
+    }
+
+    // 5. Universal default for new / guest / standard users: Founder Executive
     return PROTOCOL_ARCHETYPES.founder;
   });
 
@@ -359,8 +373,152 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
     return newProtocol;
   };
 
+  // Delete custom protocol
+  const deleteCustomProtocol = async (protocolId) => {
+    if (!protocolId) return false;
+    customProtocols.value = customProtocols.value.filter(p => p.id !== protocolId);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${LOCAL_STORAGE_CUSTOM_PROTOCOLS}${userId}`, JSON.stringify(customProtocols.value));
+    }
+
+    // If deleted protocol was active, revert to default archetype
+    if (activeProtocolId.value === protocolId) {
+      const fallbackId = String(userId).toLowerCase() === 'ashish' 
+        ? PROTOCOL_ARCHETYPES.ashishMaster.id 
+        : PROTOCOL_ARCHETYPES.founder.id;
+      await switchProtocol(fallbackId);
+    }
+
+    // Sync to Supabase
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
+      try {
+        await supabase
+          .from('user_protocols')
+          .delete()
+          .eq('user_id', userId)
+          .eq('id', protocolId);
+      } catch (e) {
+        console.warn('[useDynamicProtocols] Error deleting from Supabase:', e);
+      }
+    }
+    return true;
+  };
+
+  // Clone protocol (built-in archetype or custom)
+  const cloneProtocol = async (sourceProtocol, newName = null) => {
+    if (!sourceProtocol) return null;
+    const clonedName = newName || `${sourceProtocol.name || 'Protocol'} (Custom)`;
+    const clonedId = `custom-${Date.now()}`;
+    const clonedData = {
+      id: clonedId,
+      key: `custom-${Date.now()}`,
+      name: clonedName,
+      badge: '👤 Custom Protocol',
+      icon: sourceProtocol.icon || 'award',
+      tagline: sourceProtocol.tagline || 'Customized routine',
+      description: sourceProtocol.description || '',
+      wakeTime: sourceProtocol.wakeTime || '05:30',
+      sleepTime: sourceProtocol.sleepTime || '22:00',
+      workStart: sourceProtocol.workStart || '08:30',
+      workEnd: sourceProtocol.workEnd || '18:00',
+      habits: Array.isArray(sourceProtocol.habits) ? JSON.parse(JSON.stringify(sourceProtocol.habits)) : []
+    };
+    return await saveCustomProtocol(clonedData);
+  };
+
+  // Export protocol as clean JSON
+  const exportProtocolJson = (protocol) => {
+    if (!protocol) return null;
+    const payload = {
+      schema: 'habuilt-protocol-v1',
+      exportedAt: new Date().toISOString(),
+      protocol: {
+        name: protocol.name,
+        badge: protocol.badge || '👤 Custom Protocol',
+        icon: protocol.icon || 'award',
+        tagline: protocol.tagline || '',
+        description: protocol.description || '',
+        wakeTime: protocol.wakeTime || '05:30',
+        sleepTime: protocol.sleepTime || '22:00',
+        workStart: protocol.workStart || '08:30',
+        workEnd: protocol.workEnd || '18:00',
+        habits: Array.isArray(protocol.habits) ? protocol.habits.map(h => ({
+          id: h.id,
+          name: h.name,
+          points: Number(h.points) || 1,
+          category: h.category || 'ops',
+          timeSlot: h.timeSlot || 'morning',
+          hint: h.hint || ''
+        })) : []
+      }
+    };
+    return JSON.stringify(payload, null, 2);
+  };
+
+  // Import protocol from JSON string or object
+  const importProtocolJson = async (jsonInput) => {
+    try {
+      const data = typeof jsonInput === 'string' ? JSON.parse(jsonInput) : jsonInput;
+      const proto = data.protocol || data;
+      if (!proto || !proto.name) {
+        throw new Error('Invalid protocol payload: missing name');
+      }
+
+      const importedData = {
+        id: `custom-import-${Date.now()}`,
+        key: `import-${Date.now()}`,
+        name: `${proto.name} (Imported)`,
+        badge: proto.badge || '📥 Imported Protocol',
+        icon: proto.icon || 'award',
+        tagline: proto.tagline || 'Imported custom protocol',
+        description: proto.description || '',
+        wakeTime: proto.wakeTime || '05:30',
+        sleepTime: proto.sleepTime || '22:00',
+        workStart: proto.workStart || '08:30',
+        workEnd: proto.workEnd || '18:00',
+        habits: Array.isArray(proto.habits) ? proto.habits : []
+      };
+
+      return await saveCustomProtocol(importedData);
+    } catch (err) {
+      console.error('[useDynamicProtocols] Import failed:', err);
+      throw err;
+    }
+  };
+
+  // Generate shareable base64 link
+  const generateShareableProtocolUrl = (protocol) => {
+    if (!protocol || typeof window === 'undefined') return '';
+    try {
+      const jsonStr = exportProtocolJson(protocol);
+      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      const base = window.location.origin + window.location.pathname;
+      return `${base}#import-protocol=${b64}`;
+    } catch (e) {
+      console.warn('Failed to generate share URL:', e);
+      return '';
+    }
+  };
+
+  // Decode protocol from URL hash
+  const decodeProtocolFromHash = (hashString) => {
+    if (!hashString || !hashString.includes('#import-protocol=')) return null;
+    try {
+      const b64 = hashString.split('#import-protocol=')[1];
+      if (!b64) return null;
+      const jsonStr = decodeURIComponent(escape(atob(b64)));
+      const parsed = JSON.parse(jsonStr);
+      return parsed.protocol || parsed;
+    } catch (e) {
+      console.warn('Failed to decode protocol hash:', e);
+      return null;
+    }
+  };
+
   return {
     allProtocols,
+    customProtocols,
     activeProtocol,
     activeProtocolId,
     dynamicTimeSlotDefinitions,
@@ -368,6 +526,12 @@ export function useDynamicProtocols(userId = 'guest', isAshish = false, isJyoti 
     loadProtocols,
     switchProtocol,
     saveCustomProtocol,
+    deleteCustomProtocol,
+    cloneProtocol,
+    exportProtocolJson,
+    importProtocolJson,
+    generateShareableProtocolUrl,
+    decodeProtocolFromHash,
     PROTOCOL_ARCHETYPES
   };
 }

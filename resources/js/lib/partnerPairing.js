@@ -74,21 +74,6 @@ export async function pairWithInviteCode(currentUserId, rawCode, partnerAlias = 
 
   const cleanCode = rawCode.trim().toUpperCase();
 
-  // Ashish & Jyoti built-in auto-link short circuit
-  if (cleanCode === 'ASHISH' || cleanCode === 'JYOTI') {
-    const partnerId = cleanCode === 'ASHISH' ? 'ashish' : 'jyoti';
-    const connection = {
-      user_id: currentUserId,
-      partner_user_id: partnerId,
-      invite_code: cleanCode,
-      status: 'connected',
-      alias: partnerAlias || (partnerId === 'ashish' ? 'Ashish' : 'Jyoti'),
-      updated_at: new Date().toISOString(),
-    };
-    localStorage.setItem(`${LOCAL_PAIR_PREFIX}${currentUserId}`, JSON.stringify(connection));
-    return connection;
-  }
-
   let partnerUserId = null;
 
   if (isSupabaseConfigured()) {
@@ -398,8 +383,8 @@ export function computeSharedAnchorsStatus(userHabits = [], partnerMetrics = nul
       {
         id: 'anchor-stroller',
         time: '18:35 - 19:15',
-        title: 'Shaarvi Stroller Park Walk',
-        subtitle: 'Outdoor metabolic walk, fresh air, baby bonding',
+        title: 'Outdoor Evening Walk',
+        subtitle: 'Outdoor metabolic walk, fresh air, partner connection',
         badge: 'Family',
         userHabitIds: ashishUser ? ['a-20', 'at-17', 'af-21'] : ['j-18'],
         partnerHabitIds: ashishUser ? ['j-18'] : ['a-20', 'at-17', 'af-21'],
@@ -407,8 +392,8 @@ export function computeSharedAnchorsStatus(userHabits = [], partnerMetrics = nul
       {
         id: 'anchor-dinner',
         time: '19:25 - 20:15',
-        title: 'Family Dinner Preparation',
-        subtitle: 'Cooking together, table setup & peaceful evening meal',
+        title: 'Family Dinner & Reconnect',
+        subtitle: 'Wholesome dinner together, table setup & peaceful conversation',
         badge: 'Household',
         userHabitIds: ashishUser ? ['a-21', 'at-18', 'af-23'] : ['j-19'],
         partnerHabitIds: ashishUser ? ['j-19'] : ['a-21', 'at-18', 'af-23'],
@@ -416,8 +401,8 @@ export function computeSharedAnchorsStatus(userHabits = [], partnerMetrics = nul
       {
         id: 'anchor-diya',
         time: '20:35 - 20:50',
-        title: 'Evening Diya & Gratitude',
-        subtitle: 'Lighting the lamp, quiet reflection & daily thanks',
+        title: 'Evening Reflection & Gratitude',
+        subtitle: 'Quiet reflection, daily thanks & partner appreciation',
         badge: 'Spiritual',
         userHabitIds: ashishUser ? ['a-76'] : ['j-21'],
         partnerHabitIds: ashishUser ? ['j-21'] : ['a-76'],

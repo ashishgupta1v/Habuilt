@@ -60,6 +60,7 @@ import RheumatologyClinicalAnalytics from '@/Components/Analytics/RheumatologyCl
 
 // Composables & Data
 import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
+import { useCategoryTaxonomy } from '@/Composables/useCategoryTaxonomy';
 import {
   getPartnerConnection,
   pairWithInviteCode,
@@ -201,30 +202,28 @@ const emit = defineEmits(['sign-out', 'navigate-month']);
 
 const page = usePage();
 const authUser = computed(() => page?.props?.auth?.user ?? null);
-const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email || '').toLowerCase().trim());
-const isJyoti = computed(() => {
-  const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
-  return email === 'goyaljyoti007@gmail.com' || uid === 'jyoti' || email.includes('jyoti');
-});
-const isAshish = computed(() => {
-  if (isJyoti.value) return false;
-  const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
-  return email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
-});
-const displayName = computed(() => {
-  const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
-  if (metaName && metaName.trim()) return metaName.trim();
-  if (isJyoti.value) return 'Jyoti';
-  if (isAshish.value) return 'Ashish';
-  if (resolvedEmail.value && resolvedEmail.value.includes('@') && !resolvedEmail.value.startsWith('guest')) {
-    const local = resolvedEmail.value.split('@')[0];
-    return local.charAt(0).toUpperCase() + local.slice(1);
+const resolvedEmail = computed(() => {
+  if (props.userEmail) return props.userEmail.toLowerCase().trim();
+  if (authUser.value?.email) return authUser.value.email.toLowerCase().trim();
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      if (cached?.email) return cached.email.toLowerCase().trim();
+    } catch {}
   }
-  return props.userId && props.userId !== 'guest' ? props.userId : 'Champion';
+  return '';
 });
-const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
+const effectiveUserId = computed(() => {
+  if (props.userId) return props.userId;
+  if (authUser.value?.id) return authUser.value.id;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      if (cached?.id) return cached.id;
+    } catch {}
+  }
+  return resolvedEmail.value || 'guest';
+});
 const isGuestActive = computed(() => {
   return resolvedEmail.value === 'guest@habuilt.com' ||
          effectiveUserId.value === 'guest' ||
@@ -254,29 +253,100 @@ const activePartnerConnection = ref(null);
 
 const {
   allProtocols,
+  customProtocols,
   activeProtocol,
   activeProtocolId,
   dynamicTimeSlotDefinitions: protocolTimeSlotDefinitions,
   loadProtocols,
   switchProtocol,
   saveCustomProtocol,
-} = useDynamicProtocols(effectiveUserId.value, isAshish.value, isJyoti.value);
+  deleteCustomProtocol,
+  cloneProtocol,
+  importProtocolJson,
+  decodeProtocolFromHash,
+} = useDynamicProtocols(effectiveUserId.value);
+
+const {
+  applyHabitOrder: applyTaxonomyHabitOrder,
+  getCategoryMeta: getTaxonomyCategoryMeta
+} = useCategoryTaxonomy(() => activeProtocolId.value || activeProtocol.value?.id || 'default', () => effectiveUserId.value);
+
+const isAshishProtocol = computed(() => {
+  const pId = activeProtocolId.value || activeProtocol.value?.id;
+  const pKey = activeProtocol.value?.key;
+  return pId === 'archetype-ashish' || pId === 'ashishMaster' || pKey === 'ashish-master' || pKey === 'ashishMaster';
+});
+
+const isJyotiProtocol = computed(() => {
+  const pId = activeProtocolId.value || activeProtocol.value?.id;
+  const pKey = activeProtocol.value?.key;
+  return pId === 'archetype-jyoti' || pId === 'jyotiMaster' || pKey === 'jyoti-master' || pKey === 'jyotiMaster';
+});
+
+// Backward-compatible computed aliases
+const isJyoti = computed(() => {
+  const email = resolvedEmail.value;
+  const uid = (props.userId || '').toLowerCase();
+  return isJyotiProtocol.value || email === 'goyaljyoti007@gmail.com' || uid === 'jyoti';
+});
+
+const isAshish = computed(() => {
+  if (isJyoti.value && !isAshishProtocol.value) return false;
+  const email = resolvedEmail.value;
+  const uid = (props.userId || '').toLowerCase();
+  return isAshishProtocol.value || email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
+});
+
+const displayName = computed(() => {
+  const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
+  if (metaName && metaName.trim()) return metaName.trim();
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      const cachedName = cached?.user_metadata?.full_name || cached?.user_metadata?.name;
+      if (cachedName && cachedName.trim()) return cachedName.trim();
+    } catch {}
+  }
+
+  const storedName = typeof localStorage !== 'undefined' ? localStorage.getItem(`habuilt_user_name_${effectiveUserId.value}`) : null;
+  if (storedName && storedName.trim()) return storedName.trim();
+
+  if (resolvedEmail.value && resolvedEmail.value.includes('@') && !resolvedEmail.value.startsWith('guest')) {
+    const local = resolvedEmail.value.split('@')[0];
+    const formatted = local
+      .replace(/[._\-+]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    if (formatted) return formatted;
+  }
+  if (props.userId && props.userId !== 'guest' && props.userId !== 'ashish' && props.userId !== 'jyoti') {
+    return props.userId;
+  }
+  if (isJyoti.value && !isAshish.value) return 'Jyoti';
+  if (isAshish.value) return 'Ashish';
+  return 'Champion';
+});
 
 const isPartnerPaired = computed(() => {
-  if (isAshish.value || isJyoti.value) return true;
-  return activePartnerConnection.value?.status === 'connected';
+  return activePartnerConnection.value?.status === 'connected' ||
+    (activePartnerConnection.value?.status !== 'disconnected' && (isAshish.value || isJyoti.value));
 });
 
 const partnerDisplayName = computed(() => {
-  if (isJyoti.value) return 'Ashish';
+  if (activePartnerConnection.value?.alias) return activePartnerConnection.value.alias;
+  if (isJyoti.value && !isAshish.value) return 'Ashish';
   if (isAshish.value) return 'Jyoti';
-  return activePartnerConnection.value?.alias || 'Partner';
+  return 'Partner';
 });
 
 const partnerUserId = computed(() => {
+  if (activePartnerConnection.value?.partner_user_id) return activePartnerConnection.value.partner_user_id;
   if (isAshish.value) return 'jyoti';
   if (isJyoti.value) return 'ashish';
-  return activePartnerConnection.value?.partner_user_id || null;
+  return null;
 });
 
 const pairChannelId = computed(() => {
@@ -411,25 +481,12 @@ const dispatchPartnerNotification = async ({ title, body }) => {
 };
 
 const activeProtocolDisplayName = computed(() => {
-  if (isAshish.value && (!activeProtocolId.value || activeProtocolId.value === 'archetype-ashish' || activeProtocolId.value === 'ashishMaster')) {
-    return 'Ashish Master Protocol';
-  }
-  if (isJyoti.value && (!activeProtocolId.value || activeProtocolId.value === 'archetype-jyoti' || activeProtocolId.value === 'jyotiMaster')) {
-    return 'Jyoti Master Protocol';
-  }
   return activeProtocol.value?.name || 'Default Protocol';
 });
 
 const fallbackHabits = computed(() => {
-  // If activeProtocol is a custom or switched protocol other than the hardcoded baseline, use it
-  if (activeProtocolId.value && activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
-    if (activeProtocolId.value !== 'archetype-ashish' && activeProtocolId.value !== 'archetype-jyoti') {
-      return activeProtocol.value.habits;
-    }
-  }
-
-  if (isJyoti.value) return jyotiHabits;
-  if (isAshish.value) {
+  // If active protocol is ashishMaster, apply day-type schedules
+  if (isAshishProtocol.value) {
     switch (dayType.value) {
       case 'office-mon': return ashishTravelHabits;     // Mon: Ludhiana→CHD (long drive + Panchkula stay)
       case 'office-mid': return ashishOfficeMidHabits;  // Tue–Thu: Panchkula flat→office (30m) + solo evening
@@ -439,10 +496,16 @@ const fallbackHabits = computed(() => {
       default:           return ashishHabits;           // Home: Full Ludhiana baseline
     }
   }
+
+  if (isJyotiProtocol.value) {
+    return jyotiHabits;
+  }
+
   if (activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
     return activeProtocol.value.habits;
   }
-  return genericStarterHabits;
+
+  return PROTOCOL_ARCHETYPES.founder.habits || genericStarterHabits;
 });
 
 const mobileViewMode = ref('daily');
@@ -692,6 +755,44 @@ const handleActivateCustomProtocol = async (customProtocol) => {
   }
 };
 
+const handleCloneProtocol = async (sourceProto, newName) => {
+  try {
+    const cloned = await cloneProtocol(sourceProto, newName);
+    if (cloned) {
+      await handleActivateCustomProtocol(cloned);
+      showToast(`📋 Protocol "${cloned.name}" Cloned & Activated!`);
+    }
+  } catch (err) {
+    console.error('Failed to clone protocol:', err);
+    showToast('⚠️ Could not clone protocol');
+  }
+};
+
+const handleDeleteProtocol = async (protoId) => {
+  try {
+    const ok = await deleteCustomProtocol(protoId);
+    if (ok) {
+      showToast('🗑️ Custom Protocol Deleted');
+    }
+  } catch (err) {
+    console.error('Failed to delete protocol:', err);
+    showToast('⚠️ Could not delete protocol');
+  }
+};
+
+const handleImportProtocol = async (jsonStringOrObj) => {
+  try {
+    const imported = await importProtocolJson(jsonStringOrObj);
+    if (imported) {
+      await handleActivateCustomProtocol(imported);
+      showToast(`📥 Protocol "${imported.name}" Imported & Activated!`);
+    }
+  } catch (err) {
+    console.error('Failed to import protocol:', err);
+    showToast('⚠️ Could not import protocol: ' + (err.message || 'Invalid format'));
+  }
+};
+
 const handleQuickSwitchProtocol = async (protoId) => {
   if (!protoId) return;
   try {
@@ -734,6 +835,13 @@ const handleSaveProtocolSettings = async (newSettings) => {
   };
   await saveState();
   showToast('⚡ Protocol settings & scoring tiers saved!');
+};
+
+const handleUpdateProtocolHabits = async (updatedHabits) => {
+  if (Array.isArray(updatedHabits) && updatedHabits.length > 0) {
+    localHabits.value = updatedHabits;
+    await saveState();
+  }
 };
 
 const handlePartnerPaired = (connection) => {
@@ -1078,8 +1186,21 @@ onMounted(async () => {
     }
   }
 
+  // Handle instant protocol import via URL hash (e.g. #import-protocol=eyJuYW1l...)
+  if (typeof window !== 'undefined' && window.location.hash.includes('#import-protocol=')) {
+    try {
+      const decoded = decodeProtocolFromHash(window.location.hash);
+      if (decoded && decoded.name) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        await handleImportProtocol(decoded);
+      }
+    } catch (err) {
+      console.warn('URL hash protocol import failed:', err);
+    }
+  }
+
   // If first-time user / guest, trigger onboarding wizard
-  if (!isAshish.value && !isJyoti.value && (!localHabits.value || localHabits.value.length === 0)) {
+  if (!localHabits.value || localHabits.value.length === 0) {
     const onboarded = localStorage.getItem(`habuilt_onboarded_${effectiveUserId.value}`);
     if (!onboarded) {
       setTimeout(() => {
@@ -1555,7 +1676,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('shower') || lower.includes('grooming')) return 'canonical:shower-grooming';
   if (lower.includes('breakfast') || lower.includes('soaked nuts') || lower.includes('papaya')) return 'canonical:breakfast';
   if (lower.includes('mineral bottle') || lower.includes('water protocol') || lower.includes('water intake') || lower.includes('3 litres daily water') || lower.includes('3.5l daily water')) return 'canonical:water-protocol';
-  if (lower.includes('baby duty') || (lower.includes('shaarvi') && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down')))) return 'canonical:shaarvi-duty';
+  if (lower.includes('baby duty') || lower.includes('child duty') || ((lower.includes('baby') || lower.includes('infant') || lower.includes('shaarvi')) && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down') || lower.includes('duty')))) return 'canonical:child-care-duty';
   if (lower.includes('1-3-5') || lower.includes('top priority')) return 'canonical:1-3-5-priorities';
   if (lower.includes('block 1') || lower.includes('deep architecture') || lower.includes('office focus') || lower.includes('chandigarh office')) return 'canonical:deep-work-block-1';
   if (lower.includes('block 2') || lower.includes('high-leverage') || lower.includes('pipeline')) return 'canonical:deep-work-block-2';
@@ -1565,7 +1686,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('post-lunch walk') || (lower.includes('walk') && lower.includes('lunch'))) return 'canonical:post-lunch-walk';
   if (lower.includes('eye drops')) return 'canonical:eye-drops';
   if (lower.includes('shutdown') || lower.includes('work day shutdown') || lower.includes('work shutdown')) return 'canonical:shutdown-ritual';
-  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || (lower.includes('walk') && lower.includes('jyoti') && lower.includes('shaarvi'))) return 'canonical:family-walk';
+  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || lower.includes('partner walk') || (lower.includes('walk') && (lower.includes('family') || lower.includes('partner') || lower.includes('jyoti') || lower.includes('shaarvi')))) return 'canonical:family-walk';
   if (lower.includes('dinner preparation') || lower.includes('family dinner') || lower.includes('dinner')) return 'canonical:dinner';
   if (lower.includes('post-dinner stroll') || lower.includes('post-dinner walk') || (lower.includes('stroll') && lower.includes('dinner'))) return 'canonical:post-dinner-stroll';
   if (lower.includes('kitchen reset') || lower.includes('counter clean')) return 'canonical:kitchen-reset';
@@ -1962,7 +2083,7 @@ const toggleHabitForDay = (habit, day) => {
       if (sharedInfo || isPartnerPaired.value) {
         broadcastPartnerEvent({
           type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
-          partner: isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value),
+          partner: displayName.value,
           userId: effectiveUserId.value,
           habitId: habit.id,
           habitName: habit.name,
@@ -2144,7 +2265,7 @@ const handleBatchCompleteSlot = (group) => {
 
 // ── Milestone 3: Live Partner High-Five Broadcaster ──
 const sendWarriorHighFive = async () => {
-  const sender = isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value);
+  const sender = displayName.value;
   await broadcastPartnerEvent({
     type: 'warrior_high_five',
     partner: sender,
@@ -2229,7 +2350,7 @@ const handleRestoreData = (restoredData) => {
 // ── Milestone 4: Shared Partner Emote Broadcaster ──
 const handleSendPartnerEmote = async (emote) => {
   if (!emote) return;
-  const sender = isAshish.value ? 'Ashish' : (isJyoti.value ? 'Jyoti' : displayName.value);
+  const sender = displayName.value;
   await broadcastPartnerEvent({
     type: 'partner_emote',
     partner: sender,
@@ -2486,7 +2607,7 @@ const applyLoadedState = (data, isRemote = false) => {
       return { ...h, completed_days: days };
     });
 
-  localHabits.value = [...mergedSystemHabits, ...customHabits];
+  localHabits.value = applyTaxonomyHabitOrder([...mergedSystemHabits, ...customHabits]);
 
   // 3. Keep master historical archive of all unique completed habits
   const historicalUniqueMap = new Map();
@@ -2746,7 +2867,7 @@ const loadLocalState = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       // Auto-detect day type from office calendar if not explicitly saved
-      if (parsed.dayType === undefined && isAshish.value) {
+      if (parsed.dayType === undefined && (isAshish.value || isAshishProtocol.value)) {
         parsed.dayType = getDayType(new Date());
       }
       applyLoadedState(parsed, false);
@@ -2755,7 +2876,7 @@ const loadLocalState = () => {
         saveState();
       }
     } else {
-      if (isAshish.value) {
+      if (isAshish.value || isAshishProtocol.value) {
         dayType.value = getDayType(new Date());
       }
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
@@ -2763,7 +2884,7 @@ const loadLocalState = () => {
       saveState();
     }
   } catch {
-    if (isAshish.value) {
+    if (isAshish.value || isAshishProtocol.value) {
       dayType.value = getDayType(new Date());
     }
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
@@ -3262,6 +3383,21 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(() => {
+  // Check for shared protocol import in URL hash (#import-protocol=base64)
+  if (typeof window !== 'undefined' && window.location.hash.includes('#import-protocol=')) {
+    try {
+      const hashData = window.location.hash.split('#import-protocol=')[1];
+      const decoded = decodeProtocolFromHash(hashData);
+      if (decoded) {
+        importProtocolJson(decoded);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        showToast(`Imported shared protocol: ${decoded.name}`);
+      }
+    } catch (e) {
+      console.warn('Failed to import protocol from URL hash:', e);
+    }
+  }
+
   if (props.isCurrentMonth) {
     mobileSelectedDay.value = props.currentDay;
   }
@@ -3361,11 +3497,12 @@ onMounted(() => {
 
     // ── Realtime Couple Broadcast Listener ──
     const handlePartnerBroadcastMessage = (msg) => {
+      const sender = msg.partner || msg.from || msg.by || 'Partner';
+      const isOwn = (msg.userId === effectiveUserId.value) ||
+                    (sender && sender.toLowerCase() === displayName.value.toLowerCase());
+
       if (msg && (msg.type === 'shared_habit_done' || msg.type === 'habit_completed')) {
-        const sender = msg.partner || 'Partner';
-        const currentIsAshish = isAshish.value;
-        const currentIsJyoti = isJyoti.value;
-        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+        if (!isOwn) {
           showToast(`🌸 ${sender} completed "${msg.habitName}"! (+${msg.points} pts) ✨`, 4500);
           firePartnerCelebration();
           playSharedAnchorSync();
@@ -3379,15 +3516,11 @@ onMounted(() => {
           refreshPartnerLiveMetrics();
         }
       } else if (msg && msg.type === 'partner_unpair') {
-        const sender = msg.partner || 'Partner';
         showToast(`Partner (${sender}) unlinked. Switched to Standalone mode.`);
         activePartnerConnection.value = null;
         refreshPartnerLiveMetrics();
       } else if (msg && msg.type === 'warrior_high_five') {
-        const sender = msg.partner || 'Partner';
-        const currentIsAshish = isAshish.value;
-        const currentIsJyoti = isJyoti.value;
-        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+        if (!isOwn) {
           showToast(`🙌 ${sender} just sent you a Warrior High-Five! Keep conquering! ⚡`, 5000);
           fireDualCannons();
           playPartnerHighFive();
@@ -3400,10 +3533,7 @@ onMounted(() => {
           });
         }
       } else if (msg && msg.type === 'partner_emote') {
-        const sender = msg.partner || 'Partner';
-        const currentIsAshish = isAshish.value;
-        const currentIsJyoti = isJyoti.value;
-        if ((currentIsAshish && sender !== 'Ashish') || (currentIsJyoti && sender !== 'Jyoti') || (!currentIsAshish && !currentIsJyoti)) {
+        if (!isOwn) {
           showToast(`${msg.label || '💌'} ${sender} ${msg.message || 'sent you encouragement!'}`, 5500);
           fireDualCannons();
           playPartnerEmote();
@@ -3416,9 +3546,6 @@ onMounted(() => {
           });
         }
       } else if (msg && msg.type === 'partner_heartbeat') {
-        const isOwn = (msg.userId === effectiveUserId.value) ||
-          (isAshish.value && msg.userId === 'ashish') ||
-          (isJyoti.value && msg.userId === 'jyoti');
         if (!isOwn) {
           const windowName = msg.window || 'Active Protocol';
           partnerPresence.value = {
@@ -3429,8 +3556,6 @@ onMounted(() => {
           };
         }
       } else if (msg && msg.type === 'partner_nudge') {
-        const sender = msg.from || 'Partner';
-        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
         if (!isOwn) {
           const nudge = msg.nudge || {};
           showToast(`${nudge.icon || '🔔'} ${sender}: ${nudge.label || 'Gentle Nudge'} — ${nudge.message || 'Stay focused!'}`, 5500);
@@ -3451,8 +3576,6 @@ onMounted(() => {
           };
         }
       } else if (msg && msg.type === 'partner_synergy_claim') {
-        const sender = msg.by || 'Partner';
-        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
         if (!isOwn) {
           showToast(`🎉 ${sender} claimed Couple Synergy Reward: "${msg.reward}"! Celebrated together! ❤️`, 6000);
           playSharedAnchorSync();
@@ -3462,8 +3585,6 @@ onMounted(() => {
           }
         }
       } else if (msg && msg.type === 'partner_couple_rewards_update') {
-        const sender = msg.by || 'Partner';
-        const isOwn = (isAshish.value && sender === 'Ashish') || (isJyoti.value && sender === 'Jyoti');
         if (!isOwn && Array.isArray(msg.rewards)) {
           coupleSynergyRewards.value = msg.rewards;
           saveState();
@@ -4002,6 +4123,7 @@ onBeforeUnmount(() => {
         :is-ashish="isAshish"
         :is-jyoti="isJyoti"
         :display-name="displayName"
+        :partner-name="partnerDisplayName"
         :day-type="dayType"
         :day-type-label="getDayTypeLabel(dayType)"
         :current-day="props.currentDay"
@@ -4354,6 +4476,8 @@ onBeforeUnmount(() => {
         :is-open="isHabitFormModalOpen"
         :habit="editingHabitTarget"
         :default-slot="defaultSlotForNewHabit"
+        :active-protocol-id="activeProtocolId || activeProtocol?.id || 'default'"
+        :user-id="effectiveUserId"
         @close="closeHabitFormModal"
         @save="handleSaveHabitForm"
         @delete="handleDeleteHabitFromForm"
@@ -4480,13 +4604,22 @@ onBeforeUnmount(() => {
         :today-possible-daily-points="todayPossibleDailyPoints"
         :time-slot-definitions="dynamicTimeSlotDefinitions"
         :all-protocols="allProtocols"
+        :custom-protocols="customProtocols"
         :active-protocol="activeProtocol"
-        :active-protocol-id="activeProtocolId"
+        :active-protocol-id="activeProtocolId || activeProtocol?.id || 'default'"
         :is-ashish="isAshish"
         :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :habits="visibleHabits"
+        :user-id="effectiveUserId"
         @close="isProtocolSettingsOpen = false"
         @save-settings="handleSaveProtocolSettings"
+        @update-habits="handleUpdateProtocolHabits"
         @switch-protocol="handleQuickSwitchProtocol"
+        @create-protocol="handleActivateCustomProtocol"
+        @clone-protocol="handleCloneProtocol"
+        @delete-protocol="handleDeleteProtocol"
+        @import-protocol="handleImportProtocol"
         @open-wizard="isProtocolWizardOpen = true"
         @toast="msg => showToast(msg)"
       />

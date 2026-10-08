@@ -20,12 +20,22 @@ import {
   Coffee,
   Bed,
   Users,
+  Zap,
+  Book,
+  Shield,
+  Flame,
+  Target,
+  Compass,
+  Crown,
 } from 'lucide-vue-next';
+import { useCategoryTaxonomy } from '@/Composables/useCategoryTaxonomy';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   habit: { type: Object, default: null }, // null for add, object for edit
   defaultSlot: { type: String, default: 'morning' },
+  activeProtocolId: { type: String, default: 'default' },
+  userId: { type: String, default: 'guest' },
 });
 
 const emit = defineEmits(['close', 'save', 'delete']);
@@ -65,14 +75,31 @@ const habitPresets = [
   { name: 'Movement Break Every 45 Minutes', slot: 'anytime', cat: 'fitness', pts: 1, timed: false, hint: 'Stand up, decompress spine, drink water' },
 ];
 
-const categoryOptions = [
-  { id: 'fitness', label: 'Fitness & Mobility', icon: Dumbbell, color: 'cat-fitness' },
-  { id: 'nutrition', label: 'Nutrition & Hydration', icon: Apple, color: 'cat-nutrition' },
-  { id: 'work', label: 'Deep Work & Code', icon: Briefcase, color: 'cat-work' },
-  { id: 'family', label: 'Family & Connection', icon: Users, color: 'cat-family' },
-  { id: 'rest', label: 'Rest & Recovery', icon: Bed, color: 'cat-rest' },
-  { id: 'ops', label: 'Protocols & Ops', icon: Activity, color: 'cat-ops' },
-];
+const {
+  categories: dynamicTaxonomyCategories,
+  reloadCategories: reloadTaxonomyCategories,
+} = useCategoryTaxonomy(
+  () => props.activeProtocolId || 'default',
+  () => props.userId || 'guest'
+);
+
+const ICON_MAP = {
+  Dumbbell, Apple, Briefcase, Heart, Bed, Activity,
+  Zap, Sun, Moon, Book, Shield, Flame, Sparkles,
+  Compass, Crown, Target, Coffee, Users
+};
+const resolveCategoryIconComponent = (iconName) => ICON_MAP[iconName] || Activity;
+
+const categoryOptions = computed(() => {
+  return dynamicTaxonomyCategories.value.map(c => ({
+    id: c.id,
+    label: c.label,
+    icon: resolveCategoryIconComponent(c.icon),
+    color: `cat-${c.id}`,
+    accentColor: c.accentColor || '#3b82f6',
+    defaultPoints: c.defaultPoints || 1
+  }));
+});
 
 const pointPresets = [1, 2, 3, 5];
 
@@ -165,6 +192,9 @@ const toggleCustomDay = (dayId) => {
 // Reset or Populate form on open/change
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
+    if (typeof reloadTaxonomyCategories === 'function') {
+      reloadTaxonomyCategories();
+    }
     validationError.value = '';
     if (props.habit) {
       // Edit mode
@@ -484,9 +514,11 @@ const handleDelete = () => {
                 type="button"
                 class="category-option-btn"
                 :class="{ 'category-option-btn--active': category === cat.id }"
-                @click="category = cat.id"
+                :style="category === cat.id ? { borderColor: cat.accentColor, boxShadow: '0 0 12px ' + cat.accentColor + '33' } : {}"
+                @click="category = cat.id; if (!props.habit) points = cat.defaultPoints"
+                :id="`habit-form-cat-${cat.id}`"
               >
-                <component :is="cat.icon" class="icon-xs" />
+                <component :is="cat.icon" class="icon-xs" :style="{ color: category === cat.id ? cat.accentColor : undefined }" />
                 <span>{{ cat.label }}</span>
               </button>
             </div>

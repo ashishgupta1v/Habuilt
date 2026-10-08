@@ -1,7 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://eefrpxxcztapatyqokpv.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if ((!supabaseUrl || !supabaseAnonKey) && existsSync(resolve(process.cwd(), '.env'))) {
+  const envContent = readFileSync(resolve(process.cwd(), '.env'), 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const [k, ...v] = trimmed.split('=');
+    const key = k?.trim();
+    const val = v.join('=').trim().replace(/^["']|["']$/g, '');
+    if (key === 'VITE_SUPABASE_URL' && !supabaseUrl) supabaseUrl = val;
+    if (key === 'VITE_SUPABASE_ANON_KEY' && !supabaseAnonKey) supabaseAnonKey = val;
+  }
+}
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in environment or .env');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

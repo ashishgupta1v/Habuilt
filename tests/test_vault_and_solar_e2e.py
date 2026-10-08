@@ -25,6 +25,7 @@ def test_vault_and_solar():
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_{ashish_user["id"]}', 'true');
             localStorage.removeItem('habuilt_vault_configured');
         """)
 

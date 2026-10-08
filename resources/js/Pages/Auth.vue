@@ -282,22 +282,17 @@ const handleGoogle = async () => {
   }
 };
 
-const handleGuest = () => {
-  const user = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+const handleGuest = (preferredArchetype = 'archetype-founder') => {
+  const user = {
+    id: 'guest',
+    email: 'guest@habuilt.com',
+    user_metadata: { full_name: 'Habuilt Champion', preferred_archetype: preferredArchetype },
+  };
   localStorage.setItem('habuilt_guest_mode', 'true');
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
-  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
-  emit('guest-login', user);
-};
-
-const handleTrackPreview = (track) => {
-  const user = track === 'jyoti'
-    ? { id: 'jyoti', email: 'goyaljyoti007@gmail.com', user_metadata: { full_name: 'Jyoti Goyal' } }
-    : track === 'ashish'
-    ? { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } }
-    : { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-  localStorage.setItem('habuilt_guest_mode', 'true');
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  if (preferredArchetype) {
+    localStorage.setItem('habuilt_active_protocol_id_guest', preferredArchetype);
+  }
   window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
   emit('guest-login', user);
 };
@@ -517,29 +512,16 @@ const handleTrackPreview = (track) => {
             <span class="lp__mobile-brand-name">Habuilt</span>
           </div>
 
-          <!-- Quick Track Direct Launch CTAs -->
+          <!-- Instant Guest Experience Launch CTA -->
           <div class="lp__track-picker">
-            <button class="lp__hero-guest-btn" type="button" @click="handleTrackPreview('ashish')" style="margin-bottom: 8px;">
+            <button class="lp__hero-guest-btn" type="button" @click="handleGuest('archetype-founder')" style="margin-bottom: 14px;">
               <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(14, 107, 103, 0.25); color: #2dd4bf;">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
                   <Zap class="lp__guest-bolt" />
                 </div>
                 <div class="lp__guest-text">
-                  <span class="lp__guest-head">⚡ Ashish Track (Health &amp; Focus)</span>
-                  <span class="lp__guest-sub">Full MOVERS, Isabgol, Yoga, Deep Work &amp; 3L Water</span>
-                </div>
-              </div>
-              <ChevronRight class="lp__guest-arrow" />
-            </button>
-
-            <button class="lp__hero-guest-btn" type="button" @click="handleTrackPreview('jyoti')" style="margin-bottom: 16px; border-color: rgba(142, 59, 95, 0.4);">
-              <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(142, 59, 95, 0.25); color: #f472b6;">
-                  <Sparkles class="lp__guest-bolt" />
-                </div>
-                <div class="lp__guest-text">
-                  <span class="lp__guest-head">🌸 Jyoti Track (Nursing &amp; Career)</span>
-                  <span class="lp__guest-sub">B12, D3 + DHA, IBP Planning, Tummy Time &amp; Sleep</span>
+                  <span class="lp__guest-head">🚀 Instant Guest Workspace</span>
+                  <span class="lp__guest-sub">Try the full executive habit protocol offline with zero setup</span>
                 </div>
               </div>
               <ChevronRight class="lp__guest-arrow" />

@@ -3,10 +3,13 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { supabase } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
+import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
-const authLoading = ref(true);
+const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
+const isGuestPreCheck = typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
+const authLoading = ref(!cachedUserJson && !isGuestPreCheck);
 
 // PWA Install prompt
 const deferredPrompt = ref(null);
@@ -72,7 +75,6 @@ const nextMonth = computed(() => {
 
 const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
 
-const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
 let initialUser = null;
 try { initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null; } catch { initialUser = null; }
 if (!initialUser && isGuestActive.value) {
@@ -80,36 +82,109 @@ if (!initialUser && isGuestActive.value) {
 }
 const activeUser = ref(initialUser);
 
-const isUserJyoti = computed(() => {
-  const email = (activeUser.value?.email || '').toLowerCase().trim();
-  const uid = (activeUser.value?.id || '').toLowerCase().trim();
-  return email === 'goyaljyoti007@gmail.com' || uid === 'jyoti' || email.includes('jyoti');
-});
-
-const isUserAshish = computed(() => {
-  if (isUserJyoti.value) return false;
-  const email = (activeUser.value?.email || '').toLowerCase().trim();
-  const uid = (activeUser.value?.id || '').toLowerCase().trim();
-  return email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
+const userDisplayName = computed(() => {
+  return activeUser.value?.user_metadata?.full_name ||
+    activeUser.value?.user_metadata?.name ||
+    (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'Warrior');
 });
 
 const userInitial = computed(() => {
-  const name = activeUser.value?.user_metadata?.full_name || activeUser.value?.user_metadata?.name;
-  if (name && name.trim()) {
-    return name.trim().charAt(0).toUpperCase();
-  }
-  if (activeUser.value?.email) {
-    return activeUser.value.email.charAt(0).toUpperCase();
-  }
-  return 'U';
+  return userDisplayName.value.trim().charAt(0).toUpperCase() || 'W';
 });
 
 const userTrackLabel = computed(() => {
-  if (isUserJyoti.value) return '🌸 Jyoti Track';
-  if (isUserAshish.value) return '⚡ Ashish Track';
-  const name = activeUser.value?.user_metadata?.full_name || (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'User');
-  return `✨ ${name}'s Workspace`;
+  return `✨ ${userDisplayName.value}'s Workspace`;
 });
+
+// ── First-Run Onboarding Flow Gate ────────────────────────────────
+const checkIsOnboardingComplete = (user) => {
+  if (!user) return true;
+  const uid = user.id || 'guest';
+  if (typeof window === 'undefined') return true;
+
+  if (localStorage.getItem(`habuilt_onboarding_completed_${uid}`) === 'true') {
+    return true;
+  }
+  if (user.user_metadata?.onboarding_completed === true) {
+    return true;
+  }
+  if (localStorage.getItem(`habuilt_active_protocol_id_${uid}`)) {
+    return true;
+  }
+  // Check if legacy master profile
+  const lowerUid = String(uid).toLowerCase();
+  const email = (user.email || '').toLowerCase();
+  if (lowerUid === 'ashish' || lowerUid === 'jyoti' || email === 'ashishgupta1v@gmail.com' || email === 'goyaljyoti007@gmail.com') {
+    return true;
+  }
+  return false;
+};
+
+const isOnboardingComplete = ref(checkIsOnboardingComplete(activeUser.value));
+
+const handleOnboardingComplete = async (payload) => {
+  const uid = activeUser.value?.id || 'guest';
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`habuilt_onboarding_completed_${uid}`, 'true');
+    localStorage.setItem(`habuilt_user_name_${uid}`, payload.displayName);
+    localStorage.setItem(`habuilt_active_protocol_id_${uid}`, payload.archetypeId);
+    if (payload.circadian) {
+      localStorage.setItem(`habuilt_circadian_${uid}`, JSON.stringify(payload.circadian));
+    }
+  }
+
+  if (activeUser.value) {
+    const updated = {
+      ...activeUser.value,
+      user_metadata: {
+        ...(activeUser.value.user_metadata || {}),
+        full_name: payload.displayName,
+        onboarding_completed: true,
+        preferred_archetype: payload.archetypeId,
+        focus_goal: payload.goal,
+      }
+    };
+    activeUser.value = updated;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('habuilt_cached_user', JSON.stringify(updated));
+    }
+  }
+
+  if (supabase && activeUser.value?.id && activeUser.value.id !== 'guest') {
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          full_name: payload.displayName,
+          onboarding_completed: true,
+          preferred_archetype: payload.archetypeId,
+          focus_goal: payload.goal
+        }
+      });
+      await supabase.from('user_settings').upsert({
+        user_id: activeUser.value.id,
+        enhanced_state: {
+          onboarding_completed: true,
+          focus_goal: payload.goal,
+          circadian: payload.circadian
+        },
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.debug('[Onboarding] Supabase sync fallback:', e);
+    }
+  }
+
+  isOnboardingComplete.value = true;
+};
+
+const handleOnboardingSkip = () => {
+  const uid = activeUser.value?.id || 'guest';
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`habuilt_onboarding_completed_${uid}`, 'true');
+  }
+  isOnboardingComplete.value = true;
+};
 
 const handleNavigateMonth = (target) => {
   if (typeof target === 'number') {
@@ -181,19 +256,11 @@ const enterGuestMode = (guestUser) => {
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
   isGuestActive.value = true;
   activeUser.value = user;
+  isOnboardingComplete.value = checkIsOnboardingComplete(user);
   pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
 };
 
-const switchUserTrack = (track) => {
-  const user = track === 'jyoti'
-    ? { id: 'jyoti', email: 'goyaljyoti007@gmail.com', user_metadata: { full_name: 'Jyoti Goyal' } }
-    : { id: 'ashish', email: 'ashishgupta1v@gmail.com', user_metadata: { full_name: 'Ashish Gupta' } };
-  localStorage.setItem('habuilt_guest_mode', 'true');
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
-  isGuestActive.value = true;
-  activeUser.value = user;
-  pushAppHistoryEntry();
-};
+
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
@@ -230,26 +297,37 @@ onMounted(async () => {
     await StatusBar.setBackgroundColor({ color: '#090D16' });
   } catch { /* non-native */ }
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user) {
-    activeUser.value = session.user;
-    localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
-    pushAppHistoryEntry();
-  } else if (isGuestActive.value) {
-    activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-    pushAppHistoryEntry();
-  } else if (!activeUser.value) {
-    activeUser.value = null;
+  try {
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: {} }), 2500));
+    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+    if (session?.user) {
+      activeUser.value = session.user;
+      isOnboardingComplete.value = checkIsOnboardingComplete(session.user);
+      localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
+      pushAppHistoryEntry();
+    } else if (isGuestActive.value) {
+      activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
+      pushAppHistoryEntry();
+    } else if (!activeUser.value) {
+      activeUser.value = null;
+    }
+  } catch (err) {
+    console.debug('[MainAuth] Session check fallback:', err);
+  } finally {
+    authLoading.value = false;
   }
-  authLoading.value = false;
 
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
       activeUser.value = session.user;
+      isOnboardingComplete.value = checkIsOnboardingComplete(session.user);
       localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
       pushAppHistoryEntry();
     } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
       activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
     } else {
       activeUser.value = null;
       localStorage.removeItem('habuilt_cached_user');
@@ -332,86 +410,98 @@ onUnmounted(() => {
   </div>
 
   <template v-else>
-    <div v-if="activeUser" class="app-root">
-      <main class="app-main-content">
-        <nav class="app-nav">
-          <div class="app-nav__container">
-            <div class="app-nav__left">
-              <HabuiltLogo size="md" :with-text="true" />
-              <!-- Guest mode indicator -->
-              <span v-if="isGuestActive" class="guest-mode-pill">
-                Guest Preview
-              </span>
-            </div>
+    <template v-if="activeUser">
+      <!-- First-Run Guided Onboarding Flow -->
+      <FirstRunOnboarding
+        v-if="!isOnboardingComplete"
+        :initial-name="userDisplayName"
+        :user-email="activeUser.email"
+        :user-id="activeUser.id"
+        @complete="handleOnboardingComplete"
+        @skip="handleOnboardingSkip"
+      />
 
-            <div class="app-nav__right">
-              <!-- PWA Install Button -->
-              <button
-                v-if="showInstallBtn"
-                @click="handleInstall"
-                class="btn btn--install"
-                :title="isIOS ? 'Install on iOS' : 'Install Habuilt App'"
-              >
-                <Download v-if="!isIOS" class="icon-sm" />
-                <Share2 v-else class="icon-sm" />
-                <span class="install-text">Install App</span>
-              </button>
-
-              <div
-                class="user-badge"
-                :title="isGuestActive ? 'Click to switch sample track' : activeUser.email"
-                @click="isGuestActive ? switchUserTrack(isUserJyoti ? 'ashish' : 'jyoti') : null"
-                :style="{ cursor: isGuestActive ? 'pointer' : 'default' }"
-              >
-                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : (isUserAshish ? 'user-avatar--ashish' : 'user-avatar--generic')">
-                  {{ userInitial }}
-                </div>
-                <span class="user-badge__text">{{ activeUser.email }}</span>
-                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : (isUserAshish ? 'user-track-pill--ashish' : 'user-track-pill--generic')">
-                  {{ userTrackLabel }} <span v-if="isGuestActive">⇄</span>
+      <!-- Main Habit Matrix & Workspace -->
+      <div v-else class="app-root">
+        <main class="app-main-content">
+          <nav class="app-nav">
+            <div class="app-nav__container">
+              <div class="app-nav__left">
+                <HabuiltLogo size="md" :with-text="true" />
+                <!-- Guest mode indicator -->
+                <span v-if="isGuestActive" class="guest-mode-pill">
+                  Guest Preview
                 </span>
               </div>
 
-              <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
-                <LogOut class="icon-sm" />
-                <span class="logout-text">{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
-              </button>
+              <div class="app-nav__right">
+                <!-- PWA Install Button -->
+                <button
+                  v-if="showInstallBtn"
+                  @click="handleInstall"
+                  class="btn btn--install"
+                  :title="isIOS ? 'Install on iOS' : 'Install Habuilt App'"
+                >
+                  <Download v-if="!isIOS" class="icon-sm" />
+                  <Share2 v-else class="icon-sm" />
+                  <span class="install-text">Install App</span>
+                </button>
+
+                <div
+                  class="user-badge"
+                  :title="isGuestActive ? 'Guest Mode Active — Data Saved Locally' : activeUser.email"
+                  :style="{ cursor: 'default' }"
+                >
+                  <div class="user-avatar user-avatar--generic">
+                    {{ userInitial }}
+                  </div>
+                  <span class="user-badge__text">{{ activeUser.email }}</span>
+                  <span class="user-track-pill user-track-pill--generic">
+                    {{ userTrackLabel }}
+                  </span>
+                </div>
+
+                <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
+                  <LogOut class="icon-sm" />
+                  <span class="logout-text">{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          <!-- iOS Install Instructions -->
+          <div v-if="showIOSInstructions" class="ios-install-banner">
+            <div class="ios-install-content">
+              <p class="ios-install-title">Install Habuilt on iOS</p>
+              <ol class="ios-install-steps">
+                <li>Tap the <strong>Share</strong> button <Share2 style="width:14px;height:14px;vertical-align:middle;" /> in Safari</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> to install</li>
+              </ol>
+              <button @click="showIOSInstructions = false" class="btn btn--ios-dismiss">Got it</button>
             </div>
           </div>
-        </nav>
 
-        <!-- iOS Install Instructions -->
-        <div v-if="showIOSInstructions" class="ios-install-banner">
-          <div class="ios-install-content">
-            <p class="ios-install-title">Install Habuilt on iOS</p>
-            <ol class="ios-install-steps">
-              <li>Tap the <strong>Share</strong> button <Share2 style="width:14px;height:14px;vertical-align:middle;" /> in Safari</li>
-              <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-              <li>Tap <strong>"Add"</strong> to install</li>
-            </ol>
-            <button @click="showIOSInstructions = false" class="btn btn--ios-dismiss">Got it</button>
-          </div>
-        </div>
-
-        <Dashboard
-          :userId="activeUser.id"
-          :userEmail="activeUser.email"
-          :month="month"
-          :year="year"
-          :monthDays="monthDays"
-          :today="todayDate.toISOString().slice(0, 10)"
-          :currentDay="currentDay"
-          :isCurrentMonth="isCurrentMonth"
-          :isFutureMonth="isFutureMonth"
-          :canNavigatePrevMonth="true"
-          :canNavigateNextMonth="true"
-          :previousMonth="previousMonth"
-          :nextMonth="nextMonth"
-          @navigate-month="handleNavigateMonth"
-          @sign-out="handleSignOut"
-        />
-      </main>
-    </div>
+          <Dashboard
+            :userId="activeUser.id"
+            :userEmail="activeUser.email"
+            :month="month"
+            :year="year"
+            :monthDays="monthDays"
+            :today="todayDate.toISOString().slice(0, 10)"
+            :currentDay="currentDay"
+            :isCurrentMonth="isCurrentMonth"
+            :isFutureMonth="isFutureMonth"
+            :canNavigatePrevMonth="true"
+            :canNavigateNextMonth="true"
+            :previousMonth="previousMonth"
+            :nextMonth="nextMonth"
+            @navigate-month="handleNavigateMonth"
+            @sign-out="handleSignOut"
+          />
+        </main>
+      </div>
+    </template>
 
     <Auth v-else @guest-login="enterGuestMode" />
   </template>

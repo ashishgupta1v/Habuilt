@@ -50,14 +50,15 @@ const pairUrl = computed(() => {
 });
 
 const isPaired = computed(() => {
-  if (props.isAshish || props.isJyoti) return true;
-  return activeConnection.value && activeConnection.value.status === 'connected';
+  return (activeConnection.value && activeConnection.value.status === 'connected') ||
+    ((props.isAshish || props.isJyoti) && activeConnection.value?.status !== 'disconnected');
 });
 
 const partnerName = computed(() => {
+  if (activeConnection.value?.alias) return activeConnection.value.alias;
   if (props.isAshish) return 'Jyoti';
   if (props.isJyoti) return 'Ashish';
-  return activeConnection.value?.alias || 'Partner';
+  return 'Partner';
 });
 
 const loadState = async () => {
@@ -129,10 +130,6 @@ const handleConnect = async () => {
 };
 
 const handleDisconnect = async () => {
-  if (props.isAshish || props.isJyoti) {
-    emit('toast', 'Flagship couple accounts are permanently linked.');
-    return;
-  }
   if (!confirm('Are you sure you want to disconnect from your partner?')) return;
 
   try {
@@ -152,7 +149,7 @@ const handleDisconnect = async () => {
 
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fadeIn">
-    <div class="relative w-full max-w-xl flex flex-col bg-[#14151b] border border-gold/30 rounded-2xl shadow-2xl overflow-hidden text-gray-100">
+    <div class="relative w-full max-w-xl flex flex-col bg-[#14151b] border border-gold/30 rounded-2xl shadow-2xl overflow-hidden text-gray-100 modal-card--partner-pair">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#191b22]">
@@ -175,20 +172,20 @@ const handleDisconnect = async () => {
         </div>
         <button
           @click="emit('close')"
-          class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+          class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors modal-head-close-btn"
+          aria-label="Close modal"
         >
           <X class="w-5 h-5" />
         </button>
       </div>
 
       <!-- Active Connection Status Banner (if connected) -->
-      <div v-if="isPaired" class="px-6 py-3 bg-gradient-to-r from-rose-500/10 via-pink-500/5 to-transparent border-b border-rose-500/20 flex items-center justify-between">
+      <div v-if="isPaired" class="partner-connected-pill px-6 py-3 bg-gradient-to-r from-rose-500/10 via-pink-500/5 to-transparent border-b border-rose-500/20 flex items-center justify-between">
         <div class="flex items-center gap-2 text-xs text-rose-300">
           <Sparkles class="w-4 h-4 text-rose-400" />
           <span>Active Partner Link: <strong class="text-white">{{ partnerName }}</strong></span>
         </div>
         <button
-          v-if="!isAshish && !isJyoti"
           @click="handleDisconnect"
           class="text-[11px] text-gray-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
           title="Disconnect Partner"
@@ -201,14 +198,14 @@ const handleDisconnect = async () => {
       <div class="flex border-b border-white/10 bg-black/20 px-6 pt-2">
         <button
           @click="activeTab = 'invite'"
-          class="px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5"
+          class="partner-pair-tab px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5"
           :class="activeTab === 'invite' ? 'border-gold text-gold' : 'border-transparent text-gray-400 hover:text-gray-200'"
         >
           <Link2 class="w-3.5 h-3.5" /> Your Invite Code & Link
         </button>
         <button
           @click="activeTab = 'join'"
-          class="px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5"
+          class="partner-pair-tab px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5"
           :class="activeTab === 'join' ? 'border-gold text-gold' : 'border-transparent text-gray-400 hover:text-gray-200'"
         >
           <Users class="w-3.5 h-3.5" /> Enter Partner's Code
@@ -223,7 +220,7 @@ const handleDisconnect = async () => {
           <div class="text-center">
             <div class="text-xs uppercase tracking-wider text-gray-400 font-medium mb-1">Your 6-Character Pair Code</div>
             <div class="inline-flex items-center gap-3 px-5 py-2.5 rounded-xl bg-white/[0.04] border border-gold/40 shadow-inner">
-              <span class="text-2xl sm:text-3xl font-mono font-black tracking-widest text-gold">{{ inviteCode }}</span>
+              <span class="partner-code-value text-2xl sm:text-3xl font-mono font-black tracking-widest text-gold">{{ inviteCode }}</span>
               <button
                 @click="handleCopyCode"
                 class="p-2 rounded-lg bg-gold/10 hover:bg-gold/20 text-gold transition-colors"

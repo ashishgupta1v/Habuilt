@@ -67,6 +67,8 @@ const clinicalHistory = computed(() => {
       mobilityDone: isMobilityDone,
       hydrationAdequate: true,
       category: stiffness > 45 ? 'severe' : stiffness > 30 ? 'moderate' : stiffness > 15 ? 'mild' : 'minimal',
+      isFlare: stiffness > 30,
+      isMinimal: stiffness <= 15,
     });
   }
 

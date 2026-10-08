@@ -179,9 +179,9 @@ export function useBiometricVault() {
    */
   const registerBiometricDevice = async ({
     deviceName = 'Primary Biometric Device',
-    userHandle = 'ashish',
-    userName = 'Ashish Gupta',
-    userEmail = 'ashishgupta1v@gmail.com',
+    userHandle = 'user',
+    userName = 'Habuilt Warrior',
+    userEmail = 'user@habuilt.com',
   } = {}) => {
     authError.value = '';
     isAuthenticating.value = true;
