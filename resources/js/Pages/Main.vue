@@ -73,10 +73,15 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
-const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+const isGuestActive = ref(typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
 
 let initialUser = null;
-try { initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null; } catch { initialUser = null; }
+try {
+  const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
+  initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null;
+} catch {
+  initialUser = null;
+}
 if (!initialUser && isGuestActive.value) {
   initialUser = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
 }
@@ -249,18 +254,28 @@ const handleKeydown = (e) => {
   }
 };
 
-// ── Auth helpers ──────────────────────────────────────────────────
-const enterGuestMode = (guestUser) => {
-  const user = guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-  localStorage.setItem('habuilt_guest_mode', 'true');
+const enterUserSession = (user) => {
+  if (!user) return;
+  const isGuest = user.id === 'guest';
+  if (isGuest) {
+    isGuestActive.value = true;
+    localStorage.setItem('habuilt_guest_mode', 'true');
+  }
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
-  isGuestActive.value = true;
   activeUser.value = user;
   isOnboardingComplete.value = checkIsOnboardingComplete(user);
   pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
 };
 
+const enterGuestMode = (guestUser) => {
+  isGuestActive.value = true;
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } });
+};
 
+const handleLoginSuccess = (user) => {
+  enterUserSession(user);
+};
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
@@ -273,7 +288,7 @@ const handleSignOut = async () => {
   } catch {}
   // Reset history state to clean landing page
   try {
-    window.history.replaceState({ [APP_HISTORY_KEY]: false }, '', window.location.pathname);
+    window.history.replaceState({ [APP_HISTORY_KEY]: false }, '', '/');
   } catch {}
 };
 
@@ -297,20 +312,96 @@ onMounted(async () => {
     await StatusBar.setBackgroundColor({ color: '#090D16' });
   } catch { /* non-native */ }
 
+  // ── URL OAuth & Deep Link Handlers ──
+  const processUrlAuthTokens = async () => {
+    if (typeof window === 'undefined') return false;
+
+    // 1. Process URL Hash (#access_token=...&refresh_token=... or #error=...)
+    const rawHash = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
+    if (rawHash) {
+      const hashParams = new URLSearchParams(rawHash);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const errorDesc = hashParams.get('error_description') || hashParams.get('error');
+
+      if (accessToken && refreshToken) {
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+            window.history.replaceState({}, document.title, '/');
+            return true;
+          }
+        } catch (err) {
+          console.warn('[MainAuth] Error setting session from hash:', err);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainAuth] OAuth error in hash:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+        window.history.replaceState({}, document.title, '/');
+      }
+    }
+
+    // 2. Process URL Query (?code=... or ?error=...)
+    const rawSearch = window.location.search;
+    if (rawSearch) {
+      const searchParams = new URLSearchParams(rawSearch);
+      const code = searchParams.get('code');
+      const errorDesc = searchParams.get('error_description') || searchParams.get('error');
+
+      if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+            window.history.replaceState({}, document.title, '/');
+            return true;
+          }
+        } catch (err) {
+          console.warn('[MainAuth] Error exchanging code for session:', err);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainAuth] OAuth error in query:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+        window.history.replaceState({}, document.title, '/');
+      }
+    }
+
+    return false;
+  };
+
+  // 1. Check if returning with OAuth tokens or code in URL
+  const hasAuthParams = typeof window !== 'undefined' && (
+    (window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('error='))) ||
+    (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('error=')))
+  );
+
+  if (hasAuthParams) {
+    authLoading.value = true;
+    const handled = await processUrlAuthTokens();
+    if (handled) {
+      authLoading.value = false;
+      return;
+    }
+  }
+
+  // 2. Session check from Supabase or cached user
   try {
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: {} }), 2500));
     const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
     if (session?.user) {
-      activeUser.value = session.user;
-      isOnboardingComplete.value = checkIsOnboardingComplete(session.user);
-      localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
-      pushAppHistoryEntry();
+      enterUserSession(session.user);
+    } else if (activeUser.value) {
+      enterUserSession(activeUser.value);
     } else if (isGuestActive.value) {
-      activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
-      pushAppHistoryEntry();
-    } else if (!activeUser.value) {
+      enterGuestMode();
+    } else {
       activeUser.value = null;
     }
   } catch (err) {
@@ -319,18 +410,19 @@ onMounted(async () => {
     authLoading.value = false;
   }
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
-      activeUser.value = session.user;
-      isOnboardingComplete.value = checkIsOnboardingComplete(session.user);
-      localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
-      pushAppHistoryEntry();
-    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
-      activeUser.value = activeUser.value || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
-    } else {
+      enterUserSession(session.user);
+    } else if (event === 'SIGNED_OUT') {
       activeUser.value = null;
+      isGuestActive.value = false;
       localStorage.removeItem('habuilt_cached_user');
+      localStorage.removeItem('habuilt_guest_mode');
+    } else if (activeUser.value) {
+      // Retain active cached user (offline or fast resume)
+      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
+    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
+      enterGuestMode();
     }
   });
 
@@ -339,58 +431,46 @@ onMounted(async () => {
     const { App } = await import('@capacitor/app');
     const { Browser } = await import('@capacitor/browser');
 
-    App.addListener('appUrlOpen', async (event) => {
+    const handleDeepLinkUrl = async (url) => {
+      if (!url) return;
       try { await Browser.close(); } catch { /* ignore */ }
-      if (event.url) {
-        const rawUrl = event.url
-          .replace('habuilt://', 'https://habuilt.com/')
-          .replace('com.habuilt.app://', 'https://habuilt.com/');
-        try {
-          const parsed = new URL(rawUrl);
-          const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-          const accessToken  = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          const code = parsed.searchParams.get('code') || hashParams.get('code');
+      const rawUrl = url
+        .replace('habuilt://', 'https://www.habuilt.com/')
+        .replace('com.habuilt.app://', 'https://www.habuilt.com/');
+      try {
+        const parsed = new URL(rawUrl);
+        const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+        const accessToken  = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const code = parsed.searchParams.get('code') || hashParams.get('code');
 
-          if (accessToken && refreshToken) {
-            const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              pushAppHistoryEntry();
-            }
-          } else if (code) {
-            const { data } = await supabase.auth.exchangeCodeForSession(code);
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              pushAppHistoryEntry();
-            }
+        if (accessToken && refreshToken) {
+          const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (data?.user) {
+            enterUserSession(data.user);
           }
-        } catch (e) { console.warn('Error parsing deep link auth:', e); }
-      }
-    });
-  } catch { /* non-native */ }
-
-  // ── Web OAuth Code Exchange ──
-  if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
-    const search = window.location.search;
-    if (search && search.includes('code=')) {
-      const params = new URLSearchParams(search);
-      const code = params.get('code');
-      if (code) {
-        try {
+        } else if (code) {
           const { data } = await supabase.auth.exchangeCodeForSession(code);
           if (data?.user) {
-            activeUser.value = data.user;
-            localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-            window.history.replaceState({}, document.title, window.location.pathname);
-            pushAppHistoryEntry();
+            enterUserSession(data.user);
           }
-        } catch (e) { console.warn('Error exchanging web OAuth code:', e); }
+        }
+      } catch (e) {
+        console.warn('Error parsing deep link auth:', e);
       }
+    };
+
+    // Cold-start deep link (when app is launched by OS via intent)
+    const launchUrl = await App.getLaunchUrl();
+    if (launchUrl?.url) {
+      await handleDeepLinkUrl(launchUrl.url);
     }
-  }
+
+    // Warm deep link listener
+    App.addListener('appUrlOpen', async (event) => {
+      await handleDeepLinkUrl(event?.url);
+    });
+  } catch { /* non-native */ }
 
   checkIOS();
 });
@@ -503,7 +583,7 @@ onUnmounted(() => {
       </div>
     </template>
 
-    <Auth v-else @guest-login="enterGuestMode" />
+    <Auth v-else @guest-login="enterGuestMode" @login-success="handleLoginSuccess" />
   </template>
 
   <!-- ── Exit / Sign-out Confirmation Dialog ─────────────────────── -->

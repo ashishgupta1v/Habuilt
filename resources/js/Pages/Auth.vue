@@ -7,13 +7,13 @@ import {
   Mail, Lock, ArrowRight, ShieldCheck, Zap, KeyRound, ArrowLeft,
   Smartphone, Download, CheckCircle2, Sparkles, Timer, Award,
   Clock, Check, ChevronRight, Play, Star, Flame, Shield,
-  Layers, Compass, BarChart3
+  Layers, Compass, BarChart3, Crown
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 import { APK_DOWNLOAD_URL } from '@/config/appConfig';
 
-const emit = defineEmits(['guest-login']);
+const emit = defineEmits(['guest-login', 'login-success']);
 
 const email    = ref('');
 const password = ref('');
@@ -204,6 +204,14 @@ onMounted(() => {
 
     const h = window.location.hash;
     if (h.includes('type=recovery')) mode.value = 'reset';
+
+    // Check for incoming auth error from redirect
+    const lastErr = localStorage.getItem('habuilt_auth_last_error');
+    if (lastErr) {
+      error.value = lastErr;
+      localStorage.removeItem('habuilt_auth_last_error');
+    }
+
     if (Capacitor.isNativePlatform()) {
       try {
         App.addListener('backButton', () => {
@@ -232,30 +240,62 @@ const handleAuth = async () => {
   loading.value = true;
   error.value = '';
   successMessage.value = '';
+  const cleanEmail = (email.value || '').trim();
+  const cleanPassword = password.value;
   try {
     if (mode.value === 'signup') {
-      const { error: e } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      const { data, error: e } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: cleanPassword
+      });
       if (e) throw e;
-      successMessage.value = 'Account created — check your email or sign in.';
-      mode.value = 'login';
+      if (data?.session?.user) {
+        emit('login-success', data.session.user);
+      } else {
+        successMessage.value = 'Account created! Please check your email to confirm, then sign in.';
+        mode.value = 'login';
+      }
     } else if (mode.value === 'forgot') {
       const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
-      const { error: e } = await supabase.auth.resetPasswordForEmail(email.value, {
+      const { error: e } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
       });
       if (e) throw e;
-      successMessage.value = `Reset link sent to ${email.value}`;
-    } else if (mode.value === 'reset') {
-      const { error: e } = await supabase.auth.updateUser({ password: newPassword.value });
+      successMessage.value = `Password reset link sent to ${cleanEmail}. Check your inbox.`;
+    } else if (mode.value === 'otp') {
+      const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+      const { error: e } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
+        }
+      });
       if (e) throw e;
-      successMessage.value = 'Password updated successfully.';
+      successMessage.value = `Instant sign-in link sent to ${cleanEmail}. Check your inbox!`;
+    } else if (mode.value === 'reset') {
+      const { data, error: e } = await supabase.auth.updateUser({ password: newPassword.value });
+      if (e) throw e;
+      successMessage.value = 'Password updated successfully. You can now sign in.';
       mode.value = 'login';
     } else {
-      const { error: e } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+      const { data, error: e } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPassword
+      });
       if (e) throw e;
+      if (data?.user) {
+        emit('login-success', data.user);
+      }
     }
   } catch (e) {
-    error.value = e.message || 'Authentication error.';
+    const msg = e?.message || 'Authentication error.';
+    if (msg.toLowerCase().includes('invalid login credentials')) {
+      error.value = 'Invalid email or password. If you originally signed up with Google, tap "Continue with Google" above or click "Forgot?" to set a password.';
+    } else if (msg.toLowerCase().includes('email not confirmed')) {
+      error.value = 'Your email address is not confirmed yet. Check your inbox to confirm, or continue with Google / Guest mode.';
+    } else {
+      error.value = msg;
+    }
   } finally {
     loading.value = false;
   }
@@ -266,9 +306,13 @@ const handleGoogle = async () => {
   loading.value = true;
   try {
     const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+    const redirectUrl = isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`;
     const { data, error: e } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`, skipBrowserRedirect: isNative },
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: isNative
+      },
     });
     if (e) throw e;
     if (isNative && data?.url) {
@@ -276,10 +320,27 @@ const handleGoogle = async () => {
       await Browser.open({ url: data.url, windowName: '_self' });
     }
   } catch (e) {
-    error.value = e.message;
+    error.value = e?.message || 'Google authentication error.';
   } finally {
     loading.value = false;
   }
+};
+
+const handleQuickLaunchAshish = () => {
+  const ashishUser = {
+    id: 'ashish',
+    email: 'ashishgupta1v@gmail.com',
+    user_metadata: {
+      full_name: 'Ashish Gupta',
+      preferred_archetype: 'archetype-ashish',
+      onboarding_completed: true,
+    },
+  };
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(ashishUser));
+  localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+  localStorage.removeItem('habuilt_guest_mode');
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: ashishUser }));
+  emit('login-success', ashishUser);
 };
 
 const handleGuest = (preferredArchetype = 'archetype-founder') => {
@@ -512,9 +573,22 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
             <span class="lp__mobile-brand-name">Habuilt</span>
           </div>
 
-          <!-- Instant Guest Experience Launch CTA -->
-          <div class="lp__track-picker">
-            <button class="lp__hero-guest-btn" type="button" @click="handleGuest('archetype-founder')" style="margin-bottom: 14px;">
+          <!-- Instant Workspace Launch CTAs -->
+          <div class="lp__track-picker" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+            <button class="lp__hero-guest-btn" type="button" @click="handleQuickLaunchAshish" style="background: rgba(212, 160, 62, 0.08); border-color: rgba(212, 160, 62, 0.35);">
+              <div class="lp__guest-main">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(212, 160, 62, 0.2); color: #D4A03E;">
+                  <Crown class="lp__guest-bolt" />
+                </div>
+                <div class="lp__guest-text">
+                  <span class="lp__guest-head" style="color: #F3E8C9;">👑 Ashish Master Workspace</span>
+                  <span class="lp__guest-sub">Dual-Track Blueprint, ZoetiCoach & Digital Builders</span>
+                </div>
+              </div>
+              <ChevronRight class="lp__guest-arrow" />
+            </button>
+
+            <button class="lp__hero-guest-btn" type="button" @click="handleGuest('archetype-founder')">
               <div class="lp__guest-main">
                 <div class="lp__guest-bolt-wrap" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
                   <Zap class="lp__guest-bolt" />
@@ -598,6 +672,15 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
                   v-if="mode === 'login'"
                   type="button"
                   class="lp__forgot-link"
+                  @click="mode = 'otp'; error = ''; successMessage = ''"
+                  style="margin-right: 8px;"
+                >
+                  Magic Link?
+                </button>
+                <button
+                  v-if="mode === 'login'"
+                  type="button"
+                  class="lp__forgot-link"
                   @click="mode = 'forgot'; error = ''; successMessage = ''"
                 >
                   Forgot?
@@ -654,7 +737,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
 
           <!-- Toggle Mode Switcher -->
           <div class="lp__auth-toggle">
-            <template v-if="mode === 'forgot' || mode === 'reset'">
+            <template v-if="mode === 'forgot' || mode === 'reset' || mode === 'otp'">
               <button type="button" class="lp__back-btn" @click="mode = 'login'; error = ''; successMessage = ''">
                 <ArrowLeft class="lp__back-icon" />
                 <span>Back to sign in</span>
