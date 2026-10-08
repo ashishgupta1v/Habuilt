@@ -1,56 +1,22 @@
 /**
  * ══════════════════════════════════════════════════════════════════════
- * useOfficeCalendar.js — Ashish's 4-Month Office Block Calendar Engine
+ * useOfficeCalendar.js — Universal Circadian Day-Type Engine
  * ══════════════════════════════════════════════════════════════════════
  *
- * Determines the "day type" for any given date based on the Sep–Dec 2026
- * office routine plan:
- *
- *   home       — Default WFH in Ludhiana (full routine)
- *   office-mon — Office block Monday (Ludhiana → CHD, ~2.75h drive, stay at Panchkula flat)
- *   office-mid — Office block Tue–Thu (Panchkula flat → office, 30min, back to flat)
- *   office-fri — Office block Friday (flat → office, 30min, then return to Ludhiana ~2.75h)
- *   half-day   — Half day WFH in Ludhiana (lighter work blocks)
- *   holiday    — Holiday (no office, relaxed routine)
+ * Provides 4 universal routine schedule modes:
+ *   home       — Standard Focus / Home Base (deep work + home cadence)
+ *   office     — Office / Work Block (commute / on-site team collaboration)
+ *                [Variants: office-mon, office-mid, office-fri]
+ *   half-day   — Half-Day Sprint (compressed morning sprint + rest/errands)
+ *   holiday    — Rest, Recovery & Rejuvenation (relaxed baseline)
  */
 
-// ── Office Block Weeks (Mon–Fri, 5 consecutive attendance days) ──
-const officeBlockWeeks = [
-  { start: '2026-09-07', end: '2026-09-11', label: 'September Office Block' },
-  { start: '2026-10-05', end: '2026-10-09', label: 'October Office Block' },
-  { start: '2026-11-16', end: '2026-11-20', label: 'November Office Block' },
-  { start: '2026-12-07', end: '2026-12-11', label: 'December Office Block' },
-];
-
-// ── Holidays (full day off) ──
-const holidays = {
-  '2026-09-04': 'Janmashtami',
-  '2026-09-14': 'Ganesh Chaturthi',
-  '2026-10-02': 'Gandhi Jayanti',
-  '2026-10-20': 'Vijaya Dashami',
-  '2026-11-24': 'Guru Nanak Jayanti',
-};
-
-// ── Half Days (lighter WFH schedule) ──
-const halfDays = {
-  '2026-09-15': 'Festival / Family',
-  '2026-09-24': 'Bank & Documentation',
-  '2026-09-30': 'Month-End Personal',
-  '2026-10-19': 'Festival Prep',
-  '2026-10-22': 'Family / Medical Appointment',
-  '2026-10-28': 'Diwali Prep',
-  '2026-11-09': 'Post-Diwali Family Visits',
-  '2026-11-12': 'Family',
-  '2026-11-23': 'Bridge to Holiday',
-  '2026-11-27': 'Vehicle Servicing / Home Maintenance',
-  '2026-12-03': 'Personal',
-  '2026-12-15': 'Personal',
-  '2026-12-17': 'Personal',
-  '2026-12-22': 'Personal',
-  '2026-12-24': 'Christmas Eve',
-};
-
 const LOCAL_CUSTOM_CALENDAR_KEY = 'habuilt_custom_calendar_schedule';
+
+// Dynamic / configurable holiday and block stores with backward-compatible defaults
+const officeBlockWeeks = [];
+const holidays = {};
+const halfDays = {};
 
 export function getCustomCalendarSchedule() {
   if (typeof localStorage !== 'undefined') {
@@ -86,8 +52,7 @@ function toDateKey(date) {
 }
 
 /**
- * Check if a date falls within any office block week.
- * Returns the block info or null.
+ * Check if a date falls within any custom office block week.
  */
 function getOfficeBlock(date) {
   const key = toDateKey(date);
@@ -102,13 +67,13 @@ function getOfficeBlock(date) {
 }
 
 /**
- * Determine the day type for a given date.
+ * Determine the day type for a given date dynamically.
  *
  * Priority order:
- *   1. Holiday (always wins)
- *   2. Half day
- *   3. Office block day (Mon/Tue–Thu/Fri variants)
- *   4. Default home
+ *   1. Custom holiday override
+ *   2. Custom half-day override
+ *   3. Custom block week or default weekday pattern
+ *   4. Standard home base
  *
  * @param {Date|string} date
  * @returns {'home'|'office-mon'|'office-mid'|'office-fri'|'half-day'|'holiday'}
@@ -118,23 +83,27 @@ export function getDayType(date) {
   const key = toDateKey(d);
   const dow = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
-  // 1. Check holidays first
-  if (holidays[key]) return 'holiday';
+  // Check custom schedule overrides
+  const custom = getCustomCalendarSchedule();
+  if (custom?.holidays && custom.holidays[key]) return 'holiday';
+  if (custom?.halfDays && custom.halfDays[key]) return 'half-day';
 
-  // 2. Check half days
-  if (halfDays[key]) return 'half-day';
-
-  // 3. Check office block weeks
+  // Check configured office block
   const block = getOfficeBlock(d);
   if (block) {
-    if (dow === 1) return 'office-mon';   // Monday
-    if (dow === 5) return 'office-fri';   // Friday
-    if (dow >= 2 && dow <= 4) return 'office-mid'; // Tue–Thu
-    // Weekend within block range (shouldn't happen with Mon–Fri blocks)
+    if (dow === 1) return 'office-mon';
+    if (dow === 5) return 'office-fri';
+    if (dow >= 2 && dow <= 4) return 'office-mid';
     return 'home';
   }
 
-  // 4. Default
+  // Weekday circadian rhythm mapping (Mon=Launch, Tue-Thu=Mid, Fri=Wrap)
+  if (custom?.officeDays?.includes(dow)) {
+    if (dow === 1) return 'office-mon';
+    if (dow === 5) return 'office-fri';
+    return 'office-mid';
+  }
+
   return 'home';
 }
 
@@ -143,14 +112,15 @@ export function getDayType(date) {
  */
 export function getDayTypeLabel(dayType) {
   const labels = {
-    'home':       '🏠 Home',
-    'office-mon': '🏢 Office (Commute Transit)',
-    'office-mid': '🏢 Office (Core On-Site)',
-    'office-fri': '🏢 Office (Return & Wrap)',
-    'half-day':   '½ Half Day',
-    'holiday':    '🎉 Holiday',
+    'home':       '🏠 Home Base',
+    'office':     '🏢 Office Day',
+    'office-mon': '🏢 Office (Sprint Launch)',
+    'office-mid': '🏢 Office (Deep Execution)',
+    'office-fri': '🏢 Office (Wrap & Review)',
+    'half-day':   '½ Half Day Sprint',
+    'holiday':    '🌿 Rest & Recovery',
   };
-  return labels[dayType] || '🏠 Home';
+  return labels[dayType] || '🏠 Home Base';
 }
 
 /**
@@ -159,6 +129,7 @@ export function getDayTypeLabel(dayType) {
 export function getDayTypeShortLabel(dayType) {
   const labels = {
     'home':       'Home',
+    'office':     'Office',
     'office-mon': 'Off (Mon)',
     'office-mid': 'Off (Mid)',
     'office-fri': 'Off (Fri)',
@@ -174,11 +145,12 @@ export function getDayTypeShortLabel(dayType) {
 export function getDayTypeEmoji(dayType) {
   const emojis = {
     'home':       '🏠',
+    'office':     '🏢',
     'office-mon': '🏢',
     'office-mid': '🏢',
     'office-fri': '🏢',
     'half-day':   '⏳',
-    'holiday':    '🎉',
+    'holiday':    '🌿',
   };
   return emojis[dayType] || '🏠';
 }
@@ -187,11 +159,11 @@ export function getDayTypeEmoji(dayType) {
  * Check if a day type is any office variant.
  */
 export function isOfficeDay(dayType) {
-  return dayType === 'office-mon' || dayType === 'office-mid' || dayType === 'office-fri';
+  return dayType === 'office' || dayType === 'office-mon' || dayType === 'office-mid' || dayType === 'office-fri';
 }
 
 /**
- * Whether the evening is at the Panchkula flat (Mon–Thu office weeks).
+ * Whether the evening is at an office accommodation block.
  */
 export function isFlatEvening(dayType) {
   return dayType === 'office-mon' || dayType === 'office-mid';
@@ -201,42 +173,37 @@ export function isFlatEvening(dayType) {
  * Get holiday name for a date, if applicable.
  */
 export function getHolidayName(date) {
-  return holidays[toDateKey(date)] || null;
+  const key = toDateKey(date);
+  const custom = getCustomCalendarSchedule();
+  return custom?.holidays?.[key] || holidays[key] || null;
 }
 
 /**
  * Get half-day reason for a date, if applicable.
  */
 export function getHalfDayReason(date) {
-  return halfDays[toDateKey(date)] || null;
+  const key = toDateKey(date);
+  const custom = getCustomCalendarSchedule();
+  return custom?.halfDays?.[key] || halfDays[key] || null;
 }
 
 /**
- * Get upcoming office/half/holiday days from today, for preview.
+ * Get upcoming special routine days from today.
  * @param {number} limit - Max items to return
- * @returns {Array<{date: string, type: string, label: string, detail: string}>}
  */
 export function getUpcomingSpecialDays(limit = 5) {
   const results = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Scan next 120 days
-  for (let i = 0; i < 120 && results.length < limit; i++) {
+  for (let i = 0; i < 60 && results.length < limit; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
     const key = toDateKey(d);
     const type = getDayType(d);
 
     if (type !== 'home') {
-      let detail = '';
-      if (holidays[key]) detail = holidays[key];
-      else if (halfDays[key]) detail = halfDays[key];
-      else {
-        const block = getOfficeBlock(d);
-        if (block) detail = block.label;
-      }
-
+      let detail = getHolidayName(d) || getHalfDayReason(d) || getDayTypeLabel(type);
       results.push({
         date: key,
         type,

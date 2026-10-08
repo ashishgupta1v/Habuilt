@@ -56,7 +56,10 @@ import PartnerSyncModal from '@/Components/Modals/PartnerSyncModal.vue';
 import ProtocolWizardModal from '@/Components/Modals/ProtocolWizardModal.vue';
 import ProtocolSettingsModal from '@/Components/Modals/ProtocolSettingsModal.vue';
 import UniversalPartnerPairModal from '@/Components/Modals/UniversalPartnerPairModal.vue';
-import RheumatologyClinicalAnalytics from '@/Components/Analytics/RheumatologyClinicalAnalytics.vue';
+import HeroExecutiveDeck from '@/Components/Navigation/HeroExecutiveDeck.vue';
+import ExecutiveKpiRibbon from '@/Components/Navigation/ExecutiveKpiRibbon.vue';
+import StickyMiniHud from '@/Components/Navigation/StickyMiniHud.vue';
+import { useHabitScheduler } from '@/Composables/useHabitScheduler';
 
 // Composables & Data
 import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
@@ -1431,194 +1434,30 @@ const mobileDayTotalHabits = computed(() => activeHabitsForMobileDay.value.lengt
 const maxDailyPoints = computed(() => activeHabitsForMobileDay.value.reduce((sum, h) => sum + h.points, 0));
 
 // Up Next Engine
-const habitTimeSchedule = {
-  // ── Ashish home mode (04:45 wake-up + integrated MOVERS Sadhana protocol) ──
-  'a-64': { start: '04:45', end: '04:55' },
-  'a-1': { start: '04:55', end: '05:00' }, 'a-2': { start: '04:55', end: '05:00' },
-  'a-5': { start: '05:00', end: '05:20' },
-  'a-55': { start: '05:20', end: '05:35' },
-  'a-54': { start: '05:35', end: '05:45' },
-  'a-56': { start: '05:45', end: '05:50' }, 'a-57': { start: '05:50', end: '05:55' },
-  'a-58': { start: '05:55', end: '06:00' }, 'a-3': { start: '06:00', end: '06:05' },
-  'a-4': { start: '06:05', end: '06:35' },
-  'a-72': { start: '06:05', end: '06:25' },
-  'a-6': { start: '06:05', end: '06:40' },
-  'a-60': { start: '06:00', end: '06:40' },
-  'a-7': { start: '06:35', end: '06:45' },
-  'a-66': { start: '06:45', end: '06:55' },
-  'a-9': { start: '06:55', end: '07:05' },
-  'a-8': { start: '07:05', end: '07:20' },
-  'a-67': { start: '07:20', end: '07:30' },
-  'a-61': { start: '07:30', end: '07:35' },
-  'a-10': { start: '07:35', end: '08:30' },
-  'a-77': { start: '07:35', end: '07:50' },
-  'a-78': { start: '08:00', end: '08:05' },
-  'a-11': { start: '08:30', end: '08:45' }, 'a-12': { start: '08:45', end: '10:15' },
-  'a-13': { start: '10:30', end: '10:40' },
-  'a-28': { start: '10:30', end: '11:00' }, 'a-31': { start: '10:30', end: '11:00' },
-  'a-14': { start: '11:00', end: '12:30' },
-  'a-15': { start: '12:30', end: '12:45' }, 'a-16': { start: '12:45', end: '14:00' },
-  'a-70': { start: '13:45', end: '14:00' },
-  'a-29': { start: '14:00', end: '14:45' }, 'a-51': { start: '14:45', end: '14:50' },
-  'a-68': { start: '14:50', end: '15:00' },
-  'a-17': { start: '15:00', end: '15:15' },
-  'a-62': { start: '09:00', end: '18:00' },
-  'a-18': { start: '15:15', end: '16:45' },
-  'a-79': { start: '16:00', end: '19:00' },
-  'a-59': { start: '15:00', end: '16:30' },
-  'a-53': { start: '17:00', end: '18:00' },
-  'a-19': { start: '18:30', end: '18:35' }, 'a-20': { start: '18:35', end: '19:05' },
-  'a-43': { start: '19:05', end: '19:25' }, 'a-21': { start: '19:25', end: '20:15' },
-  'a-71': { start: '19:45', end: '20:00' },
-  'a-30': { start: '19:25', end: '20:15' },
-  'a-22': { start: '20:15', end: '20:30' },
-  'a-76': { start: '20:35', end: '20:45' },
-  'a-23': { start: '20:45', end: '21:00' },
-  'a-24': { start: '21:00', end: '21:05' }, 'a-25': { start: '21:05', end: '21:15' },
-  'a-52': { start: '21:15', end: '21:20' },
-  'a-69': { start: '21:20', end: '21:30' },
-  'a-26': { start: '21:35', end: '21:40' }, 'a-63': { start: '21:40', end: '21:50' },
-  'a-27': { start: '22:00', end: '23:59' },
-  'a-37': { start: '09:30', end: '10:15' },
-  'a-74': { start: '13:30', end: '14:00' },
-  'a-75': { start: '17:00', end: '17:30' },
-  'a-38': { start: '11:00', end: '13:00' },
-  'a-39': { start: '13:00', end: '14:00' },
-  'a-40': { start: '16:00', end: '16:30' },
-  'a-42': { start: '16:30', end: '16:45' },
-  'a-49': { start: '11:00', end: '13:00' },
-  'a-50': { start: '11:00', end: '12:00' },
+const {
+  currentRoutineWindow,
+  getScheduleForHabit,
+  calculateUpNextHabit,
+} = useHabitScheduler(currentClock, activeProtocol);
 
-  // ── Jyoti ──
-  'j-1': { start: '05:00', end: '08:00' }, 'j-2': { start: '08:00', end: '08:05' },
-  'j-37': { start: '08:00', end: '08:05' },
-  'j-4': { start: '08:05', end: '09:05' }, 'j-9': { start: '09:05', end: '09:45' },
-  'j-41': { start: '09:05', end: '09:45' },
-  'j-10': { start: '09:45', end: '10:15' }, 'j-38': { start: '09:45', end: '10:15' },
-  'j-36': { start: '10:15', end: '11:00' },
-  'j-11': { start: '11:00', end: '11:15' }, 'j-12': { start: '11:15', end: '13:00' },
-  'j-42': { start: '12:00', end: '12:10' },
-  'j-14': { start: '13:00', end: '14:00' }, 'j-6': { start: '14:00', end: '14:45' },
-  'j-15': { start: '16:00', end: '17:00' },
-  'j-16': { start: '17:00', end: '17:20' }, 'j-17': { start: '17:30', end: '18:35' },
-  'j-18': { start: '18:35', end: '19:05' }, 'j-19': { start: '19:25', end: '20:15' },
-  'j-20': { start: '20:15', end: '20:30' }, 'j-21': { start: '20:45', end: '21:30' },
-  'j-40': { start: '21:15', end: '21:30' },
-  'j-22': { start: '21:30', end: '23:59' },
-  'j-29': { start: '09:30', end: '10:15' },
-  'j-39': { start: '13:30', end: '14:00' },
-  'j-31': { start: '16:30', end: '17:30' },
-  'j-32': { start: '15:00', end: '15:30' },
-  'j-33': { start: '16:00', end: '19:00' },
-  'j-34': { start: '11:00', end: '12:00' },
-  'j-35': { start: '15:00', end: '16:30' },
-
-  // ── Ashish travel mode (Chandigarh — confirmed 06:30-09:15 out, 13:30-16:30 return) ──
-  'at-1': { start: '04:45', end: '04:55' }, 'at-2': { start: '04:55', end: '05:00' },
-  'at-3': { start: '05:00', end: '05:20' }, 'at-4': { start: '05:20', end: '05:40' },
-  'at-5': { start: '05:40', end: '05:50' }, 'at-6': { start: '05:50', end: '06:05' },
-  'at-7': { start: '06:05', end: '06:20' }, 'at-8': { start: '06:20', end: '06:30' },
-  'at-9': { start: '06:30', end: '09:15' }, 'at-10': { start: '09:15', end: '09:30' },
-  'at-11': { start: '09:30', end: '13:00' }, 'at-12': { start: '13:00', end: '13:30' },
-  'at-13': { start: '13:30', end: '16:30' }, 'at-14': { start: '16:30', end: '17:00' },
-  'at-15': { start: '17:00', end: '18:00' }, 'at-16': { start: '18:00', end: '18:30' },
-  'at-17': { start: '18:35', end: '19:05' }, 'at-18': { start: '19:25', end: '20:15' },
-  'at-19': { start: '20:15', end: '20:30' }, 'at-20': { start: '20:45', end: '21:00' },
-  'at-21': { start: '21:00', end: '21:05' }, 'at-22': { start: '21:05', end: '21:15' },
-  'at-23': { start: '21:15', end: '21:25' }, 'at-24': { start: '21:30', end: '23:59' },
-  'at-29': { start: '13:00', end: '13:30' }, 'at-30': { start: '04:55', end: '05:00' },
-
-  // ── Ashish office mid-week (Tue–Thu flat→office, 30min commute) ──
-  'ao-1': { start: '05:15', end: '05:25' }, 'ao-2': { start: '05:25', end: '05:30' },
-  'ao-3': { start: '05:30', end: '05:50' }, 'ao-4': { start: '05:50', end: '06:00' },
-  'ao-5': { start: '06:00', end: '06:10' }, 'ao-6': { start: '06:10', end: '06:25' },
-  'ao-7': { start: '06:25', end: '06:45' }, 'ao-8': { start: '06:45', end: '07:00' },
-  'ao-9': { start: '07:00', end: '07:30' }, 'ao-10': { start: '07:30', end: '11:00' },
-  'ao-11': { start: '10:30', end: '11:00' }, 'ao-12': { start: '11:00', end: '11:30' },
-  'ao-13': { start: '11:30', end: '11:45' }, 'ao-14': { start: '11:45', end: '13:15' },
-  'ao-15': { start: '13:15', end: '13:45' }, 'ao-16': { start: '13:45', end: '14:00' },
-  'ao-17': { start: '14:00', end: '15:30' }, 'ao-18': { start: '15:30', end: '15:45' },
-  'ao-19': { start: '15:45', end: '17:15' }, 'ao-20': { start: '17:15', end: '18:00' },
-  'ao-21': { start: '18:00', end: '18:10' }, 'ao-22': { start: '18:10', end: '18:30' },
-  'ao-23': { start: '18:30', end: '19:00' }, 'ao-24': { start: '19:00', end: '19:30' },
-  'ao-25': { start: '19:30', end: '19:45' }, 'ao-26': { start: '20:00', end: '20:30' },
-  'ao-27': { start: '20:30', end: '20:45' }, 'ao-28': { start: '20:45', end: '21:15' },
-  'ao-29': { start: '21:15', end: '23:59' },
-
-  // ── Ashish office Friday (flat→office→return to Ludhiana) ──
-  'af-1': { start: '05:15', end: '05:25' }, 'af-2': { start: '05:25', end: '05:30' },
-  'af-3': { start: '05:30', end: '05:50' }, 'af-4': { start: '05:50', end: '06:00' },
-  'af-5': { start: '06:00', end: '06:10' }, 'af-6': { start: '06:10', end: '06:25' },
-  'af-7': { start: '06:25', end: '06:45' }, 'af-8': { start: '06:45', end: '07:00' },
-  'af-9': { start: '07:00', end: '07:30' }, 'af-10': { start: '07:30', end: '11:00' },
-  'af-11': { start: '10:30', end: '11:00' },
-  'af-12': { start: '11:00', end: '14:00' },
-  'af-13': { start: '14:00', end: '14:15' }, 'af-14': { start: '14:15', end: '14:45' },
-  'af-15': { start: '14:45', end: '15:00' }, 'af-16': { start: '15:00', end: '16:30' },
-  'af-17': { start: '16:30', end: '16:45' }, 'af-18': { start: '16:45', end: '17:30' },
-  'af-19': { start: '17:30', end: '18:15' }, 'af-20': { start: '18:15', end: '18:35' },
-  'af-21': { start: '18:35', end: '19:05' }, 'af-22': { start: '19:05', end: '19:25' },
-  'af-23': { start: '19:25', end: '20:15' }, 'af-24': { start: '20:15', end: '20:30' },
-  'af-25': { start: '20:45', end: '21:00' }, 'af-26': { start: '21:00', end: '21:05' },
-  'af-27': { start: '21:05', end: '21:15' }, 'af-28': { start: '21:15', end: '21:25' },
-  'af-29': { start: '21:30', end: '23:59' },
-
-  // ── Ashish half-day & holiday creative / errand blocks ──
-  'ah-1': { start: '15:15', end: '16:45' },
-  'ah-2': { start: '16:45', end: '17:30' },
-  'ah-3': { start: '17:30', end: '18:30' },
-};
-
-const getScheduleForHabit = (habit) => {
-  if (!habit) return null;
-  if (habitTimeSchedule[habit.id]) return habitTimeSchedule[habit.id];
-  if (habit.startTime && habit.endTime) return { start: habit.startTime, end: habit.endTime };
-  const match = (habit.name || '').match(/^(\d{2}:\d{2})/);
-  if (match) {
-    const start = match[1];
-    const [h, m] = start.split(':').map(Number);
-    const endMins = ((h * 60 + m + 30) % 1440);
-    const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
-    const em = String(endMins % 60).padStart(2, '0');
-    return { start, end: `${eh}:${em}` };
+const habitTimeSchedule = new Proxy({}, {
+  get: (target, prop) => {
+    const habit = (localHabits.value || []).find(h => String(h.id) === String(prop));
+    return getScheduleForHabit(habit);
   }
-  return null;
-};
-
-const upNextHabitInfo = computed(() => {
-  if (!props.isCurrentMonth) return null;
-  const now = currentClock.value;
-  const currentMins = now.getHours() * 60 + now.getMinutes();
-  const uncompleted = visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay) && !hasCompletedDay(h, props.currentDay));
-  if (uncompleted.length === 0) return null;
-
-  for (const habit of uncompleted) {
-    const sched = getScheduleForHabit(habit);
-    if (sched) {
-      const [sh, sm] = sched.start.split(':').map(Number);
-      const [eh, em] = sched.end.split(':').map(Number);
-      const startMins = sh * 60 + sm;
-      const endMins = eh * 60 + em;
-      if (currentMins >= startMins && currentMins <= endMins) {
-        return { habit, status: 'due', badgeText: `DUE NOW (${sched.start})`, shortBadge: 'DUE NOW', timeLabel: `${sched.start}–${sched.end}` };
-      }
-    }
-  }
-  for (const habit of uncompleted) {
-    const sched = getScheduleForHabit(habit);
-    if (sched) {
-      const [sh, sm] = sched.start.split(':').map(Number);
-      const startMins = sh * 60 + sm;
-      if (startMins > currentMins) {
-        return { habit, status: 'upcoming', badgeText: `UP NEXT: ${sched.start}`, shortBadge: sched.start, timeLabel: `${sched.start}–${sched.end}` };
-      }
-    }
-  }
-  const first = uncompleted[0];
-  return { habit: first, status: 'next', badgeText: 'UP NEXT', shortBadge: 'UP NEXT', timeLabel: 'Next pending' };
 });
 
-const isHabitUpNext = (habit) => upNextHabitInfo.value && upNextHabitInfo.value.habit.id === habit.id;
+const upNextHabitInfo = computed(() => {
+  return calculateUpNextHabit(
+    visibleHabits.value,
+    props.currentDay,
+    props.isCurrentMonth,
+    isHabitScheduledForDay,
+    hasCompletedDay
+  );
+});
+
+const isHabitUpNext = (habit) => upNextHabitInfo.value && upNextHabitInfo.value.habit?.id === habit.id;
 
 // Tier Helpers
 const getHabitTier = (habitId) => progressiveSettings.value.habitTiers?.[habitId] ?? 1;
@@ -2480,23 +2319,6 @@ const todayCompletedHabitsList = computed(() => {
 const shareDailyScorecard = () => {
   isShareModalOpen.value = true;
 };
-
-// ── Real-Time Routine Phase Window Helper ──
-const currentRoutineWindow = computed(() => {
-  const now = currentClock.value;
-  const mins = now.getHours() * 60 + now.getMinutes();
-  if (mins < 9 * 60) {
-    return { name: 'Morning Protocol', time: '04:45 – 09:00', icon: '🌅' };
-  } else if (mins < 14 * 60) {
-    return { name: 'Deep Execution Block', time: '09:00 – 14:00', icon: '⚡' };
-  } else if (mins < 18 * 60 + 30) {
-    return { name: 'Midday & Operations Block', time: '14:00 – 18:30', icon: '☀️' };
-  } else if (mins < 21 * 60 + 30) {
-    return { name: 'Evening Routine & Shutdown', time: '18:30 – 21:30', icon: '🌙' };
-  } else {
-    return { name: 'Night Wind-down & Rest', time: '21:30+', icon: '✨' };
-  }
-});
 
 // ── Quick Productivity Launchers ──
 const startQuickFocus = (minutes = 25) => {
@@ -3810,27 +3632,15 @@ onBeforeUnmount(() => {
     />
 
     <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
-    <div
-      class="sticky-hud"
-      :class="{ 'sticky-hud--hidden': !showStickyHud }"
-      aria-hidden="true"
-    >
-      <span class="sticky-hud__chip sticky-hud__chip--pts">
-        ⚡ {{ todayPoints }}/{{ todayPossibleDailyPoints }} pts
-      </span>
-      <span class="sticky-hud__chip sticky-hud__chip--streak">
-        🔥 {{ systemStreak?.current || 0 }}d
-      </span>
-      <span class="sticky-hud__chip sticky-hud__chip--time">
-        🕐 {{ hudTimeLabel }}
-      </span>
-      <span v-if="zenMode" class="sticky-hud__chip" style="color:#d4af37; font-weight:700;">
-        🧘 ZEN FLOW
-      </span>
-      <span v-if="upNextHabitInfo && upNextHabitInfo.habit" class="sticky-hud__chip" style="color:#a78bfa; margin-left:auto;">
-        ▶ {{ upNextHabitInfo.habit.name }}
-      </span>
-    </div>
+    <StickyMiniHud
+      :show-sticky-hud="showStickyHud"
+      :today-points="todayPoints"
+      :today-possible-daily-points="todayPossibleDailyPoints"
+      :system-streak="systemStreak"
+      :hud-time-label="hudTimeLabel"
+      :zen-mode="zenMode"
+      :up-next-habit-info="upNextHabitInfo"
+    />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
     <div class="dashboard-flow" :class="{ 'dark-mode': darkMode, 'dashboard-flow--zen': zenMode }">
@@ -3884,236 +3694,37 @@ onBeforeUnmount(() => {
         />
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
-        <div class="hero-executive-deck">
-          <!-- Left Column: Greeting, Routine Phase, Live Up Next & Quick Actions -->
-          <div class="hero-deck-left">
-            <div class="hero-greeting-text">
-              <div class="hero-greeting-title">
-                <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
-                <span class="hero-greeting-wave">👋</span>
-                <span class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-                
-                <!-- Live Routine Phase Window Pill -->
-                <div class="hero-routine-pill" :title="`Active Routine Window: ${currentRoutineWindow.name} (${currentRoutineWindow.time})`">
-                  <span class="hero-routine-pill__icon">{{ currentRoutineWindow.icon }}</span>
-                  <span class="hero-routine-pill__name">{{ currentRoutineWindow.name }}</span>
-                  <span class="hero-routine-pill__time mono-num">{{ currentRoutineWindow.time }}</span>
-                </div>
-              </div>
-              <p class="hero-greeting-quote">
-                {{ timeGreeting.quote }}
-              </p>
-            </div>
-
-            <!-- Live Up Next / Due Now Action Strip -->
-            <div
-              v-if="props.isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, props.currentDay)"
-              class="hero-upnext-strip"
-            >
-              <div class="hero-upnext-tag" :class="{ 'hero-upnext-tag--due': upNextHabitInfo.status === 'due' }">
-                <Clock class="icon-xs" />
-                <span>{{ upNextHabitInfo.shortBadge }}</span>
-              </div>
-              <div class="hero-upnext-info">
-                <span class="hero-upnext-name">{{ upNextHabitInfo.habit.name }}</span>
-                <span class="hero-upnext-time mono-num">{{ upNextHabitInfo.timeLabel }}</span>
-              </div>
-              <button
-                type="button"
-                class="hero-upnext-action-btn"
-                @click="toggleHabitForDay(upNextHabitInfo.habit, props.currentDay)"
-                :title="`Mark '${upNextHabitInfo.habit.name}' as completed (+${upNextHabitInfo.habit.points} XP)`"
-              >
-                <Check class="icon-xs" />
-                <span>Mark Done (+{{ upNextHabitInfo.habit.points }}pt)</span>
-              </button>
-            </div>
-
-            <div
-              v-else-if="props.isCurrentMonth && todayScheduledCount > 0 && todayCompletedCount >= todayScheduledCount"
-              class="hero-upnext-strip hero-upnext-strip--all-done"
-            >
-              <div class="hero-upnext-tag hero-upnext-tag--done">
-                <Crown class="icon-xs" />
-                <span>ALL PROTOCOLS MET</span>
-              </div>
-              <span class="hero-upnext-done-msg">🏆 Elite execution! All {{ todayScheduledCount }} scheduled habits completed for today.</span>
-            </div>
-
-            <!-- Quick Productivity Launchers -->
-            <div class="hero-quick-launchers">
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--focus"
-                @click="startQuickFocus(25)"
-                title="Launch a 25-minute Pomodoro Deep Work Focus Session"
-              >
-                <Timer class="icon-xs" />
-                <span>{{ timerState && timerState.running ? 'Focus Active' : 'Start 25m Focus' }}</span>
-                <span v-if="timerState && timerState.running" class="hero-launch-btn__pulse"></span>
-              </button>
-
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--share"
-                @click="shareDailyScorecard"
-                title="Generate and Share your Daily Scorecard"
-              >
-                <Share2 class="icon-xs" />
-                <span>Share Scorecard</span>
-              </button>
-
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--sync"
-                @click="handleAppReload"
-                :title="isSyncingCloud ? 'Syncing with Supabase cloud database...' : 'Manual Sync Database'"
-              >
-                <RefreshCw class="icon-xs" :class="{ 'animate-spin': isSyncingCloud }" />
-                <span>{{ isSyncingCloud ? 'Syncing...' : 'Sync' }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right Column: Today's Protocol Command Card -->
-          <div class="hero-deck-right">
-            <div class="hero-protocol-card">
-              <div class="hero-protocol-card__header">
-                <div class="hero-protocol-card__title">
-                  <Shield class="icon-sm icon-gold" />
-                  <span>Today's Protocol</span>
-                </div>
-                <div class="hero-protocol-card__score-chip">
-                  <span class="hero-protocol-card__current mono-num">{{ todayPoints }}</span>
-                  <span class="hero-protocol-card__target mono-num">/ {{ tierThresholds.target }} pts</span>
-                </div>
-              </div>
-
-              <!-- Segmented Milestone Gauge Bar -->
-              <div class="hero-milestone-gauge">
-                <div
-                  class="hero-milestone-gauge__fill"
-                  :style="{ width: `${Math.min(100, Math.round((todayPoints / tierThresholds.target) * 100))}%` }"
-                ></div>
-              </div>
-
-              <!-- 3 Milestone Tier Chips (Clean Horizontal Grid) -->
-              <div class="hero-protocol-tiers-grid">
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.floor }"
-                  :title="todayPoints >= tierThresholds.floor ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${tierThresholds.floor - todayPoints} more pts for Floor`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Shield class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Floor</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= tierThresholds.floor ? '✓ Safe' : `${todayPoints}/${tierThresholds.floor}p` }}
-                  </div>
-                </div>
-
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.half }"
-                  :title="todayPoints >= tierThresholds.half ? 'Half Protocol Achieved (Solid Execution)' : `Need ${tierThresholds.half - todayPoints} more pts for Half`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Zap class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Half</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= tierThresholds.half ? '✓ Hit' : `${todayPoints}/${tierThresholds.half}p` }}
-                  </div>
-                </div>
-
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.full }"
-                  :title="todayPoints >= tierThresholds.full ? 'Full Target Achieved (Elite Performance)' : `Need ${tierThresholds.full - todayPoints} more pts for Full`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Trophy class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Full</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= tierThresholds.full ? '👑 Peak' : `${todayPoints}/${tierThresholds.full}p` }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HeroExecutiveDeck
+          :time-greeting="timeGreeting"
+          :performance-grade="performanceGrade"
+          :current-routine-window="currentRoutineWindow"
+          :up-next-habit-info="upNextHabitInfo"
+          :is-current-month="props.isCurrentMonth"
+          :current-day="props.currentDay"
+          :today-points="todayPoints"
+          :today-completed-count="todayCompletedCount"
+          :today-scheduled-count="todayScheduledCount"
+          :tier-thresholds="tierThresholds"
+          :timer-state="timerState"
+          :is-syncing-cloud="isSyncingCloud"
+          :has-completed-day="hasCompletedDay"
+          @toggle-up-next="toggleHabitForDay"
+          @start-focus="startQuickFocus"
+          @share-scorecard="shareDailyScorecard"
+          @sync-app="handleAppReload"
+        />
 
         <!-- ── Mission Control Row 2: Executive 4-Card KPI Ribbon ── -->
-        <div class="hero-kpi-ribbon">
-          <!-- Card 1: System Streak -->
-          <div class="hero-kpi-card hero-kpi-card--streak" :title="`Current Streak: ${systemStreak.current} Days | Longest: ${systemStreak.longest || systemStreak.current} Days`">
-            <div class="hero-kpi-card__icon-wrap">
-              <Flame class="hero-kpi-card__icon icon-flame" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">System Streak</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ systemStreak.current }}</span>
-                <span class="hero-kpi-card__unit">Days</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span class="hero-kpi-card__sub-highlight mono-num">Best {{ systemStreak.longest || systemStreak.current }}d</span> • Protected
-              </span>
-            </div>
-          </div>
-
-          <!-- Card 2: Reward Vault / Available Wallet -->
-          <div class="hero-kpi-card hero-kpi-card--wallet" :title="`${availableWallet} Points Available in Reward Vault • Click to open Vault`" @click="activeMobileTab = 'rewards'">
-            <div class="hero-kpi-card__icon-wrap">
-              <Award class="hero-kpi-card__icon icon-vault-gold" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Reward Vault</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ availableWallet }}</span>
-                <span class="hero-kpi-card__unit">pts</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span class="hero-kpi-card__sub-highlight mono-num">+{{ monthlyTotalEarned }}</span> this month
-              </span>
-            </div>
-          </div>
-
-          <!-- Card 3: Monthly Stickiness -->
-          <div class="hero-kpi-card hero-kpi-card--consistency" :title="`Monthly Stickiness: ${consistencyScore}% (Grade: ${consistencyGrade.grade || 'D'}) • Click for Analytics`" @click="activeMobileTab = 'stats'">
-            <div class="hero-kpi-card__icon-wrap">
-              <TrendingUp class="hero-kpi-card__icon icon-teal" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Monthly Consistency</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ consistencyScore }}%</span>
-                <span class="hero-kpi-card__badge mono-num" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-              </div>
-              <span class="hero-kpi-card__subtext">{{ performanceGrade.text || 'Target: 85%+ Consistency' }}</span>
-            </div>
-          </div>
-
-          <!-- Card 4: Daily Execution -->
-          <div class="hero-kpi-card hero-kpi-card--today" :title="`${todayCompletedCount} of ${todayScheduledCount} habits completed today`" @click="activeMobileTab = 'today'">
-            <div class="hero-kpi-card__icon-wrap">
-              <CheckCircle2 class="hero-kpi-card__icon icon-emerald" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Today's Habits</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ todayCompletedCount }}/{{ todayScheduledCount }}</span>
-                <span class="hero-kpi-card__unit mono-num">({{ todayScheduledCount > 0 ? Math.round((todayCompletedCount / todayScheduledCount) * 100) : 0 }}%)</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span v-if="todayScheduledCount - todayCompletedCount > 0" class="hero-kpi-card__sub-highlight">{{ todayScheduledCount - todayCompletedCount }} pending</span>
-                <span v-else class="hero-kpi-card__sub-done">🎉 All Done Today!</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <ExecutiveKpiRibbon
+          :system-streak="systemStreak"
+          :available-wallet="availableWallet"
+          :monthly-total-earned="monthlyTotalEarned"
+          :consistency-score="consistencyScore"
+          :performance-grade="performanceGrade"
+          :today-completed-count="todayCompletedCount"
+          :today-scheduled-count="todayScheduledCount"
+          @navigate-tab="tab => activeMobileTab = tab"
+        />
       </section>
 
       <!-- ── SECTION: WARRIOR INTELLIGENCE COCKPIT (Circadian Battle Plan, Keystone Analysis & Biometrics) ── -->
@@ -4343,12 +3954,6 @@ onBeforeUnmount(() => {
           :hovered-heatmap-cell="hoveredHeatmapCell"
           :habit-streaks="habitStreaks"
           :milestone-badges="milestoneBadges"
-          @update:hovered-heatmap-day="val => hoveredHeatmapDay = val"
-          @select-heatmap-day="day => mobileSelectedDay = day"
-        />
-
-        <!-- Rheumatology & Autoimmune Clinical Longitudinal Analytics -->
-        <RheumatologyClinicalAnalytics
           :biomarkers="biomarkersState"
           :hydration-ml="hydrationMlState"
           :month-scope="monthScope"
@@ -4357,6 +3962,8 @@ onBeforeUnmount(() => {
           :current-day="props.currentDay"
           :habits="localHabits"
           :display-name="displayName"
+          @update:hovered-heatmap-day="val => hoveredHeatmapDay = val"
+          @select-heatmap-day="day => mobileSelectedDay = day"
           @toast="msg => showToast(msg)"
         />
       </section>
