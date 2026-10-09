@@ -2289,12 +2289,38 @@ const handleSendTestNotification = async () => {
 
 // ── Native Android Home Screen Widget Sync Hook ──
 const { syncNativeWidget, getNativeWidgetData } = useNativeWidget();
+
+const buildHabitScheduleMap = () => {
+  const map = {};
+  for (const h of (localHabits.value || [])) {
+    const s = getScheduleForHabit(h);
+    if (s) {
+      map[String(h.id)] = s;
+    }
+  }
+  return map;
+};
+
 const pushToNativeWidget = () => {
   try {
+    const scheduleMap = buildHabitScheduleMap();
+    const enrichedHabits = (localHabits.value || []).map(h => {
+      const s = scheduleMap[String(h.id)] || getScheduleForHabit(h);
+      return {
+        id: String(h.id),
+        name: h.name,
+        points: h.points ?? 1,
+        completed_days: h.completed_days || [],
+        startTime: h.startTime || s?.start || null,
+        endTime: h.endTime || s?.end || null,
+        hint: h.hint || h.instruction || h.description || '',
+      };
+    });
+
     syncNativeWidget({
       userId: effectiveUserId.value,
-      habits: localHabits.value || [],
-      schedule: habitTimeSchedule || {},
+      habits: enrichedHabits,
+      schedule: scheduleMap,
       streak: systemStreak.value?.currentStreak || systemStreak.value?.current || 0,
       todayPoints: todayPoints.value ?? 0,
     });
@@ -2303,9 +2329,24 @@ const pushToNativeWidget = () => {
   }
 };
 
-watch([localHabits, todayPoints, systemStreak], () => {
+watch([localHabits, todayPoints, systemStreak, dayType, activeProtocol], () => {
   pushToNativeWidget();
-}, { deep: true });
+}, { deep: true, immediate: true });
+
+onMounted(() => {
+  nextTick(() => {
+    pushToNativeWidget();
+  });
+  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    try {
+      App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          pushToNativeWidget();
+        }
+      });
+    } catch {}
+  }
+});
 
 const isShareModalOpen = ref(false);
 

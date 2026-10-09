@@ -17,4 +17,10 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        com.habuilt.app.widget.HabuiltDueNowWidget.Companion.updateAllWidgets(this);
+    }
 }
