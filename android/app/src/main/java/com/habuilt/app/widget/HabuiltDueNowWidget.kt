@@ -32,7 +32,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
         when (action) {
             ACTION_SCHEDULE_TICK,
             Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_TIME_SET,
+            Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             AppWidgetManager.ACTION_APPWIDGET_UPDATE -> {
                 updateAllWidgets(context)
