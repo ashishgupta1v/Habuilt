@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { ashishHabits, jyotiHabits } from './useHabitsState';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, callLocalApi } from '@/lib/supabase';
 
 const LOCAL_STORAGE_ACTIVE_PROTOCOL = 'habuilt_active_protocol_id_';
 const LOCAL_STORAGE_CUSTOM_PROTOCOLS = 'habuilt_custom_protocols_';
@@ -250,17 +250,33 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
         } catch (_) {}
       }
 
-      // 3. Load from Supabase if connected
+      // 3. Load from Hostinger KVM 2 Local API (Primary) or Supabase (Fallback)
       const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
-      if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
-        const { data, error } = await supabase
-          .from('user_protocols')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+      if (userId && userId !== 'guest' && !isGuestMode) {
+        let remoteData = null;
+        try {
+          const res = await callLocalApi(`/api/user-protocols?user_id=${encodeURIComponent(userId)}`);
+          if (Array.isArray(res) && res.length > 0) {
+            remoteData = res;
+          }
+        } catch (_) {}
 
-        if (!error && Array.isArray(data) && data.length > 0) {
-          const remoteProtocols = data.map(row => ({
+        if (!remoteData && isSupabaseConfigured()) {
+          try {
+            const { data, error } = await supabase
+              .from('user_protocols')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
+
+            if (!error && Array.isArray(data) && data.length > 0) {
+              remoteData = data;
+            }
+          } catch (_) {}
+        }
+
+        if (Array.isArray(remoteData) && remoteData.length > 0) {
+          const remoteProtocols = remoteData.map(row => ({
             id: row.id,
             key: row.archetype || 'custom',
             name: row.name,
@@ -279,7 +295,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
           customProtocols.value = remoteProtocols;
 
           // Check if an active protocol is marked in DB
-          const activeRemote = data.find(r => r.is_active);
+          const activeRemote = remoteData.find(r => r.is_active);
           if (activeRemote && !savedActiveId) {
             activeProtocolId.value = activeRemote.id;
           }
@@ -297,24 +313,36 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     activeProtocolId.value = protocolId;
     localStorage.setItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`, protocolId);
 
-    // Sync to Supabase if logged in
+    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
-    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
+    if (userId && userId !== 'guest' && !isGuestMode) {
       try {
-        // Set all to inactive first
-        await supabase
-          .from('user_protocols')
-          .update({ is_active: false })
-          .eq('user_id', userId);
-
-        // Set matching to active
-        await supabase
-          .from('user_protocols')
-          .update({ is_active: true })
-          .eq('user_id', userId)
-          .eq('id', protocolId);
+        await callLocalApi('/api/user-protocols', 'POST', {
+          user_id: userId,
+          id: protocolId,
+          is_active: true
+        });
       } catch (e) {
-        console.warn('[useDynamicProtocols] Error updating active protocol in DB:', e);
+        console.warn('[useDynamicProtocols] Error updating active protocol in local API:', e);
+      }
+
+      if (isSupabaseConfigured()) {
+        try {
+          // Set all to inactive first
+          await supabase
+            .from('user_protocols')
+            .update({ is_active: false })
+            .eq('user_id', userId);
+
+          // Set matching to active
+          await supabase
+            .from('user_protocols')
+            .update({ is_active: true })
+            .eq('user_id', userId)
+            .eq('id', protocolId);
+        } catch (e) {
+          console.warn('[useDynamicProtocols] Error updating active protocol in Supabase:', e);
+        }
       }
     }
   };
@@ -347,11 +375,11 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     localStorage.setItem(`${LOCAL_STORAGE_CUSTOM_PROTOCOLS}${userId}`, JSON.stringify(customProtocols.value));
     await switchProtocol(id);
 
-    // Sync to Supabase
+    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
-    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
+    if (userId && userId !== 'guest' && !isGuestMode) {
       try {
-        await supabase.from('user_protocols').upsert({
+        await callLocalApi('/api/user-protocols', 'POST', {
           id: id.startsWith('custom-') ? undefined : id,
           user_id: userId,
           name: newProtocol.name,
@@ -362,11 +390,31 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
           work_start: newProtocol.workStart,
           work_end: newProtocol.workEnd,
           is_active: true,
-          habits: newProtocol.habits,
-          updated_at: new Date().toISOString()
+          habits: newProtocol.habits
         });
       } catch (e) {
-        console.warn('[useDynamicProtocols] Error persisting to Supabase:', e);
+        console.warn('[useDynamicProtocols] Error persisting to local API:', e);
+      }
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('user_protocols').upsert({
+            id: id.startsWith('custom-') ? undefined : id,
+            user_id: userId,
+            name: newProtocol.name,
+            archetype: newProtocol.key,
+            description: newProtocol.description,
+            wake_time: newProtocol.wakeTime,
+            sleep_time: newProtocol.sleepTime,
+            work_start: newProtocol.workStart,
+            work_end: newProtocol.workEnd,
+            is_active: true,
+            habits: newProtocol.habits,
+            updated_at: new Date().toISOString()
+          });
+        } catch (e) {
+          console.warn('[useDynamicProtocols] Error persisting to Supabase:', e);
+        }
       }
     }
 
@@ -389,17 +437,25 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       await switchProtocol(fallbackId);
     }
 
-    // Sync to Supabase
+    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
-    if (isSupabaseConfigured() && userId && userId !== 'guest' && !isGuestMode) {
+    if (userId && userId !== 'guest' && !isGuestMode) {
       try {
-        await supabase
-          .from('user_protocols')
-          .delete()
-          .eq('user_id', userId)
-          .eq('id', protocolId);
+        await callLocalApi(`/api/user-protocols/${encodeURIComponent(protocolId)}`, 'DELETE');
       } catch (e) {
-        console.warn('[useDynamicProtocols] Error deleting from Supabase:', e);
+        console.warn('[useDynamicProtocols] Error deleting via local API:', e);
+      }
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase
+            .from('user_protocols')
+            .delete()
+            .eq('user_id', userId)
+            .eq('id', protocolId);
+        } catch (e) {
+          console.warn('[useDynamicProtocols] Error deleting from Supabase:', e);
+        }
       }
     }
     return true;

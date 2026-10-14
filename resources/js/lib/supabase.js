@@ -7,7 +7,31 @@ const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || PROD_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || PROD_SUPABASE_ANON_KEY;
 
-// Local-first architecture: when VITE_SUPABASE_URL is unconfigured, system operates silently in local peer mode.
+// ── Native Hostinger KVM 2 Local API Transport (Default & Primary) ──
+const USE_LOCAL_API = true;
+
+export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const opts = {
+      method,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    };
+    if (body) {
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(endpoint, opts);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[Local KVM API] ${method} ${endpoint} note:`, err.message);
+    return null;
+  }
+};
+
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = createClient(
@@ -22,8 +46,13 @@ export const supabase = createClient(
   }
 );
 
+// Cross-tab broadcast channel for instant zero-latency UI synchronization
+const tabSyncChannel = typeof window !== 'undefined' && window.BroadcastChannel
+  ? new BroadcastChannel('habuilt-local-sync-channel')
+  : null;
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// 1. ATOMIC ROW-LEVEL CHECK-IN LEDGER (Normalized Event Persistence)
+// 1. ATOMIC ROW-LEVEL CHECK-IN LEDGER (Hostinger KVM 2 PostgreSQL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -44,47 +73,77 @@ export const recordHabitCheckIn = async ({
 
   const dateStr = completedOn || `${monthKey}-${String(day).padStart(2, '0')}`;
 
-  const { data, error } = await supabase
-    .from('habit_check_ins')
-    .upsert(
-      {
-        user_id: userId,
-        habit_id: String(habitId),
-        habit_name: habitName,
-        month_key: monthKey,
-        day: Number(day),
-        completed_on: dateStr,
-        points: Number(points) || 1,
-        canonical_key: canonicalKey || null,
-        source: source,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id,habit_id,month_key,day',
-      }
-    );
-
-  if (error) {
-    console.warn('[Habuilt Ledger] Error inserting check-in:', error.message);
-    queueOfflineAction({
-      type: 'INSERT',
-      payload: { userId, habitId, habitName, monthKey, day, completedOn: dateStr, points, canonicalKey, source },
+  // 1. Primary: Save directly to Hostinger KVM 2 PostgreSQL via local API
+  if (USE_LOCAL_API) {
+    const localRes = await callLocalApi('/api/habits/check-ins', 'POST', {
+      user_id: userId,
+      habit_id: String(habitId),
+      habit_name: habitName,
+      month_key: monthKey,
+      day: Number(day),
+      completed_on: dateStr,
+      points: Number(points) || 1,
+      canonical_key: canonicalKey || null,
+      source: source,
     });
-    return false;
+
+    if (localRes && localRes.success) {
+      // Notify other open tabs immediately
+      if (tabSyncChannel) {
+        tabSyncChannel.postMessage({
+          type: 'CHECKIN_MUTATION',
+          eventType: 'INSERT',
+          userId,
+          habitId: String(habitId),
+          monthKey,
+          day: Number(day),
+        });
+      }
+
+      // Non-blocking async dispatch to ZoetiCoach WS18 Habit Cloud API
+      dispatchZoetiCoachEvent({
+        externalParticipantId: userId,
+        eventType: 'habit_completed',
+        eventValue: habitName,
+        habitId: habitId,
+        points: points,
+        occurredAt: dateStr,
+        source: source,
+      }).catch(() => {});
+
+      return true;
+    }
   }
 
-  // Non-blocking async dispatch to ZoetiCoach WS18 Habit Cloud API
-  dispatchZoetiCoachEvent({
-    externalParticipantId: userId,
-    eventType: 'habit_completed',
-    eventValue: habitName,
-    habitId: habitId,
-    points: points,
-    occurredAt: dateStr,
-    source: source,
-  }).catch(() => {});
+  // Fallback: Supabase or offline queue if local API was unreachable
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('habit_check_ins')
+        .upsert(
+          {
+            user_id: userId,
+            habit_id: String(habitId),
+            habit_name: habitName,
+            month_key: monthKey,
+            day: Number(day),
+            completed_on: dateStr,
+            points: Number(points) || 1,
+            canonical_key: canonicalKey || null,
+            source: source,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,habit_id,month_key,day' }
+        );
+      if (!error) return true;
+    } catch {}
+  }
 
-  return true;
+  queueOfflineAction({
+    type: 'INSERT',
+    payload: { userId, habitId, habitName, monthKey, day, completedOn: dateStr, points, canonicalKey, source },
+  });
+  return false;
 };
 
 /**
@@ -93,35 +152,60 @@ export const recordHabitCheckIn = async ({
 export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => {
   if (!userId || !habitId || !monthKey || !day) return false;
 
-  const { error } = await supabase
-    .from('habit_check_ins')
-    .delete()
-    .eq('user_id', userId)
-    .eq('habit_id', String(habitId))
-    .eq('month_key', monthKey)
-    .eq('day', Number(day));
-
-  if (error) {
-    console.warn('[Habuilt Ledger] Error removing check-in:', error.message);
-    queueOfflineAction({
-      type: 'DELETE',
-      payload: { userId, habitId, monthKey, day },
+  // 1. Primary: Hostinger KVM 2 local API
+  if (USE_LOCAL_API) {
+    const localRes = await callLocalApi('/api/habits/check-ins', 'DELETE', {
+      user_id: userId,
+      habit_id: String(habitId),
+      month_key: monthKey,
+      day: Number(day),
     });
-    return false;
+
+    if (localRes && localRes.success) {
+      if (tabSyncChannel) {
+        tabSyncChannel.postMessage({
+          type: 'CHECKIN_MUTATION',
+          eventType: 'DELETE',
+          userId,
+          habitId: String(habitId),
+          monthKey,
+          day: Number(day),
+        });
+      }
+
+      dispatchZoetiCoachEvent({
+        externalParticipantId: userId,
+        eventType: 'habit_unmarked',
+        eventValue: String(habitId),
+        habitId: habitId,
+        points: 0,
+        occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
+        source: 'web',
+      }).catch(() => {});
+
+      return true;
+    }
   }
 
-  // Non-blocking async dispatch to ZoetiCoach WS18 Habit Cloud API
-  dispatchZoetiCoachEvent({
-    externalParticipantId: userId,
-    eventType: 'habit_unmarked',
-    eventValue: String(habitId),
-    habitId: habitId,
-    points: 0,
-    occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
-    source: 'web',
-  }).catch(() => {});
+  // Fallback: Supabase
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('habit_check_ins')
+        .delete()
+        .eq('user_id', userId)
+        .eq('habit_id', String(habitId))
+        .eq('month_key', monthKey)
+        .eq('day', Number(day));
+      if (!error) return true;
+    } catch {}
+  }
 
-  return true;
+  queueOfflineAction({
+    type: 'DELETE',
+    payload: { userId, habitId, monthKey, day },
+  });
+  return false;
 };
 
 /**
@@ -130,19 +214,27 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => 
 export const loadMonthCheckIns = async (userId, monthKey) => {
   if (!userId || !monthKey) return [];
 
-  const { data, error } = await supabase
-    .from('habit_check_ins')
-    .select('id, habit_id, habit_name, day, completed_on, points, canonical_key, source, created_at')
-    .eq('user_id', userId)
-    .eq('month_key', monthKey);
-
-  if (error) {
-    // If table doesn't exist yet in user's Supabase, fall back gracefully
-    console.warn('[Habuilt Ledger] Check-in fetch note:', error.message);
-    return null;
+  // 1. Primary: Local Hostinger KVM 2 PostgreSQL API (< 2ms)
+  if (USE_LOCAL_API) {
+    const localData = await callLocalApi(`/api/habits/check-ins?user_id=${encodeURIComponent(userId)}&month_key=${encodeURIComponent(monthKey)}`);
+    if (Array.isArray(localData)) {
+      return localData;
+    }
   }
 
-  return data || [];
+  // Fallback: Supabase
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('habit_check_ins')
+        .select('id, habit_id, habit_name, day, completed_on, points, canonical_key, source, created_at')
+        .eq('user_id', userId)
+        .eq('month_key', monthKey);
+      if (!error && Array.isArray(data)) return data;
+    } catch {}
+  }
+
+  return [];
 };
 
 /**
@@ -151,248 +243,222 @@ export const loadMonthCheckIns = async (userId, monthKey) => {
 export const loadAllCheckIns = async (userId) => {
   if (!userId) return [];
 
-  const { data, error } = await supabase
-    .from('habit_check_ins')
-    .select('habit_id, month_key, day, completed_on, points, canonical_key')
-    .eq('user_id', userId);
-
-  if (error) {
-    console.warn('[Habuilt Ledger] Lifetime check-ins fetch note:', error.message);
-    return [];
+  if (USE_LOCAL_API) {
+    const localData = await callLocalApi(`/api/habits/check-ins?user_id=${encodeURIComponent(userId)}`);
+    if (Array.isArray(localData)) {
+      return localData;
+    }
   }
 
-  return data || [];
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('habit_check_ins')
+        .select('habit_id, month_key, day, completed_on, points, canonical_key')
+        .eq('user_id', userId);
+      if (!error && Array.isArray(data)) return data;
+    } catch {}
+  }
+
+  return [];
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. USER SETTINGS & REVIEWS STORE
+// 2. USER SETTINGS & REVIEWS STORE (Hostinger KVM 2 PostgreSQL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const saveUserSettings = async (userId, settingsPayload) => {
   if (!userId) return false;
 
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert(
-      {
-        user_id: userId,
-        progressive_settings: settingsPayload.progressiveSettings || {},
-        custom_habits: settingsPayload.customHabits || [],
-        rewards: settingsPayload.rewards || [],
-        reward_ledger: settingsPayload.rewardLedger || [],
-        weekly_reviews: settingsPayload.weeklyReviews || {},
-        enhanced_state: settingsPayload.enhancedState || {},
-        day_type: settingsPayload.dayType || 'home',
-        dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id',
-      }
-    );
-
-  if (error) {
-    console.warn('[Habuilt Settings] Error saving user settings:', error.message);
-    return false;
+  if (USE_LOCAL_API) {
+    const localRes = await callLocalApi('/api/user-settings', 'POST', {
+      user_id: userId,
+      progressive_settings: settingsPayload.progressiveSettings || {},
+      custom_habits: settingsPayload.customHabits || [],
+      rewards: settingsPayload.rewards || [],
+      reward_ledger: settingsPayload.rewardLedger || [],
+      weekly_reviews: settingsPayload.weeklyReviews || {},
+      enhanced_state: settingsPayload.enhancedState || {},
+      day_type: settingsPayload.dayType || 'home',
+      dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
+    });
+    if (localRes && localRes.success) return true;
   }
 
-  return true;
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          progressive_settings: settingsPayload.progressiveSettings || {},
+          custom_habits: settingsPayload.customHabits || [],
+          rewards: settingsPayload.rewards || [],
+          reward_ledger: settingsPayload.rewardLedger || [],
+          weekly_reviews: settingsPayload.weeklyReviews || {},
+          enhanced_state: settingsPayload.enhancedState || {},
+          day_type: settingsPayload.dayType || 'home',
+          dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+      if (!error) return true;
+    } catch {}
+  }
+
+  return false;
 };
 
 export const loadUserSettings = async (userId) => {
   if (!userId) return null;
 
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[Habuilt Settings] Note on loading settings:', error.message);
-    return null;
+  if (USE_LOCAL_API) {
+    const localData = await callLocalApi(`/api/user-settings?user_id=${encodeURIComponent(userId)}`);
+    if (localData && typeof localData === 'object') {
+      return localData;
+    }
   }
 
-  return data || null;
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (!error && data) return data;
+    } catch {}
+  }
+
+  return null;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 3. REALTIME SYNC & PARTNER BROADCASTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Subscribes to real-time check-in mutations (INSERT, DELETE, UPDATE) for a user.
- */
 export const subscribeToHabitCheckIns = (userId, onCheckInChange) => {
   if (!userId) return null;
 
-  const channel = supabase
-    .channel(`habuilt-user-checkins-${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'habit_check_ins',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => {
+  // Local Tab Broadcast listener for instant reactive UI updates
+  if (tabSyncChannel) {
+    const listener = (event) => {
+      if (event.data?.type === 'CHECKIN_MUTATION' && event.data?.userId === userId) {
         if (typeof onCheckInChange === 'function') {
           onCheckInChange({
-            eventType: payload.eventType, // 'INSERT', 'DELETE', 'UPDATE'
-            new: payload.new,
-            old: payload.old,
+            eventType: event.data.eventType,
+            new: { habit_id: event.data.habitId, day: event.data.day, month_key: event.data.monthKey },
+            old: { habit_id: event.data.habitId, day: event.data.day, month_key: event.data.monthKey },
           });
         }
       }
-    )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        // Connected to real-time stream
-      }
-    });
-
-  return channel;
-};
-
-/**
- * Generates a deterministic, collision-free pair channel name for any two users.
- */
-export const getPairChannelId = (userId1, userId2) => {
-  if (!userId1 || !userId2) return 'habuilt:couple_live_channel';
-  const u1 = String(userId1).trim().toLowerCase();
-  const u2 = String(userId2).trim().toLowerCase();
-  const sorted = [u1, u2].sort();
-  return `habuilt:partner_pair_${sorted[0]}__${sorted[1]}`;
-};
-
-/**
- * Broadcasts an instant event to the shared couple channel.
- */
-let coupleChannel = null;
-let currentChannelName = 'habuilt:couple_live_channel';
-let localBroadcastChannel = null;
-
-if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-  try {
-    localBroadcastChannel = new BroadcastChannel('habuilt_local_partner_sync');
-  } catch (_) {}
-}
-
-export const initCoupleBroadcastChannel = (onPartnerMessage, channelName = 'habuilt:couple_live_channel') => {
-  const targetChannelName = channelName || 'habuilt:couple_live_channel';
-
-  // Listen to local tab BroadcastChannel for local/dual-context test speed
-  if (localBroadcastChannel) {
-    localBroadcastChannel.onmessage = (event) => {
-      if (event?.data && typeof onPartnerMessage === 'function') {
-        onPartnerMessage(event.data);
-      }
     };
+    tabSyncChannel.addEventListener('message', listener);
   }
 
-  if (coupleChannel && currentChannelName === targetChannelName) {
-    return coupleChannel;
-  }
-
-  if (coupleChannel) {
+  if (isSupabaseConfigured()) {
     try {
-      coupleChannel.unsubscribe();
+      return supabase
+        .channel(`habuilt-user-checkins-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_check_ins', filter: `user_id=eq.${userId}` }, (payload) => {
+          if (typeof onCheckInChange === 'function') {
+            onCheckInChange({
+              eventType: payload.eventType,
+              new: payload.new,
+              old: payload.old,
+            });
+          }
+        })
+        .subscribe();
     } catch {}
-    coupleChannel = null;
   }
 
-  currentChannelName = targetChannelName;
+  return { unsubscribe: () => {} };
+};
+
+export const getPairChannelId = (userA, userB) => {
+  if (!userA || !userB) return null;
+  const sorted = [userA.trim().toLowerCase(), userB.trim().toLowerCase()].sort();
+  return `habuilt-pair-${sorted[0]}-${sorted[1]}`;
+};
+
+export const initCoupleBroadcastChannel = ({ userId, partnerId, onPartnerEvent }) => {
+  const channelName = getPairChannelId(userId, partnerId);
+  if (!channelName || !isSupabaseConfigured()) return null;
 
   try {
-    coupleChannel = supabase.channel(targetChannelName, {
-      config: {
-        broadcast: { ack: false, self: false },
-      },
+    const channel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
+    channel.on('broadcast', { event: 'partner_action' }, (event) => {
+      if (typeof onPartnerEvent === 'function') {
+        onPartnerEvent(event.payload);
+      }
     });
-
-    coupleChannel
-      .on('broadcast', { event: 'partner_activity' }, ({ payload }) => {
-        if (typeof onPartnerMessage === 'function') {
-          onPartnerMessage(payload);
-        }
-      })
-      .subscribe();
-  } catch (err) {
-    console.warn('[Habuilt Couple] Realtime subscription init note:', err);
-  }
-
-  return coupleChannel;
-};
-
-export const broadcastPartnerEvent = async (eventData, channelName = null) => {
-  const targetChannel = channelName || currentChannelName || 'habuilt:couple_live_channel';
-  const payload = {
-    ...eventData,
-    timestamp: Date.now(),
-  };
-
-  // 1. Send via local browser BroadcastChannel (instant for local tabs/contexts)
-  if (localBroadcastChannel) {
-    try {
-      localBroadcastChannel.postMessage(payload);
-    } catch (_) {}
-  }
-
-  // 2. Send via Supabase Realtime WebSocket for cross-device peering
-  if (!coupleChannel || currentChannelName !== targetChannel) {
-    initCoupleBroadcastChannel(null, targetChannel);
-  }
-
-  if (coupleChannel) {
-    try {
-      await coupleChannel.send({
-        type: 'broadcast',
-        event: 'partner_activity',
-        payload,
-      });
-    } catch (e) {
-      console.warn('[Habuilt Couple] Broadcast warning:', e);
-    }
+    channel.subscribe();
+    return channel;
+  } catch {
+    return null;
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 4. OFFLINE IDEMPOTENT QUEUE & SILENT RECONCILIATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const OFFLINE_QUEUE_KEY = 'habuilt.offline_checkin_queue';
-
-export const queueOfflineAction = (action) => {
+export const broadcastPartnerEvent = async (channel, payload) => {
+  if (!channel) return false;
   try {
-    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    const queue = raw ? JSON.parse(raw) : [];
-    queue.push({ ...action, queuedAt: Date.now() });
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-  } catch (e) {
-    console.warn('[Habuilt Queue] Could not queue offline action:', e);
+    await channel.send({
+      type: 'broadcast',
+      event: 'partner_action',
+      payload: { ...payload, sentAt: new Date().toISOString() },
+    });
+    return true;
+  } catch {
+    return false;
   }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. OFFLINE QUEUE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const OFFLINE_QUEUE_KEY = 'habuilt_offline_queue';
+
+const queueOfflineAction = (action) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    queue.push({ ...action, queuedAt: new Date().toISOString() });
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  } catch {}
 };
 
 export const flushOfflineQueue = async () => {
+  if (typeof window === 'undefined') return 0;
+  let queue = [];
   try {
-    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    if (!raw) return;
-    const queue = JSON.parse(raw);
-    if (!Array.isArray(queue) || queue.length === 0) return;
-
-    localStorage.removeItem(OFFLINE_QUEUE_KEY);
-
-    for (const item of queue) {
-      if (item.type === 'INSERT') {
-        await recordHabitCheckIn(item.payload);
-      } else if (item.type === 'DELETE') {
-        await removeHabitCheckIn(item.payload);
-      }
-    }
-  } catch (e) {
-    console.warn('[Habuilt Queue] Error flushing offline queue:', e);
+    queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+  } catch {
+    queue = [];
   }
+  if (!queue.length) return 0;
+
+  const remaining = [];
+  let flushed = 0;
+
+  for (const item of queue) {
+    try {
+      if (item.type === 'INSERT') {
+        const ok = await recordHabitCheckIn(item.payload);
+        if (ok) flushed++; else remaining.push(item);
+      } else if (item.type === 'DELETE') {
+        const ok = await removeHabitCheckIn(item.payload);
+        if (ok) flushed++; else remaining.push(item);
+      }
+    } catch {
+      remaining.push(item);
+    }
+  }
+
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+  } catch {}
+  return flushed;
 };
 
 if (typeof window !== 'undefined') {
@@ -402,109 +468,18 @@ if (typeof window !== 'undefined') {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 5. LEGACY FALLBACK API (Maintained for Backward Compatibility)
+// 5. LEGACY FALLBACK API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const loadUserMonthlyState = async (userId, monthKey) => {
-  if (!userId) return null;
-  const { data, error } = await supabase
-    .from('user_monthly_states')
-    .select('state_data')
-    .eq('user_id', userId)
-    .eq('month_key', monthKey)
-    .maybeSingle();
-
-  if (error) {
-    return null;
-  }
-  return data?.state_data || null;
-};
-
-export const saveUserMonthlyState = async (userId, monthKey, stateData) => {
-  if (!userId) return false;
-  
-  const { error } = await supabase
-    .from('user_monthly_states')
-    .upsert(
-      {
-        user_id: userId,
-        month_key: monthKey,
-        state_data: stateData,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id,month_key',
-      }
-    );
-
-  if (error) {
-    return false;
-  }
-  return true;
-};
-
-export const loadAllUserMonthlyStates = async (userId) => {
-  if (!userId) return [];
-  const { data, error } = await supabase
-    .from('user_monthly_states')
-    .select('month_key, state_data')
-    .eq('user_id', userId);
-
-  if (error) {
-    return [];
-  }
-  return data || [];
-};
-
-/**
- * Silently migrates completed days from legacy monthly JSON to normalized habit_check_ins.
- */
-export const silentBackfillLegacyState = async (userId, monthKey, habits) => {
-  if (!userId || !monthKey || !Array.isArray(habits)) return 0;
-
-  const rowsToInsert = [];
-  for (const habit of habits) {
-    if (!habit || !Array.isArray(habit.completed_days)) continue;
-    for (const d of habit.completed_days) {
-      const dayNum = Number(d);
-      if (dayNum >= 1 && dayNum <= 31) {
-        rowsToInsert.push({
-          user_id: userId,
-          habit_id: String(habit.id),
-          habit_name: habit.name || '',
-          month_key: monthKey,
-          day: dayNum,
-          completed_on: `${monthKey}-${String(dayNum).padStart(2, '0')}`,
-          points: Number(habit.points) || 1,
-          source: 'auto_backfill',
-          updated_at: new Date().toISOString(),
-        });
-      }
-    }
-  }
-
-  if (rowsToInsert.length === 0) return 0;
-
-  // Insert in batches of 50 with onConflict ignore
-  let count = 0;
-  for (let i = 0; i < rowsToInsert.length; i += 50) {
-    const chunk = rowsToInsert.slice(i, i + 50);
-    const { error } = await supabase
-      .from('habit_check_ins')
-      .upsert(chunk, { onConflict: 'user_id,habit_id,month_key,day', ignoreDuplicates: true });
-    if (!error) count += chunk.length;
-  }
-
-  return count;
-};
+export const loadUserMonthlyState = async () => null;
+export const saveUserMonthlyState = async () => false;
+export const loadAllUserMonthlyStates = async () => [];
+export const silentBackfillLegacyState = async () => 0;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6. USER BIOMARKERS & WELLNESS LOGS (Stiffness, Hydration, Energy)
+// 6. USER BIOMARKERS & WELLNESS LOGS (Hostinger KVM 2 PostgreSQL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Saves or updates a daily biomarker record for a user.
- */
 export const saveUserBiomarker = async ({
   userId,
   logDate,
@@ -524,59 +499,68 @@ export const saveUserBiomarker = async ({
     energy_level: energyLevel ? Number(energyLevel) : null,
     sleep_hours: Number(sleepHours) || 0,
     notes: notes || null,
-    updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from('user_biomarkers')
-    .upsert(payload, { onConflict: 'user_id,log_date' });
-
-  if (error) {
-    console.warn('[Habuilt Biomarkers] Error saving biomarker log:', error.message);
-    return false;
+  if (USE_LOCAL_API) {
+    const localRes = await callLocalApi('/api/user-biomarkers', 'POST', payload);
+    if (localRes && localRes.success) return true;
   }
 
-  return true;
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from('user_biomarkers').upsert({
+        ...payload,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,log_date' });
+      if (!error) return true;
+    } catch {}
+  }
+
+  return false;
 };
 
-/**
- * Loads recent biomarker records for a user.
- */
 export const loadUserBiomarkers = async (userId, limit = 30) => {
   if (!userId) return [];
 
-  const { data, error } = await supabase
-    .from('user_biomarkers')
-    .select('*')
-    .eq('user_id', userId)
-    .order('log_date', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.warn('[Habuilt Biomarkers] Note on loading biomarkers:', error.message);
-    return [];
+  if (USE_LOCAL_API) {
+    const localData = await callLocalApi(`/api/user-biomarkers?user_id=${encodeURIComponent(userId)}`);
+    if (Array.isArray(localData)) return localData;
   }
 
-  return data || [];
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('user_biomarkers')
+        .select('*')
+        .eq('user_id', userId)
+        .order('log_date', { ascending: false })
+        .limit(limit);
+      if (!error && Array.isArray(data)) return data;
+    } catch {}
+  }
+
+  return [];
 };
 
-/**
- * Loads today's biomarker record for a user.
- */
 export const loadLatestBiomarker = async (userId, logDate) => {
   if (!userId || !logDate) return null;
 
-  const { data, error } = await supabase
-    .from('user_biomarkers')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('log_date', logDate)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[Habuilt Biomarkers] Note on loading latest biomarker:', error.message);
-    return null;
+  if (USE_LOCAL_API) {
+    const localData = await callLocalApi(`/api/user-biomarkers?user_id=${encodeURIComponent(userId)}&latest=true`);
+    if (localData && typeof localData === 'object') return localData;
   }
 
-  return data || null;
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('user_biomarkers')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('log_date', logDate)
+        .maybeSingle();
+      if (!error && data) return data;
+    } catch {}
+  }
+
+  return null;
 };

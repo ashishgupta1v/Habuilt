@@ -3,8 +3,8 @@
     "file": "assets/landing-BFGrcExX.css",
     "src": "_landing-!~{006}~.js"
   },
-  "_landing-DDUCsrwM.js": {
-    "file": "assets/landing-DDUCsrwM.js",
+  "_landing-BErKScri.js": {
+    "file": "assets/landing-BErKScri.js",
     "name": "landing",
     "imports": [
       "_vendor-CFZMrAgt.js",
@@ -41,24 +41,24 @@
     ]
   },
   "index.html": {
-    "file": "assets/preview-CmKphp4d.js",
+    "file": "assets/preview-CWs8RDz1.js",
     "name": "preview",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_landing-DDUCsrwM.js",
+      "_landing-BErKScri.js",
       "_vendor-vue-CidW9hu6.js",
       "_vendor-CFZMrAgt.js",
       "_vendor-icons-B8IXHrW5.js"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-B-AFcD23.js",
+    "file": "assets/app-D883g1P_.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_landing-DDUCsrwM.js",
+      "_landing-BErKScri.js",
       "_vendor-vue-CidW9hu6.js",
       "_vendor-CFZMrAgt.js",
       "_vendor-icons-B8IXHrW5.js"

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, callLocalApi } from '@/lib/supabase';
 
 const LOCAL_PAIR_PREFIX = 'habuilt_partner_connection_';
 const LOCAL_INVITE_PREFIX = 'habuilt_my_invite_code_';
@@ -147,6 +147,29 @@ export async function getPartnerConnection(userId) {
   if (cached) {
     try {
       localConnection = JSON.parse(cached);
+    } catch (_) {}
+  }
+
+  // Local Hostinger KVM 2 API check (Primary)
+  if (!isGuestUser(userId)) {
+    try {
+      const records = await callLocalApi(`/api/partner-connections?user_id=${encodeURIComponent(userId)}`);
+      if (Array.isArray(records) && records.length > 0) {
+        const connected = records.find(r => r.status === 'connected');
+        if (connected) {
+          const isHost = connected.user_id === userId;
+          const connection = {
+            user_id: userId,
+            partner_user_id: isHost ? connected.partner_user_id : connected.user_id,
+            invite_code: connected.invite_code,
+            status: 'connected',
+            alias: connected.alias || 'Partner',
+            updated_at: connected.updated_at
+          };
+          localStorage.setItem(`${LOCAL_PAIR_PREFIX}${userId}`, JSON.stringify(connection));
+          return connection;
+        }
+      }
     } catch (_) {}
   }
 
