@@ -301,7 +301,7 @@ def run_advanced_tests():
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
-        page_mob.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page_mob.goto(BASE_URL, wait_until="domcontentloaded")
         page_mob.wait_for_selector(".mobile-compact-bar", timeout=10000)
         page_mob.wait_for_timeout(400)
 
