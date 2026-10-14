@@ -93,6 +93,15 @@ export const dispatchZoetiCoachEvent = async ({
 
     const data = await response.json().catch(() => ({}));
     console.debug('[ZoetiCoach Bridge] Event synced successfully:', data?.data?.event_id || 'OK');
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('zoeticoach:event-synced', {
+          detail: { payload, data, success: true, timestamp: Date.now() },
+        })
+      );
+    }
+
     return true;
   } catch (err) {
     // Graceful offline tolerance

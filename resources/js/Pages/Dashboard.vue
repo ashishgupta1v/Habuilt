@@ -50,6 +50,7 @@ import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 import SpotlightCommandModal from '@/Components/Modals/SpotlightCommandModal.vue';
 import WarriorIntelligenceCockpit from '@/Components/Intelligence/WarriorIntelligenceCockpit.vue';
+import ZoetiCoachAdherenceHud from '@/Components/Intelligence/ZoetiCoachAdherenceHud.vue';
 import DataBackupModal from '@/Components/Modals/DataBackupModal.vue';
 import CalendarSyncModal from '@/Components/Modals/CalendarSyncModal.vue';
 import PartnerSyncModal from '@/Components/Modals/PartnerSyncModal.vue';
@@ -3787,6 +3788,22 @@ onBeforeUnmount(() => {
           @navigate-tab="tab => activeMobileTab = tab"
         />
       </section>
+
+      <!-- ── SECTION: ZOETICOACH LIVE ADHERENCE & AI INSIGHTS HUD ── -->
+      <ZoetiCoachAdherenceHud
+        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :user-id="effectiveUserId"
+        :display-name="displayName"
+        :current-day="props.currentDay"
+        :consistency-score="consistencyScore"
+        :system-streak="systemStreak"
+        :today-completed-count="todayCompletedCount"
+        :today-scheduled-count="todayScheduledCount"
+        :today-habits="todayScheduledHabits"
+        @toast="p => showToast(typeof p === 'string' ? p : p.message)"
+      />
 
       <!-- ── SECTION: WARRIOR INTELLIGENCE COCKPIT (Circadian Battle Plan, Keystone Analysis & Biometrics) ── -->
       <WarriorIntelligenceCockpit
