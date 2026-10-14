@@ -287,13 +287,23 @@ const {
 const isAshishProtocol = computed(() => {
   const pId = activeProtocolId.value || activeProtocol.value?.id;
   const pKey = activeProtocol.value?.key;
-  return pId === 'archetype-ashish' || pId === 'ashishMaster' || pKey === 'ashish-master' || pKey === 'ashishMaster';
+  const matchesAshish = pId === 'archetype-ashish' || pId === 'ashishMaster' || pKey === 'ashish-master' || pKey === 'ashishMaster';
+  if (matchesAshish) return true;
+  const email = (resolvedEmail.value || '').toLowerCase().trim();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
+  if ((email === 'ashishgupta1v@gmail.com' || uid === 'ashish') && pId !== 'archetype-jyoti' && pKey !== 'jyoti-master') return true;
+  return false;
 });
 
 const isJyotiProtocol = computed(() => {
   const pId = activeProtocolId.value || activeProtocol.value?.id;
   const pKey = activeProtocol.value?.key;
-  return pId === 'archetype-jyoti' || pId === 'jyotiMaster' || pKey === 'jyoti-master' || pKey === 'jyotiMaster';
+  const matchesJyoti = pId === 'archetype-jyoti' || pId === 'jyotiMaster' || pKey === 'jyoti-master' || pKey === 'jyotiMaster';
+  if (matchesJyoti) return true;
+  const email = (resolvedEmail.value || '').toLowerCase().trim();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
+  if ((email === 'goyaljyoti007@gmail.com' || uid === 'jyoti') && pId !== 'archetype-ashish' && pKey !== 'ashish-master') return true;
+  return false;
 });
 
 // Backward-compatible computed aliases
@@ -498,8 +508,8 @@ const activeProtocolDisplayName = computed(() => {
 });
 
 const fallbackHabits = computed(() => {
-  // If active protocol is ashishMaster, apply day-type schedules
-  if (isAshishProtocol.value) {
+  // If active protocol is ashishMaster or user is Ashish, apply dual-track day schedules
+  if (isAshishProtocol.value || (isAshish.value && !isJyotiProtocol.value)) {
     switch (dayType.value) {
       case 'office-mon': return ashishTravelHabits;     // Mon: Ludhiana→CHD (long drive + Panchkula stay)
       case 'office-mid': return ashishOfficeMidHabits;  // Tue–Thu: Panchkula flat→office (30m) + solo evening
@@ -510,7 +520,7 @@ const fallbackHabits = computed(() => {
     }
   }
 
-  if (isJyotiProtocol.value) {
+  if (isJyotiProtocol.value || (isJyoti.value && !isAshishProtocol.value)) {
     return jyotiHabits;
   }
 
@@ -2731,7 +2741,7 @@ const calculateHistoricalTotals = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-08-29-v12-routine-sync-aligned';
+const PRESET_VERSION = '2026-10-14-v14-ashish-master-full-aligned';
 
 const loadLocalState = () => {
   try {

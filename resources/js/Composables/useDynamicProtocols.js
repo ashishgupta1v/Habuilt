@@ -182,8 +182,30 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
 
   // Active protocol resolution
   const activeProtocol = computed(() => {
+    // Determine user identity upfront
+    const lowerEmail = String(userEmail || '').toLowerCase().trim();
+    let cachedEmail = '';
+    let emailOverride = '';
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+        cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
+        emailOverride = localStorage.getItem('habuilt_protocol_email_override') || '';
+      }
+    } catch (_) {}
+
+    const isAshishUser = lowerEmail === 'ashishgupta1v@gmail.com' || cachedEmail === 'ashishgupta1v@gmail.com' || String(userId || '').toLowerCase() === 'ashish' || defaultArchetypeId === true || emailOverride === 'ashish';
+    const isJyotiUser = lowerEmail === 'goyaljyoti007@gmail.com' || cachedEmail === 'goyaljyoti007@gmail.com' || String(userId || '').toLowerCase() === 'jyoti' || legacyJyotiParam === true || emailOverride === 'jyoti';
+
     // 1. If activeProtocolId is explicitly set, find in all protocols
     if (activeProtocolId.value) {
+      // If Ashish or Jyoti has an accidental generic/founder preset saved in localStorage, route to their master protocol
+      if (isAshishUser && (activeProtocolId.value === 'archetype-founder' || activeProtocolId.value === 'default')) {
+        return PROTOCOL_ARCHETYPES.ashishMaster;
+      }
+      if (isJyotiUser && (activeProtocolId.value === 'archetype-founder' || activeProtocolId.value === 'default')) {
+        return PROTOCOL_ARCHETYPES.jyotiMaster;
+      }
       const found = allProtocols.value.find(p => p.id === activeProtocolId.value || p.key === activeProtocolId.value);
       if (found) return found;
     }
@@ -194,43 +216,15 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       if (found) return found;
     }
 
-    // 3. Handle backward compatibility for legacy boolean flags (isAshish, isJyoti)
-    if (defaultArchetypeId === true) {
+    // 3. User Identity Resolution
+    if (isAshishUser) {
       return PROTOCOL_ARCHETYPES.ashishMaster;
     }
-    if (legacyJyotiParam === true) {
+    if (isJyotiUser) {
       return PROTOCOL_ARCHETYPES.jyotiMaster;
     }
 
-    // 4. Backward-compatible default for legacy user IDs (string name)
-    const lowerUid = String(userId || '').toLowerCase();
-    if (lowerUid === 'ashish') {
-      return PROTOCOL_ARCHETYPES.ashishMaster;
-    }
-    if (lowerUid === 'jyoti') {
-      return PROTOCOL_ARCHETYPES.jyotiMaster;
-    }
-
-    // 5. Email-based detection — resolves correctly even when userId is a Supabase UUID
-    const lowerEmail = String(userEmail || '').toLowerCase().trim();
-    if (lowerEmail === 'ashishgupta1v@gmail.com') return PROTOCOL_ARCHETYPES.ashishMaster;
-    if (lowerEmail === 'goyaljyoti007@gmail.com') return PROTOCOL_ARCHETYPES.jyotiMaster;
-
-    // 6. Email-based detection via cached localStorage user object (offline / hydration)
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-        const cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
-        if (cachedEmail === 'ashishgupta1v@gmail.com') return PROTOCOL_ARCHETYPES.ashishMaster;
-        if (cachedEmail === 'goyaljyoti007@gmail.com') return PROTOCOL_ARCHETYPES.jyotiMaster;
-        // Check explicit email-to-protocol override written at login
-        const emailOverride = localStorage.getItem('habuilt_protocol_email_override');
-        if (emailOverride === 'ashish') return PROTOCOL_ARCHETYPES.ashishMaster;
-        if (emailOverride === 'jyoti') return PROTOCOL_ARCHETYPES.jyotiMaster;
-      }
-    } catch (_) {}
-
-    // 7. Universal default for new / guest / standard users: Founder Executive
+    // 4. Universal default for new / guest / standard users: Founder Executive
     return PROTOCOL_ARCHETYPES.founder;
   });
 

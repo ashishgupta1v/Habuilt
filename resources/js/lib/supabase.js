@@ -135,7 +135,18 @@ export const recordHabitCheckIn = async ({
           },
           { onConflict: 'user_id,habit_id,month_key,day' }
         );
-      if (!error) return true;
+      if (!error) {
+        dispatchZoetiCoachEvent({
+          externalParticipantId: userId,
+          eventType: 'habit_completed',
+          eventValue: habitName,
+          habitId: habitId,
+          points: points,
+          occurredAt: dateStr,
+          source: source,
+        }).catch(() => {});
+        return true;
+      }
     } catch {}
   }
 
@@ -197,7 +208,18 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => 
         .eq('habit_id', String(habitId))
         .eq('month_key', monthKey)
         .eq('day', Number(day));
-      if (!error) return true;
+      if (!error) {
+        dispatchZoetiCoachEvent({
+          externalParticipantId: userId,
+          eventType: 'habit_unmarked',
+          eventValue: String(habitId),
+          habitId: habitId,
+          points: 0,
+          occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
+          source: 'web',
+        }).catch(() => {});
+        return true;
+      }
     } catch {}
   }
 

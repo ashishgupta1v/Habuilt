@@ -70,7 +70,7 @@ export const ashishHabits = [
   { id: 'a-83', name: '18:30 Saturday Fitness Walk & Sunset Posture Reset (45m)', points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: '45m brisk outdoor walk at sunset. Posture reset and spinal decompression.' },
   { id: 'a-84', name: '19:15 Saturday Wholesome Dinner & Walk', points: 1, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Wholesome dinner + 10m digestive walk.' },
   { id: 'a-85', name: '20:00 Saturday Night Laptop Sprint (60m to 21:00 Shutdown)', points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Code commits, PR reviews, daily wrap. Hard shutdown at 21:00 sharp.' },
-  { id: 'a-59', name: '★ Weekend Couple Time & Relaxed Connection with Jyoti (90 min)', points: 3, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Protected Saturday daytime couple connection: quality conversation, tea together, relaxed shared activities.' },
+  { id: 'a-59', name: '16:30 ★ Weekend Couple Time & Relaxed Connection with Jyoti (90 min)', points: 3, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Protected Saturday daytime couple connection: quality conversation, tea together, relaxed shared activities.' },
 
   // ── SUNDAY SPRINT & MILESTONE SPECIALIZATIONS ──
   { id: 'a-86', name: '08:00 Sunday Early Laptop Build (1.5h)', points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Early feature development and tech backlog clearance for businesses.' },
@@ -140,177 +140,177 @@ export const jyotiHabits = [
 // ── Track 2: Chandigarh Solo Sprint — Monday Transit, Infosys 4h Shift & Flat Build Studio ──
 export const ashishTravelHabits = [
   // ── PRE-DEPARTURE 04:45–05:30 ──
-  { id: 'at-1',  name: '04:45 Bed Spinal Mobility (10 min)', points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist. Essential spinal decompression before sitting for 3-hour transit.' },
-  { id: 'at-2',  name: '04:55 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, hint: 'Warm water with lemon. Take sublingual B12 (1000 mcg) and Alpha Lipoic Acid on empty stomach.' },
-  { id: 'at-3',  name: '05:00 Sudarshan Kriya & MOVERS Sadhana (20 min)', points: 2, hint: 'Pranayama, Bhastrika rounds, Sudarshan Kriya, deep silence & stiffness log.' },
-  { id: 'at-4',  name: '05:20 Light Snack, Hydration & Car Load (Lumbar Cushion)', points: 1, hint: 'Light snack/nuts, pack 2L mineral bottle (salt + lemon), prepped food, and lumbar cushion in driver seat.' },
+  { id: 'at-1',  name: '04:45 Bed Spinal Mobility (10 min)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist. Essential spinal decompression before sitting for 3-hour transit.' },
+  { id: 'at-2',  name: '04:55 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Warm water with lemon. Take sublingual B12 (1000 mcg) and Alpha Lipoic Acid on empty stomach.' },
+  { id: 'at-3',  name: '05:00 Sudarshan Kriya & MOVERS Sadhana (20 min)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Pranayama, Bhastrika rounds, Sudarshan Kriya, deep silence & stiffness log.' },
+  { id: 'at-4',  name: '05:20 Light Snack, Hydration & Car Load (Lumbar Cushion)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Light snack/nuts, pack 2L mineral bottle (salt + lemon), prepped food, and lumbar cushion in driver seat.' },
 
   // ── TRANSIT & INFOSYS 4H SHIFT 05:30–13:00 ──
-  { id: 'at-9',  name: '05:30 Outbound Drive: Ludhiana → Chandigarh (Audio/Calls)', points: 2, hint: '05:30–08:45 drive with active lumbar cushion behind lower back. Steady hydration sips.' },
-  { id: 'at-10', name: '08:45 3-Min Standing Back Extension on Arrival', points: 1, hint: 'Before entering campus. Decompresses lower back after 3-hour transit drive.' },
-  { id: 'at-11', name: '09:00 ★ Infosys On-Site 4h Shift (09:00–13:00)', points: 3, hint: 'High-focus office deliverables. Stand every 45 min; preservative-free eye drops at 09:30 & 12:00.' },
+  { id: 'at-9',  name: '05:30 Outbound Drive: Ludhiana → Chandigarh (Audio/Calls)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: '05:30–08:45 drive with active lumbar cushion behind lower back. Steady hydration sips.' },
+  { id: 'at-10', name: '08:45 3-Min Standing Back Extension on Arrival', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Before entering campus. Decompresses lower back after 3-hour transit drive.' },
+  { id: 'at-11', name: '09:00 ★ Infosys On-Site 4h Shift (09:00–13:00)', points: 3, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'High-focus office deliverables. Stand every 45 min; preservative-free eye drops at 09:30 & 12:00.' },
 
   // ── FLAT STUDIO AFTERNOON & BUILD SPRINTS 13:00–18:15 ──
-  { id: 'at-12', name: '13:00 Drive to Flat & Standing Extension (30m)', points: 1, hint: 'Drive from campus to flat. 3-minute standing back extension before entering.' },
-  { id: 'at-13', name: '13:30 Unpack, Eat Ludhiana Lunch & Studio Desk Setup', points: 1, hint: 'Unpack bags, eat packed home lunch from Ludhiana, humidifier ON, laptop stand adjusted.' },
-  { id: 'at-14', name: '14:15 ★ Afternoon Laptop Build Block (2.0h) — Businesses', points: 3, hint: 'All afternoon free time routes straight into laptop engineering for ZoetiCoach & Digital Builders.' },
-  { id: 'at-15', name: '16:15 ★ Business Meetings / Build Window (2.0h, Alternate Days)', points: 2, hint: 'Alternate Days: 2h business meetings (online from flat or physical in tricity). Non-meeting days: deep build sprint.' },
+  { id: 'at-12', name: '13:00 Drive to Flat & Standing Extension (30m)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Drive from campus to flat. 3-minute standing back extension before entering.' },
+  { id: 'at-13', name: '13:30 Unpack, Eat Ludhiana Lunch & Studio Desk Setup', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Unpack bags, eat packed home lunch from Ludhiana, humidifier ON, laptop stand adjusted.' },
+  { id: 'at-14', name: '14:15 ★ Afternoon Laptop Build Block (2.0h) — Businesses', points: 3, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'All afternoon free time routes straight into laptop engineering for ZoetiCoach & Digital Builders.' },
+  { id: 'at-15', name: '16:15 ★ Business Meetings / Build Window (2.0h, Alternate Days)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Alternate Days: 2h business meetings (online from flat or physical in tricity). Non-meeting days: deep build sprint.' },
 
   // ── EVENING FITNESS, OFFICE WRAP & 21:00 SHUTDOWN 18:15–22:00 ──
-  { id: 'at-16', name: '18:15 Outdoor Fitness Walk in Neighborhood (45m)', points: 2, hint: '45m brisk outdoor walk at sunset. Distant horizon gaze & spinal decompression in fresh air.' },
-  { id: 'at-17', name: '19:00 ★ Infosys Evening Office Block (75m from Flat)', points: 2, hint: 'Online office syncs, team check-ins, and closing daily deliverables from flat.' },
-  { id: 'at-18', name: '20:15 Quick 1-Pot Dinner & Laptop Wrap', points: 1, hint: 'Simple high-protein 1-pot dinner (soya/paneer) + 10m stroll. Wrap daily notes and commits.' },
-  { id: 'at-19', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, hint: 'All laptop work strictly concludes at 21:00. Non-negotiable screen-free buffer.' },
-  { id: 'at-20', name: '21:00 Flat Reset & Magnesium Glycinate Drink', points: 1, hint: 'Wash dishes immediately (chore zero-state), desk reset, magnesium glycinate in warm water.' },
-  { id: 'at-21', name: '21:30 Spinal Wind-Down & Heated Eye Mask (20m)', points: 1, hint: '10m supine twists/legs-up-the-wall + 10m heated eye mask over closed lids.' },
-  { id: 'at-22', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, hint: 'In bed with complete darkness. 7 hours of sleep protected for tomorrow morning build.' },
+  { id: 'at-16', name: '18:15 Outdoor Fitness Walk in Neighborhood (45m)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: '45m brisk outdoor walk at sunset. Distant horizon gaze & spinal decompression in fresh air.' },
+  { id: 'at-17', name: '19:00 ★ Infosys Evening Office Block (75m from Flat)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Online office syncs, team check-ins, and closing daily deliverables from flat.' },
+  { id: 'at-18', name: '20:15 Quick 1-Pot Dinner & Laptop Wrap', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Simple high-protein 1-pot dinner (soya/paneer) + 10m stroll. Wrap daily notes and commits.' },
+  { id: 'at-19', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'All laptop work strictly concludes at 21:00. Non-negotiable screen-free buffer.' },
+  { id: 'at-20', name: '21:00 Flat Reset & Magnesium Glycinate Drink', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Wash dishes immediately (chore zero-state), desk reset, magnesium glycinate in warm water.' },
+  { id: 'at-21', name: '21:30 Spinal Wind-Down & Heated Eye Mask (20m)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: '10m supine twists/legs-up-the-wall + 10m heated eye mask over closed lids.' },
+  { id: 'at-22', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'In bed with complete darkness. 7 hours of sleep protected for tomorrow morning build.' },
 
   // ── HEALTH & FLAT DISCIPLINES ──
-  { id: 'at-25', name: '3.0L Daily Hydration Rail Logged (2L Bottle in Car)', points: 1, hint: 'Keep 2L bottle in car. Sip throughout transit and flat. Never fridge-cold.' },
-  { id: 'at-28', name: 'Clean 1-Pot Whole Food Nutrition (Zero Junk)', points: 1, hint: 'Zero junk food. Clean, warm, high-protein 1-pot meals only on travel days.' },
+  { id: 'at-25', name: '3.0L Daily Hydration Rail Logged (2L Bottle in Car)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Keep 2L bottle in car. Sip throughout transit and flat. Never fridge-cold.' },
+  { id: 'at-28', name: 'Clean 1-Pot Whole Food Nutrition (Zero Junk)', points: 1, daysOfWeek: [1], scheduleLabel: 'Mon Transit',hint: 'Zero junk food. Clean, warm, high-protein 1-pot meals only on travel days.' },
 ];
 
 // ── Track 2: Chandigarh Solo Sprint — Tuesday–Thursday (Flat Studio + Infosys 4h) ──
 export const ashishOfficeMidHabits = [
   // ── MORNING SADHANA & VITALITY 05:00–08:00 ──
-  { id: 'ao-1',  name: '05:00 Bed Spinal Mobility (10 min)', points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist. Decompress spine before feet touch floor.' },
-  { id: 'ao-2',  name: '05:10 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, hint: 'Sublingual B12 (1000 mcg) and Alpha Lipoic Acid with warm lemon water.' },
-  { id: 'ao-3',  name: '05:15 MOVERS Sadhana (Padma Sadhana, Kriya & Meditation)', points: 2, hint: 'Padma Sadhana (20m) → Sudarshan Kriya (15m) → Meditation (10m) at flat.' },
-  { id: 'ao-4',  name: '06:00 Workout / Spine Yoga & Shower (35m)', points: 2, hint: 'Core calisthenics or gentle spine yoga (zero heavy spinal loads) → Warm shower.' },
-  { id: 'ao-7',  name: '07:05 Clean Breakfast & Quick 1-Pot Prep (Flaxseed)', points: 1, hint: 'Papaya, soaked nuts, clean protein + 2 tbsp ground flaxseed. 10m walk + quick meal prep.' },
+  { id: 'ao-1',  name: '05:00 Bed Spinal Mobility (10 min)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist. Decompress spine before feet touch floor.' },
+  { id: 'ao-2',  name: '05:10 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Sublingual B12 (1000 mcg) and Alpha Lipoic Acid with warm lemon water.' },
+  { id: 'ao-3',  name: '05:15 MOVERS Sadhana (Padma Sadhana, Kriya & Meditation)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Padma Sadhana (20m) → Sudarshan Kriya (15m) → Meditation (10m) at flat.' },
+  { id: 'ao-4',  name: '06:00 Workout / Spine Yoga & Shower (35m)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Core calisthenics or gentle spine yoga (zero heavy spinal loads) → Warm shower.' },
+  { id: 'ao-7',  name: '07:05 Clean Breakfast & Quick 1-Pot Prep (Flaxseed)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Papaya, soaked nuts, clean protein + 2 tbsp ground flaxseed. 10m walk + quick meal prep.' },
 
   // ── MORNING LAPTOP BUILD BLOCK AT FLAT 08:00–10:30 (2.5h) ──
-  { id: 'ao-14', name: '08:00 ★ MORNING LAPTOP BUILD BLOCK (2.5h Uninterrupted)', points: 3, hint: 'All morning free time channels into heavy coding, architecture and features for ZoetiCoach & Digital Builders at flat.' },
+  { id: 'ao-14', name: '08:00 ★ MORNING LAPTOP BUILD BLOCK (2.5h Uninterrupted)', points: 3, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'All morning free time channels into heavy coding, architecture and features for ZoetiCoach & Digital Builders at flat.' },
 
   // ── INFOSYS 4H ON-SITE SHIFT 10:30–15:00 ──
-  { id: 'ao-9',  name: '10:30 Drive Flat → Infosys Campus (30 min)', points: 1, hint: 'Drive to Infosys campus with active lumbar cushion.' },
-  { id: 'ao-10', name: '11:00 ★ Infosys 4h On-Site Shift (11:00–15:00)', points: 3, hint: 'High-intensity office deliverables. Stand every 45 min; eye drops at 11:30 & 14:00.' },
-  { id: 'ao-12', name: '15:00 Drive Infosys Campus → Flat (30 min)', points: 1, hint: 'Drive back to flat. 3-min standing back extension upon arrival.' },
-  { id: 'ao-13', name: '15:30 Quick Chore Check & Async Office Wrap (45m)', points: 1, hint: 'Zero-state kitchen check, hydration refill, quick async check.' },
+  { id: 'ao-9',  name: '10:30 Drive Flat → Infosys Campus (30 min)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Drive to Infosys campus with active lumbar cushion.' },
+  { id: 'ao-10', name: '11:00 ★ Infosys 4h On-Site Shift (11:00–15:00)', points: 3, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'High-intensity office deliverables. Stand every 45 min; eye drops at 11:30 & 14:00.' },
+  { id: 'ao-12', name: '15:00 Drive Infosys Campus → Flat (30 min)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Drive back to flat. 3-min standing back extension upon arrival.' },
+  { id: 'ao-13', name: '15:30 Quick Chore Check & Async Office Wrap (45m)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Zero-state kitchen check, hydration refill, quick async check.' },
 
   // ── PRIME BUSINESS SPRINT & MEETINGS 16:15–18:15 ──
-  { id: 'ao-17', name: '16:15 ★ PRIME BUSINESS SPRINT & MEETINGS (2.0h)', points: 3, hint: 'Alternate Days: 2h Business Meetings (physical in tricity or online). Non-meeting days: deep laptop build.' },
+  { id: 'ao-17', name: '16:15 ★ PRIME BUSINESS SPRINT & MEETINGS (2.0h)', points: 3, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Alternate Days: 2h Business Meetings (physical in tricity or online). Non-meeting days: deep laptop build.' },
 
   // ── EVENING FITNESS, OFFICE WRAP & 21:00 SHUTDOWN 18:15–22:00 ──
-  { id: 'ao-23', name: '18:15 Outdoor Fitness Walk in Fresh Air (45m)', points: 2, hint: '45m brisk walk at sunset. Distant gaze and spinal decompression.' },
-  { id: 'ao-20', name: '19:00 ★ Infosys Evening Office Block (75m from Flat)', points: 2, hint: 'Evening office meetings, syncs, and closing daily deliverables from flat.' },
-  { id: 'ao-24', name: '20:15 Simple 1-Pot Dinner with Soy Protein & Wrap', points: 1, hint: '20:00 Isabgol → Simple 1-pot dinner with soya/paneer + 10m digestive walk. Daily wrap.' },
-  { id: 'ao-21', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, hint: 'Hard laptop power off. Zero screens. 60-minute wind-down buffer before sleep.' },
-  { id: 'ao-28', name: '21:00 Space Reset & Magnesium Glycinate Drink', points: 1, hint: 'Immediate chore zero-state (clean plates/pots), magnesium glycinate in warm water.' },
-  { id: 'ao-25', name: '21:30 Spinal Stretch & Heated Eye Mask (20m)', points: 1, hint: '10m supine twists/legs-up-wall + 10m heated eye mask over closed lids.' },
-  { id: 'ao-29', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, hint: 'In bed with lights out by 22:00 sharp.' },
+  { id: 'ao-23', name: '18:15 Outdoor Fitness Walk in Fresh Air (45m)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: '45m brisk walk at sunset. Distant gaze and spinal decompression.' },
+  { id: 'ao-20', name: '19:00 ★ Infosys Evening Office Block (75m from Flat)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Evening office meetings, syncs, and closing daily deliverables from flat.' },
+  { id: 'ao-24', name: '20:15 Simple 1-Pot Dinner with Soy Protein & Wrap', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: '20:00 Isabgol → Simple 1-pot dinner with soya/paneer + 10m digestive walk. Daily wrap.' },
+  { id: 'ao-21', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Hard laptop power off. Zero screens. 60-minute wind-down buffer before sleep.' },
+  { id: 'ao-28', name: '21:00 Space Reset & Magnesium Glycinate Drink', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Immediate chore zero-state (clean plates/pots), magnesium glycinate in warm water.' },
+  { id: 'ao-25', name: '21:30 Spinal Stretch & Heated Eye Mask (20m)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: '10m supine twists/legs-up-wall + 10m heated eye mask over closed lids.' },
+  { id: 'ao-29', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'In bed with lights out by 22:00 sharp.' },
 
   // ── HEALTH & FLAT DISCIPLINES ──
-  { id: 'ao-30', name: '3.0L Daily Water Protocol (Warm/Room Temp)', points: 1, hint: 'Keep 2L bottle at flat & campus. Sip throughout. Never fridge-cold.' },
-  { id: 'ao-32', name: 'Movement Break Every 45 Minutes', points: 1, hint: 'Repeating timer. Stand, walk 2-3m, gentle standing backward extension.' },
-  { id: 'ao-33', name: '1-Pot High-Nutrient Nutrition (Zero Junk)', points: 1, hint: 'Clean whole foods. No junk food or processed snacks.' },
+  { id: 'ao-30', name: '3.0L Daily Water Protocol (Warm/Room Temp)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Keep 2L bottle at flat & campus. Sip throughout. Never fridge-cold.' },
+  { id: 'ao-32', name: 'Movement Break Every 45 Minutes', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Repeating timer. Stand, walk 2-3m, gentle standing backward extension.' },
+  { id: 'ao-33', name: '1-Pot High-Nutrient Nutrition (Zero Junk)', points: 1, daysOfWeek: [2, 3, 4], scheduleLabel: 'Tue–Thu',hint: 'Clean whole foods. No junk food or processed snacks.' },
 ];
 
 // ── Track 2: Chandigarh Solo Sprint — Friday (Checkout, Infosys Shift & Return Drive) ──
 export const ashishOfficeFriHabits = [
   // ── MORNING & FLAT CHECKOUT 05:00–09:30 ──
-  { id: 'af-1',  name: '05:00 Bed Spinal Mobility & Morning Sadhana', points: 2, hint: 'Spinal mobility → Warm water + B12/ALA → MOVERS Sadhana at flat.' },
-  { id: 'af-7',  name: '07:05 Clean Breakfast + Flaxseed & Grooming', points: 1, hint: 'Nutrient-dense breakfast + 2 tbsp ground flaxseed. Warm shower.' },
-  { id: 'af-8',  name: '08:30 Flat Checkout & Packing (Chore Zero-State)', points: 1, hint: 'Pack bags, clean kitchen, clear trash, lock flat, load car with lumbar cushion.' },
-  { id: 'af-9',  name: '09:30 Drive Flat → Infosys Campus (30 min)', points: 1, hint: 'Drive to campus with active lumbar support.' },
+  { id: 'af-1',  name: '05:00 Bed Spinal Mobility & Morning Sadhana', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Spinal mobility → Warm water + B12/ALA → MOVERS Sadhana at flat.' },
+  { id: 'af-7',  name: '07:05 Clean Breakfast + Flaxseed & Grooming', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Nutrient-dense breakfast + 2 tbsp ground flaxseed. Warm shower.' },
+  { id: 'af-8',  name: '08:30 Flat Checkout & Packing (Chore Zero-State)', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Pack bags, clean kitchen, clear trash, lock flat, load car with lumbar cushion.' },
+  { id: 'af-9',  name: '09:30 Drive Flat → Infosys Campus (30 min)', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Drive to campus with active lumbar support.' },
 
   // ── INFOSYS 4H SHIFT 10:00–14:00 ──
-  { id: 'af-10', name: '10:00 ★ Infosys 4h Shift: Weekly Deliverables Wrap', points: 3, hint: '10:00–14:00 weekly deliverables wrap. Stand every 45 min; eye drops at 10:30 & 13:00.' },
+  { id: 'af-10', name: '10:00 ★ Infosys 4h Shift: Weekly Deliverables Wrap', points: 3, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: '10:00–14:00 weekly deliverables wrap. Stand every 45 min; eye drops at 10:30 & 13:00.' },
 
   // ── RETURN DRIVE TO LUDHIANA (2:00–5:00 PM) 14:00–17:00 ──
-  { id: 'af-12', name: '14:00 ★ RETURN DRIVE TO LUDHIANA (14:00–17:00)', points: 2, hint: 'Drive CHD → Ludhiana (2:00–5:00 PM). Active lumbar cushion, educational podcasts, steady hydration.' },
+  { id: 'af-12', name: '14:00 ★ RETURN DRIVE TO LUDHIANA (14:00–17:00)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Drive CHD → Ludhiana (2:00–5:00 PM). Active lumbar cushion, educational podcasts, steady hydration.' },
 
   // ── HOMECOMING & EVENING 17:00–22:00 ──
-  { id: 'af-13', name: '17:00 Home Arrival & 15m Spinal Decompression', points: 1, hint: 'Arrive Ludhiana home. 15m spinal foam rolling and legs-up-the-wall after drive.' },
-  { id: 'af-16', name: '17:30 ★ HOMECOMING LAPTOP BUILD (45m) — Businesses', points: 2, hint: 'Channel evening free time into laptop development for ZoetiCoach & Digital Builders.' },
-  { id: 'af-21', name: '18:15 Outdoor Fitness Walk & Sunset Posture Reset (45m)', points: 2, hint: '45m brisk outdoor walk at sunset. Horizon view and spinal decompression.' },
-  { id: 'af-18', name: '19:00 Weekly Office Handoffs & Syncs (75m)', points: 2, hint: 'Close weekly office threads and syncs (or weekend transition).' },
-  { id: 'af-23', name: '20:15 Wholesome Dinner & Daily Wrap', points: 1, hint: 'Wholesome dinner with family + 10m digestive stroll. Daily wrap.' },
-  { id: 'af-20', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, hint: 'Strict 21:00 laptop shutdown. Disconnect completely for the weekend.' },
-  { id: 'af-27', name: '21:00 Home Comfort Wind-Down & Magnesium Drink', points: 1, hint: 'Magnesium glycinate in warm water/haldi milk. Reflect on wins.' },
-  { id: 'af-28', name: '21:30 Spinal Wind-Down & Heated Eye Mask (20m)', points: 1, hint: 'Supine twist, legs up wall, 10m heated eye compress over closed eyelids.' },
-  { id: 'af-29', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, hint: 'Lights out by 22:00. Welcome home restorative sleep.' },
+  { id: 'af-13', name: '17:00 Home Arrival & 15m Spinal Decompression', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Arrive Ludhiana home. 15m spinal foam rolling and legs-up-the-wall after drive.' },
+  { id: 'af-16', name: '17:30 ★ HOMECOMING LAPTOP BUILD (45m) — Businesses', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Channel evening free time into laptop development for ZoetiCoach & Digital Builders.' },
+  { id: 'af-21', name: '18:15 Outdoor Fitness Walk & Sunset Posture Reset (45m)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: '45m brisk outdoor walk at sunset. Horizon view and spinal decompression.' },
+  { id: 'af-18', name: '19:00 Weekly Office Handoffs & Syncs (75m)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Close weekly office threads and syncs (or weekend transition).' },
+  { id: 'af-23', name: '20:15 Wholesome Dinner & Daily Wrap', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Wholesome dinner with family + 10m digestive stroll. Daily wrap.' },
+  { id: 'af-20', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Strict 21:00 laptop shutdown. Disconnect completely for the weekend.' },
+  { id: 'af-27', name: '21:00 Home Comfort Wind-Down & Magnesium Drink', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Magnesium glycinate in warm water/haldi milk. Reflect on wins.' },
+  { id: 'af-28', name: '21:30 Spinal Wind-Down & Heated Eye Mask (20m)', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Supine twist, legs up wall, 10m heated eye compress over closed eyelids.' },
+  { id: 'af-29', name: '22:00 In Bed — Lights Out (7h Restorative Sleep)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Lights out by 22:00. Welcome home restorative sleep.' },
 
   // ── HEALTH & FINANCE ──
-  { id: 'af-30', name: '3.0L Daily Water Protocol (2L Bottle in Car)', points: 1, hint: 'Keep 2L bottle in car. Sip throughout transit. Never fridge-cold.' },
-  { id: 'af-34', name: '25% Tax Set-Aside Transfer (44ADA)', points: 2, hint: 'Friday finance: transfer 25% of contract/professional receipts to untouchable tax reserve.' },
+  { id: 'af-30', name: '3.0L Daily Water Protocol (2L Bottle in Car)', points: 1, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Keep 2L bottle in car. Sip throughout transit. Never fridge-cold.' },
+  { id: 'af-34', name: '25% Tax Set-Aside Transfer (44ADA)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Return',hint: 'Friday finance: transfer 25% of contract/professional receipts to untouchable tax reserve.' },
 ];
 
 // ── Ashish Half-Day Routine (WFH Ludhiana — Light Office + Business Build Sprints) ──
 export const ashishHalfDayHabits = [
   // ── MORNING 04:45–08:30 ──
-  { id: 'a-64', name: '04:45 Bed Spinal Mobility (10 min)', points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist.' },
-  { id: 'a-1',  name: '04:55 Alarm — Out of Bed', points: 1, hint: 'Zero snooze. Hydrate immediately.' },
-  { id: 'a-2',  name: '04:55 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, hint: 'B12 (1000 mcg) + ALA with warm lemon water.' },
-  { id: 'a-5',  name: '05:00 MOVERS Sadhana — Padma Sadhana & Surya Namaskar (20 min)', points: 2, hint: 'Padma Sadhana sequence + 4-6 slow Surya Namaskars.' },
-  { id: 'a-55', name: '05:20 MOVERS Sadhana — Sudarshan Kriya & Pranayama (15 min)', points: 1, hint: 'Sudarshan Kriya and oxygenation.' },
-  { id: 'a-54', name: '05:35 MOVERS Sadhana — Meditation & Deep Silence (10 min)', points: 1, hint: 'Silent stillness post-Kriya.' },
-  { id: 'a-3',  name: '06:00 Natural Sunlight & Horizon View (5 min)', points: 1, hint: 'Circadian light reset.' },
-  { id: 'a-4',  name: '06:05 Workout — Core & Calisthenics (30 min)', points: 2, hint: 'Core stability and calisthenics (zero heavy barbells).' },
-  { id: 'a-7',  name: '06:35 10-Min Post-Workout Stretch & Foam Roll', points: 1, hint: 'Foam roll thoracic spine, hip flexors, hamstrings.' },
-  { id: 'a-66', name: '06:45 Warm Sesame Abhyanga Joint Massage (10 min)', points: 1, hint: 'Warm sesame oil on joints and back.' },
-  { id: 'a-9',  name: '06:55 Warm Shower & Morning Grooming', points: 1, hint: 'Warm bath and scalp care.' },
-  { id: 'a-8',  name: '07:05 Clean Breakfast + Flaxseed (2 tbsp)', points: 1, hint: 'Soaked nuts, papaya, protein, ground flaxseed.' },
-  { id: 'a-67', name: '07:25 Post-Breakfast Walk (10 min)', points: 1, hint: 'Glucose blunting walk.' },
-  { id: 'a-61', name: '07:35 Hydration Rail Setup (Fill 2L Bottle)', points: 1, hint: 'Fill 2L mineral bottle.' },
-  { id: 'a-11', name: '07:45 Sprint Planning & Desk Setup (Humidifier ON)', points: 1, hint: 'Set top 3 priorities across ventures.' },
+  { id: 'a-64', name: '04:45 Bed Spinal Mobility (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist.' },
+  { id: 'a-1',  name: '04:55 Alarm — Out of Bed', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Zero snooze. Hydrate immediately.' },
+  { id: 'a-2',  name: '04:55 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'B12 (1000 mcg) + ALA with warm lemon water.' },
+  { id: 'a-5',  name: '05:00 MOVERS Sadhana — Padma Sadhana & Surya Namaskar (20 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Padma Sadhana sequence + 4-6 slow Surya Namaskars.' },
+  { id: 'a-55', name: '05:20 MOVERS Sadhana — Sudarshan Kriya & Pranayama (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Sudarshan Kriya and oxygenation.' },
+  { id: 'a-54', name: '05:35 MOVERS Sadhana — Meditation & Deep Silence (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Silent stillness post-Kriya.' },
+  { id: 'a-3',  name: '06:00 Natural Sunlight & Horizon View (5 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Circadian light reset.' },
+  { id: 'a-4',  name: '06:05 Workout — Core & Calisthenics (30 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Core stability and calisthenics (zero heavy barbells).' },
+  { id: 'a-7',  name: '06:35 10-Min Post-Workout Stretch & Foam Roll', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Foam roll thoracic spine, hip flexors, hamstrings.' },
+  { id: 'a-66', name: '06:45 Warm Sesame Abhyanga Joint Massage (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Warm sesame oil on joints and back.' },
+  { id: 'a-9',  name: '06:55 Warm Shower & Morning Grooming', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Warm bath and scalp care.' },
+  { id: 'a-8',  name: '07:05 Clean Breakfast + Flaxseed (2 tbsp)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Soaked nuts, papaya, protein, ground flaxseed.' },
+  { id: 'a-67', name: '07:25 Post-Breakfast Walk (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Glucose blunting walk.' },
+  { id: 'a-61', name: '07:35 Hydration Rail Setup (Fill 2L Bottle)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Fill 2L mineral bottle.' },
+  { id: 'a-11', name: '07:45 Sprint Planning & Desk Setup (Humidifier ON)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Set top 3 priorities across ventures.' },
 
   // ── MORNING FOCUS 08:30–14:00 ──
-  { id: 'a-12', name: '08:30 Deep Block 1: Product Build — ZoetiCoach & Digital Builders (90m)', points: 2, hint: 'Core product architecture & code.' },
-  { id: 'a-13', name: '10:15 Eye Rest, CCF Sip & Daily Multivitamin (Iron 0)', points: 1, hint: '20-20-20 eye break, CCF sip, multivitamin.' },
-  { id: 'a-14', name: '11:00 Deep Block 2: Business & Core Work (90m)', points: 2, hint: 'Core feature implementation & reviews.' },
-  { id: 'a-16', name: '12:45 Deep Block 3: Code & Review (75m)', points: 2, hint: 'Automated tests & PR merges.' },
-  { id: 'a-70', name: '13:45 Pre-Lunch Isabgol (1 tsp, warm water)', points: 1, hint: 'Isabgol 15 min pre-meal.' },
-  { id: 'a-29', name: '14:00 Wholesome Lunch & Midday Supplements', points: 1, hint: 'Dal, sabzi, roti, D3 + Omega-3 + Curcumin.' },
-  { id: 'a-68', name: '14:50 Post-Lunch Walk & Lubricating Eye Drops', points: 1, hint: 'Walk + eye drops.' },
+  { id: 'a-12', name: '08:30 Deep Block 1: Product Build — ZoetiCoach & Digital Builders (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Core product architecture & code.' },
+  { id: 'a-13', name: '10:15 Eye Rest, CCF Sip & Daily Multivitamin (Iron 0)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: '20-20-20 eye break, CCF sip, multivitamin.' },
+  { id: 'a-14', name: '11:00 Deep Block 2: Business & Core Work (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Core feature implementation & reviews.' },
+  { id: 'a-16', name: '12:45 Deep Block 3: Code & Review (75m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Automated tests & PR merges.' },
+  { id: 'a-70', name: '13:45 Pre-Lunch Isabgol (1 tsp, warm water)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Isabgol 15 min pre-meal.' },
+  { id: 'a-29', name: '14:00 Wholesome Lunch & Midday Supplements', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Dal, sabzi, roti, D3 + Omega-3 + Curcumin.' },
+  { id: 'a-68', name: '14:50 Post-Lunch Walk & Lubricating Eye Drops', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Walk + eye drops.' },
 
   // ── HALF-DAY AFTERNOON BUILD PIVOT 15:15–18:15 ──
-  { id: 'ah-1', name: '15:15 ★ Creative Venture Build & Features (90 min)', points: 2, hint: 'High-leverage engineering for ZoetiCoach & Digital Builders.' },
-  { id: 'ah-2', name: '16:45 ★ Content & System Architecture (45 min)', points: 2, hint: 'Technical docs, pipeline design, partner communications.' },
-  { id: 'ah-3', name: '17:30 Personal Tasks & Workstation Wrap (45 min)', points: 1, hint: 'Wrap half-day personal admin and workstation clean.' },
+  { id: 'ah-1', name: '15:15 ★ Creative Venture Build & Features (90 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'High-leverage engineering for ZoetiCoach & Digital Builders.' },
+  { id: 'ah-2', name: '16:45 ★ Content & System Architecture (45 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Technical docs, pipeline design, partner communications.' },
+  { id: 'ah-3', name: '17:30 Personal Tasks & Workstation Wrap (45 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Wrap half-day personal admin and workstation clean.' },
 
   // ── EVENING & 21:00 SHUTDOWN 18:15–22:00 ──
-  { id: 'a-20', name: '18:15 Outdoor Fitness Walk (45m at Sunset)', points: 2, hint: 'Brisk walk and horizon view.' },
-  { id: 'a-17', name: '19:00 Office Handoffs & Live Syncs (60m)', points: 2, hint: 'Close office deliverables.' },
-  { id: 'a-30', name: '20:15 Dinner with Soy Protein & Wrap', points: 1, hint: 'Nourishing dinner + 10m walk.' },
-  { id: 'a-19', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, hint: 'Hard shutdown at 21:00.' },
-  { id: 'a-23', name: '21:00 Workspace Reset & 3 Wins Log', points: 1, hint: 'Desk clean, log 3 wins.' },
-  { id: 'a-52', name: '21:15 Evening Supplement — Magnesium Glycinate', points: 1, hint: 'Magnesium in warm water/milk.' },
-  { id: 'a-69', name: '21:30 Spinal Wind-Down (10 min)', points: 1, hint: 'Supine twist and legs-up-the-wall.' },
-  { id: 'a-63', name: '21:40 Heated Eye Mask Over Closed Lids (10 min)', points: 1, hint: 'Heated eye compress.' },
-  { id: 'a-27', name: '22:00 In Bed — Lights Out (7h Sleep)', points: 2, hint: 'Lights out by 22:00.' },
-  { id: 'a-73', name: '3.0L Daily Hydration Rail Logged', points: 1, hint: '3L daily water target.' },
-  { id: 'a-65', name: 'Movement Break Every 45 Minutes', points: 1, hint: 'Stand, walk, gentle back extension.' },
+  { id: 'a-20', name: '18:15 Outdoor Fitness Walk (45m at Sunset)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Brisk walk and horizon view.' },
+  { id: 'a-17', name: '19:00 Office Handoffs & Live Syncs (60m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Close office deliverables.' },
+  { id: 'a-30', name: '20:15 Dinner with Soy Protein & Wrap', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Nourishing dinner + 10m walk.' },
+  { id: 'a-19', name: '21:00 ★ HARD LAPTOP SHUTDOWN (9:00 PM)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Hard shutdown at 21:00.' },
+  { id: 'a-23', name: '21:00 Workspace Reset & 3 Wins Log', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Desk clean, log 3 wins.' },
+  { id: 'a-52', name: '21:15 Evening Supplement — Magnesium Glycinate', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Magnesium in warm water/milk.' },
+  { id: 'a-69', name: '21:30 Spinal Wind-Down (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Supine twist and legs-up-the-wall.' },
+  { id: 'a-63', name: '21:40 Heated Eye Mask Over Closed Lids (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Heated eye compress.' },
+  { id: 'a-27', name: '22:00 In Bed — Lights Out (7h Sleep)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Lights out by 22:00.' },
+  { id: 'a-73', name: '3.0L Daily Hydration Rail Logged', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: '3L daily water target.' },
+  { id: 'a-65', name: 'Movement Break Every 45 Minutes', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri',hint: 'Stand, walk, gentle back extension.' },
 ];
 
 // ── Ashish Holiday Routine (Spiritual / Festive / Restorative — Zero Office Work) ──
 export const ashishHolidayHabits = [
-  { id: 'a-64', name: '04:45 Bed Spinal Mobility (10 min)', points: 1, hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist.' },
-  { id: 'a-1',  name: '05:00 Gentle Wake-up & Gratitude', points: 1, hint: 'Peaceful holiday morning wake-up.' },
-  { id: 'a-2',  name: '05:05 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, hint: 'Sublingual B12 and ALA with warm water and lemon.' },
-  { id: 'a-5',  name: '05:15 MOVERS Sadhana — Deep Padma Sadhana (30m)', points: 3, hint: 'Unrushed holiday Padma Sadhana + Surya Namaskars.' },
-  { id: 'a-55', name: '05:45 MOVERS Sadhana — Sudarshan Kriya (20 min)', points: 2, hint: 'Deep Sudarshan Kriya and Pranayama.' },
-  { id: 'a-54', name: '06:05 MOVERS Sadhana — Meditation & Stillness (15 min)', points: 2, hint: 'Extended silent meditation.' },
-  { id: 'a-3',  name: '06:20 Sunlight, Nature & Horizon View (15 min)', points: 1, hint: 'Morning sunlight and fresh air.' },
-  { id: 'a-66', name: '06:40 Relaxed Full-Body Abhyanga (20 min)', points: 2, hint: 'Spacious warm sesame oil massage on joints and back.' },
-  { id: 'a-9',  name: '07:00 Warm Shower & Festive Grooming', points: 1, hint: 'Nourishing warm bath.' },
-  { id: 'a-8',  name: '07:30 Festive / Healthy Family Breakfast + Flaxseed', points: 1, hint: 'Whole food breakfast with family + ground flaxseed.' },
-  { id: 'a-50', name: '10:30 Family Outing / Park / Nature Walk (60 min)', points: 2, hint: 'Family walk in botanical garden or park.' },
-  { id: 'a-70', name: '13:15 Isabgol Before Lunch', points: 1, hint: 'Isabgol in warm water before meal.' },
-  { id: 'a-29', name: '13:30 Festive Shared Lunch with Family', points: 2, hint: 'Wholesome festive lunch cooked with love.' },
-  { id: 'a-51', name: '14:30 Midday Supplement — D3 + Omega-3', points: 1, hint: 'Take with festive lunch.' },
-  { id: 'a-68', name: '14:45 Post-Lunch Family Stroll (15 min)', points: 1, hint: 'Digestive stroll.' },
-  { id: 'ah-1', name: '15:30 Creative Passion / Reading / Personal Build (90m)', points: 2, hint: 'Inspiring personal build or reading.' },
-  { id: 'a-20', name: '18:00 Sunset Outdoor Fitness Walk (45m)', points: 2, hint: 'Extended evening walk in golden hour.' },
-  { id: 'a-71', name: '19:00 Isabgol Before Dinner', points: 1, hint: 'Isabgol in warm water before dinner.' },
-  { id: 'a-21', name: '19:15 Festive Dinner & Quality Connection', points: 2, hint: 'Nourishing shared dinner.' },
-  { id: 'a-22', name: '20:15 Post-Dinner Family Walk (20 min)', points: 1, hint: 'Digestive stroll under night sky.' },
-  { id: 'a-24', name: '21:00 Holiday Gratitude & 3 Wins Journaling', points: 1, hint: 'Reflect on family joy and spiritual connection.' },
-  { id: 'a-52', name: '21:15 Magnesium Glycinate + Warm Haldi Milk', points: 1, hint: 'Deep relaxation before sleep.' },
-  { id: 'a-69', name: '21:25 Restorative Spinal Wind-Down (15 min)', points: 1, hint: 'Supine twist, legs up wall, child\'s pose.' },
-  { id: 'a-27', name: '21:45 Restful Holiday Sleep (8h target)', points: 2, hint: 'Deep restorative sleep.' },
-  { id: 'a-73', name: '3 Litres Daily Water Protocol Logged', points: 1, hint: 'Sip steadily throughout the day.' },
-  { id: 'a-35', name: 'Daily Jyoti Appreciation & Love', points: 1, hint: 'Heartfelt appreciation and connection.' },
+  { id: 'a-64', name: '04:45 Bed Spinal Mobility (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine twist.' },
+  { id: 'a-1',  name: '05:00 Gentle Wake-up & Gratitude', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Peaceful holiday morning wake-up.' },
+  { id: 'a-2',  name: '05:05 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Sublingual B12 and ALA with warm water and lemon.' },
+  { id: 'a-5',  name: '05:15 MOVERS Sadhana — Deep Padma Sadhana (30m)', points: 3, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Unrushed holiday Padma Sadhana + Surya Namaskars.' },
+  { id: 'a-55', name: '05:45 MOVERS Sadhana — Sudarshan Kriya (20 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Deep Sudarshan Kriya and Pranayama.' },
+  { id: 'a-54', name: '06:05 MOVERS Sadhana — Meditation & Stillness (15 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Extended silent meditation.' },
+  { id: 'a-3',  name: '06:20 Sunlight, Nature & Horizon View (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Morning sunlight and fresh air.' },
+  { id: 'a-66', name: '06:40 Relaxed Full-Body Abhyanga (20 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Spacious warm sesame oil massage on joints and back.' },
+  { id: 'a-9',  name: '07:00 Warm Shower & Festive Grooming', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Nourishing warm bath.' },
+  { id: 'a-8',  name: '07:30 Festive / Healthy Family Breakfast + Flaxseed', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Whole food breakfast with family + ground flaxseed.' },
+  { id: 'a-50', name: '10:30 Family Outing / Park / Nature Walk (60 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Family walk in botanical garden or park.' },
+  { id: 'a-70', name: '13:15 Isabgol Before Lunch', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Isabgol in warm water before meal.' },
+  { id: 'a-29', name: '13:30 Festive Shared Lunch with Family', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Wholesome festive lunch cooked with love.' },
+  { id: 'a-51', name: '14:30 Midday Supplement — D3 + Omega-3', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Take with festive lunch.' },
+  { id: 'a-68', name: '14:45 Post-Lunch Family Stroll (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Digestive stroll.' },
+  { id: 'ah-1', name: '15:30 Creative Passion / Reading / Personal Build (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Inspiring personal build or reading.' },
+  { id: 'a-20', name: '18:00 Sunset Outdoor Fitness Walk (45m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Extended evening walk in golden hour.' },
+  { id: 'a-71', name: '19:00 Isabgol Before Dinner', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Isabgol in warm water before dinner.' },
+  { id: 'a-21', name: '19:15 Festive Dinner & Quality Connection', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Nourishing shared dinner.' },
+  { id: 'a-22', name: '20:15 Post-Dinner Family Walk (20 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Digestive stroll under night sky.' },
+  { id: 'a-24', name: '21:00 Holiday Gratitude & 3 Wins Journaling', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Reflect on family joy and spiritual connection.' },
+  { id: 'a-52', name: '21:15 Magnesium Glycinate + Warm Haldi Milk', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Deep relaxation before sleep.' },
+  { id: 'a-69', name: '21:25 Restorative Spinal Wind-Down (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Supine twist, legs up wall, child\'s pose.' },
+  { id: 'a-27', name: '21:45 Restful Holiday Sleep (8h target)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Deep restorative sleep.' },
+  { id: 'a-73', name: '3 Litres Daily Water Protocol Logged', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Sip steadily throughout the day.' },
+  { id: 'a-35', name: 'Daily Jyoti Appreciation & Love', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Holiday',hint: 'Heartfelt appreciation and connection.' },
 ];
 
 // ── Generic Starter Habits (7 simple starter habits) ──
