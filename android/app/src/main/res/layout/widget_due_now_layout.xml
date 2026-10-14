@@ -73,6 +73,23 @@
             android:textColor="#FF834F"
             android:textSize="9.5sp"
             android:textStyle="bold" />
+
+        <!-- ZoetiCoach Adherence Telemetry Pill -->
+        <TextView
+            android:id="@+id/tv_widget_adherence"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_pill_teal"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:text="🎯 100%"
+            android:textColor="#38BDF8"
+            android:textSize="9.5sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 
     <!-- ── Divider ── -->

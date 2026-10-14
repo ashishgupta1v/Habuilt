@@ -4,7 +4,16 @@ import { getZoetiCoachConfig } from '@/lib/zoetiCoachBridge';
 export function useNativeWidget() {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
 
-  const syncNativeWidget = async ({ userId, habits, schedule, streak, todayPoints }) => {
+  const syncNativeWidget = async ({
+    userId,
+    habits,
+    schedule,
+    streak,
+    todayPoints,
+    adherenceRate,
+    complianceStatus,
+    clinicalDirective,
+  }) => {
     if (!isNative) return;
 
     try {
@@ -19,6 +28,9 @@ export function useNativeWidget() {
           scheduleJson: JSON.stringify(schedule || {}),
           streak: Number.isFinite(Number(streak)) ? Number(streak) : 0,
           todayPoints: Number.isFinite(Number(todayPoints)) ? Number(todayPoints) : 0,
+          adherenceRate: Number.isFinite(Number(adherenceRate)) ? Number(adherenceRate) : 0,
+          complianceStatus: String(complianceStatus || 'Active Protocol'),
+          clinicalDirective: String(clinicalDirective || ''),
           zoeticoachUrl: zoetiUrl,
           zoeticoachToken: zoetiToken,
         });

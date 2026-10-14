@@ -24,6 +24,9 @@ class HabuiltWidgetPlugin : Plugin() {
             val scheduleJson = call.getString("scheduleJson", "{}") ?: "{}"
             val streak = call.getInt("streak", 0) ?: 0
             val todayPoints = call.getInt("todayPoints", 0) ?: 0
+            val adherenceRate = call.getInt("adherenceRate", 0) ?: 0
+            val complianceStatus = call.getString("complianceStatus", "Active Protocol") ?: "Active Protocol"
+            val clinicalDirective = call.getString("clinicalDirective", "") ?: ""
             val zoetiUrl = call.getString("zoeticoachUrl", "https://zoeticoach.com") ?: "https://zoeticoach.com"
             val zoetiToken = call.getString("zoeticoachToken", "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe") ?: "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe"
 
@@ -34,6 +37,9 @@ class HabuiltWidgetPlugin : Plugin() {
                 .putString("schedule_json", scheduleJson)
                 .putInt("streak", streak)
                 .putInt("today_points", todayPoints)
+                .putInt("adherence_rate", adherenceRate)
+                .putString("compliance_status", complianceStatus)
+                .putString("clinical_directive", clinicalDirective)
                 .putString("zoeticoach_api_url", zoetiUrl)
                 .putString("zoeticoach_token", zoetiToken)
                 .apply()
@@ -61,6 +67,9 @@ class HabuiltWidgetPlugin : Plugin() {
             ret.put("scheduleJson", prefs.getString("schedule_json", "{}"))
             ret.put("streak", prefs.getInt("streak", 0))
             ret.put("todayPoints", prefs.getInt("today_points", 0))
+            ret.put("adherenceRate", prefs.getInt("adherence_rate", 0))
+            ret.put("complianceStatus", prefs.getString("compliance_status", "Active Protocol"))
+            ret.put("clinicalDirective", prefs.getString("clinical_directive", ""))
             call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to get widget data: ${e.message}", e)

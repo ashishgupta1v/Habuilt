@@ -183,6 +183,9 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 val rawSchedule = prefs.getString("schedule_json", null)
                 val streak = prefs.getInt("streak", 0)
                 val todayPoints = prefs.getInt("today_points", 0)
+                val adherenceRate = prefs.getInt("adherence_rate", 0)
+                val complianceStatus = prefs.getString("compliance_status", "Active Protocol") ?: "Active Protocol"
+                val clinicalDirective = prefs.getString("clinical_directive", "") ?: ""
 
                 // Current day & time
                 val cal = Calendar.getInstance()
@@ -191,6 +194,13 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
 
                 views.setTextViewText(R.id.tv_widget_streak, "🔥 ${streak}d")
                 views.setTextViewText(R.id.tv_widget_today_pts, "⭐ ${todayPoints} pts")
+
+                if (adherenceRate > 0) {
+                    views.setViewVisibility(R.id.tv_widget_adherence, View.VISIBLE)
+                    views.setTextViewText(R.id.tv_widget_adherence, "🎯 ${adherenceRate}%")
+                } else {
+                    views.setViewVisibility(R.id.tv_widget_adherence, View.GONE)
+                }
 
                 // Default fallback if no habits synced yet
                 var targetHabitId = "focus_block"
@@ -307,8 +317,13 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 if (allDone) {
                     views.setTextViewText(R.id.tv_widget_status_pill, "COMPLETED")
                     views.setTextViewText(R.id.tv_widget_habit_name, "🎉 All Habits Crushed Today!")
-                    views.setTextViewText(R.id.tv_widget_schedule, "🌟 ${todayPoints} pts secured")
-                    views.setTextViewText(R.id.tv_widget_guidance, "Target Protocol achieved! Outstanding daily consistency.")
+                    views.setTextViewText(R.id.tv_widget_schedule, "🌟 ${todayPoints} pts secured • ${complianceStatus}")
+                    val doneGuidance = if (clinicalDirective.isNotBlank()) {
+                        "Target Protocol Achieved! Next directive: $clinicalDirective"
+                    } else {
+                        "Target Protocol achieved! Outstanding daily consistency."
+                    }
+                    views.setTextViewText(R.id.tv_widget_guidance, doneGuidance)
                     views.setViewVisibility(R.id.tv_widget_points, View.GONE)
                     views.setViewVisibility(R.id.btn_widget_mark_done, View.GONE)
                 } else {

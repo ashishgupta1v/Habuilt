@@ -2265,6 +2265,8 @@ const {
   hasCompletedDay,
   onCompleteHabit: markHabitCompletedDirectly,
   habitTimeSchedule,
+  adherenceRate: consistencyScore,
+  streak: systemStreak,
 });
 
 const handleToggleDueNowNotifications = async () => {
@@ -2338,19 +2340,30 @@ const pushToNativeWidget = () => {
       };
     });
 
+    const adherenceVal = Number(consistencyScore.value) || 0;
+    const streakVal = Number(systemStreak.value?.currentStreak || systemStreak.value?.current || 0);
+    const directiveStr = isAshish.value
+      ? 'Target 3.5L-4.0L hydration with pink salt & hourly posture decompression.'
+      : isJyoti.value
+        ? 'Morning natural sunlight within 30m & gentle joint mobility flow.'
+        : 'Maintain peak protocol consistency.';
+
     syncNativeWidget({
       userId: effectiveUserId.value,
       habits: enrichedHabits,
       schedule: scheduleMap,
-      streak: systemStreak.value?.currentStreak || systemStreak.value?.current || 0,
+      streak: streakVal,
       todayPoints: todayPoints.value ?? 0,
+      adherenceRate: adherenceVal,
+      complianceStatus: performanceGrade.value?.grade ? `${performanceGrade.value.grade} Grade (${adherenceVal}%)` : 'Active Protocol',
+      clinicalDirective: directiveStr,
     });
   } catch (e) {
     console.warn('Widget sync error:', e);
   }
 };
 
-watch([localHabits, todayPoints, systemStreak, dayType, activeProtocol], () => {
+watch([localHabits, todayPoints, systemStreak, consistencyScore, dayType, activeProtocol], () => {
   pushToNativeWidget();
 }, { deep: true, immediate: true });
 

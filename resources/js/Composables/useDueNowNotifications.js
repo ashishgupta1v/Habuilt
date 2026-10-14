@@ -10,6 +10,8 @@ export function useDueNowNotifications({
   hasCompletedDay,
   onCompleteHabit,
   habitTimeSchedule,
+  adherenceRate = 0,
+  streak = 0,
 }) {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
   const isWebSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
@@ -45,17 +47,24 @@ export function useDueNowNotifications({
     }
   };
 
-  // Notification Copy with exact task instruction
+  // Notification Copy with exact task instruction and ZoetiCoach telemetry
   const getNotificationCopy = (habit, sched, timeLabel) => {
     const name = habit.name || 'Habit';
     const pts = habit.points || 1;
     const instruction = habit.hint || '';
+    const currentAdherence = typeof adherenceRate?.value !== 'undefined' ? adherenceRate.value : (Number(adherenceRate) || 0);
+    const rawStreak = typeof streak?.value !== 'undefined' ? (streak.value?.current ?? streak.value ?? 0) : (streak || 0);
+    const currentStreakVal = Number(rawStreak) || 0;
+
+    const telemetryTag = currentAdherence > 0
+      ? ` [🎯 ${currentAdherence}% • 🔥 ${currentStreakVal}d]`
+      : (currentStreakVal > 0 ? ` [🔥 ${currentStreakVal}d]` : '');
 
     return {
-      title: `⚡ ${name} (+${pts} pts)`,
+      title: `⚡ ${name} (+${pts} pts)${telemetryTag}`,
       body: instruction
         ? `${instruction} • (${timeLabel || 'Scheduled'})`
-        : `Scheduled: ${timeLabel || 'Now'} • Tap to mark done and advance your streak.`,
+        : `Scheduled: ${timeLabel || 'Now'} • Tap to mark done and protect your ${currentStreakVal}d streak.`,
       actionTitle: '✓ Mark Done',
     };
   };
