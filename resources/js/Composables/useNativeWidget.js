@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { getZoetiCoachConfig } from '@/lib/zoetiCoachBridge';
 
 export function useNativeWidget() {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
@@ -9,6 +10,7 @@ export function useNativeWidget() {
     try {
       const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);
       const HabuiltWidget = plugins?.HabuiltWidget;
+      const { url: zoetiUrl, token: zoetiToken } = getZoetiCoachConfig();
 
       if (HabuiltWidget && typeof HabuiltWidget.syncWidgetData === 'function') {
         await HabuiltWidget.syncWidgetData({
@@ -17,6 +19,8 @@ export function useNativeWidget() {
           scheduleJson: JSON.stringify(schedule || {}),
           streak: Number.isFinite(Number(streak)) ? Number(streak) : 0,
           todayPoints: Number.isFinite(Number(todayPoints)) ? Number(todayPoints) : 0,
+          zoeticoachUrl: zoetiUrl,
+          zoeticoachToken: zoetiToken,
         });
       }
     } catch (err) {

@@ -90,15 +90,35 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 return HabitSchedule(dsM, deM, "⏰ $directStart – $directEnd")
             }
 
-            // 3. Fallback: Parse start time and optional duration from habit name (e.g. "04:45 Bed Spinal Mobility (10 min)")
+            // 3. Fallback: Check explicit range pattern e.g. "05:00 to 08:00" or "09:00–13:00"
             val name = habit.optString("name", "")
+            val rangeMatch = Regex("(\\d{1,2}:\\d{2})\\s*(?:to|–|-)\\s*(\\d{1,2}:\\d{2})", RegexOption.IGNORE_CASE).find(name)
+            if (rangeMatch != null) {
+                val sStr = rangeMatch.groupValues[1]
+                val eStr = rangeMatch.groupValues[2]
+                val sM = parseMinutes(sStr)
+                val eM = parseMinutes(eStr)
+                if (sM != null && eM != null) {
+                    return HabitSchedule(sM, eM, "⏰ $sStr – $eStr")
+                }
+            }
+
+            // 4. Fallback: Parse start time prefix and duration (e.g. "04:45 Bed Spinal Mobility (10 min)", "08:30 Deep Block (90m)", "08:00 Build (2.5h)")
             val timeMatch = Regex("^(\\d{1,2}:\\d{2})").find(name.trim())
             if (timeMatch != null) {
                 val startStr = timeMatch.groupValues[1]
                 val sM = parseMinutes(startStr)
                 if (sM != null) {
-                    val durMatch = Regex("\\((\\d+)\\s*min", RegexOption.IGNORE_CASE).find(name)
-                    val durationMins = durMatch?.groupValues?.get(1)?.toIntOrNull() ?: 30
+                    var durationMins = 30
+                    val minMatch = Regex("\\((\\d+)\\s*(?:min|m\\b)", RegexOption.IGNORE_CASE).find(name)
+                    val hrMatch = Regex("\\((\\d+(?:\\.\\d+)?)\\s*h", RegexOption.IGNORE_CASE).find(name)
+                    if (minMatch != null) {
+                        durationMins = minMatch.groupValues[1].toIntOrNull() ?: 30
+                    } else if (hrMatch != null) {
+                        val hours = hrMatch.groupValues[1].toDoubleOrNull() ?: 0.5
+                        durationMins = (hours * 60.0).toInt()
+                    }
+
                     val eM = (sM + durationMins) % 1440
                     val eh = String.format("%02d", eM / 60)
                     val em = String.format("%02d", eM % 60)

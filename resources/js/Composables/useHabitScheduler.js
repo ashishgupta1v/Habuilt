@@ -65,11 +65,31 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
     if (habit.startTime && habit.endTime) {
       return { start: habit.startTime, end: habit.endTime };
     }
-    const match = (habit.name || '').match(/^(\d{2}:\d{2})/);
+    const name = habit.name || '';
+
+    // 1. Check explicit range pattern e.g. "05:00 to 08:00" or "09:00–13:00"
+    const rangeMatch = name.match(/(\d{2}:\d{2})\s*(?:to|–|-)\s*(\d{2}:\d{2})/i);
+    if (rangeMatch) {
+      return { start: rangeMatch[1], end: rangeMatch[2] };
+    }
+
+    // 2. Check starting time prefix and duration in minutes or hours
+    const match = name.match(/^(\d{2}:\d{2})/);
     if (match) {
       const start = match[1];
       const [h, m] = start.split(':').map(Number);
-      const endMins = ((h * 60 + m + 30) % 1440);
+
+      let durationMins = 30;
+      const minMatch = name.match(/\((\d+)\s*(?:min|m\b)/i);
+      const hrMatch = name.match(/\((\d+(?:\.\d+)?)\s*h/i);
+
+      if (minMatch) {
+        durationMins = parseInt(minMatch[1], 10);
+      } else if (hrMatch) {
+        durationMins = Math.round(parseFloat(hrMatch[1]) * 60);
+      }
+
+      const endMins = ((h * 60 + m + durationMins) % 1440);
       const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
       const em = String(endMins % 60).padStart(2, '0');
       return { start, end: `${eh}:${em}` };

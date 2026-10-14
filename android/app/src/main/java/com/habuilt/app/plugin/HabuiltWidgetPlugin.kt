@@ -24,6 +24,8 @@ class HabuiltWidgetPlugin : Plugin() {
             val scheduleJson = call.getString("scheduleJson", "{}") ?: "{}"
             val streak = call.getInt("streak", 0) ?: 0
             val todayPoints = call.getInt("todayPoints", 0) ?: 0
+            val zoetiUrl = call.getString("zoeticoachUrl", "https://zoeticoach.com") ?: "https://zoeticoach.com"
+            val zoetiToken = call.getString("zoeticoachToken", "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe") ?: "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe"
 
             val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
             prefs.edit()
@@ -32,6 +34,8 @@ class HabuiltWidgetPlugin : Plugin() {
                 .putString("schedule_json", scheduleJson)
                 .putInt("streak", streak)
                 .putInt("today_points", todayPoints)
+                .putString("zoeticoach_api_url", zoetiUrl)
+                .putString("zoeticoach_token", zoetiToken)
                 .apply()
 
             // Refresh all widgets on the home screen immediately
