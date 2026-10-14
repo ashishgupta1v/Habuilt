@@ -267,7 +267,17 @@ const {
   cloneProtocol,
   importProtocolJson,
   decodeProtocolFromHash,
-} = useDynamicProtocols(effectiveUserId.value);
+} = useDynamicProtocols(effectiveUserId.value, null, false, resolvedEmail.value);
+
+// Write email override key to localStorage so protocol resolution persists across page loads
+if (typeof localStorage !== 'undefined' && resolvedEmail.value) {
+  try {
+    const em = resolvedEmail.value.toLowerCase().trim();
+    if (em === 'ashishgupta1v@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'ashish');
+    else if (em === 'goyaljyoti007@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'jyoti');
+  } catch (_) {}
+}
+
 
 const {
   applyHabitOrder: applyTaxonomyHabitOrder,

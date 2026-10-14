@@ -162,7 +162,7 @@ export const PROTOCOL_ARCHETYPES = {
  * Composable for dynamic protocols management
  * Supports explicit archetype IDs, saved preferences, and fallback archetypes.
  */
-export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null, legacyJyotiParam = false) {
+export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null, legacyJyotiParam = false, userEmail = '') {
   const customProtocols = ref([]);
   const activeProtocolId = ref(typeof localStorage !== 'undefined' ? (localStorage.getItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`) || null) : null);
   const isLoading = ref(false);
@@ -202,7 +202,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       return PROTOCOL_ARCHETYPES.jyotiMaster;
     }
 
-    // 4. Backward-compatible default for legacy user IDs
+    // 4. Backward-compatible default for legacy user IDs (string name)
     const lowerUid = String(userId || '').toLowerCase();
     if (lowerUid === 'ashish') {
       return PROTOCOL_ARCHETYPES.ashishMaster;
@@ -211,7 +211,26 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       return PROTOCOL_ARCHETYPES.jyotiMaster;
     }
 
-    // 5. Universal default for new / guest / standard users: Founder Executive
+    // 5. Email-based detection — resolves correctly even when userId is a Supabase UUID
+    const lowerEmail = String(userEmail || '').toLowerCase().trim();
+    if (lowerEmail === 'ashishgupta1v@gmail.com') return PROTOCOL_ARCHETYPES.ashishMaster;
+    if (lowerEmail === 'goyaljyoti007@gmail.com') return PROTOCOL_ARCHETYPES.jyotiMaster;
+
+    // 6. Email-based detection via cached localStorage user object (offline / hydration)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+        const cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
+        if (cachedEmail === 'ashishgupta1v@gmail.com') return PROTOCOL_ARCHETYPES.ashishMaster;
+        if (cachedEmail === 'goyaljyoti007@gmail.com') return PROTOCOL_ARCHETYPES.jyotiMaster;
+        // Check explicit email-to-protocol override written at login
+        const emailOverride = localStorage.getItem('habuilt_protocol_email_override');
+        if (emailOverride === 'ashish') return PROTOCOL_ARCHETYPES.ashishMaster;
+        if (emailOverride === 'jyoti') return PROTOCOL_ARCHETYPES.jyotiMaster;
+      }
+    } catch (_) {}
+
+    // 7. Universal default for new / guest / standard users: Founder Executive
     return PROTOCOL_ARCHETYPES.founder;
   });
 
