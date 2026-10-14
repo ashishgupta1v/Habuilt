@@ -8,8 +8,14 @@ use App\Http\Controllers\HabitCheckInDeleteController;
 use App\Http\Controllers\HabitProgressResetController;
 use Illuminate\Support\Facades\Route;
 
+use Inertia\Inertia;
+
 Route::get('/', DashboardController::class)->name('dashboard');
+Route::get('/auth', static fn () => Inertia::render('Auth'))->name('auth');
+Route::get('/login', static fn () => Inertia::render('Auth'))->name('login');
+Route::get('/landing', static fn () => Inertia::render('Auth'))->name('landing');
 Route::get('/auth/callback', DashboardController::class)->name('auth.callback');
 Route::post('/habits/{habit}/check-ins', HabitCheckInController::class)->name('habits.check-ins.store');
 Route::delete('/habits/{habit}/check-ins', HabitCheckInDeleteController::class)->name('habits.check-ins.delete');
 Route::delete('/habits/check-ins', HabitProgressResetController::class)->name('habits.check-ins.clear');
+

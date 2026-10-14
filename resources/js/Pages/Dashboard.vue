@@ -217,7 +217,6 @@ const resolvedEmail = computed(() => {
   return '';
 });
 const effectiveUserId = computed(() => {
-  if (props.userId) return props.userId;
   if (authUser.value?.id) return authUser.value.id;
   if (typeof localStorage !== 'undefined') {
     try {
@@ -225,7 +224,8 @@ const effectiveUserId = computed(() => {
       if (cached?.id) return cached.id;
     } catch {}
   }
-  return resolvedEmail.value || 'guest';
+  if (props.userId && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') return props.userId;
+  return resolvedEmail.value || props.userId || 'guest';
 });
 const isGuestActive = computed(() => {
   return resolvedEmail.value === 'guest@habuilt.com' ||
@@ -289,14 +289,14 @@ const isJyotiProtocol = computed(() => {
 // Backward-compatible computed aliases
 const isJyoti = computed(() => {
   const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
   return isJyotiProtocol.value || email === 'goyaljyoti007@gmail.com' || uid === 'jyoti';
 });
 
 const isAshish = computed(() => {
   if (isJyoti.value && !isAshishProtocol.value) return false;
   const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
   return isAshishProtocol.value || email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
 });
 
@@ -325,7 +325,7 @@ const displayName = computed(() => {
       .join(' ');
     if (formatted) return formatted;
   }
-  if (props.userId && props.userId !== 'guest' && props.userId !== 'ashish' && props.userId !== 'jyoti') {
+  if (props.userId && props.userId !== 'guest' && props.userId !== 'ashish' && props.userId !== 'jyoti' && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') {
     return props.userId;
   }
   if (isJyoti.value && !isAshish.value) return 'Jyoti';

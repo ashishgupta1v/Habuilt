@@ -69,7 +69,7 @@ final readonly class DashboardController
         $previousMonth = $selectedMonthStart->modify('-1 month');
         $nextMonth = $selectedMonthStart->modify('+1 month');
 
-        return Inertia::render('Dashboard', [
+        return Inertia::render('Main', [
             'appName' => (string) config('app.name', 'Warrior Tracker (Habuilt)'),
             'today' => $today->format('Y-m-d'),
             'month' => (int) $selectedMonthStart->format('m'),

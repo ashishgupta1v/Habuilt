@@ -9,6 +9,8 @@ os.makedirs("tests/screenshots", exist_ok=True)
 
 from playwright.sync_api import sync_playwright
 
+BASE_URL = os.environ.get("BASE_URL", "https://habuilt.com/")
+
 def run_advanced_tests():
     console_errors = []
     page_errors = []
@@ -42,7 +44,7 @@ def run_advanced_tests():
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
 
-        page.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_selector(".dashboard-flow", timeout=10000)
         page.wait_for_timeout(500)
 

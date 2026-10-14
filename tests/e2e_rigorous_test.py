@@ -10,6 +10,8 @@ os.makedirs("tests/screenshots", exist_ok=True)
 
 from playwright.sync_api import sync_playwright
 
+BASE_URL = os.environ.get("BASE_URL", "https://habuilt.com/")
+
 def run_tests():
     console_errors = []
     page_errors = []
@@ -48,7 +50,7 @@ def run_tests():
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
 
-        page.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_selector(".dashboard-flow", timeout=10000)
         page.wait_for_timeout(500)
 
@@ -137,25 +139,25 @@ def run_tests():
         grid_table = page.locator("table.habit-grid")
         record_result("Desktop Habit Grid Matrix Exists", grid_table.count() > 0)
 
-        current_cell = page.locator(".habit-grid__cell--current").first
+        current_cell = page.locator("tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current").first
         record_result("Desktop Current Day Cell Found", current_cell.count() > 0)
 
         initial_cls = current_cell.get_attribute("class") or ""
         current_cell.click(force=True)
         try:
             page.wait_for_function(
-                "(initial) => document.querySelector('.habit-grid__cell--current')?.className !== initial",
-                arg=initial_cls,
-                timeout=3000
+                "([sel, initial]) => document.querySelector(sel)?.getAttribute('class') !== initial",
+                arg=["tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current", initial_cls],
+                timeout=4000
             )
         except Exception:
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(1000)
         after_cls = current_cell.get_attribute("class") or ""
         record_result("Desktop Matrix Cell Toggle State Changed", initial_cls != after_cls)
 
         # Revert back
         current_cell.click(force=True)
-        page.wait_for_timeout(300)
+        page.wait_for_timeout(500)
 
         # 1.8 Focus Station Flow
         focus_tab.click()
@@ -271,7 +273,7 @@ def run_tests():
         page.wait_for_timeout(300)
         record_result("Protocol Settings Slots Tab Works", slots_tab.get_attribute("class") and "proto-settings-tab--active" in slots_tab.get_attribute("class"))
 
-        presets_tab = page.locator(".proto-settings-tab:has-text('Preset Library')")
+        presets_tab = page.locator(".proto-settings-tab:has-text('Protocol Studio'), #proto-tab-presets").first
         presets_tab.click()
         page.wait_for_timeout(300)
         record_result("Protocol Settings Presets Tab Works", presets_tab.get_attribute("class") and "proto-settings-tab--active" in presets_tab.get_attribute("class"))
@@ -314,7 +316,7 @@ def run_tests():
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
-        page_tab.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page_tab.goto(BASE_URL, wait_until="domcontentloaded")
         page_tab.wait_for_selector(".dashboard-flow", timeout=10000)
         page_tab.wait_for_timeout(500)
 
@@ -341,7 +343,7 @@ def run_tests():
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
-        page_mob.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page_mob.goto(BASE_URL, wait_until="domcontentloaded")
         page_mob.wait_for_selector(".dashboard-flow", timeout=10000)
         page_mob.wait_for_selector(".mobile-compact-bar", timeout=10000)
         page_mob.wait_for_timeout(500)
@@ -461,7 +463,7 @@ def run_tests():
             localStorage.setItem('habuilt_theme', 'dark');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
         """)
-        page_theme.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page_theme.goto(BASE_URL, wait_until="domcontentloaded")
         page_theme.wait_for_selector(".dashboard-flow", timeout=10000)
         page_theme.wait_for_timeout(500)
 
@@ -490,7 +492,7 @@ def run_tests():
         page_auth.on("pageerror", lambda err: page_errors.append(f"[Auth] {str(err)}"))
 
         # Navigate fresh with no localStorage
-        page_auth.goto("http://localhost:4173/", wait_until="domcontentloaded")
+        page_auth.goto(BASE_URL, wait_until="domcontentloaded")
         page_auth.wait_for_timeout(600)
 
         landing_el = page_auth.locator(".lp")

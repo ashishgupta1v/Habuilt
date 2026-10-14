@@ -42,5 +42,6 @@ Thumbs.db
 *.timestamp-*.mjs
 vite.config.js.timestamp-*
 .vercel
+/dist/
 __pycache__/
 *.pyc

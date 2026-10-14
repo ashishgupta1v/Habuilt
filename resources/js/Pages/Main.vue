@@ -7,6 +7,26 @@ import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
+const props = defineProps({
+  appName: { type: String, default: 'Warrior Tracker (Habuilt)' },
+  today: { type: String, default: '' },
+  month: { type: Number, default: 0 },
+  year: { type: Number, default: 0 },
+  monthDays: { type: Number, default: 31 },
+  currentDay: { type: Number, default: 1 },
+  isCurrentMonth: { type: Boolean, default: true },
+  isFutureMonth: { type: Boolean, default: false },
+  canNavigatePrevMonth: { type: Boolean, default: true },
+  canNavigateNextMonth: { type: Boolean, default: true },
+  previousMonth: { type: Object, default: () => ({ month: 1, year: 2026 }) },
+  nextMonth: { type: Object, default: () => ({ month: 1, year: 2026 }) },
+  userId: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
+  wallet: { type: Number, default: 0 },
+  habits: { type: Array, default: () => [] },
+  staticPreview: { type: Boolean, default: false },
+});
+
 const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
 const isGuestPreCheck = typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
 const authLoading = ref(!cachedUserJson && !isGuestPreCheck);
@@ -276,6 +296,31 @@ const enterGuestMode = (guestUser) => {
 const handleLoginSuccess = (user) => {
   enterUserSession(user);
 };
+
+const handleToggleTrack = () => {
+  const currentId = (activeUser.value?.id || '').toLowerCase();
+  const currentEmail = (activeUser.value?.email || '').toLowerCase();
+  if (currentId === 'ashish' || currentEmail === 'ashishgupta1v@gmail.com') {
+    const jyotiUser = {
+      id: 'jyoti',
+      email: 'goyaljyoti007@gmail.com',
+      user_metadata: { full_name: 'Jyoti Goyal', preferred_archetype: 'archetype-jyoti', onboarding_completed: true }
+    };
+    enterUserSession(jyotiUser);
+    localStorage.setItem('habuilt_active_protocol_id_jyoti', 'archetype-jyoti');
+    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: jyotiUser }));
+  } else {
+    const ashishUser = {
+      id: 'ashish',
+      email: 'ashishgupta1v@gmail.com',
+      user_metadata: { full_name: 'Ashish Gupta', preferred_archetype: 'archetype-ashish', onboarding_completed: true }
+    };
+    enterUserSession(ashishUser);
+    localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: ashishUser }));
+  }
+};
+
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
@@ -555,8 +600,9 @@ onUnmounted(() => {
 
                 <div
                   class="user-badge"
-                  :title="isGuestActive ? 'Guest Mode Active — Data Saved Locally' : activeUser.email"
-                  :style="{ cursor: 'default' }"
+                  :title="isGuestActive ? 'Guest Mode Active — Click to switch track' : activeUser.email"
+                  :style="{ cursor: 'pointer' }"
+                  @click="handleToggleTrack"
                 >
                   <div class="user-avatar user-avatar--generic">
                     {{ userInitial }}
@@ -589,6 +635,7 @@ onUnmounted(() => {
           </div>
 
           <Dashboard
+            v-bind="props"
             :userId="activeUser.id"
             :userEmail="activeUser.email"
             :month="month"
