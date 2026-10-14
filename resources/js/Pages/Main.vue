@@ -635,6 +635,7 @@ onUnmounted(() => {
           </div>
 
           <Dashboard
+            :key="activeUser ? activeUser.id : 'guest'"
             v-bind="props"
             :userId="activeUser.id"
             :userEmail="activeUser.email"

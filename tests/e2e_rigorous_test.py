@@ -518,7 +518,13 @@ def run_tests():
         record_result("Top Nav User Badge Visible in Guest Session", user_badge.is_visible())
 
         user_badge.click()
-        page_auth.wait_for_timeout(600)
+        try:
+            page_auth.wait_for_function(
+                "() => document.querySelector('.hero-track-pill')?.innerText.includes('Jyoti')",
+                timeout=4000
+            )
+        except Exception:
+            page_auth.wait_for_timeout(1000)
         hero_track = page_auth.locator(".hero-track-pill")
         record_result("Track Switcher Changes to Jyoti System", "Jyoti" in hero_track.inner_text())
 
