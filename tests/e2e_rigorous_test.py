@@ -386,7 +386,10 @@ def run_tests():
 
         # Close sheet
         page_mob.locator(".mcb-tools-close").click(force=True)
-        page_mob.wait_for_timeout(300)
+        try:
+            tools_sheet.wait_for(state="hidden", timeout=3000)
+        except Exception:
+            page_mob.wait_for_timeout(500)
         record_result("Mobile Tools Bottom Sheet Closes", not tools_sheet.is_visible())
 
         # 3.4 Verify Mobile Bottom Nav 4 Tabs

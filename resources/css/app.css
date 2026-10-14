@@ -319,6 +319,12 @@ button {
   .app-main-content {
     padding: 16px 20px 60px;
     max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Single unified header on tablet: Hide duplicate web app-nav */
+  .app-nav {
+    display: none !important;
   }
 }
 
@@ -339,6 +345,9 @@ button {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 body.theme-dark .app-nav {

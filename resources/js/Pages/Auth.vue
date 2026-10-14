@@ -343,6 +343,23 @@ const handleQuickLaunchAshish = () => {
   emit('login-success', ashishUser);
 };
 
+const handleQuickLaunchJyoti = () => {
+  const jyotiUser = {
+    id: 'jyoti',
+    email: 'goyaljyoti007@gmail.com',
+    user_metadata: {
+      full_name: 'Jyoti Goyal',
+      preferred_archetype: 'archetype-jyoti',
+      onboarding_completed: true,
+    },
+  };
+  localStorage.setItem('habuilt_cached_user', JSON.stringify(jyotiUser));
+  localStorage.setItem('habuilt_active_protocol_id_jyoti', 'archetype-jyoti');
+  localStorage.removeItem('habuilt_guest_mode');
+  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: jyotiUser }));
+  emit('login-success', jyotiUser);
+};
+
 const handleGuest = (preferredArchetype = 'archetype-founder') => {
   const user = {
     id: 'guest',
@@ -581,8 +598,21 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
                   <Crown class="lp__guest-bolt" />
                 </div>
                 <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #F3E8C9;">👑 Ashish Master Workspace</span>
+                  <span class="lp__guest-head" style="color: #F3E8C9;">👑 Ashish Track & Blueprint</span>
                   <span class="lp__guest-sub">Dual-Track Blueprint, ZoetiCoach & Digital Builders</span>
+                </div>
+              </div>
+              <ChevronRight class="lp__guest-arrow" />
+            </button>
+
+            <button class="lp__hero-guest-btn" type="button" @click="handleQuickLaunchJyoti" style="background: rgba(236, 72, 153, 0.08); border-color: rgba(236, 72, 153, 0.35);">
+              <div class="lp__guest-main">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">
+                  <Sparkles class="lp__guest-bolt" />
+                </div>
+                <div class="lp__guest-text">
+                  <span class="lp__guest-head" style="color: #fbcfe8;">🌸 Jyoti Track & Blueprint</span>
+                  <span class="lp__guest-sub">Mind-Body Longevity & Precision Habit Routine</span>
                 </div>
               </div>
               <ChevronRight class="lp__guest-arrow" />
