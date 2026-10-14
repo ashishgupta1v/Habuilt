@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -72,6 +73,17 @@ export const recordHabitCheckIn = async ({
     return false;
   }
 
+  // Non-blocking async dispatch to ZoetiCoach WS18 Habit Cloud API
+  dispatchZoetiCoachEvent({
+    externalParticipantId: userId,
+    eventType: 'habit_completed',
+    eventValue: habitName,
+    habitId: habitId,
+    points: points,
+    occurredAt: dateStr,
+    source: source,
+  }).catch(() => {});
+
   return true;
 };
 
@@ -97,6 +109,17 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => 
     });
     return false;
   }
+
+  // Non-blocking async dispatch to ZoetiCoach WS18 Habit Cloud API
+  dispatchZoetiCoachEvent({
+    externalParticipantId: userId,
+    eventType: 'habit_unmarked',
+    eventValue: String(habitId),
+    habitId: habitId,
+    points: 0,
+    occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
+    source: 'web',
+  }).catch(() => {});
 
   return true;
 };

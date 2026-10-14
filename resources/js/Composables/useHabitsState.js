@@ -5,14 +5,15 @@ export const ashishHabits = [
   // ── PHASE 1: SUNRISE & PHYSICAL AWAKENING (04:45–07:05) ──
   { id: 'a-64', name: '04:45 Bed Spinal Mobility (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Cat-cow, knees-to-chest, pelvic tilts, supine spinal twists. Decompresses spine before feet touch floor. Non-negotiable spinal preservation.' },
   { id: 'a-1',  name: '04:55 Alarm — Out of Bed', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Feet on floor immediately after mobility. Zero snooze. Sit up, stand, hydrate.' },
-  { id: 'a-2',  name: '04:55 500ml Warm Water + Lemon + Sublingual B12 & ALA', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '500ml warm water + lemon + Sublingual Methylcobalamin B12 (1000 mcg) + Alpha Lipoic Acid on empty stomach.' },
-  { id: 'a-5',  name: '05:00 MOVERS Sadhana — Padma Sadhana & Surya Namaskar (20 min)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Padma Sadhana sequence + 4–6 slow Surya Namaskars. Wakes up the spine gently with zero compressive shock.' },
-  { id: 'a-55', name: '05:20 MOVERS Sadhana — Sudarshan Kriya & Pranayama (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '3-stage Pranayama with Ujjayi, Bhastrika rounds, Om chanting and Sudarshan Kriya. Floods tissues with oxygen, calms systemic inflammation.' },
-  { id: 'a-54', name: '05:35 MOVERS Sadhana — Meditation & Deep Silence (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Rest in silent stillness post-Kriya. Settles autonomic nervous system before deep execution.' },
-  { id: 'a-58', name: '05:45 MOVERS Sadhana — Mental Rehearsal & Stiffness Log (15 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Mentally rehearse today (ZoetiCoach, Digital Builders, Infosys syncs) + write stiffness minutes and 3 gratitudes.' },
-  { id: 'a-3',  name: '06:00 Natural Sunlight & Horizon View (5 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Natural morning sunlight exposure; gaze at distant horizon to relax eye muscles and reset circadian rhythm.' },
-  { id: 'a-4',  name: '06:05 Workout — Core & Calisthenics (30 min)', points: 2, daysOfWeek: [1, 3, 5], scheduleLabel: 'Mon, Wed, Fri', hint: 'M/W/F: 30m Core & Calisthenics (pull-ups, push-ups; strict zero heavy barbell deadlifts/squats).' },
-  { id: 'a-72', name: '06:05 20-Min Spine Yoga Flow', points: 2, daysOfWeek: [2, 4], scheduleLabel: 'Tue, Thu', hint: 'T/Th: 20m restorative spine yoga (Bhujangasana, Marjariasana, Setu Bandhasana, Pawanmuktasana).' },
+  { id: 'a-2',  name: '04:55 500ml Fennel Seed Water (First Thing on Waking)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Drink 500ml warm fennel seed water immediately on waking. First line of defense for elevated BUN (Blood Urea Nitrogen) and internal dryness.' },
+  { id: 'a-92', name: '05:05 500ml Coriander Seed Water + Sublingual B12 & ALA', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Drink 500ml coriander seed water + Sublingual Methylcobalamin B12 (1000 mcg) + Alpha Lipoic Acid on empty stomach. Flushes urea nitrogen.' },
+  { id: 'a-5',  name: '05:15 Training A1: Surya Namaskar (6–12 rounds, Indoor Allergy Shield)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Training A1 Indoor Practice (allergy safe): 6–12 slow rounds Sun Salutations for full-body activation and gentle spinal mobilization.' },
+  { id: 'a-55', name: '05:30 Training A1: Sukha Kriya (10 min) & Om Chant (21x)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Training A1 Indoor Breathwork: 10m Sukha Kriya for tissue oxygenation + 21 Om chants for vagal tone, autonomic nervous system reset & stress baseline.' },
+  { id: 'a-54', name: '05:45 Training A1: Stillness / Shama Kena (10 min, Indoors)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Training A1 Stillness: 10 min silent awareness & mental clarity baseline post-Kriya. Safe indoors away from seasonal allergens.' },
+  { id: 'a-58', name: '05:55 Morning Mental Rehearsal & Stiffness Log (10 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Mentally rehearse today (ZoetiCoach, Digital Builders, Infosys syncs) + write stiffness minutes and 3 gratitudes.' },
+  { id: 'a-3',  name: '06:05 Natural Sunlight & Horizon View (Indoors/Window) (5 min)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Natural morning sunlight from window/balcony (indoors during allergy season); gaze at distant horizon to relax eye muscles and reset circadian rhythm.' },
+  { id: 'a-4',  name: '06:10 Training A2: Posture & Core — Downward Dog (8–10 rds) & Squat Round 1', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Adho Mukha Shvanasana (30 sec x 8–10 rounds) to lengthen spine, hamstrings & calves + round 1 of deep squats (5 min, wall-supported or freestanding).' },
+  { id: 'a-72', name: '06:30 20-Min Spine Yoga Flow', points: 2, daysOfWeek: [2, 4], scheduleLabel: 'Tue, Thu', hint: 'T/Th: 20m restorative spine yoga (Bhujangasana, Marjariasana, Setu Bandhasana, Pawanmuktasana).' },
   { id: 'a-6',  name: '06:05 Saturday Low-Impact Cardio (35 min)', points: 2, daysOfWeek: [6], scheduleLabel: 'Sat Only', hint: 'Saturday cardio: skipping, shadow footwork, bag technique. No road running (spinal protection).' },
   { id: 'a-60', name: '06:00 Sunday Restorative Yoga & Foam Rolling (40 min)', points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Sunday restorative active recovery: joint mobility, asanas, foam rolling, and spinal unloading.' },
   { id: 'a-7',  name: '06:35 10-Min Post-Workout Stretch & Foam Roll', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6], scheduleLabel: 'Mon–Sat', hint: 'Foam roll thoracic spine, hip flexors, hamstrings. Relieves desk posture load.' },
@@ -28,6 +29,7 @@ export const ashishHabits = [
   // ── PHASE 3: DAYTIME DEEP LAPTOP WORK (08:30–14:00) ──
   { id: 'a-12', name: '08:30 Deep Block 1: Product Build — ZoetiCoach & Digital Builders (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Heavy engineering, architecture & code for your businesses. Phone away in another room.' },
   { id: 'a-13', name: '10:15 Eye Rest, CCF Sip & Daily Multivitamin (Iron 0)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: '20-20-20 eye break + 10 blinks. Warm CCF infusion. Multivitamin (Iron STOPPED — Ferritin 68.7 replete).' },
+  { id: 'a-93', name: '10:30 Training A3(i): Spine Mobility Circuit (Mid-Morning)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Cat-Cow (2x10 slow), Lying Knee-to-Chest (2x30s hold), Pelvic Tilts (2x12), Supine Spinal Twists (2x30s/side), Bird Dog (2x8/side). Decompresses spine & releases stiffness.' },
   { id: 'a-14', name: '11:00 Deep Block 2: Business & Core Work (90m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Critical feature implementation, test suites, core Infosys tasks, and system optimization.' },
   { id: 'a-15', name: '12:30 Movement & Hydration Pause (15m)', points: 1, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Stand, stretch, drink mineral water, quick eye reset and standing back extension.' },
   { id: 'a-16', name: '12:45 Deep Block 3: Code & Review (75m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Code reviews, PR merges, automated deployments, and technical documentation.' },
@@ -37,7 +39,9 @@ export const ashishHabits = [
   { id: 'a-29', name: '14:00 Wholesome Lunch & Midday Supplements (D3 + Omega-3 + Curcumin)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Thick dal with 1 tsp ghee, barley/oats roti swap, cooked sabzi, curd. Take Vitamin D3 + Algal Omega-3 DHA/EPA + Curcumin with piperine.' },
   { id: 'a-68', name: '14:50 Post-Lunch Walk & Lubricating Eye Drops', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '10m stroll to blunt glucose spike. Instill preservative-free eye drops to restore tear film.' },
   { id: 'a-18', name: '15:15 Deep Block 4: Business Ops & Build (60m)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Operations, client messaging, architecture documentation, venture backlog clearance.' },
+  { id: 'a-94', name: '16:00 Training A2: Deep Squat Rounds 2–6 (Spread Across Day)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Spread 6 rounds of 5 min deep squats across the day (wall-supported, weaning off wall progressively). Lengthens lumbar spine and builds hip mobility.' },
   { id: 'a-53', name: '16:15 ★ Business Meetings / Deep Build (2 Hours, Alternate Days)', points: 2, daysOfWeek: [1, 2, 3, 4, 5], scheduleLabel: 'Mon–Fri', hint: 'Alternate Days: 2h dedicated Business Meetings (in-person or online). Non-meeting days: uninterrupted deep engineering sprint.' },
+  { id: 'a-95', name: '17:15 Training A3(ii): Strength & Endurance Circuit (2–3 Rounds)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Complete 2–3 rounds: Glute Bridge (12 reps, 2s squeeze), Dead Bugs (10 reps), Side Plank (20s/side), Band Face Pulls (15 reps), Incline/Knee Push-Ups (12 reps), Slow Chair Squats (12 reps).' },
 
   // ── PHASE 5: EVENING FITNESS, OFFICE WRAP & RESTORATION (18:15–22:00) ──
   { id: 'a-20', name: '18:15 Outdoor Fitness Walk (45m at Sunset)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '45m brisk outdoor walk at sunset. Distant horizon gaze and spinal decompression in fresh air.' },
@@ -52,7 +56,7 @@ export const ashishHabits = [
   { id: 'a-27', name: '22:00 In Bed — Lights Out (7h Restorative Sleep Floor)', points: 2, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'In bed by 22:00 sharp. 7 hours of uninterrupted restorative sleep (22:00-05:00) is a clinical anti-inflammatory requirement.' },
 
   // ── ALL-DAY HEALTH & OCULAR GUARDRAILS ──
-  { id: 'a-73', name: '3.0L Daily Hydration Rail Logged', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '3.0L daily minimum (500ml by 08:30 · 1.0L by 11:00 · 2.0L by 15:00 · 3.0L by 20:30). Stop 30m pre-meal, resume 45m post-meal.' },
+  { id: 'a-73', name: '3.5–4.0L Daily Hydration Protocol (Fennel & Coriander Seed Waters — BUN Target)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '3.5–4.0L daily minimum. Alternate fennel and coriander seed waters throughout the day to flush elevated BUN, restore kidney hydration, and resolve dryness.' },
   { id: 'a-65', name: '45-Minute Movement Timer Active', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Stand every 45 min during laptop work, walk 2-3 min, and do 1 gentle standing backward extension.' },
   { id: 'a-62', name: 'Preservative-Free Eye Drops (4× Daily: 09:00, 12:00, 15:00, 18:00)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: '1 drop in each eye 4 times daily across screen hours to maintain ocular tear film.' },
   { id: 'a-32', name: 'Strict Barbell Embargo (Calisthenics & Core Only)', points: 1, daysOfWeek: [1, 2, 3, 4, 5, 6, 0], scheduleLabel: 'Daily', hint: 'Strictly zero heavy deadlifts, squats, or overhead barbell presses. Focus on pull-ups, push-ups, and core holds.' },
@@ -78,6 +82,7 @@ export const ashishHabits = [
   { id: 'a-89', name: '18:30 Sunday Fitness Walk & Spine Decompression (45m)', points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: '45m brisk outdoor walk and spine decompression.' },
   { id: 'a-90', name: '19:15 Sunday Wholesome Dinner & Walk', points: 1, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Wholesome dinner + 10m digestive walk.' },
   { id: 'a-91', name: '20:00 Sunday Night Laptop Sprint (60m to 21:00 Shutdown)', points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: 'Lock roadmap for upcoming week. Hard laptop shutdown at 21:00.' },
+  { id: 'a-96', name: '★ 3-Week Clinical Review Gate (BUN & Spine Mobility Assessment)', points: 2, daysOfWeek: [0], scheduleLabel: 'Sun Only', hint: '3-week review checkpoint: re-assess BUN blood markers, morning spine stiffness minutes, and endurance progression before advancing workout load.' },
 
   // ── FRIDAY FINANCE ──
   { id: 'a-75', name: '25% Tax Set-Aside Transfer (44ADA)', points: 2, daysOfWeek: [5], scheduleLabel: 'Fri Only', hint: 'Transfer 25% of contract/professional receipts to separate untouchable tax reserve account under 44ADA.' },
@@ -321,10 +326,11 @@ export const genericStarterHabits = [
 
 export const ashishTierDescriptions = {
   'a-1':  ['Alarm off, out of bed by 5:30', 'Out of bed by 5:15', 'Out of bed by 5:00 after mobility', '04:55 sharp + zero snooze all week'],
-  'a-2':  ['Drink 250ml warm water', '500ml warm water', '500ml warm + lemon + Sublingual B12 & ALA', '500ml warm + lemon + Sublingual B12 (1000mcg) + ALA fasting'],
+  'a-2':  ['Drink 250ml fennel water', '500ml fennel water', '500ml fennel water on waking', '500ml warm fennel seed water immediately on waking (BUN & dryness defense)'],
+  'a-92': ['Drink water', '500ml coriander water', '500ml coriander water + B12 & ALA', '500ml coriander seed water + Sublingual B12 (1000mcg) & ALA on empty stomach'],
   'a-3':  ['5 min outdoors', '10 min sunlight', '10 min + horizon view', 'Sunlight + distant horizon gaze to relax ciliary muscles'],
-  'a-4':  ['15 min movement', '25 min workout', '30 min core & calisthenics', '30 min pull-ups/push-ups + zero heavy barbell loads'],
-  'a-5':  ['10 min gentle asanas', '15 min Padma Sadhana', '20 min Padma Sadhana + Surya Namaskar', 'Full Padma Sadhana sequence + 4–6 slow Surya Namaskars'],
+  'a-4':  ['4 rounds Down Dog', '6 rounds Down Dog + 1 squat round', '8–10 rounds Down Dog (30s) + squats', '8–10 rounds Down Dog (30s hold) + 5m deep squat wall-supported/freestanding'],
+  'a-5':  ['3 rounds Surya Namaskar', '6 rounds Surya Namaskar', '6–12 rounds Surya Namaskar indoors', 'Full 12 rounds indoor Surya Namaskar (spine activation, allergy safe)'],
   'a-6':  ['15 min walking', '25 min low-impact', '35 min low-impact cardio', '35 min skipping/footwork + no road running'],
   'a-7':  ['3 min quick stretch', '5 min stretch', '10 min stretch + foam roll', '10 min full mobility (thoracic, hips, hamstrings)'],
   'a-8':  ['Soaked nuts only', 'Nuts + clean protein', 'Nuts + papaya + protein + 2 tbsp ground flaxseed', 'Full clean breakfast + 2 tbsp ground flaxseed + zero sugar'],
@@ -350,8 +356,8 @@ export const ashishTierDescriptions = {
   'a-40': ['Quick sync 15min', '30 min review', '1h business milestone review', '1h progress audit across ZoetiCoach & Digital Builders + OKRs'],
   'a-52': ['Skip today', 'Take sometimes', 'Magnesium glycinate at 21:15', 'Magnesium glycinate in warm water/milk + sleep quality'],
   'a-53': ['30 min meeting', '60 min build', '2h business meetings or deep build block', '2h alternate-day business meetings / deep laptop build sprint'],
-  'a-54': ['3 min sit', '5 min meditation', '10 min meditation & stillness', '10 min deep silence post-Kriya'],
-  'a-55': ['5 min pranayama', '10 min pranayama', '15 min Sudarshan Kriya & Pranayama', 'Full 3-stage Ujjayi + Bhastrika + Kriya sequence'],
+  'a-54': ['3 min sit', '5 min stillness', '10 min Stillness / Shama Kena indoors', '10 min silent stillness & baseline reset post-Kriya (indoor allergy safe)'],
+  'a-55': ['5 min breathwork', '10 min Sukha Kriya', '10 min Sukha Kriya + 11 Om chants', '10 min Sukha Kriya + 21 Om chants (vagal reset & oxygenation)'],
   'a-58': ['1 sentence', '5 min journal', '15 min mental rehearsal & stiffness log', '15 min mental rehearsal + stiffness minutes logged for rheumatologist'],
   'a-59': ['30 min couple time', '60 min couple time', '90 min dedicated couple connection', '90 min protected Saturday daytime couple connection with Jyoti'],
   'a-60': ['10 min mobility', '20 min stretch', '40 min restorative yoga & foam roll', '40 min + full posture & spinal decompression'],
@@ -367,7 +373,7 @@ export const ashishTierDescriptions = {
   'a-70': ['Take 1/2 tsp', '1 tsp isabgol once', '1 tsp isabgol in warm water 15m pre-lunch', '1 heaped tsp isabgol in 300ml warm water 15m pre-lunch (LDL lever)'],
   'a-71': ['Take 1/2 tsp', '1 tsp isabgol', '1 tsp isabgol in warm water 15m pre-dinner', '1 tsp isabgol in warm water 15m pre-dinner for evening glucose control'],
   'a-72': ['10 min stretch', '15 min yoga', '20 min gentle spinal yoga flow', '20 min Bhujangasana/Cat-Cow/Bridge/Pawanmuktasana sequence'],
-  'a-73': ['1.5L water', '2L water', '2.8L water tracked', '3.0L logged on the rail (500ml / 1L / 2L / 3L)'],
+  'a-73': ['2.5L water', '3.0L water', '3.5L seed water rail logged', '3.5–4.0L daily hydration target reached (fennel/coriander alternate — BUN flush)'],
   'a-74': ['Skip', 'Take monthly', 'Weekly D3 sachet (60,000 IU) with lunch', 'Weekly D3 sachet (60,000 IU) with healthy meal fats for repletion'],
   'a-75': ['10% transfer', '15% transfer', '20% tax transfer', '25% tax transfer under 44ADA to separate reserve account'],
   'a-80': ['1h build', '2h build', '4.0h Saturday morning laptop build', '4.0h deep architecture & coding for ZoetiCoach & Digital Builders'],
@@ -382,6 +388,10 @@ export const ashishTierDescriptions = {
   'a-89': ['15 min walk', '30 min walk', '45 min Sunday fitness walk', '45 min brisk walk + spinal decompression'],
   'a-90': ['Quick dinner', 'Healthy dinner', 'Wholesome dinner + 10m walk', 'Wholesome dinner + 10m digestive walk'],
   'a-91': ['15 min wrap', '30 min sprint', '60 min Sunday night sprint', '60 min roadmap lock for upcoming week + 21:00 hard shutdown'],
+  'a-93': ['1 set mobility', 'Cat-Cow + Knee-to-Chest', 'Full spine circuit 1 round', 'Full Training A3(i) 2 rounds (Cat-Cow, Pelvic Tilts, Twists, Bird Dog)'],
+  'a-94': ['2 squat rounds', '4 squat rounds', '6 rounds x 5 min deep squat', 'Full 6 rounds x 5 min deep squats spread across the day'],
+  'a-95': ['1 round circuit', '2 rounds circuit', '2–3 rounds Strength Circuit', 'Full 3 rounds Training A3(ii) (Bridges, Dead Bugs, Planks, Face Pulls, Push-ups, Squats)'],
+  'a-96': ['Check stiffness', 'Review weekly symptoms', '3-week assessment check', 'Full 3-week physical & clinical review (BUN, spine mobility, progression)'],
 };
 
 export const jyotiTierDescriptions = {
@@ -512,11 +522,11 @@ export function getTimeSlotForHabit(id, habit = null) {
   }
 
   // Ashish core habits (Master Operating Plan)
-  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-54','a-55','a-58','a-60','a-61','a-64','a-66','a-67','a-72'].includes(id)) return 'morning';
-  if (['a-11','a-12','a-13','a-14','a-15','a-16','a-18','a-29','a-51','a-53','a-59','a-68','a-70','a-80','a-81','a-82','a-86','a-87','a-88'].includes(id)) return 'work';
-  if (['a-17','a-19','a-20','a-23','a-27','a-30','a-52','a-63','a-69','a-71','a-83','a-84','a-85','a-89','a-90','a-91'].includes(id)) return 'evening';
+  if (['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8','a-9','a-54','a-55','a-58','a-60','a-61','a-64','a-66','a-67','a-72','a-92'].includes(id)) return 'morning';
+  if (['a-11','a-12','a-13','a-14','a-15','a-16','a-18','a-29','a-51','a-53','a-59','a-68','a-70','a-80','a-81','a-82','a-86','a-87','a-88','a-93','a-94'].includes(id)) return 'work';
+  if (['a-17','a-19','a-20','a-23','a-27','a-30','a-52','a-63','a-69','a-71','a-83','a-84','a-85','a-89','a-90','a-91','a-95'].includes(id)) return 'evening';
   if (['a-32','a-35','a-36','a-62','a-65','a-73'].includes(id)) return 'anytime';
-  if (['a-38','a-40','a-74','a-75'].includes(id)) return 'weekly';
+  if (['a-38','a-40','a-74','a-75','a-96'].includes(id)) return 'weekly';
 
   // Ashish travel habits (Monday transit)
   if (['at-1','at-2','at-3','at-4'].includes(id)) return 'morning';
@@ -554,11 +564,11 @@ export function getHabitCategory(habit) {
   if (habit && habit.category) return habit.category;
   const name = (habit.name || '').toLowerCase();
   const id = (habit.id || '');
-  if (['a-4','a-5','a-6','a-7','a-20','a-60','a-64','a-67','a-68','a-69','a-72','a-83','a-89','j-16','at-1','at-4','at-10','at-16','at-21','ao-1','ao-4','ao-23','ao-25','af-1','af-13','af-21','af-28'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility') || name.includes('yoga') || name.includes('abhyanga') || name.includes('extension') || name.includes('decompression')) return 'fitness';
-  if (['a-2','a-8','a-13','a-29','a-30','a-36','a-52','a-61','a-70','a-71','a-73','a-74','a-81','a-84','a-90','j-10','j-24','j-28','j-6','j-37','j-38','j-39','j-40','j-43','at-2','at-18','at-20','at-25','at-28','ao-2','ao-7','ao-24','ao-28','ao-30','ao-33','af-7','af-23','af-27','af-30'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin') || name.includes('isabgol') || name.includes('mineral bottle') || name.includes('papaya') || name.includes('flaxseed') || name.includes('zinc') || name.includes('folate') || name.includes('d3') || name.includes('b12') || name.includes('magnesium')) return 'nutrition';
+  if (['a-4','a-5','a-6','a-7','a-20','a-60','a-64','a-67','a-68','a-69','a-72','a-83','a-89','a-93','a-94','a-95','j-16','at-1','at-4','at-10','at-16','at-21','ao-1','ao-4','ao-23','ao-25','af-1','af-13','af-21','af-28'].includes(id) || name.includes('workout') || name.includes('exercise') || name.includes('run') || name.includes('walk') || name.includes('stretch') || name.includes('mobility') || name.includes('yoga') || name.includes('abhyanga') || name.includes('extension') || name.includes('decompression')) return 'fitness';
+  if (['a-2','a-8','a-13','a-29','a-30','a-36','a-52','a-61','a-70','a-71','a-73','a-74','a-81','a-84','a-90','a-92','j-10','j-24','j-28','j-6','j-37','j-38','j-39','j-40','j-43','at-2','at-18','at-20','at-25','at-28','ao-2','ao-7','ao-24','ao-28','ao-30','ao-33','af-7','af-23','af-27','af-30'].includes(id) || name.includes('water') || name.includes('shake') || name.includes('protein') || name.includes('diet') || name.includes('breakfast') || name.includes('lunch') || name.includes('dinner') || name.includes('supplement') || name.includes('multivitamin') || name.includes('isabgol') || name.includes('mineral bottle') || name.includes('papaya') || name.includes('flaxseed') || name.includes('zinc') || name.includes('folate') || name.includes('d3') || name.includes('b12') || name.includes('magnesium')) return 'nutrition';
   if (['a-11','a-12','a-14','a-15','a-16','a-17','a-18','a-40','a-53','a-75','a-80','a-82','a-85','a-86','a-87','a-88','a-91','j-4','j-14','at-9','at-11','at-14','at-15','at-17','ao-9','ao-10','ao-14','ao-17','ao-20','af-9','af-10','af-12','af-16','af-18','af-34','ah-1','ah-2','ah-3'].includes(id) || name.includes('deep work') || name.includes('build') || name.includes('block') || name.includes('sprint') || name.includes('code') || name.includes('architecture') || name.includes('meeting') || name.includes('office') || name.includes('infosys') || name.includes('deliverables') || name.includes('review') || name.includes('priority') || name.includes('career') || name.includes('drive') || name.includes('execution') || name.includes('project') || name.includes('tax')) return 'work';
   if (['a-35','a-38','a-50','a-59','a-66','j-9','j-11','j-15','j-18','j-21','j-26','j-27','j-30','j-33','j-34','j-35','j-36','j-41','j-42','at-8','ao-8','af-8','af-23'].includes(id) || name.includes('shaarvi') || name.includes('jyoti') || name.includes('ashish') || name.includes('family') || name.includes('baby') || name.includes('date') || name.includes('couple') || name.includes('board meeting') || name.includes('abhyanga') || name.includes('meal prep') || name.includes('cooking')) return 'family';
-  if (['a-1','a-3','a-9','a-19','a-23','a-27','a-32','a-54','a-55','a-58','a-62','a-63','a-65','j-1','j-2','j-12','j-22','j-25','j-31','at-3','at-12','at-13','at-19','at-22','ao-3','ao-12','ao-13','ao-21','ao-28','ao-29','ao-32','af-8','af-20','af-27','af-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('meditation') || name.includes('kriya') || name.includes('eye drops') || name.includes('eye mask') || name.includes('compress') || name.includes('movement break') || name.includes('shutdown') || name.includes('reset') || name.includes('lights out')) return 'rest';
+  if (['a-1','a-3','a-9','a-19','a-23','a-27','a-32','a-54','a-55','a-58','a-62','a-63','a-65','a-96','j-1','j-2','j-12','j-22','j-25','j-31','at-3','at-12','at-13','at-19','at-22','ao-3','ao-12','ao-13','ao-21','ao-28','ao-29','ao-32','af-8','af-20','af-27','af-29'].includes(id) || name.includes('sleep') || name.includes('wake') || name.includes('bed') || name.includes('journal') || name.includes('gratitude') || name.includes('sunlight') || name.includes('grooming') || name.includes('shower') || name.includes('meditation') || name.includes('kriya') || name.includes('eye drops') || name.includes('eye mask') || name.includes('compress') || name.includes('movement break') || name.includes('shutdown') || name.includes('reset') || name.includes('lights out')) return 'rest';
   return 'ops';
 }
 

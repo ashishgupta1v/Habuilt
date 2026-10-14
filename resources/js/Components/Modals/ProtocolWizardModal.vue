@@ -280,12 +280,12 @@ const handleActivateProtocol = () => {
                 <div class="w-9 h-9 rounded-lg bg-gold/10 border border-gold/40 flex items-center justify-center text-gold">
                   <Crown class="w-5 h-5" />
                 </div>
-                <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-gold/20 text-gold border border-gold/40">Master 68-Step</span>
+                <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-gold/20 text-gold border border-gold/40">3-Week Assessment Aligned</span>
               </div>
               <h4 class="font-bold text-gold text-sm">Ashish Master Protocol</h4>
-              <p class="text-xs text-gray-300 mt-1">Flagship 68-step blueprint with MOVERS Sadhana, clinical biomarkers, and 4 travel modes.</p>
+              <p class="text-xs text-gray-300 mt-1">3-Week solution-oriented protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3, spine shield & 21:00 shutdown.</p>
               <div class="mt-3 flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gold/10">
-                <span>⏰ 04:45 Wake · 68 Activities</span>
+                <span>⏰ 04:45 Wake · 3.5–4L Hydration</span>
                 <span class="text-gold font-medium flex items-center gap-1">Select <ChevronRight class="w-3.5 h-3.5" /></span>
               </div>
             </div>

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Habuilt</string>
-    <string name="title_activity_main">Habuilt</string>
+    <string name="app_name">ZoetiHabit</string>
+    <string name="title_activity_main">ZoetiHabit</string>
     <string name="package_name">com.habuilt.app</string>
     <string name="custom_url_scheme">com.habuilt.app</string>
-    <string name="widget_name">Habuilt Due Now</string>
-    <string name="widget_description">Live routine tracker with 1-tap completion</string>
+    <string name="widget_name">ZoetiHabit Due Now</string>
+    <string name="widget_description">Live routine tracker with 1-tap completion by ZoetiCoach</string>
 </resources>

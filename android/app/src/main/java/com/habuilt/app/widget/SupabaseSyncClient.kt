@@ -142,6 +142,41 @@ object SupabaseSyncClient {
                     } catch (le: Exception) {
                         Log.w(TAG, "Ledger atomic sync note: ${le.message}")
                     }
+
+                    // 3. Also dispatch non-blocking event to ZoetiCoach WS18 Habit Cloud if configured
+                    try {
+                        val zoetiUrl = prefs.getString("zoeticoach_api_url", "") ?: ""
+                        val zoetiToken = prefs.getString("zoeticoach_token", "") ?: ""
+                        if (zoetiUrl.isNotEmpty() && zoetiToken.isNotEmpty()) {
+                            val zUrl = URL("${zoetiUrl.trimEnd('/')}/api/v3/habit-cloud/events")
+                            val zConn = zUrl.openConnection() as HttpURLConnection
+                            zConn.requestMethod = "POST"
+                            zConn.setRequestProperty("Authorization", "Bearer $zoetiToken")
+                            zConn.setRequestProperty("Content-Type", "application/json")
+                            zConn.connectTimeout = 5000
+                            zConn.readTimeout = 5000
+                            zConn.doOutput = true
+
+                            val zPayload = JSONObject().apply {
+                                put("external_participant_id", userId)
+                                put("event_type", "habit_completed")
+                                put("event_value", habitId)
+                                put("occurred_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(now))
+                                put("payload", JSONObject().apply {
+                                    put("habit_id", habitId)
+                                    put("points", 1)
+                                    put("source", "android_widget")
+                                })
+                            }
+                            val zWriter = OutputStreamWriter(zConn.outputStream)
+                            zWriter.write(zPayload.toString())
+                            zWriter.flush()
+                            zWriter.close()
+                            Log.d(TAG, "ZoetiCoach Habit Cloud response: ${zConn.responseCode}")
+                        }
+                    } catch (ze: Exception) {
+                        Log.d(TAG, "ZoetiCoach background sync note: ${ze.message}")
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed background sync to Supabase: ${e.message}")

@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
                 <div class="hero-protocol-option__icon icon-gold"><Crown class="icon-xs" /></div>
                 <div class="hero-protocol-option__info">
                   <span class="hero-protocol-option__name">Ashish Master Protocol</span>
-                  <span class="hero-protocol-option__sub">68 habits • 4 Office day types</span>
+                  <span class="hero-protocol-option__sub">3-Week Assessment • 3.5–4L Hydration & A1/A2/A3</span>
                 </div>
                 <Check v-if="activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)" class="icon-xs icon-gold ml-auto" />
               </button>

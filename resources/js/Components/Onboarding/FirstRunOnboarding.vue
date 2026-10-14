@@ -107,11 +107,11 @@ const archetypeOptions = [
     id: 'archetype-ashish',
     key: 'ashishMaster',
     name: 'Ashish Master Protocol',
-    tagline: 'Flagship clinical rheumatology & office transit',
-    badge: '68 Habits • Master',
+    tagline: '3-Week assessment: 3.5–4L seed hydration & spine shield',
+    badge: '3-Week Protocol',
     icon: Crown,
     colorClass: 'text-gold border-gold/40 bg-gold/10',
-    description: 'Comprehensive 68-step clinical routine, MOVERS morning sadhana, dynamic 4-day office transit engine.'
+    description: '3-Week clinical protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3 circuits, spine preservation & 21:00 shutdown.'
   },
   {
     id: 'archetype-jyoti',

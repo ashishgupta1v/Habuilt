@@ -294,8 +294,8 @@ const systemCommands = computed(() => {
     {
       id: 'cmd-switch-ashish',
       category: 'Protocols',
-      title: 'Switch to Ashish Master Protocol (Flagship 68-Step)',
-      subtitle: 'Complete 68-step master blueprint with 4 office day types',
+      title: 'Switch to Ashish Master Protocol (3-Week Assessment Aligned)',
+      subtitle: '3-Week protocol: 3.5–4L fennel/coriander hydration, A1/A2/A3 circuits & 21:00 shutdown',
       icon: Crown,
       badge: 'Flagship',
       action: () => emit('switch-protocol', 'archetype-ashish'),

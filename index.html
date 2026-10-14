@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260418" />
     <link rel="shortcut icon" href="/favicon.svg?v=20260418" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#070a11" />
+    <meta name="theme-color" content="#07111D" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Habuilt" />
@@ -32,42 +32,42 @@
     <meta name="twitter:image" content="https://habuilt.com/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <script type="module" src="/resources/js/app.js"></script>
   </head>
   <body>
     <div id="app">
-      <!-- Zero-Blank-Flash Executive Pre-boot Splash -->
-      <div id="habuilt-boot-splash" style="position:fixed;inset:0;background:#070a11;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;color:#ffffff;user-select:none;">
+      <!-- Zero-Blank-Flash ZoetiCoach Theme Pre-boot Splash -->
+      <div id="habuilt-boot-splash" style="position:fixed;inset:0;background:#07111D;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;font-family:'Manrope',system-ui,-apple-system,sans-serif;color:#ffffff;user-select:none;">
         <style>
-          @keyframes habuiltPulseGlow {
-            0% { transform: scale(0.96); opacity: 0.75; filter: drop-shadow(0 0 14px rgba(52,211,153,0.25)); }
-            100% { transform: scale(1.04); opacity: 1; filter: drop-shadow(0 0 30px rgba(52,211,153,0.5)); }
+          @keyframes zoetiPulseGlow {
+            0% { transform: scale(0.96); opacity: 0.8; filter: drop-shadow(0 0 16px rgba(0,180,160,0.35)); }
+            100% { transform: scale(1.04); opacity: 1; filter: drop-shadow(0 0 32px rgba(0,180,160,0.65)); }
           }
-          .habuilt-boot-pulse { animation: habuiltPulseGlow 2.2s ease-in-out infinite alternate; }
+          .zoeti-boot-pulse { animation: zoetiPulseGlow 2.2s ease-in-out infinite alternate; }
         </style>
-        <div class="habuilt-boot-pulse" style="position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center;">
+        <div class="zoeti-boot-pulse" style="position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center;">
           <svg viewBox="0 0 64 64" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="boot-bg" x1="0" y1="0" x2="64" y2="64">
-                <stop offset="0%" stop-color="#0f172a" />
-                <stop offset="100%" stop-color="#082f49" />
+                <stop offset="0%" stop-color="#07111D" />
+                <stop offset="100%" stop-color="#10243A" />
               </linearGradient>
               <linearGradient id="boot-accent" x1="18" y1="17" x2="46" y2="47">
-                <stop offset="0%" stop-color="#34d399" />
-                <stop offset="100%" stop-color="#22d3ee" />
+                <stop offset="0%" stop-color="#00B4A0" />
+                <stop offset="100%" stop-color="#4FD3BE" />
               </linearGradient>
             </defs>
-            <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#boot-bg)" stroke="rgba(255,255,255,0.16)" stroke-width="1.5" />
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#boot-bg)" stroke="#1A3C5E" stroke-width="1.5" />
             <path d="M18 17h9v12h10V17h9v30h-9V37H27v10h-9z" fill="url(#boot-accent)" />
-            <circle cx="50" cy="14" r="4" fill="#34d399" opacity="0.95" />
+            <circle cx="50" cy="14" r="4" fill="#FF6B35" opacity="0.95" />
           </svg>
         </div>
-        <div style="margin-top:18px;font-size:1.1rem;font-weight:750;letter-spacing:0.06em;background:linear-gradient(135deg, #ffffff 40%, #C8A456 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-          HABUILT
+        <div style="margin-top:18px;font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:750;letter-spacing:0.06em;background:linear-gradient(100deg, #00B4A0 0%, #4FD3BE 50%, #FF7F4D 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+          ZOETIHABIT
         </div>
-        <div style="margin-top:4px;font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.45);font-weight:600;">
-          Executive Habit Protocol
+        <div style="margin-top:4px;font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(157,183,211,0.75);font-weight:600;">
+          Habits &amp; Routines by ZoetiCoach
         </div>
       </div>
     </div>

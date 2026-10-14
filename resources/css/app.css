@@ -1,8 +1,9 @@
 @import './design-system/tokens.css';
 
 :root {
-  --font-base: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-base: 'Manrope', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Sora', 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
   --font-size-xs: 11.5px;
   --font-size-sm: 13px;
@@ -79,55 +80,56 @@
 body.theme-dark,
 html.theme-dark,
 body.dark-mode {
-  --circadian-bg: #070a11;
-  --circadian-glow: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(52, 211, 153, 0.035) 0%, transparent 70%);
+  --circadian-bg: #07111D;
+  --circadian-glow: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 180, 160, 0.05) 0%, transparent 70%);
   --page-bg: var(--circadian-bg);
-  --shell-bg: #0b101b;
-  --shell-border: rgba(255, 255, 255, 0.07);
+  --shell-bg: #091524;
+  --shell-border: #1A3C5E;
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-tertiary: #475569;
+  --text-primary: #F1F6FB;
+  --text-secondary: #C2D5E7;
+  --text-muted: #9DB7D3;
+  --text-tertiary: #6E8EB5;
   
-  --hero-bg: #0b101b;
-  --hero-panel: #0f1728;
-  --hero-border: rgba(255, 255, 255, 0.08);
-  --hero-text: #f8fafc;
-  --hero-muted: #94a3b8;
+  --hero-bg: #091524;
+  --hero-panel: #10243A;
+  --hero-border: #1A3C5E;
+  --hero-text: #F1F6FB;
+  --hero-muted: #9DB7D3;
   
-  --accent: #C8A456;
-  --accent-strong: #e5b95f;
-  --accent-light: rgba(200, 164, 86, 0.1);
-  --accent-glow: rgba(200, 164, 86, 0.22);
+  --accent: #00B4A0;
+  --accent-strong: #4FD3BE;
+  --accent-light: rgba(0, 180, 160, 0.12);
+  --accent-glow: rgba(0, 180, 160, 0.35);
   
-  --brand-gold: #C8A456;
-  --brand-gold-solid: #C8A456;
-  --brand-gold-subtle: rgba(200, 164, 86, 0.1);
-  --brand-gold-glow: rgba(200, 164, 86, 0.22);
-  --brand-gold-border: rgba(200, 164, 86, 0.28);
+  --brand-gold: #00B4A0;
+  --brand-gold-solid: #00B4A0;
+  --brand-gold-subtle: rgba(0, 180, 160, 0.14);
+  --brand-gold-glow: rgba(0, 180, 160, 0.35);
+  --brand-gold-border: rgba(0, 180, 160, 0.4);
   
-  --semantic-success: #10b981;
-  --semantic-success-subtle: rgba(16, 185, 129, 0.12);
+  --semantic-success: #00B4A0;
+  --semantic-success-subtle: rgba(0, 180, 160, 0.15);
   
   --brand-sky: #38bdf8;
   --brand-indigo: #818cf8;
   --brand-fuchsia: #f0abfc;
-  --brand-amber: #f59e0b;
+  --brand-amber: #FF6B35;
+  --brand-saffron: #FF6B35;
   --danger: #f87171;
   --danger-light: rgba(239, 68, 68, 0.14);
   
-  --card-bg: #0d1424;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --muted-bg: #121c30;
-  --hover-bg: #15223a;
+  --card-bg: #10243A;
+  --card-border: #1A3C5E;
+  --muted-bg: #152F4B;
+  --hover-bg: #1A3C5E;
   
-  /* Hairline Crisp Glassmorphism (Linear Modern Dark) */
-  --glass-bg: rgba(13, 20, 36, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.07);
-  --glass-border-specular: rgba(255, 255, 255, 0.14);
+  /* Hairline Crisp Glassmorphism (ZoetiCoach Modern Dark) */
+  --glass-bg: rgba(16, 36, 58, 0.88);
+  --glass-border: #1A3C5E;
+  --glass-border-specular: rgba(79, 211, 190, 0.2);
   --glass-blur: blur(20px);
-  --glass-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.65);
+  --glass-shadow: 0 10px 30px -6px rgba(7, 17, 29, 0.75);
   --card-elev-1: 0 2px 8px rgba(0, 0, 0, 0.4);
   --card-elev-2: 0 6px 20px -2px rgba(0, 0, 0, 0.55);
   --card-elev-3: 0 16px 40px -6px rgba(0, 0, 0, 0.75);

@@ -26,6 +26,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  title: {
+    type: String,
+    default: 'ZoetiHabit',
+  },
 });
 
 const sizeMap = {
@@ -68,12 +72,12 @@ const uid = Math.random().toString(36).substring(2, 9);
       >
         <defs>
           <linearGradient :id="`hbg-${uid}`" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#0f172a" />
-            <stop offset="100%" stop-color="#082f49" />
+            <stop offset="0%" stop-color="#07111D" />
+            <stop offset="100%" stop-color="#10243A" />
           </linearGradient>
           <linearGradient :id="`haccent-${uid}`" x1="18" y1="17" x2="46" y2="47" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#34d399" />
-            <stop offset="100%" stop-color="#22d3ee" />
+            <stop offset="0%" stop-color="#00B4A0" />
+            <stop offset="100%" stop-color="#4FD3BE" />
           </linearGradient>
         </defs>
 
@@ -85,7 +89,7 @@ const uid = Math.random().toString(36).substring(2, 9);
           height="60"
           rx="14"
           :fill="`url(#hbg-${uid})`"
-          stroke="rgba(255, 255, 255, 0.16)"
+          stroke="#1A3C5E"
           stroke-width="1.5"
         />
 
@@ -95,14 +99,14 @@ const uid = Math.random().toString(36).substring(2, 9);
           :fill="`url(#haccent-${uid})`"
         />
 
-        <!-- Signature Emerald Focus Accent Dot -->
-        <circle cx="50" cy="14" r="4" fill="#34d399" opacity="0.95" />
+        <!-- Signature Zoeti Saffron Focus Accent Dot -->
+        <circle cx="50" cy="14" r="4" fill="#FF6B35" opacity="0.95" />
       </svg>
     </div>
 
     <!-- Optional Brand Wordmark & Tag -->
     <div v-if="withText" class="habuilt-logo-brand__info">
-      <span class="habuilt-logo-brand__text">Habuilt</span>
+      <span class="habuilt-logo-brand__text">{{ title || 'ZoetiHabit' }}</span>
       <span v-if="showBadge" class="habuilt-logo-brand__tag">{{ badgeText }}</span>
     </div>
   </component>
