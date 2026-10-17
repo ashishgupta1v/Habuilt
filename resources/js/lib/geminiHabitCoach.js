@@ -77,7 +77,9 @@ export function buildBriefingContext({
   stiffnessMinutes = 0,
   hydrationMl = 0,
   partnerName = 'Partner',
-  activeHabitName = ''
+  activeHabitName = '',
+  adherenceRate = 0,
+  clinicalDirective = '',
 }) {
   return {
     displayName,
@@ -93,7 +95,9 @@ export function buildBriefingContext({
     stiffnessMinutes,
     hydrationMl,
     partnerName,
-    activeHabitName
+    activeHabitName,
+    adherenceRate,
+    clinicalDirective,
   };
 }
 
@@ -117,28 +121,32 @@ export function generateHeuristicBriefing(ctx, personaKey = 'executive') {
 
   // Clinical Rheumatology & Biomarkers Evaluation
   let clinicalNote = '';
+  if (ctx.clinicalDirective) {
+    clinicalNote = `${ctx.clinicalDirective} `;
+  }
   if (ctx.stiffnessMinutes > 0) {
     if (ctx.stiffnessMinutes <= 15) {
-      clinicalNote = `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes — excellent baseline decompression. Keep the thoracic mobility sequence steady.`;
+      clinicalNote += `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes — excellent baseline decompression. Keep the thoracic mobility sequence steady.`;
     } else if (ctx.stiffnessMinutes <= 30) {
-      clinicalNote = `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes. Prioritize warm abhyanga and avoid compressive axial loads before your midday walk.`;
+      clinicalNote += `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes. Prioritize warm abhyanga and avoid compressive axial loads before your midday walk.`;
     } else {
-      clinicalNote = `Elevated stiffness alert: ${ctx.stiffnessMinutes} minutes logged. Defer high-intensity strength; execute restorative pelvic tilts and keep hydration steady.`;
+      clinicalNote += `Elevated stiffness alert: ${ctx.stiffnessMinutes} minutes logged. Defer high-intensity strength; execute restorative pelvic tilts and keep hydration steady.`;
     }
-  } else {
+  } else if (!ctx.clinicalDirective) {
     clinicalNote = `Spinal decompression protocol is active. Keep hydration above the 3-litre target to flush metabolic inflammation.`;
   }
 
   // Progress & Streak Analysis
   let progressNote = '';
+  const adherencePrefix = Number(ctx.adherenceRate) > 0 ? `ZoetiCoach verifies ${ctx.adherenceRate}% adherence. ` : '';
   if (ctx.todayPoints >= 15) {
-    progressNote = `Target crushed with ${ctx.todayPoints} points secured! Full protocol achieved. Protect your evening wind-down.`;
+    progressNote = `${adherencePrefix}Target crushed with ${ctx.todayPoints} points secured! Full protocol achieved. Protect your evening wind-down.`;
   } else if (ctx.todayPoints >= 8) {
-    progressNote = `Solid rhythm: ${ctx.todayPoints} of 15 points logged. Half-target cleared. Push through your afternoon execution block.`;
+    progressNote = `${adherencePrefix}Solid rhythm: ${ctx.todayPoints} of 15 points logged. Half-target cleared. Push through your afternoon execution block.`;
   } else if (ctx.todayPoints >= 4) {
-    progressNote = `Floor safe at ${ctx.todayPoints} points, protecting your ${ctx.systemStreak}-day streak. Now ramp up to the 8-point half milestone.`;
+    progressNote = `${adherencePrefix}Floor safe at ${ctx.todayPoints} points, protecting your ${ctx.systemStreak}-day streak. Now ramp up to the 8-point half milestone.`;
   } else {
-    progressNote = `Current score: ${ctx.todayPoints} points. Protect the 4-point floor first to keep your ${ctx.systemStreak}-day streak unbreakable.`;
+    progressNote = `${adherencePrefix}Current score: ${ctx.todayPoints} points. Protect the 4-point floor first to keep your ${ctx.systemStreak}-day streak unbreakable.`;
   }
 
   // Keystone Needle-Mover
@@ -189,12 +197,14 @@ export async function generateAIBriefing(ctx, personaKey = 'executive') {
   }
 
   try {
-    const prompt = `You are the Habuilt Elite Circadian Intelligence Coach.
+    const prompt = `You are the Habuilt Elite Circadian Intelligence Coach integrated with ZoetiCoach Habit Cloud.
 Speak directly to ${ctx.displayName} in a ${VOICE_PERSONAS[personaKey]?.tone || 'crisp, tactical'} tone.
 Context:
 - Day Type: ${ctx.dayTypeLabel}
 - Circadian Phase: ${ctx.circadianPhase}
 - Points Today: ${ctx.todayPoints} / ${ctx.targetPoints} (Streak: ${ctx.systemStreak} days)
+- 30-Day ZoetiCoach Adherence Rate: ${ctx.adherenceRate || 0}%
+- Clinical Directive: ${ctx.clinicalDirective || 'Maintain protocol integrity'}
 - Completed Habits: ${ctx.completedCount} of ${ctx.scheduledCount}
 - Morning Stiffness Log: ${ctx.stiffnessMinutes} minutes
 - Hydration Rail: ${ctx.hydrationMl} ml / 3000 ml

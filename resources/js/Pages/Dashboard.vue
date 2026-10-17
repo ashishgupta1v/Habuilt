@@ -3877,6 +3877,7 @@ onBeforeUnmount(() => {
         :biomarkers="biomarkersState"
         :hydration-ml="hydrationMlState"
         :tier-thresholds="tierThresholds"
+        :consistency-score="consistencyScore"
         @send-high-five="sendWarriorHighFive"
         @update-biomarkers="handleUpdateBiomarkers"
         @update-hydration="handleUpdateHydration"

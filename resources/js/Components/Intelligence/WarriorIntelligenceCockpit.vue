@@ -58,6 +58,8 @@ const props = defineProps({
   biomarkers: { type: Object, default: () => ({ stiffnessMin: 0, energyRating: 8, note: '' }) },
   hydrationMl: { type: Number, default: 0 },
   tierThresholds: { type: Object, default: () => ({ floor: 4, half: 8, full: 15, target: 15 }) },
+  consistencyScore: { type: Number, default: 0 },
+  adherenceRate: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -120,6 +122,12 @@ onUnmounted(() => {
 const refreshAIBriefing = async () => {
   isGeneratingBriefing.value = true;
   try {
+    const directiveStr = props.isAshish
+      ? 'Target 3.5L-4.0L hydration with pink salt & hourly posture decompression.'
+      : props.isJyoti
+        ? 'Morning natural sunlight within 30m & gentle joint mobility flow.'
+        : 'Maintain peak protocol consistency.';
+
     const context = buildBriefingContext({
       displayName: props.displayName,
       isAshish: props.isAshish,
@@ -134,7 +142,9 @@ const refreshAIBriefing = async () => {
       stiffnessMinutes: localStiffness.value,
       hydrationMl: localHydration.value,
       partnerName: props.partnerName || (props.isAshish ? 'Jyoti' : props.isJyoti ? 'Ashish' : 'Partner'),
-      activeHabitName: props.todayHabits.find(h => !props.hasCompletedDay(h, props.currentDay))?.name || ''
+      activeHabitName: props.todayHabits.find(h => !props.hasCompletedDay(h, props.currentDay))?.name || '',
+      adherenceRate: props.adherenceRate || props.consistencyScore || 0,
+      clinicalDirective: directiveStr,
     });
 
     const result = await generateAIBriefing(context, selectedPersonaKey.value);
