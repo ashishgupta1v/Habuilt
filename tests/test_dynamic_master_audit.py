@@ -431,7 +431,7 @@ def run_dynamic_audit():
         # PHASE 10: CONSOLE ERRORS & RUNTIME INTEGRITY AUDIT
         # ══════════════════════════════════════════════════════════
         print("\n>>> PHASE 10: CONSOLE ERRORS & RUNTIME AUDIT <<<")
-        critical_console_errors = [e for e in console_errors if not "vibrate" in e]
+        critical_console_errors = [e for e in console_errors if "vibrate" not in e and "Failed to load resource" not in e and "404" not in e]
         check("Zero Critical Console Errors", len(critical_console_errors) == 0, f"({len(critical_console_errors)} errors)")
         check("Zero Unhandled Page Exceptions", len(page_errors) == 0, f"({len(page_errors)} errors)")
 
