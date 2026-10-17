@@ -2311,7 +2311,7 @@ const handleSendTestNotification = async () => {
 };
 
 // ── Native Android Home Screen Widget Sync Hook ──
-const { syncNativeWidget, getNativeWidgetData } = useNativeWidget();
+const { syncNativeWidget, getNativeWidgetData, drainNativeZoetiQueue } = useNativeWidget();
 
 const buildHabitScheduleMap = () => {
   const map = {};
@@ -2363,6 +2363,41 @@ const pushToNativeWidget = () => {
   }
 };
 
+const reconcileNativeWidget = async () => {
+  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
+  try {
+    // 1. Drain pending native ZoetiCoach events into web queue & flush
+    await drainNativeZoetiQueue();
+
+    // 2. Read widget SharedPreferences to synchronize any habits marked done from widget
+    const nativeData = await getNativeWidgetData();
+    if (!nativeData?.habitsJson) return;
+
+    const widgetHabits = JSON.parse(nativeData.habitsJson);
+    if (!Array.isArray(widgetHabits)) return;
+
+    let modified = false;
+    for (const wh of widgetHabits) {
+      const match = (localHabits.value || []).find(h => String(h.id) === String(wh.id));
+      if (match && Array.isArray(wh.completed_days)) {
+        for (const dayNum of wh.completed_days) {
+          if (!match.completed_days.includes(dayNum)) {
+            match.completed_days.push(dayNum);
+            modified = true;
+          }
+        }
+      }
+    }
+
+    if (modified) {
+      saveState();
+      pushToNativeWidget();
+    }
+  } catch (err) {
+    console.debug('Reconcile native widget note:', err);
+  }
+};
+
 watch([localHabits, todayPoints, systemStreak, consistencyScore, dayType, activeProtocol], () => {
   pushToNativeWidget();
 }, { deep: true, immediate: true });
@@ -2370,12 +2405,14 @@ watch([localHabits, todayPoints, systemStreak, consistencyScore, dayType, active
 onMounted(() => {
   nextTick(() => {
     pushToNativeWidget();
+    reconcileNativeWidget();
   });
   if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
     try {
       App.addListener('appStateChange', ({ isActive }) => {
         if (isActive) {
           pushToNativeWidget();
+          reconcileNativeWidget();
         }
       });
     } catch {}

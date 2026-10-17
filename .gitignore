@@ -45,3 +45,5 @@ vite.config.js.timestamp-*
 /dist/
 __pycache__/
 *.pyc
+*.db
+/logs/

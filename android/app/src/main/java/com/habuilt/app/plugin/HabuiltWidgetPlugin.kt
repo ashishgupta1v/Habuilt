@@ -75,4 +75,23 @@ class HabuiltWidgetPlugin : Plugin() {
             call.reject("Failed to get widget data: ${e.message}", e)
         }
     }
+
+    @PluginMethod
+    fun drainNativeZoetiQueue(call: PluginCall) {
+        try {
+            val context = context ?: run {
+                call.reject("Context is null")
+                return
+            }
+            val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
+            val rawQueue = prefs.getString("zoeticoach_native_offline_queue", "[]") ?: "[]"
+            prefs.edit().putString("zoeticoach_native_offline_queue", "[]").apply()
+
+            val ret = JSObject()
+            ret.put("eventsJson", rawQueue)
+            call.resolve(ret)
+        } catch (e: Exception) {
+            call.reject("Failed to drain native ZoetiCoach queue: ${e.message}", e)
+        }
+    }
 }

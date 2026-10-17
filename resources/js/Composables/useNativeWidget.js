@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { getZoetiCoachConfig } from '@/lib/zoetiCoachBridge';
+import { getZoetiCoachConfig, enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
 
 export function useNativeWidget() {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
@@ -54,9 +54,36 @@ export function useNativeWidget() {
     return null;
   };
 
+  const drainNativeZoetiQueue = async () => {
+    if (!isNative) return 0;
+    try {
+      const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);
+      const HabuiltWidget = plugins?.HabuiltWidget;
+      if (HabuiltWidget && typeof HabuiltWidget.drainNativeZoetiQueue === 'function') {
+        const res = await HabuiltWidget.drainNativeZoetiQueue();
+        const raw = res?.eventsJson;
+        if (raw && raw !== '[]') {
+          const events = JSON.parse(raw);
+          if (Array.isArray(events) && events.length > 0) {
+            console.debug(`[useNativeWidget] Drained ${events.length} native ZoetiCoach events`);
+            for (const payload of events) {
+              enqueueZoetiCoachEvent(payload);
+            }
+            flushZoetiCoachQueue().catch(() => {});
+            return events.length;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Native widget Zoeti drain warning:', err);
+    }
+    return 0;
+  };
+
   return {
     isNative,
     syncNativeWidget,
     getNativeWidgetData,
+    drainNativeZoetiQueue,
   };
 }

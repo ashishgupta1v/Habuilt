@@ -25,7 +25,12 @@ import {
   Compass,
   Moon,
 } from 'lucide-vue-next';
-import { fetchZoetiCoachAdherence, isZoetiCoachConnected } from '@/lib/zoetiCoachBridge';
+import {
+  fetchZoetiCoachAdherence,
+  isZoetiCoachConnected,
+  getZoetiCoachQueueCount,
+  flushZoetiCoachQueue,
+} from '@/lib/zoetiCoachBridge';
 
 const props = defineProps({
   isAshish: { type: Boolean, default: false },
@@ -50,6 +55,8 @@ const isExpanded = ref(true);
 const lastSyncedAt = ref(null);
 const activeTab = ref('overview'); // 'overview' | 'clinical' | 'milestones'
 const currentTime = ref(new Date());
+const pendingQueueCount = ref(getZoetiCoachQueueCount());
+const isFlushing = ref(false);
 
 let clockTimer = null;
 
@@ -397,6 +404,38 @@ const handleEventSynced = (event) => {
   syncAdherence(false);
 };
 
+const handleQueueChange = (event) => {
+  pendingQueueCount.value = event?.detail?.queueCount ?? event?.detail?.pendingCount ?? getZoetiCoachQueueCount();
+};
+
+const triggerManualFlush = async () => {
+  if (isFlushing.value) return;
+  isFlushing.value = true;
+  try {
+    const result = await flushZoetiCoachQueue();
+    pendingQueueCount.value = result?.pending ?? getZoetiCoachQueueCount();
+    if (result.flushed > 0) {
+      emit('toast', {
+        message: `⚡ Flushed ${result.flushed} offline event${result.flushed > 1 ? 's' : ''} to ZoetiCoach Habit Cloud!`,
+        type: 'success',
+      });
+      syncAdherence(false);
+    } else {
+      emit('toast', {
+        message: 'All offline events synchronized with ZoetiCoach.',
+        type: 'info',
+      });
+    }
+  } catch (err) {
+    emit('toast', {
+      message: 'Queue flush retry scheduled.',
+      type: 'warning',
+    });
+  } finally {
+    isFlushing.value = false;
+  }
+};
+
 watch(
   () => participantId.value,
   () => {
@@ -419,6 +458,8 @@ onMounted(() => {
 
   if (typeof window !== 'undefined') {
     window.addEventListener('zoeticoach:event-synced', handleEventSynced);
+    window.addEventListener('zoeticoach:event-queued', handleQueueChange);
+    window.addEventListener('zoeticoach:queue-flushed', handleQueueChange);
   }
 
   syncAdherence(false);
@@ -428,6 +469,8 @@ onUnmounted(() => {
   if (clockTimer) clearInterval(clockTimer);
   if (typeof window !== 'undefined') {
     window.removeEventListener('zoeticoach:event-synced', handleEventSynced);
+    window.removeEventListener('zoeticoach:event-queued', handleQueueChange);
+    window.removeEventListener('zoeticoach:queue-flushed', handleQueueChange);
   }
 });
 </script>
@@ -458,6 +501,19 @@ onUnmounted(() => {
       </div>
 
       <div class="hud-actions-group">
+        <button
+          v-if="pendingQueueCount > 0"
+          type="button"
+          class="hud-btn hud-btn--queue"
+          :class="{ 'hud-btn--loading': isFlushing }"
+          :disabled="isFlushing"
+          title="Flush offline queue to ZoetiCoach Habit Cloud"
+          @click="triggerManualFlush"
+        >
+          <span class="queue-pulse-dot" :class="{ 'animate-spin': isFlushing }"></span>
+          <span class="hud-btn-text">⏳ {{ pendingQueueCount }} queued • Flush Now</span>
+        </button>
+
         <button
           type="button"
           class="hud-btn hud-btn--sync"
@@ -635,6 +691,10 @@ onUnmounted(() => {
                 <div class="sync-row">
                   <span class="sync-row-key">Participant:</span>
                   <span class="sync-row-val mono-num">@{{ participantId }}</span>
+                </div>
+                <div v-if="pendingQueueCount > 0" class="sync-row">
+                  <span class="sync-row-key">Offline Queue:</span>
+                  <span class="sync-row-val text-amber-400 font-bold mono-num">{{ pendingQueueCount }} pending</span>
                 </div>
               </div>
               <p class="metric-subtext mt-1">
@@ -908,6 +968,27 @@ onUnmounted(() => {
 .hud-btn--portal:hover {
   border-color: rgba(212, 179, 106, 0.4);
   color: #f6e05e;
+}
+
+.hud-btn--queue {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.hud-btn--queue:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fde68a;
+}
+
+.queue-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  display: inline-block;
+  box-shadow: 0 0 8px #f59e0b;
 }
 
 .hud-btn--toggle {

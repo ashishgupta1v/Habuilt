@@ -172,15 +172,50 @@ object SupabaseSyncClient {
                             zWriter.write(zPayload.toString())
                             zWriter.flush()
                             zWriter.close()
-                            Log.d(TAG, "ZoetiCoach Habit Cloud response: ${zConn.responseCode}")
+                            val zCode = zConn.responseCode
+                            Log.d(TAG, "ZoetiCoach Habit Cloud response: $zCode")
+                            if (zCode !in 200..299) {
+                                enqueueNativeZoetiEvent(context, zPayload)
+                            }
                         }
                     } catch (ze: Exception) {
-                        Log.d(TAG, "ZoetiCoach background sync note: ${ze.message}")
+                        Log.d(TAG, "ZoetiCoach background sync note (enqueuing): ${ze.message}")
+                        try {
+                            val zoetiUrl = prefs.getString("zoeticoach_api_url", "") ?: ""
+                            val zoetiToken = prefs.getString("zoeticoach_token", "") ?: ""
+                            if (zoetiUrl.isNotEmpty() && zoetiToken.isNotEmpty()) {
+                                val zPayload = JSONObject().apply {
+                                    put("external_participant_id", userId)
+                                    put("event_type", "habit_completed")
+                                    put("event_value", habitId)
+                                    put("occurred_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
+                                    put("payload", JSONObject().apply {
+                                        put("habit_id", habitId)
+                                        put("points", 1)
+                                        put("source", "android_widget")
+                                    })
+                                }
+                                enqueueNativeZoetiEvent(context, zPayload)
+                            }
+                        } catch (_: Exception) {}
                     }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed background sync to Supabase: ${e.message}")
             }
         }.start()
+    }
+
+    private fun enqueueNativeZoetiEvent(context: Context, payload: JSONObject) {
+        try {
+            val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
+            val rawQueue = prefs.getString("zoeticoach_native_offline_queue", "[]") ?: "[]"
+            val queue = JSONArray(rawQueue)
+            queue.put(payload)
+            prefs.edit().putString("zoeticoach_native_offline_queue", queue.toString()).apply()
+            Log.d(TAG, "Enqueued native ZoetiCoach event (queue depth: ${queue.length()})")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to enqueue native ZoetiCoach event: ${e.message}")
+        }
     }
 }
