@@ -1,4 +1,6 @@
 <script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { gsap } from 'gsap';
 import {
   Clock,
   Check,
@@ -33,10 +35,59 @@ const emit = defineEmits([
   'share-scorecard',
   'sync-app',
 ]);
+
+const deckRef = ref(null);
+let gsapCtx = null;
+
+const displayPoints = ref(0);
+
+const tweenScore = (newVal) => {
+  gsap.to(displayPoints, {
+    value: newVal,
+    duration: 0.65,
+    ease: 'power2.out',
+    roundProps: 'value'
+  });
+};
+
+watch(() => props.todayPoints, (val) => tweenScore(val || 0));
+
+onMounted(() => {
+  if (deckRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from('.hero-deck-left', {
+        x: -15,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out'
+      });
+      gsap.from('.hero-protocol-card', {
+        x: 15,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out'
+      });
+      gsap.from('.hero-tier-card', {
+        scale: 0.9,
+        opacity: 0,
+        stagger: 0.08,
+        duration: 0.45,
+        ease: 'back.out(1.6)'
+      });
+      tweenScore(props.todayPoints || 0);
+    }, deckRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
 </script>
 
 <template>
-  <div class="hero-executive-deck">
+  <div class="hero-executive-deck" ref="deckRef">
     <!-- Left Column: Greeting, Routine Phase, Live Up Next & Quick Actions -->
     <div class="hero-deck-left">
       <div class="hero-greeting-text">
@@ -129,15 +180,39 @@ const emit = defineEmits([
 
     <!-- Right Column: Today's Protocol Command Card -->
     <div class="hero-deck-right">
-      <div class="hero-protocol-card">
+      <div class="hero-protocol-card framer-glow-box">
         <div class="hero-protocol-card__header">
           <div class="hero-protocol-card__title">
             <Shield class="icon-sm icon-gold" />
             <span>Today's Protocol</span>
           </div>
-          <div class="hero-protocol-card__score-chip">
-            <span class="hero-protocol-card__current mono-num">{{ todayPoints }}</span>
-            <span class="hero-protocol-card__target mono-num">/ {{ tierThresholds.target }} pts</span>
+          <div class="flex items-center gap-2">
+            <!-- Kinetic SVG Mini-Gauge -->
+            <svg viewBox="0 0 36 36" class="w-7 h-7 flex-shrink-0 hidden sm:block" aria-hidden="true">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3" />
+              <circle
+                cx="18"
+                cy="18"
+                r="14"
+                fill="none"
+                stroke="url(#deckRingGrad)"
+                stroke-width="3"
+                stroke-dasharray="87.96"
+                :stroke-dashoffset="87.96 - (87.96 * Math.min(100, Math.round((todayPoints / (tierThresholds.target || 1)) * 100)) / 100)"
+                stroke-linecap="round"
+                class="framer-ring-circle"
+              />
+              <defs>
+                <linearGradient id="deckRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00B4A0" />
+                  <stop offset="100%" stop-color="#FF6B35" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="hero-protocol-card__score-chip">
+              <span class="hero-protocol-card__current mono-num">{{ displayPoints }}</span>
+              <span class="hero-protocol-card__target mono-num">/ {{ tierThresholds.target }} pts</span>
+            </div>
           </div>
         </div>
 

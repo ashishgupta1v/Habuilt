@@ -44,4 +44,5 @@ const copyDirIfExists = async (from, to) => {
   }
 };
 await copyDirIfExists('public/icons', 'dist/icons');
+await copyDirIfExists('public/images', 'dist/images');
 await copyDirIfExists('public/screenshots', 'dist/screenshots');

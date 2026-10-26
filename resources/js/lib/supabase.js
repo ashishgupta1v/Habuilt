@@ -302,7 +302,7 @@ export const saveUserSettings = async (userId, settingsPayload) => {
       weekly_reviews: settingsPayload.weeklyReviews || {},
       enhanced_state: settingsPayload.enhancedState || {},
       day_type: settingsPayload.dayType || 'home',
-      dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
+      dark_mode: false,
     });
     if (localRes && localRes.success) return true;
   }
@@ -320,7 +320,7 @@ export const saveUserSettings = async (userId, settingsPayload) => {
           weekly_reviews: settingsPayload.weeklyReviews || {},
           enhanced_state: settingsPayload.enhancedState || {},
           day_type: settingsPayload.dayType || 'home',
-          dark_mode: settingsPayload.darkMode !== undefined ? settingsPayload.darkMode : true,
+          dark_mode: false,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
       if (!error) return true;
@@ -403,36 +403,108 @@ export const getPairChannelId = (userA, userB) => {
   return `habuilt-pair-${sorted[0]}-${sorted[1]}`;
 };
 
-export const initCoupleBroadcastChannel = ({ userId, partnerId, onPartnerEvent }) => {
-  const channelName = getPairChannelId(userId, partnerId);
-  if (!channelName || !isSupabaseConfigured()) return null;
-
+let globalLocalPartnerBc = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   try {
-    const channel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
-    channel.on('broadcast', { event: 'partner_action' }, (event) => {
-      if (typeof onPartnerEvent === 'function') {
-        onPartnerEvent(event.payload);
-      }
-    });
-    channel.subscribe();
-    return channel;
-  } catch {
-    return null;
+    globalLocalPartnerBc = new BroadcastChannel('habuilt_local_partner_sync');
+  } catch (_) {}
+}
+
+export const initCoupleBroadcastChannel = (arg1, arg2) => {
+  let onPartnerEvent = null;
+  let channelName = null;
+
+  if (typeof arg1 === 'function') {
+    onPartnerEvent = arg1;
+    channelName = typeof arg2 === 'string' ? arg2 : null;
+  } else if (arg1 && typeof arg1 === 'object') {
+    onPartnerEvent = arg1.onPartnerEvent;
+    if (arg1.userId && arg1.partnerId) {
+      channelName = getPairChannelId(arg1.userId, arg1.partnerId);
+    } else if (arg1.channelName) {
+      channelName = arg1.channelName;
+    }
   }
+
+  // 1. Hook into browser BroadcastChannel for zero-latency local multi-tab / offline / test sync
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      if (!globalLocalPartnerBc) {
+        globalLocalPartnerBc = new BroadcastChannel('habuilt_local_partner_sync');
+      }
+      globalLocalPartnerBc.onmessage = (event) => {
+        if (event && event.data && typeof onPartnerEvent === 'function') {
+          onPartnerEvent(event.data);
+        }
+      };
+    } catch (_) {}
+  }
+
+  // 2. Hook into Supabase Realtime channel if configured
+  let supabaseChannel = null;
+  if (channelName && isSupabaseConfigured()) {
+    try {
+      supabaseChannel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
+      supabaseChannel.on('broadcast', { event: 'partner_action' }, (event) => {
+        if (typeof onPartnerEvent === 'function') {
+          onPartnerEvent(event.payload);
+        }
+      });
+      supabaseChannel.subscribe();
+    } catch (_) {}
+  }
+
+  return {
+    supabaseChannel,
+    send: (payload) => broadcastPartnerEvent(payload, channelName),
+    unsubscribe: () => {
+      try {
+        if (supabaseChannel) supabaseChannel.unsubscribe();
+      } catch (_) {}
+    }
+  };
 };
 
-export const broadcastPartnerEvent = async (channel, payload) => {
-  if (!channel) return false;
-  try {
-    await channel.send({
-      type: 'broadcast',
-      event: 'partner_action',
-      payload: { ...payload, sentAt: new Date().toISOString() },
-    });
-    return true;
-  } catch {
-    return false;
+export const broadcastPartnerEvent = async (arg1, arg2) => {
+  let payload = null;
+  let channel = null;
+
+  if (arg1 && typeof arg1 === 'object' && ('type' in arg1 || 'event' in arg1 || 'nudge' in arg1)) {
+    payload = arg1;
+    channel = arg2;
+  } else {
+    channel = arg1;
+    payload = arg2;
   }
+
+  if (!payload) return false;
+  const enrichedPayload = { ...payload, sentAt: new Date().toISOString() };
+
+  // Always broadcast locally across browser contexts
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      if (!globalLocalPartnerBc) {
+        globalLocalPartnerBc = new BroadcastChannel('habuilt_local_partner_sync');
+      }
+      globalLocalPartnerBc.postMessage(enrichedPayload);
+    } catch (_) {}
+  }
+
+  // Broadcast to remote Supabase Realtime channel if available
+  if (channel && typeof channel.send === 'function') {
+    try {
+      await channel.send({
+        type: 'broadcast',
+        event: 'partner_action',
+        payload: enrichedPayload,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -28,7 +28,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'ZoetiHabit',
+    default: 'Habuilt',
   },
 });
 
@@ -72,12 +72,12 @@ const uid = Math.random().toString(36).substring(2, 9);
       >
         <defs>
           <linearGradient :id="`hbg-${uid}`" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#07111D" />
-            <stop offset="100%" stop-color="#10243A" />
+            <stop offset="0%" stop-color="#060D17" />
+            <stop offset="100%" stop-color="#0B1524" />
           </linearGradient>
           <linearGradient :id="`haccent-${uid}`" x1="18" y1="17" x2="46" y2="47" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#00B4A0" />
-            <stop offset="100%" stop-color="#4FD3BE" />
+            <stop offset="100%" stop-color="#00E5C9" />
           </linearGradient>
         </defs>
 
@@ -89,7 +89,7 @@ const uid = Math.random().toString(36).substring(2, 9);
           height="60"
           rx="14"
           :fill="`url(#hbg-${uid})`"
-          stroke="#1A3C5E"
+          stroke="rgba(0, 180, 160, 0.45)"
           stroke-width="1.5"
         />
 
@@ -100,13 +100,14 @@ const uid = Math.random().toString(36).substring(2, 9);
         />
 
         <!-- Signature Zoeti Saffron Focus Accent Dot -->
-        <circle cx="50" cy="14" r="4" fill="#FF6B35" opacity="0.95" />
+        <circle cx="50" cy="14" r="4.5" fill="#FF6B35" />
       </svg>
     </div>
 
-    <!-- Optional Brand Wordmark & Tag -->
+    <!-- Brand Wordmark & 'by ZoetiCoach' Attribution -->
     <div v-if="withText" class="habuilt-logo-brand__info">
-      <span class="habuilt-logo-brand__text">{{ title || 'ZoetiHabit' }}</span>
+      <span class="habuilt-logo-brand__text">Habuilt</span>
+      <span class="zc-badge-coach">by ZoetiCoach</span>
       <span v-if="showBadge" class="habuilt-logo-brand__tag">{{ badgeText }}</span>
     </div>
   </component>
@@ -167,10 +168,6 @@ const uid = Math.random().toString(36).substring(2, 9);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary, #0f172a);
-}
-
-body.theme-dark .habuilt-logo-brand__text {
-  color: #f8fafc;
 }
 
 .habuilt-logo-brand__tag {

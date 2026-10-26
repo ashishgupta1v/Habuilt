@@ -1,4 +1,6 @@
 <script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { gsap } from 'gsap';
 import {
   Timer,
   Play,
@@ -49,10 +51,50 @@ const emit = defineEmits([
   'stop-timer',
   'start-break',
 ]);
+
+const stationRef = ref(null);
+let gsapCtx = null;
+let pulseTween = null;
+
+onMounted(() => {
+  if (stationRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from(stationRef.value, {
+        y: 16,
+        opacity: 0,
+        duration: 0.45,
+        ease: 'power3.out'
+      });
+    }, stationRef.value);
+  }
+});
+
+watch(() => props.timerState?.running, (isRunning) => {
+  if (isRunning) {
+    pulseTween = gsap.to('.focus-station-icon-halo', {
+      scale: 1.25,
+      opacity: 0.75,
+      duration: 1.8,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut'
+    });
+  } else {
+    pulseTween?.kill();
+    gsap.to('.focus-station-icon-halo', { scale: 1, opacity: 0.3, duration: 0.4 });
+  }
+});
+
+onUnmounted(() => {
+  if (pulseTween) pulseTween.kill();
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
 </script>
 
 <template>
-  <section class="card card--focus-station">
+  <section class="card card--focus-station" ref="stationRef">
     <!-- Header Bar -->
     <div class="focus-station-header">
       <div class="focus-station-header__left">
@@ -108,9 +150,9 @@ const emit = defineEmits([
           />
           <defs>
             <linearGradient id="focusGoldIndigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#C8A456" />
-              <stop offset="50%" stop-color="#E5C77A" />
-              <stop offset="100%" stop-color="#6366f1" />
+              <stop offset="0%" stop-color="#00B4A0" />
+              <stop offset="50%" stop-color="#00E5C9" />
+              <stop offset="100%" stop-color="#FF6B35" />
             </linearGradient>
           </defs>
         </svg>

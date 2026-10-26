@@ -23,6 +23,18 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['toggle-cell']);
+
+import { gsap } from 'gsap';
+
+const onCellClick = (habit, day, e) => {
+  emit('toggle-cell', habit, day);
+  if (e?.currentTarget) {
+    gsap.fromTo(e.currentTarget,
+      { scale: 0.82 },
+      { scale: 1, duration: 0.28, ease: 'back.out(2)' }
+    );
+  }
+};
 </script>
 
 <template>
@@ -103,9 +115,9 @@ const emit = defineEmits(['toggle-cell']);
             :aria-label="cellAriaLabel(habit, day)"
             role="button"
             tabindex="0"
-            @click="emit('toggle-cell', habit, day)"
-            @keydown.enter.prevent="emit('toggle-cell', habit, day)"
-            @keydown.space.prevent="emit('toggle-cell', habit, day)"
+            @click="e => onCellClick(habit, day, e)"
+            @keydown.enter.prevent="e => onCellClick(habit, day, e)"
+            @keydown.space.prevent="e => onCellClick(habit, day, e)"
           >
             <span v-if="isPending(habit.id, day)" class="habit-grid__cell-spin">…</span>
             <span v-else-if="hasCompletedDay(habit, day)" class="habit-grid__cell-mark">✓</span>

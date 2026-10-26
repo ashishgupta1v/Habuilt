@@ -532,15 +532,9 @@ const fallbackHabits = computed(() => {
   return PROTOCOL_ARCHETYPES.founder.habits || genericStarterHabits;
 });
 
-const mobileViewMode = ref('daily');
 const mobileSelectedDay = ref(props.currentDay);
-const focusDay = ref(props.currentDay);
-const focusTasksByDay = ref({});
-const newFocusTask = ref('');
 const rewardLedger = ref([]);
 const claimedSynergyRewards = ref([]);
-const newWeeklyCheck = ref('');
-const walletBalance = ref(0);
 const isNavigatingMonth = ref(false);
 const redeemedBeforeCurrentMonth = ref(0);
 const earnedBeforeCurrentMonth = ref(0);
@@ -562,15 +556,10 @@ const progressiveSettings = ref({
   habitTiers: {},
   pointMultipliers: { full: 1.0, half: 0.6, floor: 0.3 },
 });
-const progressivePanelOpen = ref(false);
 const tierDetailHabitId = ref(null);
 
-const analyticsOpen = ref(false);
-const focusModeOn = ref(false);
 const habitNotesOpen = ref(null);
 const partnerViewOpen = ref(false);
-const partnerData = ref(null);
-const partnerLoading = ref(false);
 
 // Realtime subscriptions
 let realtimeCheckInsChannel = null;
@@ -619,6 +608,11 @@ const isSlotCollapsed = (slotKey, slotHabits, dayNum) => {
 const toggleSlotCollapse = (slotKey, slotHabits, dayNum) => {
   const current = isSlotCollapsed(slotKey, slotHabits, dayNum);
   userToggledSlots.value[slotKey] = !current;
+};
+
+const setMobileDay = (day) => {
+  const d = Math.max(1, Math.min(Number(day), props.monthDays));
+  mobileSelectedDay.value = d;
 };
 
 // ── SWIPE GESTURE ENGINE (Day Switching) ──
@@ -674,7 +668,6 @@ const {
 // Spotlight Command Palette State
 const isSpotlightOpen = ref(false);
 const openSpotlight = () => { isSpotlightOpen.value = true; };
-const closeSpotlight = () => { isSpotlightOpen.value = false; };
 const cockpitRef = ref(null);
 
 const handlePlayTacticalBriefingFromSpotlight = () => {
@@ -725,8 +718,6 @@ onBeforeUnmount(() => {
 
 // Data Portability & Backup Modal State
 const isDataBackupModalOpen = ref(false);
-const openDataBackupModal = () => { isDataBackupModalOpen.value = true; };
-const closeDataBackupModal = () => { isDataBackupModalOpen.value = false; };
 
 // Biometrics & Metabolic Daily Tracking State
 const biomarkersState = ref({
@@ -738,12 +729,6 @@ const hydrationMlState = ref(0);
 
 // Milestone 4: Calendar Sync Modal State
 const isCalendarSyncModalOpen = ref(false);
-
-// Dynamic Protocol Builder & Universal Partner Pairing Open/Close Helpers
-const openProtocolWizard = () => { isProtocolWizardOpen.value = true; };
-const closeProtocolWizard = () => { isProtocolWizardOpen.value = false; };
-const openPartnerPairModal = () => { isUniversalPartnerPairModalOpen.value = true; };
-const closePartnerPairModal = () => { isUniversalPartnerPairModalOpen.value = false; };
 
 const handleActivateCustomProtocol = async (customProtocol) => {
   if (!customProtocol) return;
@@ -930,11 +915,9 @@ const {
 const habitsEditing = ref(false);
 const habitsDraft = ref([]);
 const habitSaveStatus = ref('idle');
-const hasCustomHabits = ref(false);
 
 const rewardsEditing = ref(false);
 const rewardsDraft = ref([]);
-const rewardSaveStatus = ref('idle');
 
 const defaultRewards = [
   { id: 'rew-daily-social', type: 'Daily', item: '1 Hour+ social media', cost: 8 },
@@ -1078,37 +1061,29 @@ const handleOpenRewardVault = () => {
   showToast('🎁 Navigated to Reward Vault!');
 };
 
-// Theme Management (Dark / Light Mode)
-const darkMode = ref(
-  typeof window !== 'undefined'
-    ? (localStorage.getItem('habuilt_theme') ? localStorage.getItem('habuilt_theme') === 'dark' : true)
-    : true
-);
+// Theme Management (Pure Light Theme Architecture)
+const darkMode = ref(false);
 
-const applyTheme = (isDark) => {
+const applyTheme = () => {
   if (typeof document === 'undefined') return;
-  if (isDark) {
-    document.documentElement.classList.add('dark-mode', 'theme-dark');
-    document.body.classList.add('dark-mode', 'theme-dark');
-  } else {
-    document.documentElement.classList.remove('dark-mode', 'theme-dark');
-    document.body.classList.remove('dark-mode', 'theme-dark');
-  }
+  document.documentElement.classList.remove('dark-mode', 'theme-dark');
+  document.body.classList.remove('dark-mode', 'theme-dark');
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) {
-    themeMeta.setAttribute('content', isDark ? '#040911' : '#f8fafc');
+    themeMeta.setAttribute('content', '#f8fafc');
   }
 };
 
 const toggleTheme = () => {
-  darkMode.value = !darkMode.value;
-  saveState();
+  darkMode.value = false;
+  applyTheme();
 };
 
-watch(darkMode, (newVal) => {
-  applyTheme(newVal);
+watch(darkMode, () => {
+  darkMode.value = false;
+  applyTheme();
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('habuilt_theme', newVal ? 'dark' : 'light');
+    localStorage.setItem('habuilt_theme', 'light');
   }
 }, { immediate: true });
 
@@ -1120,7 +1095,7 @@ const {
   currentPhase: circadianPhase,
   setCircadianMode,
   cycleNextPhase: cycleCircadianPhase,
-} = useCircadianAtmosphere(computed(() => darkMode.value));
+} = useCircadianAtmosphere(computed(() => false));
 
 const handleCycleCircadianAtmosphere = () => {
   const next = cycleCircadianPhase();
@@ -1236,9 +1211,38 @@ onMounted(async () => {
 });
 
 const weeklyReviewExpanded = ref(false);
-const isNative = computed(() => typeof window !== 'undefined' && Capacitor.isNativePlatform());
 const toastMessage = ref('');
 let toastTimeoutId = null;
+
+// ── OPTIMISTIC UNDO TOAST STATE ──
+const undoToastAction = ref(null); // { habitId, habitName, day, wasDone, points }
+let undoToastTimeoutId = null;
+
+const triggerUndoToast = (action) => {
+  undoToastAction.value = action;
+  if (undoToastTimeoutId) clearTimeout(undoToastTimeoutId);
+  undoToastTimeoutId = setTimeout(() => {
+    undoToastAction.value = null;
+  }, 5000);
+};
+
+const executeUndo = () => {
+  if (!undoToastAction.value) return;
+  const action = undoToastAction.value;
+  undoToastAction.value = null;
+  if (undoToastTimeoutId) clearTimeout(undoToastTimeoutId);
+
+  const targetHabit = (localHabits.value || []).find(h => String(h.id) === String(action.habitId))
+    || (allHistoricalHabits.value || []).find(h => String(h.id) === String(action.habitId));
+
+  if (targetHabit) {
+    toggleHabitForDay(targetHabit, action.day, true /* isUndo */);
+    showToast(`↩️ Reverted "${action.habitName}"`, 2200);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([15, 30, 15]);
+    }
+  }
+};
 
 const showToast = (message, duration = 2800) => {
   toastMessage.value = message;
@@ -1250,15 +1254,12 @@ const showToast = (message, duration = 2800) => {
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${effectiveUserId.value}.${monthScope.value}`);
-const localStatePrefix = computed(() => `habuilt.dashboard.${effectiveUserId.value}.`);
 const monthLabel = computed(() => new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(props.year, props.month - 1, 1)));
 const days = computed(() => Array.from({ length: props.monthDays }, (_, index) => index + 1));
-const targetDailyPoints = computed(() => 15);
 
 const isHabitArchived = (habit) => enhancedState.value.archivedHabitIds?.includes(habit.id) || !!habit.archived;
 const visibleHabits = computed(() => (localHabits.value || []).filter(h => !isHabitArchived(h)));
 const totalHabits = computed(() => visibleHabits.value.length); // MASTER count — every habit the user has, used for the "Master Checklist" toggle only
-const totalPossiblePoints = computed(() => visibleHabits.value.reduce((total, habit) => total + (habit.points * props.monthDays), 0));
 
 // Schedule Filtering Engine
 const getDayOfWeek = (dayNum) => {
@@ -1857,10 +1858,10 @@ const timeGreeting = computed(() => {
   return { salute, name, quote };
 });
 
-const mobileHeroExpanded = ref(false);
+
 
 // Toggle Habit Check
-const toggleHabitForDay = (habit, day) => {
+const toggleHabitForDay = (habit, day, isUndo = false) => {
   if (!habit) return;
   const numDay = Number(day || mobileDay.value || props.currentDay || new Date().getDate());
 
@@ -1922,6 +1923,17 @@ const toggleHabitForDay = (habit, day) => {
 
   saveState();
   syncDueNowNotification?.();
+
+  // Optimistic Undo Toast Trigger (only for direct user clicks, not during undo rollback)
+  if (!isUndo) {
+    triggerUndoToast({
+      habitId: habit.id,
+      habitName: habit.name,
+      day: numDay,
+      wasDone: isCurrentlyDone,
+      points: habit.points || 1,
+    });
+  }
 
   // Normalized Real-Time Ledger Persistence & Partner Broadcast
   if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
@@ -2224,8 +2236,8 @@ const handleSendPartnerEmote = async (emote) => {
   }
 };
 
-// Day Type Cycle Toggle (replaces binary travel mode) — Never drops completed days!
-const toggleTravelMode = () => {
+// Circadian Day Type Cycling Engine (Home, Office Mon/Mid/Fri, Flat, Travel, Rest)
+const cycleDayType = () => {
   const nextType = getNextDayType(dayType.value);
   dayType.value = nextType;
   // Re-apply state seamlessly with new fallback preset while PRESERVING all completed_days and historical data
@@ -2245,6 +2257,7 @@ const toggleTravelMode = () => {
     navigator.vibrate(20);
   }
 };
+const toggleTravelMode = cycleDayType; // Backward-compatible alias
 
 // ── PWA Due Now Notification & Background 1-Tap Action Hook ──
 const {
@@ -2363,56 +2376,60 @@ const pushToNativeWidget = () => {
   }
 };
 
+let isWidgetReconciled = !Capacitor.isNativePlatform();
+
 const reconcileNativeWidget = async () => {
-  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
+  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) {
+    isWidgetReconciled = true;
+    return;
+  }
   try {
     // 1. Drain pending native ZoetiCoach events into web queue & flush
     await drainNativeZoetiQueue();
 
     // 2. Read widget SharedPreferences to synchronize any habits marked done from widget
     const nativeData = await getNativeWidgetData();
-    if (!nativeData?.habitsJson) return;
-
-    const widgetHabits = JSON.parse(nativeData.habitsJson);
-    if (!Array.isArray(widgetHabits)) return;
-
-    let modified = false;
-    for (const wh of widgetHabits) {
-      const match = (localHabits.value || []).find(h => String(h.id) === String(wh.id));
-      if (match && Array.isArray(wh.completed_days)) {
-        for (const dayNum of wh.completed_days) {
-          if (!match.completed_days.includes(dayNum)) {
-            match.completed_days.push(dayNum);
-            modified = true;
+    if (nativeData?.habitsJson) {
+      const widgetHabits = JSON.parse(nativeData.habitsJson);
+      if (Array.isArray(widgetHabits)) {
+        let modified = false;
+        for (const wh of widgetHabits) {
+          const match = (localHabits.value || []).find(h => String(h.id) === String(wh.id));
+          if (match && Array.isArray(wh.completed_days)) {
+            for (const dayNum of wh.completed_days) {
+              if (!match.completed_days.includes(dayNum)) {
+                match.completed_days.push(dayNum);
+                modified = true;
+              }
+            }
           }
+        }
+        if (modified) {
+          saveState();
         }
       }
     }
-
-    if (modified) {
-      saveState();
-      pushToNativeWidget();
-    }
   } catch (err) {
     console.debug('Reconcile native widget note:', err);
+  } finally {
+    isWidgetReconciled = true;
+    pushToNativeWidget();
   }
 };
 
 watch([localHabits, todayPoints, systemStreak, consistencyScore, dayType, activeProtocol], () => {
-  pushToNativeWidget();
-}, { deep: true, immediate: true });
-
-onMounted(() => {
-  nextTick(() => {
+  if (isWidgetReconciled) {
     pushToNativeWidget();
-    reconcileNativeWidget();
-  });
+  }
+}, { deep: true });
+
+onMounted(async () => {
+  await reconcileNativeWidget();
   if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
     try {
-      App.addListener('appStateChange', ({ isActive }) => {
+      App.addListener('appStateChange', async ({ isActive }) => {
         if (isActive) {
-          pushToNativeWidget();
-          reconcileNativeWidget();
+          await reconcileNativeWidget();
         }
       });
     } catch {}
@@ -2605,11 +2622,9 @@ const applyLoadedState = (data, isRemote = false) => {
   }
   if (data.dayType !== undefined) dayType.value = data.dayType;
   else if (data.travelMode !== undefined) dayType.value = data.travelMode ? 'office-mon' : 'home'; // Migrate legacy
-  const explicitTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('habuilt_theme') : null;
-  if (explicitTheme) {
-    darkMode.value = explicitTheme === 'dark';
-  } else if (data.darkMode !== undefined) {
-    darkMode.value = data.darkMode;
+  darkMode.value = false;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt_theme', 'light');
   }
   if (data.biomarkers && typeof data.biomarkers === 'object') {
     biomarkersState.value = { ...biomarkersState.value, ...data.biomarkers };
@@ -2882,13 +2897,9 @@ const syncCloudState = async (force = false) => {
     const settingsData = await loadUserSettings(effectiveUserId.value);
     if (settingsData) {
       if (settingsData.day_type) dayType.value = settingsData.day_type;
-      if (settingsData.dark_mode !== undefined) {
-        const explicitTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('habuilt_theme') : null;
-        if (explicitTheme) {
-          darkMode.value = explicitTheme === 'dark';
-        } else {
-          darkMode.value = settingsData.dark_mode;
-        }
+      darkMode.value = false;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('habuilt_theme', 'light');
       }
       if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
       if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
@@ -3259,6 +3270,7 @@ const handlePopState = (e) => {
 let clockInterval = null;
 let cloudSyncInterval = null;
 let partnerHeartbeatInterval = null;
+let nativeBackButtonHandle = null;
 
 const handleAppResume = async () => {
   // 1. Immediately update clock time and partner heartbeat
@@ -3579,14 +3591,6 @@ onMounted(() => {
           isShareModalOpen.value = false;
           return;
         }
-        if (progressivePanelOpen.value) {
-          progressivePanelOpen.value = false;
-          return;
-        }
-        if (analyticsOpen.value) {
-          analyticsOpen.value = false;
-          return;
-        }
         if (partnerViewOpen.value) {
           partnerViewOpen.value = false;
           return;
@@ -3601,10 +3605,6 @@ onMounted(() => {
         }
         if (habitNotesOpen.value) {
           habitNotesOpen.value = null;
-          return;
-        }
-        if (mobileHeroExpanded.value) {
-          mobileHeroExpanded.value = false;
           return;
         }
 
@@ -3631,6 +3631,10 @@ onMounted(() => {
             navigator.vibrate(20);
           }
         }
+      }).then(handle => {
+        nativeBackButtonHandle = handle;
+      }).catch(e => {
+        console.warn('Capacitor backButton listener attach error:', e);
       });
     } catch (e) {
       console.warn('Capacitor backButton listener error:', e);
@@ -3639,6 +3643,10 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (nativeBackButtonHandle) {
+    try { nativeBackButtonHandle.remove(); } catch {}
+    nativeBackButtonHandle = null;
+  }
   if (clockInterval) clearInterval(clockInterval);
   if (cloudSyncInterval) clearInterval(cloudSyncInterval);
   if (partnerHeartbeatInterval) clearInterval(partnerHeartbeatInterval);
@@ -3721,7 +3729,6 @@ onBeforeUnmount(() => {
       :travel-mode="travelMode"
       :day-type="dayType"
       :day-type-label="getDayTypeLabel(dayType)"
-      :dark-mode="darkMode"
       :zen-mode="zenMode"
       :is-syncing="isSyncingCloud"
       :notifications-supported="notificationsSupported"
@@ -3729,7 +3736,6 @@ onBeforeUnmount(() => {
       :tier-thresholds="tierThresholds"
       :is-guest-active="isGuestActive"
       @toggle-up-next="toggleHabitForDay"
-      @toggle-theme="toggleTheme"
       @toggle-zen="toggleZenMode"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
@@ -3755,7 +3761,7 @@ onBeforeUnmount(() => {
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
-    <div class="dashboard-flow" :class="{ 'dark-mode': darkMode, 'dashboard-flow--zen': zenMode }">
+    <div class="dashboard-flow" :class="{ 'dashboard-flow--zen': zenMode }">
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
         class="card card--hero mobile-tab-hero"
@@ -3780,7 +3786,6 @@ onBeforeUnmount(() => {
           :is-navigating-month="isNavigatingMonth"
           :month-label="monthLabel"
           :year="props.year"
-          :dark-mode="darkMode"
           :zen-mode="zenMode"
           :active-tab="activeMobileTab"
           :timer-running="timerState && timerState.running"
@@ -3793,7 +3798,6 @@ onBeforeUnmount(() => {
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
-          @toggle-theme="toggleTheme"
           @toggle-zen="toggleZenMode"
           @open-install-modal="isAppInstallModalOpen = true"
           @open-spotlight="openSpotlight"
@@ -4009,8 +4013,10 @@ onBeforeUnmount(() => {
           :get-habit-note="getHabitNote"
           :on-touch-start="onTouchStart"
           :on-touch-end="onTouchEnd"
+          :current-day="props.currentDay"
           @prev-day="mobilePrevDay"
           @next-day="mobileNextDay"
+          @set-day="setMobileDay"
           @go-today="mobileGoToday"
           @update:active-time-filter="val => activeTimeFilter = val"
           @toggle-schedule-filter="scheduleFilterMode = (scheduleFilterMode === 'scheduled' ? 'all' : 'scheduled')"
@@ -4048,7 +4054,6 @@ onBeforeUnmount(() => {
           :cell-aria-label="cellAriaLabel"
           :cell-tooltip="cellTooltip"
           :get-day-total="getDayTotal"
-          :mobile-view-mode="mobileViewMode"
           @toggle-cell="toggleHabitForDay"
         />
       </section>
@@ -4174,9 +4179,34 @@ onBeforeUnmount(() => {
         />
       </section>
 
-      <!-- Global Floating Toast Notification -->
+      <!-- Global Floating Toast Notification & Optimistic Undo Capsule -->
       <transition name="toast-fade">
-        <div v-if="toastMessage" class="habuilt-floating-toast">
+        <div v-if="undoToastAction" class="habuilt-floating-toast habuilt-floating-toast--undo" role="alert">
+          <span class="habuilt-floating-toast__badge">
+            <CheckSquare v-if="!undoToastAction.wasDone" class="icon-xs" />
+            <RotateCcw v-else class="icon-xs" />
+          </span>
+          <span class="habuilt-floating-toast__msg">
+            <template v-if="!undoToastAction.wasDone">
+              Marked <strong>{{ undoToastAction.habitName }}</strong> done (+{{ undoToastAction.points }} pts)
+            </template>
+            <template v-else>
+              Unchecked <strong>{{ undoToastAction.habitName }}</strong>
+            </template>
+          </span>
+          <button
+            type="button"
+            class="habuilt-floating-toast__undo-btn"
+            @click="executeUndo"
+            title="Undo this action"
+          >
+            Undo (5s)
+          </button>
+          <div class="habuilt-floating-toast__progress-bar">
+            <div class="habuilt-floating-toast__progress-fill"></div>
+          </div>
+        </div>
+        <div v-else-if="toastMessage" class="habuilt-floating-toast" role="status" aria-live="polite">
           <span>{{ toastMessage }}</span>
         </div>
       </transition>
@@ -4242,7 +4272,6 @@ onBeforeUnmount(() => {
         :is-ashish="isAshish"
         :day-type="dayType"
         :day-type-label="getDayTypeLabel(dayType)"
-        :dark-mode="darkMode"
         :active-tab="activeMobileTab"
         :due-now-notifications-enabled="dueNowNotificationsEnabled"
         @close="isSpotlightOpen = false"
@@ -4250,7 +4279,6 @@ onBeforeUnmount(() => {
         @toggle-habit="habit => toggleHabitForDay(habit, props.currentDay)"
         @start-timer="(min, hId) => { activeMobileTab = 'focus'; startDeepWorkTimer(min, hId); }"
         @set-tab="tab => activeMobileTab = tab"
-        @toggle-theme="toggleTheme"
         @toggle-zen="toggleZenMode"
         @toggle-travel="toggleTravelMode"
         @open-add-habit="() => openAddHabitModal('morning')"

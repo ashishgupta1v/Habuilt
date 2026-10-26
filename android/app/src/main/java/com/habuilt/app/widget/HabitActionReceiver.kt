@@ -88,8 +88,15 @@ class HabitActionReceiver : BroadcastReceiver() {
             // 3. Immediately refresh all Home Screen Widgets (0ms UI lag!)
             HabuiltDueNowWidget.updateAllWidgets(context)
 
-            // 4. Background sync to Supabase without opening app
-            SupabaseSyncClient.syncCompletionToSupabase(context, habitId, day)
+            // 4. Background sync to Supabase without opening app (using goAsync so OS doesn't kill broadcast receiver process)
+            val pendingResult = goAsync()
+            SupabaseSyncClient.syncCompletionToSupabase(context, habitId, day) {
+                try {
+                    pendingResult.finish()
+                } catch (e: Exception) {
+                    Log.e("HabuiltWidget", "Error finishing pendingResult: ${e.message}")
+                }
+            }
         }
     }
 }

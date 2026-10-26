@@ -13,40 +13,11 @@ const FEEDBACK_MODES = [
   { id: 'silent', name: 'Silent', icon: '🔇' },
 ];
 
+import { getAudioContext, isSoundEnabled, getSoundVolume } from '@/lib/soundEffects';
+
 // Shared singleton state across components
 const activeSoundProfile = ref('zen');
 const activeFeedbackMode = ref('rich');
-let audioCtx = null;
-
-function getAudioContext() {
-  if (typeof window === 'undefined') return null;
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return null;
-
-  if (!audioCtx) {
-    audioCtx = new AudioContextClass();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
-  return audioCtx;
-}
-
-// Unlock audio on first touch/click
-if (typeof window !== 'undefined') {
-  const unlockAudio = () => {
-    try {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    } catch {}
-    window.removeEventListener('pointerdown', unlockAudio);
-    window.removeEventListener('keydown', unlockAudio);
-  };
-  window.addEventListener('pointerdown', unlockAudio, { passive: true });
-  window.addEventListener('keydown', unlockAudio, { passive: true });
-}
 
 export function useAudioHapticFeedback() {
   // Load saved preferences
@@ -117,9 +88,12 @@ export function useAudioHapticFeedback() {
   }
 
   function playSound(overrideProfile = null) {
-    if (activeFeedbackMode.value === 'silent' || activeFeedbackMode.value === 'haptic') {
+    if (!isSoundEnabled() || activeFeedbackMode.value === 'silent' || activeFeedbackMode.value === 'haptic') {
       return;
     }
+
+    const volume = getSoundVolume();
+    if (volume <= 0.001) return;
 
     const ctx = getAudioContext();
     if (!ctx) return;

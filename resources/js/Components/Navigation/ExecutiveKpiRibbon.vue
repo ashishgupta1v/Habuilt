@@ -1,4 +1,6 @@
 <script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { gsap } from 'gsap';
 import {
   Flame,
   Award,
@@ -19,10 +21,57 @@ const props = defineProps({
 const emit = defineEmits([
   'navigate-tab',
 ]);
+
+const ribbonRef = ref(null);
+let gsapCtx = null;
+
+const displayStreak = ref(0);
+const displayWallet = ref(0);
+const displayConsistency = ref(0);
+const displayCompleted = ref(0);
+
+const tweenNumber = (targetRef, newVal) => {
+  gsap.to(targetRef, {
+    value: newVal,
+    duration: 0.75,
+    ease: 'power2.out',
+    roundProps: 'value'
+  });
+};
+
+watch(() => props.systemStreak?.current, (val) => tweenNumber(displayStreak, val || 0));
+watch(() => props.availableWallet, (val) => tweenNumber(displayWallet, val || 0));
+watch(() => props.consistencyScore, (val) => tweenNumber(displayConsistency, val || 0));
+watch(() => props.todayCompletedCount, (val) => tweenNumber(displayCompleted, val || 0));
+
+onMounted(() => {
+  if (ribbonRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from('.hero-kpi-card', {
+        y: 18,
+        opacity: 0,
+        stagger: 0.08,
+        duration: 0.55,
+        ease: 'power3.out',
+      });
+      // Initial roll up from 0 to current target
+      tweenNumber(displayStreak, props.systemStreak?.current || 0);
+      tweenNumber(displayWallet, props.availableWallet || 0);
+      tweenNumber(displayConsistency, props.consistencyScore || 0);
+      tweenNumber(displayCompleted, props.todayCompletedCount || 0);
+    }, ribbonRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
 </script>
 
 <template>
-  <div class="hero-kpi-ribbon">
+  <div class="hero-kpi-ribbon" ref="ribbonRef">
     <!-- Card 1: System Streak -->
     <div
       class="hero-kpi-card hero-kpi-card--streak"
@@ -34,7 +83,7 @@ const emit = defineEmits([
       <div class="hero-kpi-card__body">
         <span class="hero-kpi-card__label">System Streak</span>
         <div class="hero-kpi-card__value-row">
-          <span class="hero-kpi-card__value mono-num">{{ systemStreak?.current || 0 }}</span>
+          <span class="hero-kpi-card__value mono-num">{{ displayStreak }}</span>
           <span class="hero-kpi-card__unit">Days</span>
         </div>
         <span class="hero-kpi-card__subtext">
@@ -55,7 +104,7 @@ const emit = defineEmits([
       <div class="hero-kpi-card__body">
         <span class="hero-kpi-card__label">Reward Vault</span>
         <div class="hero-kpi-card__value-row">
-          <span class="hero-kpi-card__value mono-num">{{ availableWallet }}</span>
+          <span class="hero-kpi-card__value mono-num">{{ displayWallet }}</span>
           <span class="hero-kpi-card__unit">pts</span>
         </div>
         <span class="hero-kpi-card__subtext">
@@ -76,7 +125,7 @@ const emit = defineEmits([
       <div class="hero-kpi-card__body">
         <span class="hero-kpi-card__label">Monthly Consistency</span>
         <div class="hero-kpi-card__value-row">
-          <span class="hero-kpi-card__value mono-num">{{ consistencyScore }}%</span>
+          <span class="hero-kpi-card__value mono-num">{{ displayConsistency }}%</span>
           <span class="hero-kpi-card__badge mono-num" :class="performanceGrade?.class">{{ performanceGrade?.grade }}</span>
         </div>
         <span class="hero-kpi-card__subtext">{{ performanceGrade?.text || 'Target: 85%+ Consistency' }}</span>
@@ -95,7 +144,7 @@ const emit = defineEmits([
       <div class="hero-kpi-card__body">
         <span class="hero-kpi-card__label">Today's Habits</span>
         <div class="hero-kpi-card__value-row">
-          <span class="hero-kpi-card__value mono-num">{{ todayCompletedCount }}/{{ todayScheduledCount }}</span>
+          <span class="hero-kpi-card__value mono-num">{{ displayCompleted }}/{{ todayScheduledCount }}</span>
           <span class="hero-kpi-card__unit mono-num">({{ todayScheduledCount > 0 ? Math.round((todayCompletedCount / todayScheduledCount) * 100) : 0 }}%)</span>
         </div>
         <span class="hero-kpi-card__subtext">

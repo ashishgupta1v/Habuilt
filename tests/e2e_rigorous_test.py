@@ -10,7 +10,7 @@ os.makedirs("tests/screenshots", exist_ok=True)
 
 from playwright.sync_api import sync_playwright
 
-BASE_URL = os.environ.get("BASE_URL", "https://habuilt.com/")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:4173/")
 
 def run_tests():
     console_errors = []
@@ -78,16 +78,17 @@ def run_tests():
         tools_trigger.click()
         tools_dropdown.wait_for(state="hidden", timeout=3000)
         record_result("Quick Tools Dropdown Closes on Re-click", not tools_dropdown.is_visible())
+        page.wait_for_timeout(300)
 
         # 1.4 Test Day Type Cycle Button
         travel_btn = page.locator(".hero-command-bar .hero-travel-btn").first
         travel_text_el = page.locator(".hero-command-bar .hero-travel-text").first
         if travel_btn.count() > 0 and travel_text_el.count() > 0:
             initial_text = travel_text_el.inner_text().strip()
-            travel_btn.click(force=True)
+            travel_btn.click()
             try:
                 page.wait_for_function(
-                    "(initial) => document.querySelector('.hero-command-bar .hero-travel-text')?.innerText.trim() !== initial",
+                    "(initial) => { const el = document.querySelector('.hero-command-bar .hero-travel-text'); return el && el.innerText.trim() !== initial; }",
                     arg=initial_text,
                     timeout=3000
                 )
@@ -96,7 +97,7 @@ def run_tests():
             new_text = travel_text_el.inner_text().strip()
             record_result("Day Type Cycle Button Works", initial_text != new_text, f"({initial_text} -> {new_text})")
             # cycle back
-            travel_btn.click(force=True)
+            travel_btn.click()
             page.wait_for_timeout(300)
 
         # 1.5 Test Desktop Navigation Tabs
@@ -471,18 +472,14 @@ def run_tests():
         page_theme.wait_for_timeout(500)
 
         theme_btn = page_theme.locator(".hero-icon-btn--theme")
-        is_dark_initial = page_theme.evaluate("() => document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-mode')")
+        is_dark_initial = page_theme.evaluate("() => document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('theme-dark')")
         
         theme_btn.click()
         page_theme.wait_for_timeout(600)
-        is_dark_after = page_theme.evaluate("() => document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-mode')")
+        is_dark_after = page_theme.evaluate("() => document.body.classList.contains('theme-dark') || document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('theme-dark')")
         
-        record_result("Theme Switcher Toggles (Dark <-> Light)", is_dark_initial != is_dark_after, f"({is_dark_initial} -> {is_dark_after})")
+        record_result("Exclusively Light Theme Enforced (No Dark Theme)", (not is_dark_initial) and (not is_dark_after), f"(Initial dark: {is_dark_initial}, After click: {is_dark_after})")
         page_theme.screenshot(path="tests/screenshots/light_mode_1440.png")
-
-        # Toggle back to dark
-        theme_btn.click()
-        page_theme.wait_for_timeout(300)
         context_theme.close()
 
         # ──────────────────────────────────────────────────────────

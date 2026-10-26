@@ -24,6 +24,7 @@ import {
   Brain,
   Compass,
   Moon,
+  MessageSquare,
 } from 'lucide-vue-next';
 import {
   fetchZoetiCoachAdherence,
@@ -526,6 +527,18 @@ onUnmounted(() => {
           <span class="hud-btn-text">Sync Live</span>
         </button>
 
+        <!-- Direct WhatsApp Coach Vikas Trigger -->
+        <a
+          href="https://zoeticoach.com/join/vikas"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hud-btn zc-btn-wa"
+          title="Open direct WhatsApp chat with Coach Vikas for real-time accountability"
+        >
+          <MessageSquare class="w-3.5 h-3.5" />
+          <span class="hud-btn-text">Ask Coach</span>
+        </a>
+
         <button
           type="button"
           class="hud-btn hud-btn--portal"
@@ -792,26 +805,22 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* ── Container ── */
+/* ── Container (Pure Light Theme) ── */
 .zoeticoach-hud {
-  margin-top: 1rem;
-  margin-bottom: 1.25rem;
-  background: linear-gradient(135deg, rgba(14, 20, 36, 0.95) 0%, rgba(10, 14, 26, 0.98) 100%);
-  border: 1px solid rgba(45, 140, 78, 0.28);
-  border-radius: 14px;
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    0 0 20px -5px rgba(45, 140, 78, 0.15);
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #f1f5f9;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #090d16;
 }
 
 .zoeticoach-hud:hover {
-  border-color: rgba(45, 140, 78, 0.45);
-  box-shadow:
-    0 12px 35px -8px rgba(0, 0, 0, 0.6),
-    0 0 24px -4px rgba(45, 140, 78, 0.22);
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 0 20px -4px rgba(13, 148, 136, 0.15);
 }
 
 /* ── Header ── */
@@ -820,9 +829,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1.15rem;
-  background: rgba(18, 26, 46, 0.65);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.9rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
 }
 
@@ -845,23 +854,23 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #10b981;
+  background: #0d9488;
 }
 
 .beacon-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid #10b981;
+  border: 2px solid #0d9488;
   animation: beacon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .hud-beacon--standby .beacon-dot {
-  background: #f59e0b;
+  background: #ff6b35;
 }
 
 .hud-beacon--standby .beacon-ring {
-  border-color: #f59e0b;
+  border-color: #ff6b35;
 }
 
 @keyframes beacon-pulse {
@@ -895,10 +904,10 @@ onUnmounted(() => {
 .hud-title {
   margin: 0;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
-  color: #f8fafc;
-  background: linear-gradient(90deg, #ffffff 0%, #d4b36a 100%);
+  color: #090d16;
+  background: linear-gradient(90deg, #090d16 0%, #0d9488 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -907,30 +916,31 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.15rem 0.5rem;
+  padding: 0.15rem 0.55rem;
   border-radius: 9999px;
   font-size: 0.68rem;
-  font-weight: 600;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
+  font-weight: 700;
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.3);
+  color: #0d9488;
 }
 
 .hud-submeta {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #475569;
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
 .hud-participant {
-  font-weight: 600;
-  color: #e2e8f0;
+  font-weight: 700;
+  color: #090d16;
 }
 
 .hud-sep {
-  opacity: 0.4;
+  opacity: 0.5;
+  color: #94a3b8;
 }
 
 .hud-actions-group {
@@ -943,68 +953,72 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.38rem 0.7rem;
+  padding: 0.4rem 0.75rem;
   font-size: 0.74rem;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: rgba(30, 41, 67, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .hud-btn:hover {
-  background: rgba(45, 59, 94, 0.85);
-  color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: #f1f5f9;
+  color: #090d16;
+  border-color: #94a3b8;
 }
 
 .hud-btn--sync:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
+  border-color: #0d9488;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.08);
 }
 
 .hud-btn--portal:hover {
-  border-color: rgba(212, 179, 106, 0.4);
-  color: #f6e05e;
+  border-color: #ff6b35;
+  color: #ea580c;
+  background: rgba(255, 107, 53, 0.08);
 }
 
 .hud-btn--queue {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
+  background: rgba(255, 107, 53, 0.1);
+  border-color: rgba(255, 107, 53, 0.35);
+  color: #ea580c;
 }
 
 .hud-btn--queue:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: rgba(245, 158, 11, 0.6);
-  color: #fde68a;
+  background: rgba(255, 107, 53, 0.18);
+  border-color: rgba(255, 107, 53, 0.5);
+  color: #c2410c;
 }
 
 .queue-pulse-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: #ff6b35;
   display: inline-block;
-  box-shadow: 0 0 8px #f59e0b;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.6);
 }
 
 .hud-btn--toggle {
-  padding: 0.38rem 0.5rem;
+  padding: 0.4rem 0.55rem;
 }
 
 /* ── Content & Tabs ── */
 .hud-content {
-  padding: 0.95rem 1.15rem 1.15rem;
+  padding: 1rem 1.25rem 1.25rem;
+  background: #ffffff;
 }
 
 .hud-tabs {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #e2e8f0;
   padding-bottom: 0.65rem;
   margin-bottom: 1rem;
   overflow-x: auto;
@@ -1014,45 +1028,48 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
+  padding: 0.45rem 0.85rem;
   font-size: 0.76rem;
   font-weight: 600;
   border-radius: 8px;
   background: transparent;
   border: 1px solid transparent;
-  color: #94a3b8;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .hud-tab:hover {
-  color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.04);
+  color: #090d16;
+  background: #f1f5f9;
 }
 
 .hud-tab--active {
-  color: #f8fafc;
-  background: rgba(45, 140, 78, 0.18);
-  border-color: rgba(45, 140, 78, 0.35);
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.35);
+  font-weight: 700;
 }
 
 .hud-tab-pill {
   font-size: 0.68rem;
   padding: 0.1rem 0.4rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f1f5f9;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .hud-tab-badge {
   font-size: 0.62rem;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  background: rgba(139, 92, 246, 0.2);
-  color: #c4b5fd;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  font-weight: 700;
 }
 
 /* ── Metric Grid ── */
@@ -1076,20 +1093,22 @@ onUnmounted(() => {
 }
 
 .metric-card {
-  background: rgba(20, 28, 48, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  padding: 0.85rem 0.95rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.95rem 1rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 0.5rem;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.06);
 }
 
 .metric-header {
@@ -1101,10 +1120,10 @@ onUnmounted(() => {
 
 .metric-label {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .metric-pill {
@@ -1117,33 +1136,33 @@ onUnmounted(() => {
 }
 
 .grade-emerald {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #34d399;
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.35);
+  color: #0d9488;
 }
 
 .grade-gold {
-  background: rgba(212, 179, 106, 0.18);
-  border: 1px solid rgba(212, 179, 106, 0.45);
-  color: #f6e05e;
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.35);
+  color: #ea580c;
 }
 
 .grade-teal {
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(14, 165, 233, 0.4);
-  color: #38bdf8;
+  background: rgba(2, 132, 199, 0.1);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  color: #0284c7;
 }
 
 .grade-amber {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #d97706;
 }
 
 .grade-slate {
-  background: rgba(148, 163, 184, 0.15);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #cbd5e1;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
 }
 
 .metric-body {
@@ -1162,19 +1181,21 @@ onUnmounted(() => {
   font-size: 1.85rem;
   font-weight: 800;
   line-height: 1;
-  color: #f8fafc;
+  color: #090d16;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .metric-unit {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .metric-bar-track {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 9999px;
   overflow: hidden;
   margin-top: 0.2rem;
@@ -1183,19 +1204,19 @@ onUnmounted(() => {
 .metric-bar-fill {
   height: 100%;
   border-radius: 9999px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .metric-bar-fill.grade-emerald {
-  background: linear-gradient(90deg, #10b981, #34d399);
+  background: linear-gradient(90deg, #0d9488, #20beaa);
 }
 
 .metric-bar-fill.grade-gold {
-  background: linear-gradient(90deg, #d4b36a, #fbbf24);
+  background: linear-gradient(90deg, #ff6b35, #f59e0b);
 }
 
 .metric-bar-fill.grade-teal {
-  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
 }
 
 .metric-footer {
@@ -1208,13 +1229,13 @@ onUnmounted(() => {
 }
 
 .metric-benchmark {
-  font-weight: 600;
-  color: #94a3b8;
+  font-weight: 700;
+  color: #334155;
 }
 
 .metric-subtext {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #475569;
   line-height: 1.35;
   margin: 0;
 }
@@ -1227,9 +1248,9 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   font-size: 0.65rem;
-  font-weight: 600;
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.1);
+  font-weight: 700;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.1);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
@@ -1249,13 +1270,15 @@ onUnmounted(() => {
 }
 
 .breakdown-tag--completed {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+  background: rgba(13, 148, 136, 0.1);
+  color: #0d9488;
+  border: 1px solid rgba(13, 148, 136, 0.25);
 }
 
 .breakdown-tag--unmarked {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .sync-status-row {
@@ -1269,17 +1292,17 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: #ff6b35;
 }
 
 .status-indicator--live {
-  background: #10b981;
+  background: #0d9488;
 }
 
 .status-text {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #090d16;
 }
 
 .sync-details {
@@ -1300,7 +1323,7 @@ onUnmounted(() => {
 }
 
 .sync-row-val {
-  color: #cbd5e1;
+  color: #1e293b;
   font-weight: 600;
 }
 
@@ -1309,18 +1332,19 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 0.85rem;
-  background: linear-gradient(135deg, rgba(212, 179, 106, 0.08) 0%, rgba(30, 41, 67, 0.5) 100%);
-  border: 1px solid rgba(212, 179, 106, 0.25);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  border-radius: 12px;
+  padding: 0.9rem 1.15rem;
 }
 
 .nudge-icon-wrap {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(212, 179, 106, 0.15);
-  border: 1px solid rgba(212, 179, 106, 0.35);
+  background: rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  color: #ea580c;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1342,10 +1366,10 @@ onUnmounted(() => {
 
 .nudge-window {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 750;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #fbbf24;
+  color: #ea580c;
 }
 
 .nudge-badge {
@@ -1353,21 +1377,21 @@ onUnmounted(() => {
   font-weight: 700;
   padding: 0.08rem 0.4rem;
   border-radius: 4px;
-  background: rgba(251, 191, 36, 0.2);
-  color: #fef3c7;
+  background: rgba(255, 107, 53, 0.15);
+  color: #c2410c;
 }
 
 .nudge-headline {
   margin: 0;
   font-size: 0.88rem;
-  font-weight: 700;
-  color: #f8fafc;
+  font-weight: 750;
+  color: #090d16;
 }
 
 .nudge-text {
   margin: 0;
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: #334155;
   line-height: 1.45;
 }
 
@@ -1381,13 +1405,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.84rem;
-  font-weight: 700;
-  color: #e2e8f0;
+  font-weight: 750;
+  color: #090d16;
 }
 
 .clinical-intro-desc {
   font-size: 0.74rem;
-  color: #94a3b8;
+  color: #475569;
   margin: 0.2rem 0 0;
 }
 
@@ -1404,34 +1428,36 @@ onUnmounted(() => {
 }
 
 .clinical-card {
-  background: rgba(20, 28, 48, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.95rem 1.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  transition: border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .clinical-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .clinical-card--gold {
-  border-left: 3px solid #d4b36a;
+  border-left: 3px solid #ff6b35;
 }
 
 .clinical-card--emerald {
-  border-left: 3px solid #10b981;
+  border-left: 3px solid #0d9488;
 }
 
 .clinical-card--teal {
-  border-left: 3px solid #0ea5e9;
+  border-left: 3px solid #0284c7;
 }
 
 .clinical-card--violet {
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid #7c3aed;
 }
 
 .clinical-card-header {
@@ -1444,12 +1470,12 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #cbd5e1;
+  color: #334155;
 }
 
 .clinical-card-meta {
@@ -1461,14 +1487,14 @@ onUnmounted(() => {
 .clinical-card-title {
   margin: 0;
   font-size: 0.82rem;
-  font-weight: 700;
-  color: #f1f5f9;
+  font-weight: 750;
+  color: #090d16;
 }
 
 .clinical-status-pill {
   font-size: 0.62rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -1476,7 +1502,7 @@ onUnmounted(() => {
 .clinical-card-directive {
   margin: 0;
   font-size: 0.74rem;
-  color: #cbd5e1;
+  color: #334155;
   line-height: 1.45;
 }
 
@@ -1497,19 +1523,20 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.85rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(20, 28, 48, 0.55);
+  padding: 0.95rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .milestone-card--unlocked {
-  border-color: rgba(212, 179, 106, 0.35);
-  background: linear-gradient(135deg, rgba(212, 179, 106, 0.08) 0%, rgba(20, 28, 48, 0.7) 100%);
+  border-color: rgba(13, 148, 136, 0.35);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, #ffffff 100%);
 }
 
 .milestone-card--locked {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .milestone-icon-wrap {
@@ -1523,23 +1550,23 @@ onUnmounted(() => {
 }
 
 .icon-wrap--gold {
-  background: rgba(212, 179, 106, 0.18);
-  color: #f6e05e;
+  background: rgba(255, 107, 53, 0.12);
+  color: #ea580c;
 }
 
 .icon-wrap--emerald {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
 }
 
 .icon-wrap--teal {
-  background: rgba(14, 165, 233, 0.18);
-  color: #38bdf8;
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
 }
 
 .icon-wrap--slate {
-  background: rgba(148, 163, 184, 0.12);
-  color: #94a3b8;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .milestone-content {
@@ -1559,8 +1586,8 @@ onUnmounted(() => {
 .milestone-title {
   margin: 0;
   font-size: 0.8rem;
-  font-weight: 700;
-  color: #f1f5f9;
+  font-weight: 750;
+  color: #090d16;
 }
 
 .milestone-status-badge {
@@ -1571,19 +1598,21 @@ onUnmounted(() => {
 }
 
 .milestone-status-badge.unlocked {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+  border: 1px solid rgba(13, 148, 136, 0.25);
 }
 
 .milestone-status-badge.locked {
-  background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
 }
 
 .milestone-desc {
   margin: 0;
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #475569;
   line-height: 1.35;
 }
 
@@ -1591,7 +1620,7 @@ onUnmounted(() => {
 .hud-footer {
   margin-top: 0.95rem;
   padding-top: 0.65rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #e2e8f0;
 }
 
 .regulatory-content {
@@ -1608,6 +1637,6 @@ onUnmounted(() => {
 
 .mono-num {
   font-variant-numeric: tabular-nums;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 </style>

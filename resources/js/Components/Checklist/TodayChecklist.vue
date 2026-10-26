@@ -49,12 +49,14 @@ const props = defineProps({
   scheduleFilterMode: { type: String, default: 'scheduled' },
   scheduledHabitsCount: { type: Number, default: 0 },
   totalMasterHabitsCount: { type: Number, default: 0 },
+  currentDay: { type: Number, default: null },
 });
 
 const emit = defineEmits([
   'prev-day',
   'next-day',
   'go-today',
+  'set-day',
   'update:activeTimeFilter',
   'start-editing',
   'restore-defaults',
@@ -70,6 +72,71 @@ const emit = defineEmits([
   'batch-complete-slot',
   'open-protocol-wizard',
 ]);
+
+import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
+import { gsap } from 'gsap';
+
+const checklistRoot = ref(null);
+
+// ── Apple/Fitflow 7-Day Horizontal Week Strip ──
+const weekStripDays = computed(() => {
+  const total = props.monthDays || 31;
+  const currentSelected = props.mobileDay || 1;
+  const actualToday = props.currentDay || new Date().getDate();
+
+  let start = Math.max(1, currentSelected - 3);
+  let end = Math.min(total, start + 6);
+  if (end - start < 6 && start > 1) {
+    start = Math.max(1, end - 6);
+  }
+
+  const daysArr = [];
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  for (let d = start; d <= end; d++) {
+    const now = new Date();
+    const dateObj = new Date(now.getFullYear(), now.getMonth(), d);
+    const dow = dayNames[dateObj.getDay()];
+
+    daysArr.push({
+      dayNum: d,
+      dowLetter: dow,
+      isToday: d === actualToday && props.mobileDayIsToday,
+      isSelected: d === props.mobileDay,
+      isFuture: d > actualToday,
+    });
+  }
+  return daysArr;
+});
+
+const handleSelectWeekDay = (dayNum) => {
+  emit('set-day', dayNum);
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(10);
+  }
+};
+
+const animateCardsEntrance = () => {
+  if (typeof window === 'undefined' || !checklistRoot.value) return;
+  nextTick(() => {
+    const cards = checklistRoot.value.querySelectorAll('.mobile-daily__card');
+    if (cards.length > 0) {
+      gsap.fromTo(
+        cards,
+        { y: 12, opacity: 0.6 },
+        { y: 0, opacity: 1, stagger: 0.03, duration: 0.28, ease: 'power2.out' }
+      );
+    }
+  });
+};
+
+watch(() => props.mobileDay, () => {
+  animateCardsEntrance();
+});
+
+onMounted(() => {
+  animateCardsEntrance();
+});
 
 const availableTimeSlots = computed(() => {
   const defs = props.timeSlotDefinitions || {};
@@ -87,9 +154,32 @@ const availableTimeSlots = computed(() => {
 <template>
   <div
     class="mobile-daily"
+    ref="checklistRoot"
     @touchstart="onTouchStart"
     @touchend="onTouchEnd"
   >
+    <!-- ── Apple/Fitflow 7-Day Horizontal Week Strip ── -->
+    <div class="mobile-week-strip" role="tablist" aria-label="Day selection strip">
+      <button
+        v-for="day in weekStripDays"
+        :key="day.dayNum"
+        type="button"
+        class="mobile-week-strip__pill"
+        :class="{
+          'mobile-week-strip__pill--selected': day.isSelected,
+          'mobile-week-strip__pill--today': day.isToday,
+          'mobile-week-strip__pill--future': day.isFuture
+        }"
+        @click="handleSelectWeekDay(day.dayNum)"
+        :aria-selected="day.isSelected"
+        :title="`Day ${day.dayNum}`"
+      >
+        <span class="mobile-week-strip__dow">{{ day.dowLetter }}</span>
+        <span class="mobile-week-strip__num">{{ day.dayNum }}</span>
+        <span v-if="day.isToday" class="mobile-week-strip__dot"></span>
+      </button>
+    </div>
+
     <!-- Consolidated Day Navigator & Schedule Mode -->
     <div class="mobile-daily__nav">
       <button

@@ -18,7 +18,7 @@ object SupabaseSyncClient {
     private const val SUPABASE_URL = "https://eefrpxxcztapatyqokpv.supabase.co"
     private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c"
 
-    fun syncCompletionToSupabase(context: Context, habitId: String, day: Int) {
+    fun syncCompletionToSupabase(context: Context, habitId: String, day: Int, onComplete: (() -> Unit)? = null) {
         Thread {
             try {
                 val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
@@ -202,6 +202,8 @@ object SupabaseSyncClient {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed background sync to Supabase: ${e.message}")
+            } finally {
+                onComplete?.invoke()
             }
         }.start()
     }

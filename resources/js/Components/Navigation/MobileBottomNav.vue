@@ -1,4 +1,6 @@
 <script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { gsap } from 'gsap';
 import { Zap, Timer, BarChart3, Award } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -10,9 +12,52 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activeTab', 'update:active-tab']);
 
+const navRef = ref(null);
+let gsapCtx = null;
+
+const animateActiveIcon = (tabName) => {
+  if (typeof document === 'undefined') return;
+  const targetId = `mobile-nav-${tabName}`;
+  const btn = document.getElementById(targetId);
+  if (btn) {
+    const iconWrap = btn.querySelector('.mobile-bottom-nav__icon-wrap');
+    if (iconWrap) {
+      gsap.fromTo(iconWrap,
+        { scale: 0.8, y: 2 },
+        { scale: 1, y: 0, duration: 0.38, ease: 'back.out(2.5)' }
+      );
+    }
+  }
+};
+
+watch(() => props.activeTab, (newTab) => {
+  animateActiveIcon(newTab);
+});
+
+onMounted(() => {
+  if (navRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from(navRef.value, {
+        y: 20,
+        opacity: 0,
+        duration: 0.45,
+        ease: 'power3.out'
+      });
+      animateActiveIcon(props.activeTab);
+    }, navRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
+
 const setTab = (tab) => {
   emit('update:activeTab', tab);
   emit('update:active-tab', tab);
+  animateActiveIcon(tab);
   // Update browser URL query parameter without page reload
   try {
     const url = new URL(window.location.href);
@@ -31,7 +76,7 @@ const setTab = (tab) => {
 </script>
 
 <template>
-  <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+  <nav class="mobile-bottom-nav" ref="navRef" aria-label="Mobile Navigation">
     <button
       id="mobile-nav-today"
       type="button"

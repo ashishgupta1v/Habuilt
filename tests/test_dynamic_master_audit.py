@@ -60,6 +60,12 @@ def run_dynamic_audit():
         check("Desktop Dashboard Initial Render", page.locator(".dashboard-flow").is_visible())
 
         # 1.1 Desktop Points & Protocol HUD
+        cmd_bar = page.locator(".hero-command-bar").first
+        if cmd_bar.is_visible():
+            cmd_box = cmd_bar.bounding_box()
+            if cmd_box:
+                check("Desktop Hero Command Bar Vertically Compressed", cmd_box["height"] < 180, f"({cmd_box['height']:.1f}px)")
+
         points_el = page.locator(".hero-protocol-card__current").first
         if points_el.is_visible():
             initial_pts = points_el.text_content().strip()
@@ -71,33 +77,36 @@ def run_dynamic_audit():
         grid_table = page.locator("table.habit-grid")
         check("Desktop Habit Grid Matrix Present", grid_table.count() > 0)
 
-        current_day_cell = page.locator(".habit-grid__cell--current").first
+        current_day_cell = page.locator("tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current").first
         check("Desktop Current Day Cell Present", current_day_cell.is_visible())
 
         init_done = "habit-grid__cell--done" in (current_day_cell.get_attribute("class") or "")
-        current_day_cell.click(force=True)
+        current_day_cell.dispatch_event('click')
         try:
             page.wait_for_function(
-                "([init_done]) => { const el = document.querySelector('.habit-grid__cell--current'); return el && (el.classList.contains('habit-grid__cell--done') !== init_done); }",
+                "([init_done]) => { const el = document.querySelector('tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current'); return el && (el.classList.contains('habit-grid__cell--done') !== init_done); }",
                 arg=[init_done],
                 timeout=3000
             )
         except Exception:
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(600)
         toggled_done = "habit-grid__cell--done" in (current_day_cell.get_attribute("class") or "")
         check("Desktop Matrix Cell Toggle (Check)", init_done != toggled_done)
 
         # Toggle back to restore
-        current_day_cell.click(force=True)
+        page.wait_for_timeout(600)
+        cell_restore = page.locator("tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current").first
+        cell_restore.dispatch_event('click')
         try:
             page.wait_for_function(
-                "([init_done]) => { const el = document.querySelector('.habit-grid__cell--current'); return el && (el.classList.contains('habit-grid__cell--done') === init_done); }",
+                "([init_done]) => { const el = document.querySelector('tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current'); return el && (el.classList.contains('habit-grid__cell--done') === init_done); }",
                 arg=[init_done],
-                timeout=3000
+                timeout=4000
             )
         except Exception:
-            page.wait_for_timeout(500)
-        restored_done = "habit-grid__cell--done" in (current_day_cell.get_attribute("class") or "")
+            page.wait_for_timeout(600)
+        cell_final = page.locator("tbody tr.habit-grid__row:not(.habit-grid__row--total) .habit-grid__cell--current").first
+        restored_done = "habit-grid__cell--done" in (cell_final.get_attribute("class") or "")
         check("Desktop Matrix Cell Toggle (Restore)", restored_done == init_done)
 
         # 1.3 Day Type Cycling Engine
@@ -108,12 +117,12 @@ def run_dynamic_audit():
             travel_btn.click(force=True)
             try:
                 page.wait_for_function(
-                    "(initial) => document.querySelector('.hero-command-bar .hero-travel-text')?.innerText.trim() !== initial",
+                    "(initial) => { const el = document.querySelector('.hero-command-bar .hero-travel-text'); return el && el.innerText.trim() !== initial; }",
                     arg=initial_text,
                     timeout=3000
                 )
             except Exception:
-                page.wait_for_timeout(500)
+                page.wait_for_timeout(600)
             new_text = travel_text_el.inner_text().strip()
             check("Day Type Cycling Engine Responded", initial_text != new_text, f"('{initial_text}' -> '{new_text}')")
             travel_btn.click(force=True)
@@ -127,6 +136,10 @@ def run_dynamic_audit():
 
         habit_modal = page.locator(".habit-modal-card")
         check("Habit Form Modal Opened", habit_modal.is_visible())
+        modal_bg = habit_modal.evaluate("el => window.getComputedStyle(el).backgroundColor")
+        check("Habit Modal Pure Light Card Rendered", "255, 255, 255" in modal_bg, f"({modal_bg})")
+        chip_count = page.locator(".duration-chip, .points-preset-btn, .category-option-btn").count()
+        check("Habit Suggestion & Preset Chips Present", chip_count > 0, f"({chip_count} chips)")
 
         name_input = page.locator(".habit-modal-card input.habit-form-input").first
         new_habit_title = "Dynamic Master Audit Protocol"
@@ -364,6 +377,9 @@ def run_dynamic_audit():
         mobile_card = page.locator(".mobile-daily__card").first
         check("Mobile Habit Cards Visible", mobile_card.is_visible())
 
+        card_wrappers = page.locator(".habit-card-wrapper")
+        check("Swipe Gesture Architecture Mounted in Card Wrapper", card_wrappers.count() > 0, f"({card_wrappers.count()} wrappers)")
+
         habit_name_str = mobile_card.locator(".mobile-daily__card-name").text_content().strip()
         print(f"     Mobile Habit: '{habit_name_str[:35]}...'")
 
@@ -382,6 +398,48 @@ def run_dynamic_audit():
             page.wait_for_timeout(600)
         
         check("Mobile Habit 44px Checkbox Toggled", True)
+
+        # 8.1 Floating Optimistic Undo Toast Capsule
+        undo_toast = page.locator(".habuilt-floating-toast--undo")
+        check("Floating Optimistic Undo Toast Rendered", undo_toast.is_visible())
+        undo_btn = page.locator(".habuilt-floating-toast__undo-btn")
+        check("Undo Action Button Present in Capsule", undo_btn.is_visible())
+        
+        # Test clicking Undo button rolls back habit state
+        undo_btn.click(force=True)
+        try:
+            page.wait_for_function(
+                "([sel, initial]) => (document.querySelector(sel)?.classList.contains('mobile-daily__card--done') === initial)",
+                arg=[".mobile-daily__card", was_mobile_done],
+                timeout=3000
+            )
+        except Exception:
+            page.wait_for_timeout(600)
+        
+        rolled_back_done = "mobile-daily__card--done" in (mobile_card.get_attribute("class") or "")
+        check("Optimistic Undo Restores Habit Check State", rolled_back_done == was_mobile_done)
+
+        # 8.2 Apple/Fitflow 7-Day Horizontal Week Strip
+        week_strip = page.locator(".mobile-week-strip")
+        check("7-Day Horizontal Week Strip Rendered", week_strip.is_visible())
+        strip_pills = page.locator(".mobile-week-strip__pill")
+        check("7-Day Strip Contains 7 Interactive Pills", strip_pills.count() == 7, f"({strip_pills.count()} pills)")
+        today_pill = page.locator(".mobile-week-strip__pill--today")
+        check("Today Dot Pill Rendered in Strip", today_pill.is_visible())
+
+        # Click another day pill in the strip (e.g. pill index 1)
+        if strip_pills.count() > 1:
+            strip_pills.nth(1).click(force=True)
+            page.wait_for_timeout(400)
+            selected_pill = page.locator(".mobile-week-strip__pill--selected")
+            check("Week Strip Pill Selection Updates Active Day", selected_pill.is_visible())
+
+        # Jump back to Today
+        today_btn = page.locator(".mobile-daily__today-link, .mobile-week-strip__pill--today").first
+        if today_btn.is_visible():
+            today_btn.click(force=True)
+            page.wait_for_timeout(400)
+            check("Restored Viewport to Active Today", today_pill.is_visible())
 
         # Time-slot filter on mobile
         morning_filter = page.locator(".time-filter-pill:has-text('Morning')").first

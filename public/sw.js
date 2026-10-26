@@ -52,13 +52,13 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+        .catch(() => caches.match(request, { ignoreSearch: true }).then((cached) => cached || caches.match('/', { ignoreSearch: true })))
     );
     return;
   }
 
   // Hashed assets — cache first, immutable
-  const isHashedAsset = /\/assets\/[^/]+-[a-zA-Z0-9]{8}\.\w+$/.test(url.pathname);
+  const isHashedAsset = /(?:\/build)?\/assets\/[^/]+-[a-zA-Z0-9_-]{8,}\.\w+$/.test(url.pathname);
 
   if (
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot)$/) ||

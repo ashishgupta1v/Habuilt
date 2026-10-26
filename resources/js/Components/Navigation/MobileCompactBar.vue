@@ -27,6 +27,7 @@ import {
   X,
   Heart,
   LogOut,
+  MessageSquare,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -46,7 +47,6 @@ const props = defineProps({
   travelMode: { type: Boolean, default: false },
   dayType: { type: String, default: 'home' },
   dayTypeLabel: { type: String, default: '🏠 Home' },
-  darkMode: { type: Boolean, default: true },
   isSyncing: { type: Boolean, default: false },
   notificationsSupported: { type: Boolean, default: false },
   dueNowNotificationsEnabled: { type: Boolean, default: false },
@@ -57,7 +57,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   'toggle-up-next',
-  'toggle-theme',
   'toggle-zen',
   'toggle-travel',
   'share-scorecard',
@@ -85,7 +84,7 @@ const autoProtocolBadge = computed(() => {
 </script>
 
 <template>
-  <header class="mobile-compact-bar" :class="{ 'mcb--dark': darkMode, 'mcb--light': !darkMode }">
+  <header class="mobile-compact-bar mcb--light">
     <!-- Slim 52px Executive Bar -->
     <div class="mcb-primary-bar">
       <!-- Left: Brand Logo & User Grade -->
@@ -190,10 +189,6 @@ const autoProtocolBadge = computed(() => {
             </div>
 
             <div class="mcb-tools-grid">
-              <button type="button" class="mcb-tool-item" @click="emit('toggle-theme'); isToolsOpen = false;">
-                <div class="mcb-tool-icon icon-amber"><Sun v-if="darkMode" class="icon-sm" /><Moon v-else class="icon-sm" /></div>
-                <span>{{ darkMode ? 'Light Mode' : 'Dark Mode' }}</span>
-              </button>
 
               <button v-if="isAshish" type="button" class="mcb-tool-item" @click="emit('toggle-travel'); isToolsOpen = false;">
                 <div class="mcb-tool-icon icon-sky"><Plane v-if="travelMode" class="icon-sm" /><Calendar v-else class="icon-sm" /></div>
@@ -204,6 +199,17 @@ const autoProtocolBadge = computed(() => {
                 <div class="mcb-tool-icon icon-amber"><Search class="icon-sm" /></div>
                 <span>Command (⌘K)</span>
               </button>
+
+              <a
+                href="https://zoeticoach.com/join/vikas"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mcb-tool-item"
+                @click="isToolsOpen = false"
+              >
+                <div class="mcb-tool-icon" style="color: #25D366; background: rgba(37, 211, 102, 0.15);"><MessageSquare class="icon-sm" /></div>
+                <span>Coach Vikas</span>
+              </a>
 
               <button type="button" class="mcb-tool-item" @click="emit('reload-app'); isToolsOpen = false;">
                 <div class="mcb-tool-icon icon-emerald"><RefreshCw class="icon-sm" :class="{ 'animate-spin': isSyncing }" /></div>
@@ -430,19 +436,13 @@ const autoProtocolBadge = computed(() => {
   height: 32px;
   min-width: 32px;
   border-radius: var(--radius-sm, 8px);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07));
-  color: var(--text-secondary, #94a3b8);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  color: #334155;
   cursor: pointer;
   padding: 0;
   transition: all 0.14s ease;
   touch-action: manipulation;
-}
-
-body:not(.theme-dark) .mcb-btn {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.07);
-  color: #334155;
 }
 
 .mcb-btn:active {
@@ -477,16 +477,11 @@ body:not(.theme-dark) .mcb-btn {
 /* Expandable Drawer */
 .mcb-expanded-drawer {
   padding: 8px 12px 10px;
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(13, 20, 36, 0.6);
-}
-
-body:not(.theme-dark) .mcb-expanded-drawer {
   background: rgba(241, 245, 249, 0.8);
-  border-top-color: rgba(0, 0, 0, 0.06);
 }
 
 .mcb-expanded-row {
@@ -508,12 +503,8 @@ body:not(.theme-dark) .mcb-expanded-drawer {
   width: 100%;
   height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-
-body:not(.theme-dark) .mcb-progress-track {
   background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
 .mcb-progress-fill {
@@ -582,14 +573,10 @@ body:not(.theme-dark) .mcb-progress-track {
 .mcb-upnext-name {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--text-primary, #f8fafc);
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-body:not(.theme-dark) .mcb-upnext-name {
-  color: #0f172a;
 }
 
 .mcb-upnext-btn {
@@ -612,7 +599,7 @@ body:not(.theme-dark) .mcb-upnext-name {
 .mcb-tools-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
@@ -632,37 +619,27 @@ body:not(.theme-dark) .mcb-upnext-name {
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background: var(--card-bg, #0d1424);
-  border-top: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 20px 20px 0 0;
   padding: 8px 16px calc(36px + env(safe-area-inset-bottom, 20px));
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
 }
 
 .mcb-tools-sheet::-webkit-scrollbar {
   display: none;
 }
 
-body:not(.theme-dark) .mcb-tools-sheet {
-  background: #ffffff;
-  border-top-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
-}
-
 .mcb-tools-grabber {
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.15);
   margin: 4px auto 0;
   flex-shrink: 0;
-}
-
-body:not(.theme-dark) .mcb-tools-grabber {
-  background: rgba(0, 0, 0, 0.15);
 }
 
 .mcb-tools-header {
@@ -681,10 +658,6 @@ body:not(.theme-dark) .mcb-tools-grabber {
   font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: var(--text-primary, #f8fafc);
-}
-
-body:not(.theme-dark) .mcb-tools-title {
   color: #0f172a;
 }
 
@@ -698,16 +671,11 @@ body:not(.theme-dark) .mcb-tools-title {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.06);
   border: none;
-  color: var(--text-secondary, #94a3b8);
+  color: #64748b;
   cursor: pointer;
   touch-action: manipulation;
-}
-
-body:not(.theme-dark) .mcb-tools-close {
-  background: rgba(0, 0, 0, 0.06);
-  color: #64748b;
 }
 
 .mcb-tools-grid {
@@ -723,9 +691,9 @@ body:not(.theme-dark) .mcb-tools-close {
   gap: 6px;
   padding: 12px 6px;
   border-radius: var(--radius-md, 12px);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
-  color: var(--text-primary, #f8fafc);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #0f172a;
   cursor: pointer;
   font-size: 0.72rem;
   font-weight: 600;
@@ -733,15 +701,9 @@ body:not(.theme-dark) .mcb-tools-close {
   transition: all 0.14s ease;
 }
 
-body:not(.theme-dark) .mcb-tool-item {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.06);
-  color: #0f172a;
-}
-
 .mcb-tool-item:active {
   transform: scale(0.94);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .mcb-tool-icon {
@@ -751,10 +713,6 @@ body:not(.theme-dark) .mcb-tool-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-body:not(.theme-dark) .mcb-tool-icon {
   background: rgba(0, 0, 0, 0.04);
 }
 

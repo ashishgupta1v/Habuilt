@@ -118,6 +118,24 @@ const handleOpenSettings = () => {
   isProtocolMenuOpen.value = false;
 };
 
+import { gsap } from 'gsap';
+
+const commandBarRef = ref(null);
+let gsapCtx = null;
+
+const onProtoDropEnter = (el, done) => {
+  gsap.fromTo(el,
+    { y: -10, opacity: 0, scale: 0.96 },
+    { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: 'back.out(1.5)', onComplete: done }
+  );
+};
+
+const onProtoDropLeave = (el, done) => {
+  gsap.to(el,
+    { y: -8, opacity: 0, scale: 0.96, duration: 0.2, ease: 'power2.in', onComplete: done }
+  );
+};
+
 const onDocumentClick = (e) => {
   if (protocolMenuRef.value && !protocolMenuRef.value.contains(e.target)) {
     isProtocolMenuOpen.value = false;
@@ -131,17 +149,38 @@ onMounted(() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('click', onDocumentClick);
   }
+  if (commandBarRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from(commandBarRef.value, {
+        y: -14,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out'
+      });
+      gsap.from('.hero-desktop-tab', {
+        y: -6,
+        opacity: 0,
+        stagger: 0.05,
+        duration: 0.4,
+        ease: 'power2.out',
+        delay: 0.15
+      });
+    }, commandBarRef.value);
+  }
 });
 
 onBeforeUnmount(() => {
   if (typeof document !== 'undefined') {
     document.removeEventListener('click', onDocumentClick);
   }
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
 });
 </script>
 
 <template>
-  <div class="hero-command-bar">
+  <div class="hero-command-bar" ref="commandBarRef">
     <div class="hero-command-bar__left">
       <!-- Habuilt Brand Logo & Name -->
       <HabuiltLogo size="xs" :with-text="true" :show-badge="false" class="hero-brand-logo" />
@@ -167,7 +206,7 @@ onBeforeUnmount(() => {
         </button>
 
         <!-- Floating Protocol Quick Switcher Menu -->
-        <Transition name="proto-drop">
+        <Transition :css="false" @enter="onProtoDropEnter" @leave="onProtoDropLeave">
           <div v-if="isProtocolMenuOpen" class="hero-protocol-dropdown" role="menu">
             <div class="hero-protocol-dropdown__header">
               <span class="hero-protocol-dropdown__title">Routine Protocols</span>

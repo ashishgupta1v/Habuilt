@@ -15,7 +15,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 os.makedirs('tests/screenshots', exist_ok=True)
 
-APP_URL = 'http://127.0.0.1:4173/'
+APP_URL = os.environ.get('BASE_URL', 'http://localhost:4173/')
 
 def run_partner_sync_e2e():
     print("=" * 60)

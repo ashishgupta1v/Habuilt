@@ -28,6 +28,7 @@ export function useDueNowNotifications({
   let channel = null;
   let heartbeatInterval = null;
   let queueDrainInterval = null;
+  let handleSwMessage = null;
 
   // Initialize Android High-Importance Channel
   const initNotificationChannel = async () => {
@@ -497,7 +498,7 @@ export function useDueNowNotifications({
       } catch { /* channel fallback */ }
     }
 
-    const handleSwMessage = (event) => {
+    handleSwMessage = (event) => {
       if (event.data?.type === 'HABIT_COMPLETED_VIA_NOTIFICATION') {
         const { habitId, day } = event.data;
         if (habitId && day && onCompleteHabit) {
@@ -514,13 +515,11 @@ export function useDueNowNotifications({
 
     window.addEventListener('focus', handleVisibilityOrFocus);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-
-    queueDrainInterval = setInterval(() => {
-      drainQueuedCompletions();
-    }, 1500);
+    window.addEventListener('online', drainQueuedCompletions);
 
     syncDueNowNotification();
     heartbeatInterval = setInterval(() => {
+      drainQueuedCompletions();
       syncDueNowNotification();
     }, 30000);
   });
@@ -532,6 +531,7 @@ export function useDueNowNotifications({
     if (typeof window !== 'undefined') {
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('online', drainQueuedCompletions);
     }
     if ('serviceWorker' in navigator && typeof handleSwMessage === 'function') {
       navigator.serviceWorker.removeEventListener('message', handleSwMessage);

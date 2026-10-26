@@ -681,21 +681,21 @@ const handleDelete = () => {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 1.25rem;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.05);
   overflow: hidden;
-  color: #f8fafc;
+  color: #0f172a;
 }
 
 .habit-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(30, 41, 59, 0.4);
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
 }
 
 .habit-modal__header-left {
@@ -711,8 +711,9 @@ const handleDelete = () => {
   align-items: center;
   justify-content: center;
   border-radius: 0.75rem;
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.25);
+  background: rgba(0, 180, 160, 0.1);
+  border: 1px solid rgba(0, 180, 160, 0.25);
+  color: #0d9488;
 }
 
 .habit-modal__title {
@@ -720,18 +721,18 @@ const handleDelete = () => {
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0;
-  color: #ffffff;
+  color: #0f172a;
 }
 
 .habit-modal__subtitle {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .habit-modal__close-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #64748b;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.5rem;
@@ -742,14 +743,14 @@ const handleDelete = () => {
 }
 
 .habit-modal__close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .habit-modal__presets {
   padding: 0.65rem 1.5rem;
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -758,10 +759,10 @@ const handleDelete = () => {
 
 .habit-modal__presets-label {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: #475569;
   white-space: nowrap;
 }
 
@@ -778,22 +779,24 @@ const handleDelete = () => {
 }
 
 .habit-preset-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 0.25rem 0.6rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
   border-radius: 2rem;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .habit-preset-chip:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #93c5fd;
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .habit-modal__body {
@@ -802,12 +805,13 @@ const handleDelete = () => {
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
+  background: #ffffff;
 }
 
 .habit-modal__alert {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
   font-size: 0.82rem;
   padding: 0.6rem 0.85rem;
   border-radius: 0.5rem;
@@ -829,7 +833,7 @@ const handleDelete = () => {
 .habit-form-label {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #334155;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -846,10 +850,10 @@ const handleDelete = () => {
 
 .habit-form-input {
   width: 100%;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 0.65rem;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.92rem;
   padding: 0.65rem 0.85rem;
   outline: none;
@@ -857,20 +861,19 @@ const handleDelete = () => {
 }
 
 .habit-form-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  background: rgba(15, 23, 42, 0.9);
+  border-color: #00B4A0;
+  box-shadow: 0 0 0 3px rgba(0, 180, 160, 0.18);
 }
 
 .habit-form-input--hint {
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .timing-segmented-toggle {
   display: flex;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 0.5rem;
   padding: 2px;
   gap: 2px;
@@ -879,7 +882,7 @@ const handleDelete = () => {
 .timing-toggle-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.25rem 0.6rem;
@@ -889,14 +892,14 @@ const handleDelete = () => {
 }
 
 .timing-toggle-btn--active {
-  background: #2563eb;
+  background: #0f172a;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
 }
 
 .timed-pickers-card {
-  background: rgba(30, 41, 59, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 0.75rem;
   padding: 0.85rem;
   display: flex;
@@ -923,15 +926,15 @@ const handleDelete = () => {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 600;
 }
 
 .time-native-input {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: #0f172a;
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -941,8 +944,8 @@ const handleDelete = () => {
 }
 
 .time-native-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-color: #00B4A0;
+  box-shadow: 0 0 0 2px rgba(0, 180, 160, 0.2);
 }
 
 .time-field-arrow {
@@ -952,8 +955,8 @@ const handleDelete = () => {
 }
 
 .time-duration-badge {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(0, 180, 160, 0.08);
+  border: 1px solid rgba(0, 180, 160, 0.2);
   border-radius: 0.5rem;
   padding: 0.35rem 0.65rem;
   display: flex;
@@ -966,13 +969,13 @@ const handleDelete = () => {
 .time-duration-val {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #60a5fa;
+  color: #0d9488;
 }
 
 .time-duration-sub {
   font-size: 0.65rem;
   text-transform: uppercase;
-  color: #93c5fd;
+  color: #64748b;
   font-weight: 600;
 }
 
@@ -985,7 +988,7 @@ const handleDelete = () => {
 
 .quick-duration-label {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .quick-duration-chips {
@@ -994,9 +997,9 @@ const handleDelete = () => {
 }
 
 .duration-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.2rem 0.45rem;
@@ -1006,14 +1009,14 @@ const handleDelete = () => {
 }
 
 .duration-chip:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
+  background: #0f172a;
+  border-color: #0f172a;
   color: #ffffff;
 }
 
 .flexible-slots-card {
-  background: rgba(30, 41, 59, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 0.75rem;
   padding: 0.65rem;
 }
@@ -1025,11 +1028,11 @@ const handleDelete = () => {
 }
 
 .slot-radio-btn {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
   padding: 0.45rem 0.5rem;
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.75rem;
   font-weight: 600;
   display: flex;
@@ -1041,9 +1044,10 @@ const handleDelete = () => {
 }
 
 .slot-radio-btn--active {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: #3b82f6;
-  color: #93c5fd;
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
 }
 
 .habit-form-two-col {
@@ -1065,11 +1069,11 @@ const handleDelete = () => {
 }
 
 .category-option-btn {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
   padding: 0.35rem 0.5rem;
-  color: #94a3b8;
+  color: #334155;
   font-size: 0.72rem;
   font-weight: 600;
   display: flex;
@@ -1083,8 +1087,8 @@ const handleDelete = () => {
 }
 
 .category-option-btn--active {
-  background: rgba(37, 99, 235, 0.2);
-  border-color: #3b82f6;
+  background: #0f172a;
+  border-color: #0f172a;
   color: #ffffff;
 }
 
@@ -1096,11 +1100,11 @@ const handleDelete = () => {
 }
 
 .points-preset-btn {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
   padding: 0.35rem 0.55rem;
-  color: #cbd5e1;
+  color: #1e293b;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -1108,10 +1112,10 @@ const handleDelete = () => {
 }
 
 .points-preset-btn--active {
-  background: #eab308;
-  border-color: #facc15;
-  color: #0f172a;
-  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.35);
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
 }
 
 .points-custom-box {
@@ -1120,10 +1124,10 @@ const handleDelete = () => {
 
 .points-custom-input {
   width: 100%;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 0.35rem;
@@ -1138,11 +1142,11 @@ const handleDelete = () => {
 }
 
 .schedule-pill {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
   padding: 0.35rem 0.6rem;
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -1150,9 +1154,9 @@ const handleDelete = () => {
 }
 
 .schedule-pill--active {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-  color: #93c5fd;
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
 }
 
 .custom-days-selector {
@@ -1163,11 +1167,11 @@ const handleDelete = () => {
 
 .custom-day-btn {
   flex: 1;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
   border-radius: 0.4rem;
   padding: 0.3rem 0;
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.72rem;
   font-weight: 700;
   text-align: center;
@@ -1176,8 +1180,8 @@ const handleDelete = () => {
 }
 
 .custom-day-btn--active {
-  background: #2563eb;
-  border-color: #3b82f6;
+  background: #0f172a;
+  border-color: #0f172a;
   color: #ffffff;
 }
 
@@ -1186,8 +1190,8 @@ const handleDelete = () => {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(30, 41, 59, 0.3);
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
 }
 
 .habit-modal__footer-right {
@@ -1199,7 +1203,7 @@ const handleDelete = () => {
 .btn-habit-delete {
   background: transparent;
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
+  color: #dc2626;
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.45rem 0.75rem;
@@ -1212,8 +1216,8 @@ const handleDelete = () => {
 }
 
 .btn-habit-delete:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: #fef2f2;
   border-color: #ef4444;
-  color: #fca5a5;
+  color: #b91c1c;
 }
 </style>

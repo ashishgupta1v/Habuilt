@@ -132,10 +132,44 @@ const toggleRewardsVault = () => {
     emit('toast', '🔒 Reward Vault sealed');
   }
 };
+
+import { onMounted, onUnmounted } from 'vue';
+import { gsap } from 'gsap';
+
+const shopRef = ref(null);
+let gsapCtx = null;
+
+onMounted(() => {
+  if (shopRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from('.reward-vault-hero-card', {
+        y: 18,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out'
+      });
+      gsap.from('.reward-card-deluxe', {
+        scale: 0.94,
+        y: 12,
+        opacity: 0,
+        stagger: 0.05,
+        duration: 0.45,
+        ease: 'back.out(1.5)',
+        delay: 0.1
+      });
+    }, shopRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
 </script>
 
 <template>
-  <div class="reward-vault-dashboard">
+  <div class="reward-vault-dashboard" ref="shopRef">
     <!-- Grand Glowing Gold Wallet Card -->
     <div class="reward-vault-hero-card">
       <div class="reward-vault-hero-bg-glow"></div>

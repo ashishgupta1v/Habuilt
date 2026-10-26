@@ -1,6 +1,7 @@
 /**
- * Habuilt Design System - "Linear / Things 3" Modern Dark Tokens
- * Precision hierarchy, restrained purposeful accents, and high-performance ergonomics.
+ * Habuilt Design System - Pure Light Theme Tokens (ZoetiCoach Spec)
+ * Crisp typography, immaculate light surfaces, precision hairline borders, and purposeful vibrant accents.
+ * Dark theme entirely removed.
  */
 
 :root {
@@ -21,7 +22,7 @@
   --font-size-xl: 22px;
   --font-size-2xl: 28px;
 
-  /* Light Theme Canvas & Surface Depth */
+  /* Pure Light Theme Canvas & Surface Depth */
   --page-bg: #f8fafc;
   --shell-bg: #ffffff;
   --shell-border: #e2e8f0;
@@ -50,24 +51,24 @@
   --muted-bg: #f1f5f9;
   --hover-bg: #f8fafc;
 
-  /* Signature Sovereign Accent (Light Mode) */
-  --brand-gold: #9a6e18;
-  --brand-gold-solid: #b45309;
-  --brand-gold-subtle: rgba(154, 110, 24, 0.08);
-  --brand-gold-glow: rgba(154, 110, 24, 0.16);
-  --brand-gold-border: rgba(154, 110, 24, 0.25);
+  /* Signature ZoetiCoach Accents (Light Mode) */
+  --brand-gold: #0d9488;
+  --brand-gold-solid: #0f766e;
+  --brand-gold-subtle: rgba(13, 148, 136, 0.08);
+  --brand-gold-glow: rgba(13, 148, 136, 0.2);
+  --brand-gold-border: rgba(13, 148, 136, 0.3);
 
-  /* Semantic State Tokens (Light Mode) */
-  --semantic-success: #059669;
-  --semantic-success-subtle: #ecfdf5;
-  --semantic-success-border: rgba(5, 150, 105, 0.25);
-  --accent: #9a6e18;
-  --accent-strong: #78350f;
-  --accent-light: rgba(154, 110, 24, 0.08);
-  --accent-glow: rgba(154, 110, 24, 0.16);
+  /* Semantic State Tokens */
+  --semantic-success: #0d9488;
+  --semantic-success-subtle: #f0fdf4;
+  --semantic-success-border: rgba(13, 148, 136, 0.25);
+  --accent: #0d9488;
+  --accent-strong: #0f766e;
+  --accent-light: rgba(13, 148, 136, 0.08);
+  --accent-glow: rgba(13, 148, 136, 0.2);
   
-  /* 3-Tier Enterprise Button Tokens (Light Mode) */
-  --btn-primary-bg: #9a6e18;
+  /* 3-Tier Enterprise Button Tokens */
+  --btn-primary-bg: #0d9488;
   --btn-primary-text: #ffffff;
   --btn-secondary-bg: #ffffff;
   --btn-secondary-border: #cbd5e1;
@@ -75,21 +76,24 @@
   --btn-secondary-hover-bg: #f1f5f9;
   --btn-ghost-hover-bg: rgba(15, 23, 42, 0.05);
 
-  /* Micro-tokens & Badges (Light Mode) */
+  /* Micro-tokens & Badges */
   --badge-tier-bg: #f1f5f9;
   --badge-tier-text: #475569;
   --badge-tier-border: #e2e8f0;
   --badge-count-bg: #f8fafc;
   --badge-count-text: #64748b;
   --badge-count-border: #e2e8f0;
-  --badge-grade-bg: rgba(244, 63, 94, 0.1);
-  --badge-grade-text: #e11d48;
-  --badge-grade-border: rgba(244, 63, 94, 0.2);
+  --badge-grade-bg: rgba(255, 107, 53, 0.1);
+  --badge-grade-text: #ea580c;
+  --badge-grade-border: rgba(255, 107, 53, 0.25);
 
-  --brand-emerald: #059669;
-  --brand-emerald-subtle: rgba(5, 150, 105, 0.1);
-  --brand-amber: #d97706;
-  --brand-amber-subtle: rgba(217, 119, 6, 0.1);
+  --brand-emerald: #0d9488;
+  --brand-emerald-subtle: rgba(13, 148, 136, 0.1);
+  --brand-amber: #ff6b35;
+  --brand-amber-subtle: rgba(255, 107, 53, 0.12);
+  --brand-saffron: #ff6b35;
+  --brand-saffron-glow: rgba(255, 107, 53, 0.25);
+  --brand-saffron-subtle: rgba(255, 107, 53, 0.1);
   --brand-violet: #7c3aed;
   --brand-violet-subtle: rgba(124, 58, 237, 0.1);
   --brand-sky: #0284c7;
@@ -119,103 +123,4 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-full: 9999px;
-}
-
-/* ZoetiCoach Design System Sleek Dark Mode Architecture */
-body.theme-dark,
-html.theme-dark,
-body.dark-mode {
-  --page-bg: #07111D;
-  --shell-bg: #091524;
-  --shell-border: #1A3C5E;
-  
-  --surface-ground: #07111D;
-  --surface-card: #10243A;
-  --surface-overlay: #152F4B;
-  --surface-inset: #07111D;
-  --surface-border: #1A3C5E;
-  --surface-border-subtle: rgba(26, 60, 94, 0.45);
-
-  --text-primary: #F1F6FB;
-  --text-secondary: #C2D5E7;
-  --text-muted: #9DB7D3;
-  --text-tertiary: #6E8EB5;
-  
-  --hero-bg: #091524;
-  --hero-panel: #10243A;
-  --hero-border: #1A3C5E;
-  --hero-text: #F1F6FB;
-  --hero-muted: #9DB7D3;
-  
-  --card-bg: #10243A;
-  --card-border: #1A3C5E;
-  --card-border-hover: #345179;
-  --muted-bg: #152F4B;
-  --hover-bg: #1A3C5E;
-  
-  /* Signature Zoeti Teal & Saffron Accents (Dark Mode) */
-  --brand-gold: #00B4A0;
-  --brand-gold-solid: #00B4A0;
-  --brand-gold-subtle: rgba(0, 180, 160, 0.14);
-  --brand-gold-glow: rgba(0, 180, 160, 0.35);
-  --brand-gold-border: rgba(0, 180, 160, 0.4);
-
-  /* Semantic State Tokens (Zoeti Luminous Teal) */
-  --semantic-success: #00B4A0;
-  --semantic-success-subtle: rgba(0, 180, 160, 0.15);
-  --semantic-success-border: rgba(0, 180, 160, 0.35);
-  --accent: #00B4A0;
-  --accent-strong: #4FD3BE;
-  --accent-light: rgba(0, 180, 160, 0.12);
-  --accent-glow: rgba(0, 180, 160, 0.35);
-
-  /* 3-Tier Enterprise Button Tokens (Dark Mode) */
-  --btn-primary-bg: #00B4A0;
-  --btn-primary-text: #ffffff;
-  --btn-secondary-bg: rgba(26, 60, 94, 0.35);
-  --btn-secondary-border: #1A3C5E;
-  --btn-secondary-text: #C2D5E7;
-  --btn-secondary-hover-bg: #1A3C5E;
-  --btn-ghost-hover-bg: rgba(26, 60, 94, 0.3);
-
-  /* Micro-tokens & Badges (Dark Mode) */
-  --badge-tier-bg: rgba(26, 60, 94, 0.45);
-  --badge-tier-text: #C2D5E7;
-  --badge-tier-border: #1A3C5E;
-  --badge-count-bg: rgba(16, 36, 58, 0.6);
-  --badge-count-text: #9DB7D3;
-  --badge-count-border: #1A3C5E;
-  --badge-grade-bg: rgba(255, 107, 53, 0.15);
-  --badge-grade-text: #FF834F;
-  --badge-grade-border: rgba(255, 107, 53, 0.3);
-
-  --brand-emerald: #00B4A0;
-  --brand-emerald-subtle: rgba(0, 180, 160, 0.15);
-  --brand-amber: #FF6B35;
-  --brand-amber-subtle: rgba(255, 107, 53, 0.15);
-  --brand-saffron: #FF6B35;
-  --brand-saffron-glow: rgba(255, 107, 53, 0.3);
-  --brand-violet: #8b5cf6;
-  --brand-violet-subtle: rgba(139, 92, 246, 0.14);
-  --brand-sky: #38bdf8;
-  --brand-sky-subtle: rgba(56, 189, 248, 0.14);
-  
-  --danger: #f87171;
-  --danger-light: rgba(239, 68, 68, 0.14);
-  
-  /* Hairline Crisp Glassmorphism */
-  --glass-bg: rgba(16, 36, 58, 0.88);
-  --glass-border: #1A3C5E;
-  --glass-border-specular: rgba(79, 211, 190, 0.2);
-  --glass-blur: blur(20px);
-  --glass-shadow: 0 10px 30px -6px rgba(7, 17, 29, 0.75);
-  
-  --card-elev-1: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --card-elev-2: 0 6px 20px -2px rgba(0, 0, 0, 0.55);
-  --card-elev-3: 0 16px 40px -6px rgba(0, 0, 0, 0.75);
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 30px -4px rgba(0, 0, 0, 0.6);
-  --shadow-shell: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
 }

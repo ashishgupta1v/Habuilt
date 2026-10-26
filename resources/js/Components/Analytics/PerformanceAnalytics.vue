@@ -211,10 +211,43 @@ const toggleClinicalVault = () => {
     emit('toast', '🔒 Clinical Telemetry Vault sealed');
   }
 };
+
+import { onMounted, onUnmounted } from 'vue';
+import { gsap } from 'gsap';
+
+const analyticsRef = ref(null);
+let gsapCtx = null;
+
+onMounted(() => {
+  if (analyticsRef.value) {
+    gsapCtx = gsap.context(() => {
+      gsap.from('.analytics-glass-card', {
+        y: 16,
+        opacity: 0,
+        stagger: 0.07,
+        duration: 0.5,
+        ease: 'power3.out'
+      });
+      gsap.from('.heatmap-card', {
+        y: 14,
+        opacity: 0,
+        duration: 0.45,
+        ease: 'power2.out',
+        delay: 0.15
+      });
+    }, analyticsRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (gsapCtx) {
+    try { gsapCtx.revert(); } catch {}
+  }
+});
 </script>
 
 <template>
-  <div class="analytics-dashboard">
+  <div class="analytics-dashboard" ref="analyticsRef">
     <!-- 4 Luxury Glass KPI Cards -->
     <div class="analytics-kpi-grid">
       <!-- KPI 1: Consistency Score & Grade -->

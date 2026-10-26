@@ -40,7 +40,6 @@ const props = defineProps({
   isAshish: { type: Boolean, default: false },
   dayType: { type: String, default: 'home' },
   dayTypeLabel: { type: String, default: '🏠 Home' },
-  darkMode: { type: Boolean, default: true },
   activeTab: { type: String, default: 'today' },
   dueNowNotificationsEnabled: { type: Boolean, default: false },
 });
@@ -51,7 +50,6 @@ const emit = defineEmits([
   'toggle-habit',
   'start-timer',
   'set-tab',
-  'toggle-theme',
   'toggle-zen',
   'toggle-travel',
   'open-add-habit',
@@ -192,15 +190,6 @@ const systemCommands = computed(() => {
     },
 
     // Actions & Tools
-    {
-      id: 'cmd-theme',
-      category: 'Appearance',
-      title: props.darkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme',
-      subtitle: 'Toggle high-contrast / glass visual mode',
-      icon: props.darkMode ? Sun : Moon,
-      badge: props.darkMode ? 'Light' : 'Dark',
-      action: () => emit('toggle-theme'),
-    },
     {
       id: 'cmd-share',
       category: 'Tools',

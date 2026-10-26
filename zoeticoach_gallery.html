@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZoetiCoach by Habuilt — Pure Light Theme Showcase Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --zc-bg-base: #f8fafc;
+      --zc-bg-surface: #ffffff;
+      --zc-bg-card: #ffffff;
+      --zc-border-glass: rgba(15, 23, 42, 0.08);
+      --zc-teal: #0d9488;
+      --zc-teal-bright: #00B4A0;
+      --zc-saffron: #FF6B35;
+      --text-primary: #090d16;
+      --text-muted: #64748b;
+      --border-subtle: #e2e8f0;
+      --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--zc-bg-base);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 32px 24px 80px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-squircle {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0d9488, #00E5C9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(13, 148, 136, 0.25);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 24px;
+      color: #ffffff;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .h1-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      background: rgba(13, 148, 136, 0.1);
+      border: 1px solid rgba(13, 148, 136, 0.25);
+      color: var(--zc-teal);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .header-desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .wa-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(37, 211, 102, 0.1);
+      border: 1px solid rgba(37, 211, 102, 0.35);
+      color: #15803d;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .wa-link:hover {
+      background: rgba(37, 211, 102, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .theme-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .filter-btn:hover {
+      color: var(--text-primary);
+      border-color: #cbd5e1;
+    }
+    .filter-btn.active {
+      background: #0d9488;
+      border-color: #0d9488;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+    }
+
+    /* Gallery Grid */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 24px;
+    }
+
+    @media (max-width: 500px) {
+      .gallery-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .shot-card {
+      background: var(--zc-bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.22s ease,
+                  border-color 0.22s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shot-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.1);
+      border-color: rgba(13, 148, 136, 0.35);
+    }
+
+    .shot-header {
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      background: #ffffff;
+    }
+
+    .shot-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+
+    .shot-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-desktop {
+      background: rgba(13, 148, 136, 0.1);
+      color: #0d9488;
+      border: 1px solid rgba(13, 148, 136, 0.25);
+    }
+
+    .tag-mobile {
+      background: rgba(255, 107, 53, 0.1);
+      color: #ea580c;
+      border: 1px solid rgba(255, 107, 53, 0.25);
+    }
+
+    .tag-landing {
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .tag-clinical {
+      background: rgba(37, 211, 102, 0.1);
+      color: #15803d;
+      border: 1px solid rgba(37, 211, 102, 0.25);
+    }
+
+    .img-wrap {
+      position: relative;
+      background: #f1f5f9;
+      cursor: zoom-in;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+
+    .shot-card:hover .img-wrap img {
+      transform: scale(1.02);
+    }
+
+    .shot-footer {
+      padding: 14px 20px;
+      background: #ffffff;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .shot-note {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Modal Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      z-index: 9999;
+      padding: 30px;
+      backdrop-filter: blur(16px);
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox img {
+      max-width: 95vw;
+      max-height: 92vh;
+      object-fit: contain;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand-wrap">
+        <div class="logo-squircle">H</div>
+        <div>
+          <h1>Habuilt <span class="h1-badge">Pure Light Theme</span></h1>
+          <p class="header-desc">Ultra-Modern, Minimalist PWA, Android &amp; Desktop Executive Experience (Exclusively Light Theme)</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="theme-pill">☀️ Pure Light Mode Only</span>
+        <a href="https://zoeticoach.com/join/vikas" target="_blank" rel="noopener" class="wa-link">
+          <span>💬 Coach Vikas on WhatsApp</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterShots('all')">All Pure Light Views (10)</button>
+      <button class="filter-btn" onclick="filterShots('desktop')">Desktop (1440px)</button>
+      <button class="filter-btn" onclick="filterShots('mobile')">Mobile PWA (390px)</button>
+      <button class="filter-btn" onclick="filterShots('landing')">Landing &amp; Conversion</button>
+      <button class="filter-btn" onclick="filterShots('clinical')">Clinical HUDs &amp; Sync</button>
+    </div>
+
+    <!-- Gallery Grid -->
+    <div class="gallery-grid" id="galleryGrid">
+
+      <!-- 1. Pure Light Desktop Executive Dashboard -->
+      <div class="shot-card" data-category="desktop">
+        <div class="shot-header">
+          <div class="shot-title">1. Desktop Executive Dashboard (Pure Light Theme)</div>
+          <span class="shot-tag tag-desktop">1440 × 900</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/light_theme_desktop.png" alt="Desktop Executive Dashboard - Pure Light Theme">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Pristine white canvas, subtle elevation, Electric Teal accents &amp; TopCommandBar</span>
+        </div>
+      </div>
+
+      <!-- 2. Pure Light High-Conversion Landing Page -->
+      <div class="shot-card" data-category="landing">
+        <div class="shot-header">
+          <div class="shot-title">2. Landing Page &amp; WhatsApp Coach Vikas Card</div>
+          <span class="shot-tag tag-landing">Conversion</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/light_theme_landing.png" alt="Landing Page - Pure Light Theme">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Direct WhatsApp conversion banner + light Frosted glass auth card &amp; demo</span>
+        </div>
+      </div>
+
+      <!-- 3. Pure Light Deep Work Focus Station -->
+      <div class="shot-card" data-category="desktop">
+        <div class="shot-header">
+          <div class="shot-title">3. Deep Work Focus Station (Light Mode)</div>
+          <span class="shot-tag tag-desktop">Focus Zen</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/light_theme_focus.png" alt="Deep Work Focus Station - Light Mode">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Pristine dial, crisp typography, and full-screen Zen mode ('Z')</span>
+        </div>
+      </div>
+
+      <!-- 4. Pure Light Reward Vault -->
+      <div class="shot-card" data-category="desktop">
+        <div class="shot-header">
+          <div class="shot-title">4. Reward Vault &amp; Couple Synergy Engine (Light Mode)</div>
+          <span class="shot-tag tag-desktop">Economy</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/light_theme_rewards.png" alt="Reward Vault - Light Mode">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Vibrant saffron milestone cards, XP velocity, and couple rewards</span>
+        </div>
+      </div>
+
+      <!-- 5. Pure Light Mobile PWA Cockpit -->
+      <div class="shot-card" data-category="mobile">
+        <div class="shot-header">
+          <div class="shot-title">5. Mobile PWA &amp; Android Cockpit (Light Mode)</div>
+          <span class="shot-tag tag-mobile">390 × 844</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/light_theme_mobile.png" alt="Mobile PWA Cockpit - Light Mode">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Strict 53px slim bottom bar (≤60px verified) &amp; 44px thumb touch targets</span>
+        </div>
+      </div>
+
+      <!-- 6. ZoetiCoach Live Telemetry HUD -->
+      <div class="shot-card" data-category="clinical">
+        <div class="shot-header">
+          <div class="shot-title">6. ZoetiCoach Live Adherence HUD</div>
+          <span class="shot-tag tag-clinical">AI Guidance</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/zoeticoach_hud.png" alt="ZoetiCoach Live Adherence HUD">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Real-time adherence telemetry, 24h offline queue flush, and compliance scoring</span>
+        </div>
+      </div>
+
+      <!-- 7. Jyoti Profile — Longevity & Endocrine HUD -->
+      <div class="shot-card" data-category="clinical">
+        <div class="shot-header">
+          <div class="shot-title">7. Jyoti Profile — Longevity &amp; Endocrine HUD</div>
+          <span class="shot-tag tag-clinical">Clinical</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/jyoti_clinical_hud.png" alt="Jyoti Clinical Directives HUD">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Endocrine rhythm, joint flexibility, and parasympathetic sleep directives</span>
+        </div>
+      </div>
+
+      <!-- 8. Sunday Couple Review & WhatsApp Debrief -->
+      <div class="shot-card" data-category="clinical">
+        <div class="shot-header">
+          <div class="shot-title">8. Sunday Couple Review &amp; Debrief</div>
+          <span class="shot-tag tag-clinical">Sync</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/test5_sunday_couple_review.png" alt="Sunday Couple Review">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">1-tap formatted WhatsApp weekly debrief export for family accountability</span>
+        </div>
+      </div>
+
+      <!-- 9. Biometric Vault & NOAA Solar Ephemeris -->
+      <div class="shot-card" data-category="desktop">
+        <div class="shot-header">
+          <div class="shot-title">9. Biometric Vault &amp; Solar Ephemeris</div>
+          <span class="shot-tag tag-desktop">Circadian</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/test_vault_solar_settings.png" alt="Biometric Vault and Solar Ephemeris">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Hardware passkeys, IndexedDB vault, and New Delhi astronomical solar zenith</span>
+        </div>
+      </div>
+
+      <!-- 10. Ashish 3-Week Assessment Plan Verification -->
+      <div class="shot-card" data-category="clinical">
+        <div class="shot-header">
+          <div class="shot-title">10. Ashish 3-Week Assessment Verification</div>
+          <span class="shot-tag tag-clinical">Assessment</span>
+        </div>
+        <div class="img-wrap" onclick="openLightbox(this)">
+          <img src="tests/screenshots/ashish_plan_verification.png" alt="Ashish 3-Week Assessment Plan Verification">
+        </div>
+        <div class="shot-footer">
+          <span class="shot-note">Surya Namaskar, Sukha Kriya, Fennel/Coriander waters, and 3.5L hydration target</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="Enlarged screenshot">
+  </div>
+
+  <script>
+    function openLightbox(el) {
+      const src = el.querySelector('img').src;
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightbox').style.display = 'flex';
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').style.display = 'none';
+    }
+
+    function filterShots(category) {
+      const cards = document.querySelectorAll('.shot-card');
+      const btns = document.querySelectorAll('.filter-btn');
+
+      btns.forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+
+      cards.forEach(card => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Escape key closes lightbox
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>

@@ -167,27 +167,20 @@ function calculateCurrentPhase(date = new Date()) {
   return 'night';
 }
 
-function applyAtmosphereToDOM(phaseKey, isDarkMode = true) {
+function applyAtmosphereToDOM(phaseKey, isDarkMode = false) {
   if (typeof document === 'undefined') return;
-  const phase = CIRCADIAN_PHASES[phaseKey] || CIRCADIAN_PHASES.night;
+  const phase = CIRCADIAN_PHASES[phaseKey] || CIRCADIAN_PHASES.day;
 
-  if (isDarkMode) {
-    document.documentElement.style.setProperty('--circadian-bg', phase.bgColor);
-    document.documentElement.style.setProperty('--circadian-glow', phase.glow);
-    document.documentElement.style.setProperty('--circadian-accent', phase.accentColor);
-    document.documentElement.style.setProperty('--page-bg', phase.bgColor);
-    document.body.style.backgroundColor = phase.bgColor;
-    document.body.style.backgroundImage = phase.glow;
-    document.body.style.backgroundAttachment = 'fixed';
-  } else {
-    document.documentElement.style.removeProperty('--circadian-bg');
-    document.documentElement.style.removeProperty('--circadian-glow');
-    document.documentElement.style.removeProperty('--page-bg');
-    document.body.style.backgroundImage = '';
-  }
+  // Always keep clean light theme canvas
+  document.documentElement.style.removeProperty('--circadian-bg');
+  document.documentElement.style.removeProperty('--circadian-glow');
+  document.documentElement.style.removeProperty('--page-bg');
+  document.body.style.backgroundColor = '';
+  document.body.style.backgroundImage = '';
+  document.documentElement.style.setProperty('--circadian-accent', phase.accentColor || '#0d9488');
 }
 
-export function useCircadianAtmosphere(isDarkModeRef = ref(true)) {
+export function useCircadianAtmosphere(isDarkModeRef = ref(false)) {
   const currentPhaseKey = computed(() => {
     if (activeCircadianMode.value !== 'auto') {
       return activeCircadianMode.value;

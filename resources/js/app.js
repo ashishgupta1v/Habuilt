@@ -3,15 +3,16 @@ import { createInertiaApp } from '@inertiajs/vue3';
 
 import '../css/app.css';
 import '../css/landing.css';
+import '../css/design-system/framer-bento.css';
 import MainSPA from './Pages/Main.vue';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
-// Native Android Status Bar Harmony
+// Native Android Status Bar Harmony (Pure Light Theme)
 if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
   try {
-    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-    StatusBar.setBackgroundColor({ color: '#090d16' }).catch(() => {});
+    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#f8fafc' }).catch(() => {});
   } catch {
     // Non-native / fallback
   }
@@ -70,13 +71,15 @@ if (canBootInertia) {
   mountMainSPA();
 }
 
-// Register Service Worker for PWA
+// Register Service Worker for Web PWA only (native Android uses native background services)
 // __BUILD_TIME__ is replaced at build time by Vite's define config,
 // ensuring the browser fetches a fresh SW on each deploy.
 const swUrl = '/sw.js?v=' + (typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : Date.now());
-if ('serviceWorker' in navigator) {
+if (typeof window !== 'undefined' && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
   let refreshing = false;
+  const hadExistingController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadExistingController) return;
     if (refreshing || navigator.webdriver) return;
     const isTyping = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
     if (!isTyping) {

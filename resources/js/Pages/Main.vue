@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
 import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
@@ -176,31 +176,36 @@ const handleOnboardingComplete = async (payload) => {
     }
   }
 
-  if (supabase && activeUser.value?.id && activeUser.value.id !== 'guest') {
-    try {
-      await supabase.auth.updateUser({
-        data: {
-          full_name: payload.displayName,
-          onboarding_completed: true,
-          preferred_archetype: payload.archetypeId,
-          focus_goal: payload.goal
-        }
-      });
-      await supabase.from('user_settings').upsert({
-        user_id: activeUser.value.id,
-        enhanced_state: {
-          onboarding_completed: true,
-          focus_goal: payload.goal,
-          circadian: payload.circadian
-        },
-        updated_at: new Date().toISOString()
-      });
-    } catch (e) {
-      console.debug('[Onboarding] Supabase sync fallback:', e);
-    }
-  }
-
   isOnboardingComplete.value = true;
+
+  if (isSupabaseConfigured() && activeUser.value?.id && activeUser.value.id !== 'guest') {
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          await supabase.auth.updateUser({
+            data: {
+              full_name: payload.displayName,
+              onboarding_completed: true,
+              preferred_archetype: payload.archetypeId,
+              focus_goal: payload.goal
+            }
+          });
+          await supabase.from('user_settings').upsert({
+            user_id: activeUser.value.id,
+            enhanced_state: {
+              onboarding_completed: true,
+              focus_goal: payload.goal,
+              circadian: payload.circadian
+            },
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.debug('[Onboarding] Supabase sync fallback:', e);
+      }
+    })();
+  }
 };
 
 const handleOnboardingSkip = () => {
