@@ -39,9 +39,11 @@ android {
             def keystoreFile = file('habuilt-release.keystore')
             if (keystoreFile.exists()) {
                 storeFile keystoreFile
-                storePassword 'habuilt123'
-                keyAlias 'habuilt'
-                keyPassword 'habuilt123'
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: 'habuilt123'
+                keyAlias System.getenv("KEYSTORE_ALIAS") ?: 'habuilt'
+                keyPassword System.getenv("KEYSTORE_KEY_PASSWORD") ?: (System.getenv("KEYSTORE_PASSWORD") ?: 'habuilt123')
+                v1SigningEnabled true
+                v2SigningEnabled true
             }
         }
     }
@@ -68,7 +70,7 @@ android {
     }
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "habuilt.apk"
+            outputFileName = "habuilt-${variant.name}.apk"
         }
     }
 }
@@ -76,6 +78,15 @@ android {
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "androidx.browser:browser:${rootProject.ext.androidxBrowserVersion}"
+        force "androidx.core:core:${rootProject.ext.androidxCoreVersion}"
+        force "androidx.core:core-ktx:${rootProject.ext.androidxCoreVersion}"
+        force "androidx.activity:activity:${rootProject.ext.androidxActivityVersion}"
     }
 }
 

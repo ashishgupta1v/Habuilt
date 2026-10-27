@@ -4,6 +4,7 @@
 const CACHE_NAME = 'habuilt-cache';
 const SHELL_ASSETS = [
   '/',
+  '/manifest.webmanifest',
   '/favicon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -52,13 +53,13 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+        .catch(() => caches.match(request, { ignoreSearch: true }).then((cached) => cached || caches.match('/', { ignoreSearch: true })))
     );
     return;
   }
 
   // Hashed assets — cache first, immutable
-  const isHashedAsset = /\/assets\/[^/]+-[a-zA-Z0-9]{8}\.\w+$/.test(url.pathname);
+  const isHashedAsset = /(?:\/build)?\/assets\/[^/]+-[a-zA-Z0-9_-]{8,}\.\w+$/.test(url.pathname);
 
   if (
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot)$/) ||
@@ -98,6 +99,7 @@ self.addEventListener('fetch', (event) => {
 // ══════════════════════════════════════════════════════════════════════
 
 let activeExpiryTimer = null;
+const scheduledAlarms = new Map();
 
 const dismissDueNowNotifications = async (targetHabitId = null) => {
   try {
@@ -136,6 +138,10 @@ self.addEventListener('message', (event) => {
 
   if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  if (data.type === 'PING') {
+    event.source?.postMessage({ type: 'PONG', timestamp: Date.now() });
   }
 
   // Show interactive Due Now notification
@@ -194,6 +200,74 @@ self.addEventListener('message', (event) => {
     dismissDueNowNotifications(data.payload?.habitId);
   }
 
+  // Ahead-of-time scheduled habit alarms engine
+  if (data.type === 'SCHEDULE_HABIT_ALERTS') {
+    const list = Array.isArray(data.payload) ? data.payload : [];
+    for (const item of list) {
+      if (!item || !item.habitId || !item.triggerTimestamp) continue;
+      const now = Date.now();
+      const delay = item.triggerTimestamp - now;
+
+      if (scheduledAlarms.has(item.habitId)) {
+        clearTimeout(scheduledAlarms.get(item.habitId));
+        scheduledAlarms.delete(item.habitId);
+      }
+
+      if (delay > 0 && delay < 86400000) {
+        const timer = setTimeout(async () => {
+          try {
+            const title = item.title || `⚡ Due Now: ${item.habitName}`;
+            const options = {
+              body: item.body || `⏰ Scheduled habit • +${item.points || 1} pts\nTap [Mark Done] to complete.`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/badge-monochrome-96.png',
+              tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
+              renotify: true,
+              requireInteraction: true,
+              vibrate: [100, 50, 100],
+              data: {
+                habitId: item.habitId,
+                habitName: item.habitName,
+                points: item.points || 1,
+                day: item.day,
+                expiryTimestamp: item.expiryTimestamp,
+                url: '/',
+              },
+              actions: [
+                { action: 'mark-done', title: '✅ Mark Done' },
+                { action: 'open-dashboard', title: '🚀 Open Dashboard' },
+              ],
+            };
+
+            await self.registration.showNotification(title, options);
+
+            if (item.expiryTimestamp && item.expiryTimestamp > Date.now()) {
+              const expDelay = item.expiryTimestamp - Date.now();
+              setTimeout(() => {
+                checkAndPurgeExpiredNotifications();
+              }, expDelay + 500);
+            }
+          } catch (err) {
+            console.warn('[SW] Error showing scheduled notification:', err);
+          } finally {
+            scheduledAlarms.delete(item.habitId);
+          }
+        }, delay);
+
+        scheduledAlarms.set(item.habitId, timer);
+      }
+    }
+  }
+
+  if (data.type === 'CANCEL_SCHEDULED_ALERT') {
+    const habitId = data.payload?.habitId;
+    if (habitId && scheduledAlarms.has(habitId)) {
+      clearTimeout(scheduledAlarms.get(habitId));
+      scheduledAlarms.delete(habitId);
+    }
+    dismissDueNowNotifications(habitId);
+  }
+
   if (data.type === 'CHECK_EXPIRED_NOTIFICATIONS') {
     checkAndPurgeExpiredNotifications();
   }
@@ -205,7 +279,7 @@ self.addEventListener('push', (event) => {
     title: 'Habuilt',
     body: 'Time to check in on your habits!',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-96x96.png',
+    badge: '/icons/badge-monochrome-96.png',
     tag: 'habuilt-reminder',
     renotify: true,
     data: { url: '/' },
@@ -330,3 +404,53 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// ── Background Sync Event (Replay Offline Check-Ins) ──
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'habuilt-sync-queue' || event.tag === 'habuilt-offline-checkins') {
+    event.waitUntil(
+      (async () => {
+        const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+        for (const client of allClients) {
+          client.postMessage({ type: 'FLUSH_OFFLINE_QUEUE' });
+        }
+      })()
+    );
+  }
+});
+
+// ── Periodic Background Sync Event (Partner Presence & Habit Checklists) ──
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'habuilt-periodic-sync') {
+    event.waitUntil(
+      (async () => {
+        console.debug('[SW] Periodic background sync running:', event.tag);
+        const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+
+        // 1. Dispatch periodic sync wakeup to any running or idle clients
+        for (const client of allClients) {
+          client.postMessage({
+            type: 'HABUILT_PERIODIC_SYNC',
+            timestamp: Date.now(),
+            tag: event.tag,
+          });
+        }
+
+        // 2. Offline Action Queue Drain & Check-In Reconciliation
+        try {
+          const cache = await caches.open('habuilt-action-queue');
+          const queued = await cache.match('/queued-completions');
+          if (queued) {
+            for (const client of allClients) {
+              client.postMessage({ type: 'FLUSH_OFFLINE_QUEUE' });
+            }
+          }
+        } catch (e) {
+          console.debug('[SW] Periodic sync cache access fallback:', e);
+        }
+      })()
+    );
+  }
+});
+
+

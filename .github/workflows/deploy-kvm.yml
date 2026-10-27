@@ -1,0 +1,28 @@
+name: Deploy to Hostinger KVM 2
+
+on:
+  push:
+    branches:
+      - HB-AG-01
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger KVM 2 VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_KVM_IP || '187.127.166.15' }}
+          username: ${{ secrets.HOSTINGER_KVM_USER || 'root' }}
+          key: ${{ secrets.HOSTINGER_KVM_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_KVM_PORT || 22 }}
+          script: |
+            if [ ! -d /var/www/Habuilt ]; then
+              git clone -b ${{ github.ref_name }} https://github.com/ashishgupta1v/Habuilt.git /var/www/Habuilt
+            fi
+            chmod +x /var/www/Habuilt/deploy/deploy.sh
+            /var/www/Habuilt/deploy/deploy.sh ${{ github.ref_name }}

@@ -1,10 +1,40 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { loadUserMonthlyState, saveUserMonthlyState, loadAllUserMonthlyStates } from '@/lib/supabase';
+import {
+  loadUserMonthlyState,
+  saveUserMonthlyState,
+  loadAllUserMonthlyStates,
+  recordHabitCheckIn,
+  removeHabitCheckIn,
+  loadMonthCheckIns,
+  subscribeToHabitCheckIns,
+  initCoupleBroadcastChannel,
+  broadcastPartnerEvent,
+  getPairChannelId,
+  silentBackfillLegacyState,
+  saveUserSettings,
+  loadUserSettings,
+  saveUserBiomarker,
+  loadLatestBiomarker,
+  flushOfflineQueue,
+} from '@/lib/supabase';
+import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
+import {
+  computeLifetimeStats,
+  getMonthlyHabits,
+  getHabitCompletedDays,
+} from '@/lib/lifetimeStats';
+import {
+  playSharedAnchorSync,
+  playPartnerHighFive,
+  playPartnerEmote,
+  playPartnerNudge,
+} from '@/lib/soundEffects';
 
 // Subcomponents
 import TopCommandBar from '@/Components/Navigation/TopCommandBar.vue';
@@ -16,16 +46,40 @@ import MonthGrid from '@/Components/Grid/MonthGrid.vue';
 import PerformanceAnalytics from '@/Components/Analytics/PerformanceAnalytics.vue';
 import RewardShop from '@/Components/Rewards/RewardShop.vue';
 import SundayReview from '@/Components/Review/SundayReview.vue';
-import MorningSetupModal from '@/Components/Modals/MorningSetupModal.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import HabitFormModal from '@/Components/Modals/HabitFormModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
+import SpotlightCommandModal from '@/Components/Modals/SpotlightCommandModal.vue';
+import WarriorIntelligenceCockpit from '@/Components/Intelligence/WarriorIntelligenceCockpit.vue';
+import ZoetiCoachAdherenceHud from '@/Components/Intelligence/ZoetiCoachAdherenceHud.vue';
+import DataBackupModal from '@/Components/Modals/DataBackupModal.vue';
+import CalendarSyncModal from '@/Components/Modals/CalendarSyncModal.vue';
+import PartnerSyncModal from '@/Components/Modals/PartnerSyncModal.vue';
+import ProtocolWizardModal from '@/Components/Modals/ProtocolWizardModal.vue';
+import ProtocolSettingsModal from '@/Components/Modals/ProtocolSettingsModal.vue';
+import UniversalPartnerPairModal from '@/Components/Modals/UniversalPartnerPairModal.vue';
+import HeroExecutiveDeck from '@/Components/Navigation/HeroExecutiveDeck.vue';
+import ExecutiveKpiRibbon from '@/Components/Navigation/ExecutiveKpiRibbon.vue';
+import StickyMiniHud from '@/Components/Navigation/StickyMiniHud.vue';
+import { useHabitScheduler } from '@/Composables/useHabitScheduler';
 
 // Composables & Data
+import { useDynamicProtocols } from '@/Composables/useDynamicProtocols';
+import { useCategoryTaxonomy } from '@/Composables/useCategoryTaxonomy';
+import {
+  getPartnerConnection,
+  pairWithInviteCode,
+  subscribeToPartnerConnection,
+  loadPartnerLiveMetrics,
+  computeSharedAnchorsStatus,
+} from '@/lib/partnerPairing';
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
+import { useConfetti } from '@/Composables/useConfetti';
 import { useDueNowNotifications } from '@/Composables/useDueNowNotifications';
 import { useNativeWidget } from '@/Composables/useNativeWidget';
+import { useAppBadging } from '@/Composables/useAppBadging';
+import { useCircadianAtmosphere } from '@/Composables/useCircadianAtmosphere';
 import {
   ashishHabits,
   jyotiHabits,
@@ -43,6 +97,7 @@ import {
   getTimeSlotForHabit,
   getHabitCategory,
   getCurrentTimeBlock,
+  getSharedHabitInfo,
 } from '@/Composables/useHabitsState';
 import {
   getDayType,
@@ -127,6 +182,7 @@ import {
   Link2,
   Volume2,
   VolumeX,
+  WifiOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -149,24 +205,37 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['sign-out']);
+const emit = defineEmits(['sign-out', 'navigate-month']);
 
 const page = usePage();
-const authUser = computed(() => page.props.auth?.user ?? null);
-const resolvedEmail = computed(() => (props.userEmail || authUser.value?.email || '').toLowerCase().trim());
-const isJyoti = computed(() => {
-  const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
-  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti') || uid.includes('jyoti');
+const authUser = computed(() => page?.props?.auth?.user ?? null);
+const resolvedEmail = computed(() => {
+  if (props.userEmail) return props.userEmail.toLowerCase().trim();
+  if (authUser.value?.email) return authUser.value.email.toLowerCase().trim();
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      if (cached?.email) return cached.email.toLowerCase().trim();
+    } catch {}
+  }
+  return '';
 });
-const isAshish = computed(() => {
-  if (isJyoti.value) return false;
-  const email = resolvedEmail.value;
-  const uid = (props.userId || '').toLowerCase();
-  return email === 'ashishgupta1v@gmail.com' || email.includes('ashish') || uid.includes('ashish') || !email || email === 'guest';
+const effectiveUserId = computed(() => {
+  if (authUser.value?.id) return authUser.value.id;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      if (cached?.id) return cached.id;
+    } catch {}
+  }
+  if (props.userId && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') return props.userId;
+  return resolvedEmail.value || props.userId || 'guest';
 });
-const displayName = computed(() => isJyoti.value ? 'Jyoti' : isAshish.value ? 'Ashish' : (props.userId || 'User'));
-const effectiveUserId = computed(() => props.userId || authUser.value?.id || resolvedEmail.value || 'guest');
+const isGuestActive = computed(() => {
+  return resolvedEmail.value === 'guest@habuilt.com' ||
+         effectiveUserId.value === 'guest' ||
+         (typeof localStorage !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
+});
 
 // Reactive real-time clock ticker
 const currentClock = ref(new Date());
@@ -183,9 +252,268 @@ const localHabits = ref([]);
 const allHistoricalHabits = ref([]);
 const pendingCells = ref({});
 
+// ── Dynamic Multi-Tenant Protocols & Universal Partner Pairing ──
+const isProtocolWizardOpen = ref(false);
+const isProtocolSettingsOpen = ref(false);
+const isUniversalPartnerPairModalOpen = ref(false);
+const activePartnerConnection = ref(null);
+
+const {
+  allProtocols,
+  customProtocols,
+  activeProtocol,
+  activeProtocolId,
+  dynamicTimeSlotDefinitions: protocolTimeSlotDefinitions,
+  loadProtocols,
+  switchProtocol,
+  saveCustomProtocol,
+  deleteCustomProtocol,
+  cloneProtocol,
+  importProtocolJson,
+  decodeProtocolFromHash,
+} = useDynamicProtocols(effectiveUserId.value, null, false, resolvedEmail.value);
+
+// Write email override key to localStorage so protocol resolution persists across page loads
+if (typeof localStorage !== 'undefined' && resolvedEmail.value) {
+  try {
+    const em = resolvedEmail.value.toLowerCase().trim();
+    if (em === 'ashishgupta1v@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'ashish');
+    else if (em === 'goyaljyoti007@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'jyoti');
+  } catch (_) {}
+}
+
+
+const {
+  applyHabitOrder: applyTaxonomyHabitOrder,
+  getCategoryMeta: getTaxonomyCategoryMeta
+} = useCategoryTaxonomy(() => activeProtocolId.value || activeProtocol.value?.id || 'default', () => effectiveUserId.value);
+
+const isAshishProtocol = computed(() => {
+  const pId = activeProtocolId.value || activeProtocol.value?.id;
+  const pKey = activeProtocol.value?.key;
+  const matchesAshish = pId === 'archetype-ashish' || pId === 'ashishMaster' || pKey === 'ashish-master' || pKey === 'ashishMaster';
+  if (matchesAshish) return true;
+  const email = (resolvedEmail.value || '').toLowerCase().trim();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
+  if ((email === 'ashishgupta1v@gmail.com' || uid === 'ashish') && pId !== 'archetype-jyoti' && pKey !== 'jyoti-master') return true;
+  return false;
+});
+
+const isJyotiProtocol = computed(() => {
+  const pId = activeProtocolId.value || activeProtocol.value?.id;
+  const pKey = activeProtocol.value?.key;
+  const matchesJyoti = pId === 'archetype-jyoti' || pId === 'jyotiMaster' || pKey === 'jyoti-master' || pKey === 'jyotiMaster';
+  if (matchesJyoti) return true;
+  const email = (resolvedEmail.value || '').toLowerCase().trim();
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
+  if ((email === 'goyaljyoti007@gmail.com' || uid === 'jyoti') && pId !== 'archetype-ashish' && pKey !== 'ashish-master') return true;
+  return false;
+});
+
+// Backward-compatible computed aliases
+const isJyoti = computed(() => {
+  const email = resolvedEmail.value;
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
+  return isJyotiProtocol.value || email === 'goyaljyoti007@gmail.com' || uid === 'jyoti';
+});
+
+const isAshish = computed(() => {
+  if (isJyoti.value && !isAshishProtocol.value) return false;
+  const email = resolvedEmail.value;
+  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
+  return isAshishProtocol.value || email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
+});
+
+const displayName = computed(() => {
+  const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
+  if (metaName && metaName.trim()) return metaName.trim();
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+      const cachedName = cached?.user_metadata?.full_name || cached?.user_metadata?.name;
+      if (cachedName && cachedName.trim()) return cachedName.trim();
+    } catch {}
+  }
+
+  const storedName = typeof localStorage !== 'undefined' ? localStorage.getItem(`habuilt_user_name_${effectiveUserId.value}`) : null;
+  if (storedName && storedName.trim()) return storedName.trim();
+
+  if (resolvedEmail.value && resolvedEmail.value.includes('@') && !resolvedEmail.value.startsWith('guest')) {
+    const local = resolvedEmail.value.split('@')[0];
+    const formatted = local
+      .replace(/[._\-+]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    if (formatted) return formatted;
+  }
+  if (props.userId && props.userId !== 'guest' && props.userId !== 'ashish' && props.userId !== 'jyoti' && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') {
+    return props.userId;
+  }
+  if (isJyoti.value && !isAshish.value) return 'Jyoti';
+  if (isAshish.value) return 'Ashish';
+  return 'Champion';
+});
+
+const isPartnerPaired = computed(() => {
+  return activePartnerConnection.value?.status === 'connected' ||
+    (activePartnerConnection.value?.status !== 'disconnected' && (isAshish.value || isJyoti.value));
+});
+
+const partnerDisplayName = computed(() => {
+  if (activePartnerConnection.value?.alias) return activePartnerConnection.value.alias;
+  if (isJyoti.value && !isAshish.value) return 'Ashish';
+  if (isAshish.value) return 'Jyoti';
+  return 'Partner';
+});
+
+const partnerUserId = computed(() => {
+  if (activePartnerConnection.value?.partner_user_id) return activePartnerConnection.value.partner_user_id;
+  if (isAshish.value) return 'jyoti';
+  if (isJyoti.value) return 'ashish';
+  return null;
+});
+
+const pairChannelId = computed(() => {
+  if (partnerUserId.value) {
+    return getPairChannelId(effectiveUserId.value, partnerUserId.value);
+  }
+  return 'habuilt:couple_live_channel';
+});
+
+const partnerLiveMetrics = ref(null);
+const partnerPointsToday = ref(0);
+const partnerCompletedCountToday = ref(0);
+const partnerTotalHabitsCount = ref(0);
+const dynamicSharedAnchors = ref([]);
+const partnerAlignmentScore = ref(0);
+const partnerLiveOffline = ref(false);
+const partnerPresence = ref({
+  isOnline: false,
+  lastSeen: null,
+  currentWindow: '',
+  statusLabel: 'Offline',
+});
+
+const sendPartnerHeartbeat = () => {
+  if (!isPartnerPaired.value) return;
+  broadcastPartnerEvent({
+    type: 'partner_heartbeat',
+    userId: effectiveUserId.value,
+    userName: displayName.value,
+    window: currentRoutineWindow.value?.name || 'Active Execution Block',
+  }, pairChannelId.value);
+};
+
+const handleSendPartnerNudge = (nudge) => {
+  if (!isPartnerPaired.value) return;
+  broadcastPartnerEvent({
+    type: 'partner_nudge',
+    nudge,
+    from: displayName.value,
+    window: currentRoutineWindow.value?.name || 'Active',
+  }, pairChannelId.value);
+  showToast(`Sent ${nudge.label || 'nudge'} to ${partnerDisplayName.value}! ✨`);
+};
+
+const refreshPartnerLiveMetrics = async () => {
+  const pId = partnerUserId.value;
+  if (!pId) {
+    partnerPointsToday.value = 0;
+    partnerCompletedCountToday.value = 0;
+    partnerTotalHabitsCount.value = 0;
+    dynamicSharedAnchors.value = [];
+    partnerAlignmentScore.value = 0;
+    return;
+  }
+
+  try {
+    const metrics = await loadPartnerLiveMetrics(pId, monthScope.value, props.currentDay);
+    if (metrics) {
+      partnerLiveMetrics.value = metrics;
+      partnerPointsToday.value = metrics.todayPoints || 0;
+      partnerCompletedCountToday.value = metrics.todayCompletedCount || 0;
+      partnerLiveOffline.value = !!metrics.isOfflineCache;
+
+      if (pId === 'ashish') partnerTotalHabitsCount.value = 68;
+      else if (pId === 'jyoti') partnerTotalHabitsCount.value = 37;
+      else partnerTotalHabitsCount.value = Math.max(metrics.todayCompletedCount, (localHabits.value || []).length);
+
+      const anchorCalc = computeSharedAnchorsStatus(
+        localHabits.value,
+        metrics,
+        isAshish.value,
+        isJyoti.value,
+        props.currentDay
+      );
+
+      dynamicSharedAnchors.value = anchorCalc.anchors || [];
+      partnerAlignmentScore.value = anchorCalc.alignmentPercentage || 0;
+    }
+  } catch (err) {
+    console.warn('[Dashboard] refreshPartnerLiveMetrics error:', err);
+  }
+};
+
+// ── Throttled System / Push Notification Bridge for Partner Activity ──
+let lastPartnerNotifTime = 0;
+const PARTNER_NOTIF_COOLDOWN_MS = 3000;
+
+const dispatchPartnerNotification = async ({ title, body }) => {
+  const now = Date.now();
+  if (now - lastPartnerNotifTime < PARTNER_NOTIF_COOLDOWN_MS) {
+    return; // Suppress duplicate notification alert storms (e.g. rapid habit checking)
+  }
+  lastPartnerNotifTime = now;
+
+  const isNativePlatform = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  const isWebSupported = typeof window !== 'undefined' && 'Notification' in window;
+  const isBackgrounded = typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+
+  // Only trigger heads-up push if on native mobile OR backgrounded web tab
+  if (!isNativePlatform && !isBackgrounded) {
+    return;
+  }
+
+  if (isNativePlatform) {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: title || '⚡ Partner Update',
+            body: body || 'Your partner completed an activity in Habuilt.',
+            id: Math.floor(Math.random() * 900000) + 1000,
+            channelId: 'habuilt_reminders',
+            sound: 'default',
+            actionTypeId: 'HABUILT_HABIT_ACTION',
+          },
+        ],
+      });
+    } catch (e) {
+      console.debug('[PartnerNotification] Native dispatch note:', e);
+    }
+  } else if (isWebSupported && Notification.permission === 'granted') {
+    try {
+      new Notification(title || '⚡ Partner Update', {
+        body: body || 'Your partner completed an activity in Habuilt.',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+      });
+    } catch (e) {
+      console.debug('[PartnerNotification] Web dispatch note:', e);
+    }
+  }
+};
+
+const activeProtocolDisplayName = computed(() => {
+  return activeProtocol.value?.name || 'Default Protocol';
+});
+
 const fallbackHabits = computed(() => {
-  if (isJyoti.value) return jyotiHabits;
-  if (isAshish.value) {
+  // If active protocol is ashishMaster or user is Ashish, apply dual-track day schedules
+  if (isAshishProtocol.value || (isAshish.value && !isJyotiProtocol.value)) {
     switch (dayType.value) {
       case 'office-mon': return ashishTravelHabits;     // Mon: Ludhiana→CHD (long drive + Panchkula stay)
       case 'office-mid': return ashishOfficeMidHabits;  // Tue–Thu: Panchkula flat→office (30m) + solo evening
@@ -195,17 +523,21 @@ const fallbackHabits = computed(() => {
       default:           return ashishHabits;           // Home: Full Ludhiana baseline
     }
   }
-  return genericStarterHabits;
+
+  if (isJyotiProtocol.value || (isJyoti.value && !isAshishProtocol.value)) {
+    return jyotiHabits;
+  }
+
+  if (activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
+    return activeProtocol.value.habits;
+  }
+
+  return PROTOCOL_ARCHETYPES.founder.habits || genericStarterHabits;
 });
 
-const mobileViewMode = ref('daily');
 const mobileSelectedDay = ref(props.currentDay);
-const focusDay = ref(props.currentDay);
-const focusTasksByDay = ref({});
-const newFocusTask = ref('');
 const rewardLedger = ref([]);
-const newWeeklyCheck = ref('');
-const walletBalance = ref(0);
+const claimedSynergyRewards = ref([]);
 const isNavigatingMonth = ref(false);
 const redeemedBeforeCurrentMonth = ref(0);
 const earnedBeforeCurrentMonth = ref(0);
@@ -227,15 +559,15 @@ const progressiveSettings = ref({
   habitTiers: {},
   pointMultipliers: { full: 1.0, half: 0.6, floor: 0.3 },
 });
-const progressivePanelOpen = ref(false);
 const tierDetailHabitId = ref(null);
 
-const analyticsOpen = ref(false);
-const focusModeOn = ref(false);
 const habitNotesOpen = ref(null);
 const partnerViewOpen = ref(false);
-const partnerData = ref(null);
-const partnerLoading = ref(false);
+
+// Realtime subscriptions
+let realtimeCheckInsChannel = null;
+let coupleLiveChannel = null;
+let realtimePartnerChannel = null;
 
 // ── MOBILE PWA SPA 4-TAB ROUTING & DAY NAV ──
 const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
@@ -281,6 +613,11 @@ const toggleSlotCollapse = (slotKey, slotHabits, dayNum) => {
   userToggledSlots.value[slotKey] = !current;
 };
 
+const setMobileDay = (day) => {
+  const d = Math.max(1, Math.min(Number(day), props.monthDays));
+  mobileSelectedDay.value = d;
+};
+
 // ── SWIPE GESTURE ENGINE (Day Switching) ──
 let touchStartX = 0;
 let touchStartY = 0;
@@ -323,6 +660,215 @@ const enhancedState = ref({
 });
 
 // Deep Work Timer Composable Integration
+// Confetti & Celebration Physics Engine
+const {
+  fireDualCannons,
+  fireTierMilestone,
+  firePartnerCelebration,
+  fireFocusComplete,
+} = useConfetti();
+
+// Spotlight Command Palette State
+const isSpotlightOpen = ref(false);
+const openSpotlight = () => { isSpotlightOpen.value = true; };
+const cockpitRef = ref(null);
+
+const handlePlayTacticalBriefingFromSpotlight = () => {
+  isSpotlightOpen.value = false;
+  activeMobileTab.value = 'today';
+  nextTick(() => {
+    if (cockpitRef.value && typeof cockpitRef.value.toggleAudioBriefing === 'function') {
+      cockpitRef.value.toggleAudioBriefing();
+    }
+    const cockpitEl = document.querySelector('.warrior-audio-briefing-card') || document.querySelector('.card--warrior-intelligence');
+    if (cockpitEl) {
+      cockpitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+};
+
+// Sticky Mini HUD — appears on desktop after scrolling past the hero
+const showStickyHud = ref(false);
+
+const hudTimeLabel = computed(() => {
+  const h = currentClock.value.getHours();
+  const m = currentClock.value.getMinutes();
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+});
+
+let _heroObserver = null;
+
+onMounted(() => {
+  // Watch hero section visibility to show/hide HUD on desktop viewports
+  nextTick(() => {
+    const heroEl = document.getElementById('overview');
+    if (heroEl && typeof IntersectionObserver !== 'undefined') {
+      _heroObserver = new IntersectionObserver(
+        ([entry]) => {
+          const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+          showStickyHud.value = isDesktop && !entry.isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      _heroObserver.observe(heroEl);
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  if (_heroObserver) _heroObserver.disconnect();
+});
+
+// Data Portability & Backup Modal State
+const isDataBackupModalOpen = ref(false);
+
+// Biometrics & Metabolic Daily Tracking State
+const biomarkersState = ref({
+  stiffnessMin: 0,
+  energyRating: 8,
+  note: '',
+});
+const hydrationMlState = ref(0);
+
+// Milestone 4: Calendar Sync Modal State
+const isCalendarSyncModalOpen = ref(false);
+
+const handleActivateCustomProtocol = async (customProtocol) => {
+  if (!customProtocol) return;
+  try {
+    const saved = await saveCustomProtocol(customProtocol);
+    if (saved && Array.isArray(saved.habits) && saved.habits.length > 0) {
+      // Preserve completed days for matching habits
+      const existingCompletions = new Map();
+      (localHabits.value || []).forEach(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        if (Array.isArray(h.completed_days) && h.completed_days.length > 0) {
+          if (canon) existingCompletions.set(canon, h.completed_days);
+          existingCompletions.set(String(h.id), h.completed_days);
+        }
+      });
+
+      localHabits.value = saved.habits.map(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        const days = existingCompletions.get(canon) || existingCompletions.get(String(h.id)) || [];
+        return {
+          ...h,
+          completed_days: days,
+        };
+      });
+
+      await saveState();
+      showToast(`⚡ Protocol "${saved.name}" Activated!`);
+      fireDualCannons();
+    }
+  } catch (err) {
+    console.error('Failed to activate protocol:', err);
+    showToast('⚠️ Could not activate protocol');
+  }
+};
+
+const handleCloneProtocol = async (sourceProto, newName) => {
+  try {
+    const cloned = await cloneProtocol(sourceProto, newName);
+    if (cloned) {
+      await handleActivateCustomProtocol(cloned);
+      showToast(`📋 Protocol "${cloned.name}" Cloned & Activated!`);
+    }
+  } catch (err) {
+    console.error('Failed to clone protocol:', err);
+    showToast('⚠️ Could not clone protocol');
+  }
+};
+
+const handleDeleteProtocol = async (protoId) => {
+  try {
+    const ok = await deleteCustomProtocol(protoId);
+    if (ok) {
+      showToast('🗑️ Custom Protocol Deleted');
+    }
+  } catch (err) {
+    console.error('Failed to delete protocol:', err);
+    showToast('⚠️ Could not delete protocol');
+  }
+};
+
+const handleImportProtocol = async (jsonStringOrObj) => {
+  try {
+    const imported = await importProtocolJson(jsonStringOrObj);
+    if (imported) {
+      await handleActivateCustomProtocol(imported);
+      showToast(`📥 Protocol "${imported.name}" Imported & Activated!`);
+    }
+  } catch (err) {
+    console.error('Failed to import protocol:', err);
+    showToast('⚠️ Could not import protocol: ' + (err.message || 'Invalid format'));
+  }
+};
+
+const handleQuickSwitchProtocol = async (protoId) => {
+  if (!protoId) return;
+  try {
+    await switchProtocol(protoId);
+    const targetProto = (allProtocols.value || []).find(p => p.id === protoId || p.key === protoId);
+    if (targetProto && Array.isArray(targetProto.habits) && targetProto.habits.length > 0) {
+      const existingCompletions = new Map();
+      (localHabits.value || []).forEach(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        if (Array.isArray(h.completed_days) && h.completed_days.length > 0) {
+          if (canon) existingCompletions.set(canon, h.completed_days);
+          existingCompletions.set(String(h.id), h.completed_days);
+        }
+      });
+
+      localHabits.value = targetProto.habits.map(h => {
+        const canon = getCanonicalHabitKey(h.name);
+        const days = existingCompletions.get(canon) || existingCompletions.get(String(h.id)) || [];
+        return {
+          ...h,
+          completed_days: days,
+        };
+      });
+
+      await saveState();
+      showToast(`⚡ Protocol "${targetProto.name}" Activated!`);
+    }
+  } catch (err) {
+    console.error('Failed to switch protocol:', err);
+    showToast('⚠️ Could not switch protocol');
+  }
+};
+
+const handleSaveProtocolSettings = async (newSettings) => {
+  if (!newSettings) return;
+  progressiveSettings.value = {
+    ...progressiveSettings.value,
+    ...newSettings,
+  };
+  await saveState();
+  showToast('⚡ Protocol settings & scoring tiers saved!');
+};
+
+const handleUpdateProtocolHabits = async (updatedHabits) => {
+  if (Array.isArray(updatedHabits) && updatedHabits.length > 0) {
+    localHabits.value = updatedHabits;
+    await saveState();
+  }
+};
+
+const handlePartnerPaired = (connection) => {
+  activePartnerConnection.value = connection;
+  showToast(`🌸 Connected with ${connection.alias || 'Partner'}!`);
+  firePartnerCelebration();
+  refreshPartnerLiveMetrics();
+};
+
+const handlePartnerUnpaired = () => {
+  activePartnerConnection.value = null;
+  refreshPartnerLiveMetrics();
+  showToast('Partner connection disconnected');
+};
+
+
 const {
   timerState,
   timerLauncherDuration,
@@ -334,6 +880,12 @@ const {
   timerRemainingFormatted,
   timerLinkedHabit,
   timerHabitOptions,
+  soundscapeType,
+  soundscapeVolume,
+  isSoundscapePlaying,
+  setSoundscapeType,
+  updateSoundscapeVolume,
+  toggleSoundscapeManual,
   startDeepWorkTimer,
   pauseDeepWorkTimer,
   resumeDeepWorkTimer,
@@ -348,31 +900,68 @@ const {
       toggleHabitForDay(targetHabit, props.currentDay);
     }
   },
+  onSessionComplete: ({ isBreak, habitName }) => {
+    if (isBreak) {
+      showToast('☕ Break completed! Ready to resume flow.');
+    } else if (habitName) {
+      showToast(`🎉 Focus session complete! "${habitName}" auto-logged.`);
+      fireFocusComplete();
+    } else {
+      showToast('🎉 Focus session complete! Great work.');
+      fireFocusComplete();
+    }
+  },
 });
 
 // Habit Editor State
 const habitsEditing = ref(false);
 const habitsDraft = ref([]);
 const habitSaveStatus = ref('idle');
-const hasCustomHabits = ref(false);
-const habitSwipeStart = ref({});
 
 const rewardsEditing = ref(false);
 const rewardsDraft = ref([]);
-const rewardSaveStatus = ref('idle');
 
 const defaultRewards = [
-  { type: 'Daily', item: '1 Hour+ social media', cost: 8 },
-  { type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
-  { type: 'Weekly', item: 'Cheat Meal', cost: 15 },
-  { type: 'Weekly', item: 'Social Meetup/Night Out/Movie', cost: 20 },
-  { type: 'Month', item: 'New Tech/Clothing', cost: 30 },
-  { type: 'Month', item: 'Purchase 1 Useful Subscription/Plan', cost: 40 },
-  { type: 'Quarter', item: 'Major Purchase', cost: 100 },
-  { type: 'Half-Yr', item: 'Vacation', cost: 500 },
-  { type: 'Yearly', item: 'International Vacation', cost: 2000 },
+  { id: 'rew-daily-social', type: 'Daily', item: '1 Hour+ social media', cost: 8 },
+  { id: 'rew-weekly-gadget', type: 'Weekly', item: 'New gadget/supplement under 500', cost: 12 },
+  { id: 'rew-weekly-cheat', type: 'Weekly', item: 'Cheat Meal', cost: 15 },
+  { id: 'rew-weekly-meetup', type: 'Weekly', item: 'Social Meetup/Night Out/Movie', cost: 20 },
+  { id: 'rew-month-tech', type: 'Month', item: 'New Tech/Clothing', cost: 30 },
+  { id: 'rew-month-sub', type: 'Month', item: 'Purchase 1 Useful Subscription/Plan', cost: 40 },
+  { id: 'rew-quarter-major', type: 'Quarter', item: 'Major Purchase', cost: 100 },
+  { id: 'rew-halfyr-vacation', type: 'Half-Yr', item: 'Vacation', cost: 500 },
+  { id: 'rew-yr-intl-vacation', type: 'Yearly', item: 'International Vacation', cost: 2000 },
 ];
 const rewards = ref(defaultRewards.map(r => ({ ...r })));
+
+const defaultCoupleSynergyRewards = [
+  {
+    id: 'couple-candlelight-dinner',
+    item: '🥂 Candlelight Date Night & Dinner',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Celebrate weekly alignment with uninterrupted conversation and wholesome dining.',
+    icon: '🥂',
+  },
+  {
+    id: 'couple-sunday-nature',
+    item: '🌲 Sunday Nature Trail & Artisanal Coffee',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Screen-free morning walk, crisp fresh air, and deep reflection together.',
+    icon: '🌲',
+  },
+  {
+    id: 'couple-recovery-spa',
+    item: '💆 Joint Rest, Foot Soak & Recovery Evening',
+    type: 'Couple Synergy',
+    cost: 0,
+    description: 'Joint physical recovery, soothing herbal tea, and complete offline relaxation.',
+    icon: '💆',
+  },
+];
+const coupleSynergyRewards = ref(defaultCoupleSynergyRewards.map(r => ({ ...r })));
+const coupleSynergyRewardsDraft = ref([]);
 
 const createDefaultWeeklyReview = () => ({
   reviewDate: '',
@@ -380,12 +969,19 @@ const createDefaultWeeklyReview = () => ({
   checks: [
     { text: 'I reviewed missed days and found one clear trigger.', done: false },
     { text: 'I declared tier (Full/Half/Floor) at breakfast every day.', done: false },
-    { text: 'Shaarvi blocks never shrank — they happened first.', done: false },
+    { text: 'Family & non-negotiable personal blocks happened first.', done: false },
     { text: '18:30 hard stop held — phones out of room.', done: false },
     { text: 'Sleep stayed above 7h floor (or next day was Floor tier).', done: false },
     { text: 'I graduated max one habit this week (1% rule).', done: false },
   ],
   reflections: { wins: '', misses: '', triggerPlan: '', rewardTune: '', habitScale: '', healthCheck: '', nextWeekFocus: '' },
+  coupleChecks: [
+    { text: 'We synchronized at least one shared anchor daily without friction.', done: false },
+    { text: 'Encouraged partner during intense focus windows without projecting pressure.', done: false },
+    { text: 'Held our evening wind-down ritual together with zero late phone interruptions.', done: false },
+    { text: 'Celebrated our weekly joint consistency and validated each other\'s progress.', done: false },
+  ],
+  coupleReflections: { wins: '', friction: '', commitments: '' },
 });
 const weeklyReview = ref(createDefaultWeeklyReview());
 
@@ -405,8 +1001,9 @@ const calculatePastWeekStickiness = () => {
   const totalDays = (currentD - startD) + 1;
   if (totalDays === 0) return '0%';
   let metDays = 0;
+  const floorThreshold = tierThresholds.value?.floor || 4;
   for (let d = startD; d <= currentD; d++) {
-    if (getDayTotal(d) >= 4) metDays++;
+    if (getDayTotal(d) >= floorThreshold) metDays++;
   }
   return `${Math.round((metDays / totalDays) * 100)}%`;
 };
@@ -424,45 +1021,246 @@ const fillSundayMetrics = () => {
   };
   weeklyReview.value.reviewDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   saveState();
+  showToast('✨ Weekly metrics auto-filled & saved!');
 };
 
-// Theme Management (Dark / Light Mode)
-const darkMode = ref(
-  typeof window !== 'undefined'
-    ? (localStorage.getItem('habuilt_theme') ? localStorage.getItem('habuilt_theme') === 'dark' : true)
-    : true
-);
+// ── Couple Synergy Milestone Rewards Handlers & Status ──
+const combinedWeeklyPoints = computed(() => {
+  return (calculatePastWeekPoints() || 0) + ((partnerPointsToday.value || 0) * 7);
+});
 
-const applyTheme = (isDark) => {
+const isCoupleSynergyUnlocked = computed(() => {
+  if (!isPartnerPaired.value) return false;
+  return (partnerAlignmentScore.value >= 80) || (combinedWeeklyPoints.value >= 200);
+});
+
+const handleRedeemSynergyReward = (reward) => {
+  if (!reward || claimedSynergyRewards.value.includes(reward.id)) return;
+  claimedSynergyRewards.value.push(reward.id);
+  saveState();
+
+  // Broadcast celebration to partner
+  broadcastPartnerEvent({
+    type: 'partner_synergy_claim',
+    reward: reward.item,
+    by: displayName.value,
+  }, pairChannelId.value);
+
+  playSharedAnchorSync();
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([40, 80, 40, 80]);
+  }
+  showToast(`🎉 Claimed Couple Synergy Reward: "${reward.item}"! Enjoy together with ${partnerDisplayName.value}! ❤️`, 5000);
+};
+
+const handleOpenRewardVault = () => {
+  activeMobileTab.value = 'rewards';
+  setTimeout(() => {
+    const el = document.getElementById('rewards');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+  showToast('🎁 Navigated to Reward Vault!');
+};
+
+// Theme Management (Pure Light Theme Architecture)
+const darkMode = ref(false);
+
+const applyTheme = () => {
   if (typeof document === 'undefined') return;
-  if (isDark) {
-    document.documentElement.classList.add('dark-mode', 'theme-dark');
-    document.body.classList.add('dark-mode', 'theme-dark');
-  } else {
-    document.documentElement.classList.remove('dark-mode', 'theme-dark');
-    document.body.classList.remove('dark-mode', 'theme-dark');
+  document.documentElement.classList.remove('dark-mode', 'theme-dark');
+  document.body.classList.remove('dark-mode', 'theme-dark');
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', '#f8fafc');
   }
 };
 
 const toggleTheme = () => {
-  darkMode.value = !darkMode.value;
+  darkMode.value = false;
+  applyTheme();
 };
 
-watch(darkMode, (newVal) => {
-  applyTheme(newVal);
+watch(darkMode, () => {
+  darkMode.value = false;
+  applyTheme();
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('habuilt_theme', newVal ? 'dark' : 'light');
+    localStorage.setItem('habuilt_theme', 'light');
   }
 }, { immediate: true });
 
-onMounted(() => {
+// ── Circadian Auto-Ambient Glow Engine ──
+const {
+  CIRCADIAN_PHASES,
+  activeCircadianMode,
+  currentPhaseKey: circadianPhaseKey,
+  currentPhase: circadianPhase,
+  setCircadianMode,
+  cycleNextPhase: cycleCircadianPhase,
+} = useCircadianAtmosphere(computed(() => false));
+
+const handleCycleCircadianAtmosphere = () => {
+  const next = cycleCircadianPhase();
+  showToast(`✨ Atmosphere: ${next.name} (${activeCircadianMode.value})`);
+};
+
+// ── Service Worker Periodic Background Sync Listener ──
+const handleSwPeriodicSync = async (event) => {
+  if (event.data?.type === 'HABUILT_PERIODIC_SYNC') {
+    refreshPartnerLiveMetrics();
+    syncCloudState(false);
+  } else if (event.data?.type === 'FLUSH_OFFLINE_QUEUE') {
+    await flushOfflineQueue();
+    await flushZoetiCoachQueue();
+    updateOfflineQueueCount();
+    syncCloudState(false);
+  }
+};
+
+// Distraction-Free Zen Focus Mode (Apple / Linear Grade Flow)
+const zenMode = ref(
+  typeof window !== 'undefined'
+    ? localStorage.getItem('habuilt.zen_mode') === 'true'
+    : false
+);
+
+const toggleZenMode = () => {
+  zenMode.value = !zenMode.value;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt.zen_mode', zenMode.value ? 'true' : 'false');
+  }
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(zenMode.value ? [20, 40, 20] : 15);
+  }
+  showToast(zenMode.value ? '🧘 Zen Focus Mode Activated: Distraction-free flow' : '✨ Zen Focus Mode Deactivated');
+};
+
+const handleZenKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    if (isShareModalOpen.value) { isShareModalOpen.value = false; return; }
+    if (isProtocolSettingsOpen.value) { isProtocolSettingsOpen.value = false; return; }
+    if (isUniversalPartnerPairModalOpen.value) { isUniversalPartnerPairModalOpen.value = false; return; }
+    if (isCalendarSyncModalOpen.value) { isCalendarSyncModalOpen.value = false; return; }
+    if (partnerViewOpen.value) { partnerViewOpen.value = false; return; }
+    if (isProtocolWizardOpen.value) { isProtocolWizardOpen.value = false; return; }
+    if (isHabitFormModalOpen.value) { isHabitFormModalOpen.value = false; return; }
+    if (isAppInstallModalOpen.value) { isAppInstallModalOpen.value = false; return; }
+  }
+
+  // Only trigger on 'z' or 'Z' without ctrl/meta/alt
+  if (e.key && e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const activeEl = document.activeElement;
+    if (activeEl && (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) || activeEl.isContentEditable)) {
+      return;
+    }
+    if (isSpotlightOpen.value) return;
+
+    e.preventDefault();
+    toggleZenMode();
+  }
+};
+
+watch(zenMode, (newVal) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt.zen_mode', newVal ? 'true' : 'false');
+  }
+});
+
+watch(partnerViewOpen, (open) => {
+  if (open) {
+    refreshPartnerLiveMetrics();
+  }
+});
+
+onMounted(async () => {
   applyTheme(darkMode.value);
+  await loadProtocols();
+
+  // Load partner connection
+  try {
+    const conn = await getPartnerConnection(effectiveUserId.value);
+    if (conn) {
+      activePartnerConnection.value = conn;
+      refreshPartnerLiveMetrics();
+    }
+  } catch (e) {
+    console.warn('[Dashboard] partner init error:', e);
+  }
+
+  // Handle instant pairing via URL hash (e.g. #pair=HAB-8942)
+  if (typeof window !== 'undefined' && window.location.hash.startsWith('#pair=')) {
+    const rawPairCode = window.location.hash.replace('#pair=', '').trim();
+    if (rawPairCode) {
+      try {
+        const conn = await pairWithInviteCode(effectiveUserId.value, rawPairCode);
+        activePartnerConnection.value = conn;
+        refreshPartnerLiveMetrics();
+        showToast(`❤️ Partner connection established via invite link (${rawPairCode})!`);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch (err) {
+        showToast(err.message || 'Could not pair via link');
+      }
+    }
+  }
+
+  // Handle instant protocol import via URL hash (e.g. #import-protocol=eyJuYW1l...)
+  if (typeof window !== 'undefined' && window.location.hash.includes('#import-protocol=')) {
+    try {
+      const decoded = decodeProtocolFromHash(window.location.hash);
+      if (decoded && decoded.name) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        await handleImportProtocol(decoded);
+      }
+    } catch (err) {
+      console.warn('URL hash protocol import failed:', err);
+    }
+  }
+
+  // If first-time user / guest, trigger onboarding wizard
+  if (!localHabits.value || localHabits.value.length === 0) {
+    const onboarded = localStorage.getItem(`habuilt_onboarded_${effectiveUserId.value}`);
+    if (!onboarded) {
+      setTimeout(() => {
+        isProtocolWizardOpen.value = true;
+        localStorage.setItem(`habuilt_onboarded_${effectiveUserId.value}`, 'true');
+      }, 1000);
+    }
+  }
 });
 
 const weeklyReviewExpanded = ref(false);
-const isNative = computed(() => typeof window !== 'undefined' && Capacitor.isNativePlatform());
 const toastMessage = ref('');
 let toastTimeoutId = null;
+
+// ── OPTIMISTIC UNDO TOAST STATE ──
+const undoToastAction = ref(null); // { habitId, habitName, day, wasDone, points }
+let undoToastTimeoutId = null;
+
+const triggerUndoToast = (action) => {
+  undoToastAction.value = action;
+  if (undoToastTimeoutId) clearTimeout(undoToastTimeoutId);
+  undoToastTimeoutId = setTimeout(() => {
+    undoToastAction.value = null;
+  }, 5000);
+};
+
+const executeUndo = () => {
+  if (!undoToastAction.value) return;
+  const action = undoToastAction.value;
+  undoToastAction.value = null;
+  if (undoToastTimeoutId) clearTimeout(undoToastTimeoutId);
+
+  const targetHabit = (localHabits.value || []).find(h => String(h.id) === String(action.habitId))
+    || (allHistoricalHabits.value || []).find(h => String(h.id) === String(action.habitId));
+
+  if (targetHabit) {
+    toggleHabitForDay(targetHabit, action.day, true /* isUndo */);
+    showToast(`↩️ Reverted "${action.habitName}"`, 2200);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([15, 30, 15]);
+    }
+  }
+};
 
 const showToast = (message, duration = 2800) => {
   toastMessage.value = message;
@@ -472,17 +1270,112 @@ const showToast = (message, duration = 2800) => {
   }, duration);
 };
 
+// ── OFFLINE PWA & BACKGROUND SYNC ENGINE ──
+const isOffline = ref(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+const offlineQueuedCount = ref(0);
+const isManualSyncing = ref(false);
+
+const updateOfflineQueueCount = () => {
+  if (typeof window === 'undefined') return;
+  let checkInsCount = 0;
+  try {
+    const raw = localStorage.getItem('habuilt_offline_queue');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) checkInsCount = parsed.length;
+    }
+  } catch {}
+
+  let zoetiCount = 0;
+  try {
+    zoetiCount = getZoetiCoachQueueCount();
+  } catch {}
+
+  offlineQueuedCount.value = checkInsCount + zoetiCount;
+};
+
+const handleOnline = async () => {
+  isOffline.value = false;
+  updateOfflineQueueCount();
+  showToast('🟢 Back online · Synchronizing offline actions...', 3000);
+
+  try {
+    const flushedCheckIns = await flushOfflineQueue();
+    const zoetiRes = await flushZoetiCoachQueue();
+    await syncCloudState(true);
+    updateOfflineQueueCount();
+    const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
+    if (totalFlushed > 0) {
+      showToast(`✨ Synced ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} with cloud!`, 3000);
+    } else {
+      showToast('✨ Connected to cloud · Everything is up to date', 2500);
+    }
+  } catch (err) {
+    console.warn('[Offline Engine] Online recovery sync warning:', err);
+  }
+};
+
+const handleOffline = () => {
+  isOffline.value = true;
+  updateOfflineQueueCount();
+  showToast('⚡ Offline Mode: Changes saved locally and queued for auto-sync', 3500);
+};
+
+const handleManualOfflineSync = async () => {
+  if (isManualSyncing.value) return;
+  isManualSyncing.value = true;
+  updateOfflineQueueCount();
+
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    isOffline.value = false;
+    try {
+      const flushedCheckIns = await flushOfflineQueue();
+      const zoetiRes = await flushZoetiCoachQueue();
+      await syncCloudState(true);
+      updateOfflineQueueCount();
+      const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
+      if (totalFlushed > 0) {
+        showToast(`🎉 Flushed ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} to cloud!`, 3500);
+      } else {
+        showToast('✅ Cloud connection verified · All records up to date', 3000);
+      }
+    } catch (e) {
+      showToast('⚠️ Sync warning. Local records remain safely queued.');
+    } finally {
+      isManualSyncing.value = false;
+    }
+  } else {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch('/manifest.webmanifest?t=' + Date.now(), { method: 'HEAD', signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        isOffline.value = false;
+        await flushOfflineQueue();
+        await flushZoetiCoachQueue();
+        await syncCloudState(true);
+        updateOfflineQueueCount();
+        showToast('🟢 Reconnected! Offline records synced.', 3000);
+      } else {
+        showToast('📡 Still offline. All changes safely stored on device.', 3000);
+      }
+    } catch {
+      showToast('📡 Still offline. All changes safely stored on device.', 3000);
+    } finally {
+      isManualSyncing.value = false;
+    }
+  }
+};
+
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
 const localStateKey = computed(() => `habuilt.dashboard.${effectiveUserId.value}.${monthScope.value}`);
-const localStatePrefix = computed(() => `habuilt.dashboard.${effectiveUserId.value}.`);
 const monthLabel = computed(() => new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(props.year, props.month - 1, 1)));
 const days = computed(() => Array.from({ length: props.monthDays }, (_, index) => index + 1));
-const targetDailyPoints = computed(() => 15);
 
 const isHabitArchived = (habit) => enhancedState.value.archivedHabitIds?.includes(habit.id) || !!habit.archived;
 const visibleHabits = computed(() => (localHabits.value || []).filter(h => !isHabitArchived(h)));
 const totalHabits = computed(() => visibleHabits.value.length); // MASTER count — every habit the user has, used for the "Master Checklist" toggle only
-const totalPossiblePoints = computed(() => visibleHabits.value.reduce((total, habit) => total + (habit.points * props.monthDays), 0));
 
 // Schedule Filtering Engine
 const getDayOfWeek = (dayNum) => {
@@ -491,9 +1384,19 @@ const getDayOfWeek = (dayNum) => {
 
 const isHabitScheduledForDay = (habit, dayNum) => {
   if (!habit) return true;
+  const dow = getDayOfWeek(dayNum);
   if (Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
-    const dow = getDayOfWeek(dayNum);
     return habit.daysOfWeek.includes(dow);
+  }
+  if (habit.scheduleType === 'weekdays') {
+    return dow >= 1 && dow <= 5;
+  }
+  if (habit.scheduleType === 'weekends') {
+    return dow === 0 || dow === 6;
+  }
+  if (habit.scheduleType === 'custom' && Array.isArray(habit.customDays)) {
+    const customDow = dow === 0 ? 7 : dow;
+    return habit.customDays.includes(customDow) || habit.customDays.includes(dow);
   }
   return true;
 };
@@ -503,8 +1406,45 @@ const isHabitScheduledForDay = (habit, dayNum) => {
 // badges (top bar, bottom nav, share card) should always divide by, not the full master list.
 const todayScheduledHabits = computed(() => visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay)));
 const todayScheduledCount = computed(() => todayScheduledHabits.value.length);
+const todayPossibleDailyPoints = computed(() => {
+  const sum = (todayScheduledHabits.value || []).reduce((acc, h) => acc + (Number(h.points) || 1), 0);
+  return sum > 0 ? sum : 15;
+});
 
-const scheduleFilterMode = ref('scheduled'); // 'scheduled' (active for this day) | 'all' (all 52 master habits)
+// Dynamic Percentage-Based Tiers Engine (Floor: 25%, Half: 50%, Full: 100% of daily scheduled points, or custom overrides)
+const tierThresholds = computed(() => {
+  const target = todayPossibleDailyPoints.value || 15;
+  const custom = progressiveSettings.value?.customTiers || {};
+
+  let floorPts, halfPts, fullPts;
+  if (custom.isFixed) {
+    floorPts = Math.max(1, Number(custom.floor) || 4);
+    halfPts = Math.max(floorPts + 1, Number(custom.half) || 8);
+    fullPts = Math.max(halfPts + 1, Number(custom.full) || 15);
+  } else {
+    const fPct = custom.floorPct !== undefined ? Number(custom.floorPct) : 25;
+    const hPct = custom.halfPct !== undefined ? Number(custom.halfPct) : 50;
+    const uPct = custom.fullPct !== undefined ? Number(custom.fullPct) : 100;
+    floorPts = custom.floor !== undefined && custom.floor > 0
+      ? Number(custom.floor)
+      : Math.max(1, Math.round(target * (fPct / 100)));
+    halfPts = custom.half !== undefined && custom.half > 0
+      ? Number(custom.half)
+      : Math.max(floorPts + 1, Math.round(target * (hPct / 100)));
+    fullPts = custom.full !== undefined && custom.full > 0
+      ? Number(custom.full)
+      : Math.max(halfPts + 1, Math.round(target * (uPct / 100)));
+  }
+
+  return {
+    floor: floorPts,
+    half: halfPts,
+    full: fullPts,
+    target: target
+  };
+});
+
+const scheduleFilterMode = ref('scheduled'); // 'scheduled' (active for this day) | 'all' (all master habits)
 
 // Mobile Day
 const mobileDay = computed(() => Math.min(Math.max(1, mobileSelectedDay.value), props.monthDays));
@@ -539,12 +1479,35 @@ const filteredHabits = computed(() => {
   return source.filter(h => getTimeSlotForHabit(h.id, h) === activeTimeFilter.value);
 });
 
+const isMobileDayWeekend = computed(() => {
+  const dow = getDayOfWeek(mobileDay.value);
+  return dow === 0 || dow === 6;
+});
+
+const dynamicTimeSlotDefinitions = computed(() => {
+  const customSlots = progressiveSettings.value?.customTimeSlots;
+  const baseSlots = (customSlots && Object.keys(customSlots).length > 0)
+    ? customSlots
+    : (protocolTimeSlotDefinitions.value || timeSlotDefinitions);
+
+  if (isMobileDayWeekend.value && baseSlots.work) {
+    return {
+      ...baseSlots,
+      work: { label: 'Weekend Focus & Family', time: baseSlots.work?.time || '08:30–18:30', emoji: '✨', color: '#D4B36A' },
+    };
+  }
+  return baseSlots;
+});
+
 const timeSlotCounts = computed(() => {
   const source = activeHabitsForMobileDay.value;
-  const counts = { all: source.length, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const counts = { all: source.length };
+  Object.keys(defs).forEach(k => { counts[k] = 0; });
   source.forEach(h => {
     const slot = getTimeSlotForHabit(h.id, h);
-    if (counts[slot] !== undefined) counts[slot]++;
+    if (counts[slot] === undefined) counts[slot] = 0;
+    counts[slot]++;
   });
   return counts;
 });
@@ -552,57 +1515,44 @@ const timeSlotCounts = computed(() => {
 const timeSlotCompleted = computed(() => {
   const day = mobileDay.value;
   const source = activeHabitsForMobileDay.value;
-  const comp = { all: 0, morning: 0, work: 0, evening: 0, anytime: 0, weekly: 0 };
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const comp = { all: 0 };
+  Object.keys(defs).forEach(k => { comp[k] = 0; });
   source.forEach(h => {
     if (hasCompletedDay(h, day)) {
       comp.all++;
       const slot = getTimeSlotForHabit(h.id, h);
-      if (comp[slot] !== undefined) comp[slot]++;
+      if (comp[slot] === undefined) comp[slot] = 0;
+      comp[slot]++;
     }
   });
   return comp;
 });
 
-const isMobileDayWeekend = computed(() => {
-  const dow = getDayOfWeek(mobileDay.value);
-  return dow === 0 || dow === 6;
-});
-
-const dynamicTimeSlotDefinitions = computed(() => {
-  if (isMobileDayWeekend.value) {
-    return {
-      ...timeSlotDefinitions,
-      work: { label: 'Weekend Focus & Family', time: '08:30–18:30', emoji: '✨', color: '#D4B36A' },
-    };
-  }
-  return timeSlotDefinitions;
-});
-
 const timelineGroupedHabits = computed(() => {
   const source = filteredHabits.value;
-  const groups = [
-    { slot: 'morning', meta: dynamicTimeSlotDefinitions.value.morning, habits: [] },
-    { slot: 'work',    meta: dynamicTimeSlotDefinitions.value.work,    habits: [] },
-    { slot: 'evening', meta: dynamicTimeSlotDefinitions.value.evening, habits: [] },
-    { slot: 'anytime', meta: dynamicTimeSlotDefinitions.value.anytime, habits: [] },
-    { slot: 'weekly',  meta: dynamicTimeSlotDefinitions.value.weekly,  habits: [] },
-  ];
+  const defs = dynamicTimeSlotDefinitions.value || {};
+  const slotKeys = Object.keys(defs);
+  const groups = slotKeys.map(key => ({
+    slot: key,
+    meta: defs[key],
+    habits: []
+  }));
   const groupMap = Object.fromEntries(groups.map(g => [g.slot, g.habits]));
   source.forEach(h => {
     const slot = getTimeSlotForHabit(h.id, h);
     if (groupMap[slot]) groupMap[slot].push(h);
-    else groupMap.anytime.push(h);
+    else if (groupMap.anytime) groupMap.anytime.push(h);
+    else if (groups.length > 0) groups[0].habits.push(h);
   });
 
   // Strict chronological sorting inside timed routine slots
   groups.forEach(g => {
-    if (g.slot === 'morning' || g.slot === 'work' || g.slot === 'evening') {
-      g.habits.sort((a, b) => {
-        const timeA = a.startTime || habitTimeSchedule[a.id]?.start || (a.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
-        const timeB = b.startTime || habitTimeSchedule[b.id]?.start || (b.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
-        return timeA.localeCompare(timeB);
-      });
-    }
+    g.habits.sort((a, b) => {
+      const timeA = a.startTime || habitTimeSchedule[a.id]?.start || (a.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
+      const timeB = b.startTime || habitTimeSchedule[b.id]?.start || (b.name || '').match(/^(\d{2}:\d{2})/)?.[1] || '99:99';
+      return timeA.localeCompare(timeB);
+    });
   });
 
   return groups.filter(g => g.habits.length > 0);
@@ -622,178 +1572,30 @@ const mobileDayTotalHabits = computed(() => activeHabitsForMobileDay.value.lengt
 const maxDailyPoints = computed(() => activeHabitsForMobileDay.value.reduce((sum, h) => sum + h.points, 0));
 
 // Up Next Engine
-const habitTimeSchedule = {
-  // ── Ashish home mode (04:45 wake-up + integrated MOVERS Sadhana protocol) ──
-  'a-64': { start: '04:45', end: '04:55' },
-  'a-1': { start: '04:55', end: '05:00' }, 'a-2': { start: '04:55', end: '05:00' },
-  'a-5': { start: '05:00', end: '05:20' },
-  'a-55': { start: '05:20', end: '05:35' },
-  'a-54': { start: '05:35', end: '05:45' },
-  'a-56': { start: '05:45', end: '05:50' }, 'a-57': { start: '05:50', end: '05:55' },
-  'a-58': { start: '05:55', end: '06:00' }, 'a-3': { start: '06:00', end: '06:05' },
-  'a-4': { start: '06:05', end: '06:35' },
-  'a-6': { start: '06:05', end: '06:40' },
-  'a-60': { start: '06:00', end: '06:30' },
-  'a-7': { start: '06:35', end: '06:45' },
-  'a-66': { start: '06:45', end: '06:55' },
-  'a-9': { start: '06:55', end: '07:05' },
-  'a-8': { start: '07:05', end: '07:20' },
-  'a-67': { start: '07:20', end: '07:30' },
-  'a-61': { start: '07:30', end: '07:35' },
-  'a-10': { start: '07:35', end: '08:30' },
-  'a-11': { start: '08:30', end: '08:45' }, 'a-12': { start: '08:45', end: '10:15' },
-  'a-13': { start: '10:30', end: '10:40' },
-  'a-28': { start: '10:30', end: '11:00' }, 'a-31': { start: '10:30', end: '11:00' },
-  'a-14': { start: '11:00', end: '12:30' },
-  'a-15': { start: '12:30', end: '12:45' }, 'a-16': { start: '12:45', end: '14:00' },
-  'a-29': { start: '14:00', end: '14:45' }, 'a-51': { start: '14:45', end: '14:50' },
-  'a-68': { start: '14:50', end: '15:00' },
-  'a-17': { start: '15:00', end: '15:15' },
-  'a-62': { start: '09:00', end: '18:00' },
-  'a-18': { start: '15:15', end: '16:45' },
-  'a-59': { start: '15:00', end: '16:30' },
-  'a-53': { start: '17:00', end: '18:00' },
-  'a-19': { start: '18:30', end: '18:35' }, 'a-20': { start: '18:35', end: '19:05' },
-  'a-43': { start: '19:05', end: '19:25' }, 'a-21': { start: '19:25', end: '20:15' },
-  'a-30': { start: '19:25', end: '20:15' },
-  'a-22': { start: '20:15', end: '20:30' }, 'a-23': { start: '20:45', end: '21:00' },
-  'a-24': { start: '21:00', end: '21:05' }, 'a-25': { start: '21:05', end: '21:15' },
-  'a-52': { start: '21:15', end: '21:20' },
-  'a-69': { start: '21:20', end: '21:30' },
-  'a-26': { start: '21:35', end: '21:40' }, 'a-63': { start: '21:40', end: '21:50' },
-  'a-27': { start: '22:00', end: '23:59' },
-  'a-37': { start: '09:30', end: '10:30' },
-  'a-38': { start: '11:00', end: '13:00' },
-  'a-39': { start: '13:00', end: '14:00' },
-  'a-40': { start: '16:00', end: '16:30' },
-  'a-42': { start: '16:30', end: '16:45' },
-  'a-49': { start: '11:00', end: '13:00' },
-  'a-50': { start: '11:00', end: '12:00' },
+const {
+  currentRoutineWindow,
+  getScheduleForHabit,
+  calculateUpNextHabit,
+} = useHabitScheduler(currentClock, activeProtocol);
 
-  // ── Jyoti ──
-  'j-1': { start: '05:00', end: '08:00' }, 'j-2': { start: '08:00', end: '08:05' },
-  'j-4': { start: '08:05', end: '09:05' }, 'j-9': { start: '09:05', end: '09:45' },
-  'j-10': { start: '09:45', end: '10:15' }, 'j-36': { start: '10:15', end: '11:00' },
-  'j-11': { start: '11:00', end: '11:15' }, 'j-12': { start: '11:15', end: '13:00' },
-  'j-14': { start: '13:00', end: '14:00' }, 'j-6': { start: '14:00', end: '14:45' },
-  'j-15': { start: '16:00', end: '17:00' },
-  'j-16': { start: '17:00', end: '17:20' }, 'j-17': { start: '17:30', end: '18:35' },
-  'j-18': { start: '18:35', end: '19:05' }, 'j-19': { start: '19:25', end: '20:15' },
-  'j-20': { start: '20:15', end: '20:30' }, 'j-21': { start: '20:45', end: '21:30' },
-  'j-22': { start: '21:30', end: '23:59' },
-  'j-29': { start: '09:30', end: '10:30' },
-  'j-31': { start: '16:30', end: '17:30' },
-  'j-32': { start: '15:00', end: '15:30' },
-  'j-33': { start: '11:00', end: '13:00' },
-  'j-34': { start: '11:00', end: '12:00' },
-  'j-35': { start: '15:00', end: '16:30' },
-
-  // ── Ashish travel mode (Chandigarh — confirmed 06:30-09:15 out, 13:30-16:30 return) ──
-  'at-1': { start: '04:45', end: '04:55' }, 'at-2': { start: '04:55', end: '05:00' },
-  'at-3': { start: '05:00', end: '05:20' }, 'at-4': { start: '05:20', end: '05:40' },
-  'at-5': { start: '05:40', end: '05:50' }, 'at-6': { start: '05:50', end: '06:05' },
-  'at-7': { start: '06:05', end: '06:20' }, 'at-8': { start: '06:20', end: '06:30' },
-  'at-9': { start: '06:30', end: '09:15' }, 'at-10': { start: '09:15', end: '09:30' },
-  'at-11': { start: '09:30', end: '13:00' }, 'at-12': { start: '13:00', end: '13:30' },
-  'at-13': { start: '13:30', end: '16:30' }, 'at-14': { start: '16:30', end: '17:00' },
-  'at-15': { start: '17:00', end: '18:00' }, 'at-16': { start: '18:00', end: '18:30' },
-  'at-17': { start: '18:35', end: '19:05' }, 'at-18': { start: '19:25', end: '20:15' },
-  'at-19': { start: '20:15', end: '20:30' }, 'at-20': { start: '20:45', end: '21:00' },
-  'at-21': { start: '21:00', end: '21:05' }, 'at-22': { start: '21:05', end: '21:15' },
-  'at-23': { start: '21:15', end: '21:25' }, 'at-24': { start: '21:30', end: '23:59' },
-  'at-29': { start: '13:00', end: '13:30' }, 'at-30': { start: '04:55', end: '05:00' },
-
-  // ── Ashish office mid-week (Tue–Thu flat→office, 30min commute) ──
-  'ao-1': { start: '05:15', end: '05:25' }, 'ao-2': { start: '05:25', end: '05:30' },
-  'ao-3': { start: '05:30', end: '05:50' }, 'ao-4': { start: '05:50', end: '06:00' },
-  'ao-5': { start: '06:00', end: '06:10' }, 'ao-6': { start: '06:10', end: '06:25' },
-  'ao-7': { start: '06:25', end: '06:45' }, 'ao-8': { start: '06:45', end: '07:00' },
-  'ao-9': { start: '07:00', end: '07:30' }, 'ao-10': { start: '07:30', end: '11:00' },
-  'ao-11': { start: '10:30', end: '11:00' }, 'ao-12': { start: '11:00', end: '11:30' },
-  'ao-13': { start: '11:30', end: '11:45' }, 'ao-14': { start: '11:45', end: '13:15' },
-  'ao-15': { start: '13:15', end: '13:45' }, 'ao-16': { start: '13:45', end: '14:00' },
-  'ao-17': { start: '14:00', end: '15:30' }, 'ao-18': { start: '15:30', end: '15:45' },
-  'ao-19': { start: '15:45', end: '17:15' }, 'ao-20': { start: '17:15', end: '18:00' },
-  'ao-21': { start: '18:00', end: '18:10' }, 'ao-22': { start: '18:10', end: '18:30' },
-  'ao-23': { start: '18:30', end: '19:00' }, 'ao-24': { start: '19:00', end: '19:30' },
-  'ao-25': { start: '19:30', end: '19:45' }, 'ao-26': { start: '20:00', end: '20:30' },
-  'ao-27': { start: '20:30', end: '20:45' }, 'ao-28': { start: '20:45', end: '21:15' },
-  'ao-29': { start: '21:15', end: '23:59' },
-
-  // ── Ashish office Friday (flat→office→return to Ludhiana) ──
-  'af-1': { start: '05:15', end: '05:25' }, 'af-2': { start: '05:25', end: '05:30' },
-  'af-3': { start: '05:30', end: '05:50' }, 'af-4': { start: '05:50', end: '06:00' },
-  'af-5': { start: '06:00', end: '06:10' }, 'af-6': { start: '06:10', end: '06:25' },
-  'af-7': { start: '06:25', end: '06:45' }, 'af-8': { start: '06:45', end: '07:00' },
-  'af-9': { start: '07:00', end: '07:30' }, 'af-10': { start: '07:30', end: '11:00' },
-  'af-11': { start: '10:30', end: '11:00' },
-  'af-12': { start: '11:00', end: '14:00' },
-  'af-13': { start: '14:00', end: '14:15' }, 'af-14': { start: '14:15', end: '14:45' },
-  'af-15': { start: '14:45', end: '15:00' }, 'af-16': { start: '15:00', end: '16:30' },
-  'af-17': { start: '16:30', end: '16:45' }, 'af-18': { start: '16:45', end: '17:30' },
-  'af-19': { start: '17:30', end: '18:15' }, 'af-20': { start: '18:15', end: '18:35' },
-  'af-21': { start: '18:35', end: '19:05' }, 'af-22': { start: '19:05', end: '19:25' },
-  'af-23': { start: '19:25', end: '20:15' }, 'af-24': { start: '20:15', end: '20:30' },
-  'af-25': { start: '20:45', end: '21:00' }, 'af-26': { start: '21:00', end: '21:05' },
-  'af-27': { start: '21:05', end: '21:15' }, 'af-28': { start: '21:15', end: '21:25' },
-  'af-29': { start: '21:30', end: '23:59' },
-
-  // ── Ashish half-day & holiday creative / errand blocks ──
-  'ah-1': { start: '15:15', end: '16:45' },
-  'ah-2': { start: '16:45', end: '17:30' },
-  'ah-3': { start: '17:30', end: '18:30' },
-};
-
-const getScheduleForHabit = (habit) => {
-  if (!habit) return null;
-  if (habitTimeSchedule[habit.id]) return habitTimeSchedule[habit.id];
-  if (habit.startTime && habit.endTime) return { start: habit.startTime, end: habit.endTime };
-  const match = (habit.name || '').match(/^(\d{2}:\d{2})/);
-  if (match) {
-    const start = match[1];
-    const [h, m] = start.split(':').map(Number);
-    const endMins = ((h * 60 + m + 30) % 1440);
-    const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
-    const em = String(endMins % 60).padStart(2, '0');
-    return { start, end: `${eh}:${em}` };
+const habitTimeSchedule = new Proxy({}, {
+  get: (target, prop) => {
+    const habit = (localHabits.value || []).find(h => String(h.id) === String(prop));
+    return getScheduleForHabit(habit);
   }
-  return null;
-};
-
-const upNextHabitInfo = computed(() => {
-  if (!props.isCurrentMonth) return null;
-  const now = currentClock.value;
-  const currentMins = now.getHours() * 60 + now.getMinutes();
-  const uncompleted = visibleHabits.value.filter(h => isHabitScheduledForDay(h, props.currentDay) && !hasCompletedDay(h, props.currentDay));
-  if (uncompleted.length === 0) return null;
-
-  for (const habit of uncompleted) {
-    const sched = getScheduleForHabit(habit);
-    if (sched) {
-      const [sh, sm] = sched.start.split(':').map(Number);
-      const [eh, em] = sched.end.split(':').map(Number);
-      const startMins = sh * 60 + sm;
-      const endMins = eh * 60 + em;
-      if (currentMins >= startMins && currentMins <= endMins) {
-        return { habit, status: 'due', badgeText: `DUE NOW (${sched.start})`, shortBadge: 'DUE NOW', timeLabel: `${sched.start}–${sched.end}` };
-      }
-    }
-  }
-  for (const habit of uncompleted) {
-    const sched = getScheduleForHabit(habit);
-    if (sched) {
-      const [sh, sm] = sched.start.split(':').map(Number);
-      const startMins = sh * 60 + sm;
-      if (startMins > currentMins) {
-        return { habit, status: 'upcoming', badgeText: `UP NEXT: ${sched.start}`, shortBadge: sched.start, timeLabel: `${sched.start}–${sched.end}` };
-      }
-    }
-  }
-  const first = uncompleted[0];
-  return { habit: first, status: 'next', badgeText: 'UP NEXT', shortBadge: 'UP NEXT', timeLabel: 'Next pending' };
 });
 
-const isHabitUpNext = (habit) => upNextHabitInfo.value && upNextHabitInfo.value.habit.id === habit.id;
+const upNextHabitInfo = computed(() => {
+  return calculateUpNextHabit(
+    visibleHabits.value,
+    props.currentDay,
+    props.isCurrentMonth,
+    isHabitScheduledForDay,
+    hasCompletedDay
+  );
+});
+
+const isHabitUpNext = (habit) => upNextHabitInfo.value && upNextHabitInfo.value.habit?.id === habit.id;
 
 // Tier Helpers
 const getHabitTier = (habitId) => progressiveSettings.value.habitTiers?.[habitId] ?? 1;
@@ -821,7 +1623,7 @@ const getHabitNote = (habitId, day) => enhancedState.value.habitNotes?.[`${habit
 const setHabitNote = (habitId, day, note) => {
   if (!enhancedState.value.habitNotes) enhancedState.value.habitNotes = {};
   enhancedState.value.habitNotes[`${habitId}:${day}`] = note;
-  saveState();
+  debouncedSaveState(400);
 };
 const toggleHabitNote = (habitId, day) => {
   const key = `${habitId}:${day}`;
@@ -851,7 +1653,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('shower') || lower.includes('grooming')) return 'canonical:shower-grooming';
   if (lower.includes('breakfast') || lower.includes('soaked nuts') || lower.includes('papaya')) return 'canonical:breakfast';
   if (lower.includes('mineral bottle') || lower.includes('water protocol') || lower.includes('water intake') || lower.includes('3 litres daily water') || lower.includes('3.5l daily water')) return 'canonical:water-protocol';
-  if (lower.includes('baby duty') || (lower.includes('shaarvi') && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down')))) return 'canonical:shaarvi-duty';
+  if (lower.includes('baby duty') || lower.includes('child duty') || ((lower.includes('baby') || lower.includes('infant') || lower.includes('shaarvi')) && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down') || lower.includes('duty')))) return 'canonical:child-care-duty';
   if (lower.includes('1-3-5') || lower.includes('top priority')) return 'canonical:1-3-5-priorities';
   if (lower.includes('block 1') || lower.includes('deep architecture') || lower.includes('office focus') || lower.includes('chandigarh office')) return 'canonical:deep-work-block-1';
   if (lower.includes('block 2') || lower.includes('high-leverage') || lower.includes('pipeline')) return 'canonical:deep-work-block-2';
@@ -861,7 +1663,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('post-lunch walk') || (lower.includes('walk') && lower.includes('lunch'))) return 'canonical:post-lunch-walk';
   if (lower.includes('eye drops')) return 'canonical:eye-drops';
   if (lower.includes('shutdown') || lower.includes('work day shutdown') || lower.includes('work shutdown')) return 'canonical:shutdown-ritual';
-  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || (lower.includes('walk') && lower.includes('jyoti') && lower.includes('shaarvi'))) return 'canonical:family-walk';
+  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || lower.includes('partner walk') || (lower.includes('walk') && (lower.includes('family') || lower.includes('partner') || lower.includes('jyoti') || lower.includes('shaarvi')))) return 'canonical:family-walk';
   if (lower.includes('dinner preparation') || lower.includes('family dinner') || lower.includes('dinner')) return 'canonical:dinner';
   if (lower.includes('post-dinner stroll') || lower.includes('post-dinner walk') || (lower.includes('stroll') && lower.includes('dinner'))) return 'canonical:post-dinner-stroll';
   if (lower.includes('kitchen reset') || lower.includes('counter clean')) return 'canonical:kitchen-reset';
@@ -969,11 +1771,43 @@ const getDayTotal = (day) => {
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 
+// Milestone 4: Dynamic PWA Badging Integration
+const remainingTodayHabitsCount = computed(() => {
+  const sched = todayScheduledCount.value || 0;
+  const comp = todayCompletedCount.value || 0;
+  return Math.max(0, sched - comp);
+});
+useAppBadging({
+  remainingCount: remainingTodayHabitsCount,
+});
+
+// ── Celebration Milestones Watcher (Dynamic Floor, Half, Full) ──
+const celebratedMilestones = ref(new Set());
+watch(todayPoints, (newPts, oldPts) => {
+  if (props.isCurrentMonth && newPts > (oldPts || 0)) {
+    const t = tierThresholds.value;
+    if (newPts >= t.full && !celebratedMilestones.value.has('full')) {
+      celebratedMilestones.value.add('full');
+      celebratedMilestones.value.add('half');
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('full');
+    } else if (newPts >= t.half && !celebratedMilestones.value.has('half')) {
+      celebratedMilestones.value.add('half');
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('half');
+    } else if (newPts >= t.floor && !celebratedMilestones.value.has('floor')) {
+      celebratedMilestones.value.add('floor');
+      fireTierMilestone('floor');
+    }
+  }
+});
+
 const autoProtocolTier = computed(() => {
   const pts = todayPoints.value;
-  if (pts >= 15) return { title: '🏆 Full Target', tier: 'Full' };
-  if (pts >= 8)  return { title: '⚡ Half Hit', tier: 'Half' };
-  if (pts >= 4)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
+  const t = tierThresholds.value;
+  if (pts >= t.full) return { title: '🏆 Full Target', tier: 'Full' };
+  if (pts >= t.half)  return { title: '⚡ Half Hit', tier: 'Half' };
+  if (pts >= t.floor)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
   return { title: '🌱 Building Momentum', tier: 'Base' };
 });
 
@@ -1007,7 +1841,9 @@ const systemStreak = computed(() => {
       temp = 0;
     }
   }
-  for (let d = maxDay; d >= 1; d--) {
+  const todayDone = getDayTotal(maxDay) > 0;
+  const startDay = (props.isCurrentMonth && !todayDone) ? maxDay - 1 : maxDay;
+  for (let d = startDay; d >= 1; d--) {
     if (getDayTotal(d) > 0) current++;
     else break;
   }
@@ -1018,11 +1854,12 @@ const consistencyScore = computed(() => {
   const daysEvaluated = props.isCurrentMonth ? props.currentDay : props.monthDays;
   if (daysEvaluated === 0) return 0;
   let totalScore = 0;
+  const t = tierThresholds.value;
   for (let d = 1; d <= daysEvaluated; d++) {
     const pts = getDayTotal(d);
-    if (pts >= 15) totalScore += 100;      // Full Protocol
-    else if (pts >= 8) totalScore += 75;   // Half Protocol
-    else if (pts >= 4) totalScore += 50;   // Floor Protocol (protected)
+    if (pts >= t.full) totalScore += 100;      // Full Protocol
+    else if (pts >= t.half) totalScore += 75;   // Half Protocol
+    else if (pts >= t.floor) totalScore += 50;  // Floor Protocol (protected)
     else if (pts > 0) totalScore += 25;
   }
   return Math.min(100, Math.round(totalScore / daysEvaluated));
@@ -1039,8 +1876,8 @@ const consistencyGrade = computed(() => {
 
 const performanceGrade = computed(() => consistencyGrade.value);
 
-// XP & Level
-const totalXP = computed(() => monthlyTotalEarned.value * 10);
+// XP & Level (Total Lifetime XP across all historical and current months)
+const totalXP = computed(() => (earnedBeforeCurrentMonth.value + monthlyTotalEarned.value) * 10);
 const levelData = computed(() => {
   const xp = totalXP.value;
   const level = Math.floor(xp / 500) + 1;
@@ -1051,11 +1888,11 @@ const levelData = computed(() => {
 });
 const levelTitle = computed(() => {
   const lv = levelData.value.level;
-  if (lv >= 10) return 'Ascendant';
-  if (lv >= 7) return 'Titan';
-  if (lv >= 5) return 'Architect';
-  if (lv >= 3) return 'Practitioner';
-  return 'Initiate';
+  if (lv >= 10) return 'Sovereign Peak';
+  if (lv >= 7) return 'Strategic Mastery';
+  if (lv >= 5) return 'Executive Leverage';
+  if (lv >= 3) return 'Consistent Focus';
+  return 'Baseline Discipline';
 });
 
 // Heatmap Data
@@ -1103,7 +1940,9 @@ const habitStreaks = computed(() => {
   return visibleHabits.value.map(h => {
     let current = 0;
     const maxDay = props.isCurrentMonth ? props.currentDay : props.monthDays;
-    for (let d = maxDay; d >= 1; d--) {
+    const todayDone = hasCompletedDay(h, maxDay);
+    const startDay = (props.isCurrentMonth && !todayDone) ? maxDay - 1 : maxDay;
+    for (let d = startDay; d >= 1; d--) {
       if (hasCompletedDay(h, d)) current++;
       else break;
     }
@@ -1135,10 +1974,10 @@ const timeGreeting = computed(() => {
   return { salute, name, quote };
 });
 
-const mobileHeroExpanded = ref(false);
+
 
 // Toggle Habit Check
-const toggleHabitForDay = (habit, day) => {
+const toggleHabitForDay = (habit, day, isUndo = false) => {
   if (!habit) return;
   const numDay = Number(day || mobileDay.value || props.currentDay || new Date().getDate());
 
@@ -1200,9 +2039,95 @@ const toggleHabitForDay = (habit, day) => {
 
   saveState();
   syncDueNowNotification?.();
+  updateOfflineQueueCount();
+
+  // Optimistic Undo Toast Trigger (only for direct user clicks, not during undo rollback)
+  if (!isUndo) {
+    triggerUndoToast({
+      habitId: habit.id,
+      habitName: habit.name,
+      day: numDay,
+      wasDone: isCurrentlyDone,
+      points: habit.points || 1,
+    });
+  }
+
+  // Normalized Real-Time Ledger Persistence & Partner Broadcast
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    if (nextDone) {
+      recordHabitCheckIn({
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        habitName: habit.name,
+        monthKey: monthScope.value,
+        day: numDay,
+        completedOn: checkInDate,
+        points: habit.points || 1,
+        canonicalKey: canonKey,
+        source: 'web',
+      });
+
+      const sharedInfo = getSharedHabitInfo(habit.id);
+      if (sharedInfo || isPartnerPaired.value) {
+        broadcastPartnerEvent({
+          type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
+          partner: displayName.value,
+          userId: effectiveUserId.value,
+          habitId: habit.id,
+          habitName: habit.name,
+          points: habit.points || 1,
+          day: numDay,
+        }, pairChannelId.value);
+      }
+    } else {
+      removeHabitCheckIn({
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        monthKey: monthScope.value,
+        day: numDay,
+      });
+    }
+  } else {
+    // Guest or offline/local pairing mode: broadcast to local tab channel if paired
+    if (nextDone && isPartnerPaired.value) {
+      const sharedInfo = getSharedHabitInfo(habit.id);
+      broadcastPartnerEvent({
+        type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
+        partner: displayName.value,
+        userId: effectiveUserId.value,
+        habitId: habit.id,
+        habitName: habit.name,
+        points: habit.points || 1,
+        day: numDay,
+      }, pairChannelId.value);
+    }
+  }
+
+  // Optional non-blocking Laravel Backend Sync when running in Inertia environment
+  if (typeof window !== 'undefined' && window.__inertia_app && habit.id) {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    try {
+      if (nextDone) {
+        fetch(`/habits/${habit.id}/check-ins`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ completed_on: checkInDate }),
+        }).catch(() => {});
+      } else {
+        fetch(`/habits/${habit.id}/check-ins`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ completed_on: checkInDate }),
+        }).catch(() => {});
+      }
+    } catch {}
+  }
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(nextDone ? [15, 30, 15] : [20]);
+    try {
+      navigator.vibrate([12]);
+    } catch (_) {}
   }
 };
 
@@ -1278,15 +2203,158 @@ const markHabitCompletedDirectly = (habitId, day) => {
   saveState();
   syncDueNowNotification?.();
 
+  // Normalized Real-Time Ledger Persistence
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
+    recordHabitCheckIn({
+      userId: effectiveUserId.value,
+      habitId: habitId,
+      habitName: targetHabit ? targetHabit.name : '',
+      monthKey: monthScope.value,
+      day: numDay,
+      completedOn: checkInDate,
+      points: targetHabit ? (Number(targetHabit.points) || 1) : 1,
+      canonicalKey: canonKey,
+      source: 'notification_or_widget',
+    });
+  }
+
   const habitName = targetHabit ? targetHabit.name : 'Habit';
   showToast(`✅ "${habitName}" marked done!`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate([15, 30, 15]);
+    try {
+      navigator.vibrate([12]);
+    } catch (_) {}
   }
 };
 
-// Day Type Cycle Toggle (replaces binary travel mode) — Never drops completed days!
-const toggleTravelMode = () => {
+// ── Milestone 3: 1-Tap Batch Routine Quick Action ──
+const handleBatchCompleteSlot = (group) => {
+  if (!group || !group.habits || group.habits.length === 0) return;
+  const targetDay = Number(mobileDay.value || props.currentDay || new Date().getDate());
+  const pendingInSlot = group.habits.filter(h => !hasCompletedDay(h, targetDay));
+
+  if (pendingInSlot.length === 0) {
+    showToast(`⚡ All habits in ${group.label} are already completed!`);
+    return;
+  }
+
+  // Iterate and complete all pending habits in this slot
+  pendingInSlot.forEach(habit => {
+    toggleHabitForDay(habit, targetDay);
+  });
+
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([40, 80, 40, 80]);
+  }
+  const totalPts = pendingInSlot.reduce((s, h) => s + (Number(h.points) || 1), 0);
+  showToast(`⚡ Blitz! Completed all ${pendingInSlot.length} habits in ${group.label}! (+${totalPts} pts) 🚀`, 4000);
+};
+
+// ── Milestone 3: Live Partner High-Five Broadcaster ──
+const sendWarriorHighFive = async () => {
+  const sender = displayName.value;
+  await broadcastPartnerEvent({
+    type: 'warrior_high_five',
+    partner: sender,
+  }, pairChannelId.value);
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([30, 60, 30]);
+  }
+  showToast(`🙌 High-Five broadcast to your partner live! Keep crushing it! 🔥`);
+};
+
+// ── Milestone 3: Biometric & Metabolic Journaling Handlers ──
+const handleUpdateBiomarkers = (updatedBio) => {
+  biomarkersState.value = { ...biomarkersState.value, ...updatedBio };
+  debouncedSaveState();
+  showToast('🧬 Biometrics & morning stiffness updated!');
+
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    saveUserBiomarker({
+      userId: effectiveUserId.value,
+      logDate: todayIso,
+      stiffnessMinutes: updatedBio.stiffnessMin !== undefined ? updatedBio.stiffnessMin : biomarkersState.value.stiffnessMin,
+      hydrationMl: hydrationMlState.value,
+      energyLevel: updatedBio.energyRating !== undefined ? updatedBio.energyRating : biomarkersState.value.energyRating,
+      notes: updatedBio.note !== undefined ? updatedBio.note : biomarkersState.value.note,
+    });
+  }
+};
+
+const handleUpdateHydration = (amountMl) => {
+  hydrationMlState.value = amountMl;
+  debouncedSaveState();
+
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    saveUserBiomarker({
+      userId: effectiveUserId.value,
+      logDate: todayIso,
+      stiffnessMinutes: biomarkersState.value.stiffnessMin,
+      hydrationMl: amountMl,
+      energyLevel: biomarkersState.value.energyRating,
+      notes: biomarkersState.value.note,
+    });
+  }
+};
+
+// ── Milestone 3: Data Portability & Backup Restore Handler ──
+const handleRestoreData = (restoredData) => {
+  if (!restoredData) return;
+  try {
+    if (restoredData.habits && Array.isArray(restoredData.habits)) {
+      localHabits.value = restoredData.habits;
+    }
+    if (restoredData.historicalHabits && Array.isArray(restoredData.historicalHabits)) {
+      allHistoricalHabits.value = restoredData.historicalHabits;
+    }
+    if (restoredData.biometrics) {
+      biomarkersState.value = {
+        stiffnessMin: restoredData.biometrics.stiffnessMin || 0,
+        energyRating: restoredData.biometrics.energyRating || 8,
+        note: restoredData.biometrics.note || '',
+      };
+      if (restoredData.biometrics.hydrationMl !== undefined) {
+        hydrationMlState.value = restoredData.biometrics.hydrationMl;
+      }
+    }
+    if (restoredData.weeklyReview) {
+      weeklyReview.value = { ...weeklyReview.value, ...restoredData.weeklyReview };
+    }
+    saveState();
+    calculateHistoricalTotals();
+    showToast('✨ Backup restored and synced successfully!');
+  } catch (err) {
+    console.error('Failed to apply restored data:', err);
+    showToast('⚠️ Error applying restored backup data');
+  }
+};
+
+// ── Milestone 4: Shared Partner Emote Broadcaster ──
+const handleSendPartnerEmote = async (emote) => {
+  if (!emote) return;
+  const sender = displayName.value;
+  await broadcastPartnerEvent({
+    type: 'partner_emote',
+    partner: sender,
+    emoteId: emote.id,
+    label: emote.label,
+    message: emote.message,
+  }, pairChannelId.value);
+  fireDualCannons();
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([25, 50, 25]);
+  }
+};
+
+// Circadian Day Type Cycling Engine (Home, Office Mon/Mid/Fri, Flat, Travel, Rest)
+const cycleDayType = () => {
   const nextType = getNextDayType(dayType.value);
   dayType.value = nextType;
   // Re-apply state seamlessly with new fallback preset while PRESERVING all completed_days and historical data
@@ -1306,6 +2374,7 @@ const toggleTravelMode = () => {
     navigator.vibrate(20);
   }
 };
+const toggleTravelMode = cycleDayType; // Backward-compatible alias
 
 // ── PWA Due Now Notification & Background 1-Tap Action Hook ──
 const {
@@ -1326,6 +2395,8 @@ const {
   hasCompletedDay,
   onCompleteHabit: markHabitCompletedDirectly,
   habitTimeSchedule,
+  adherenceRate: consistencyScore,
+  streak: systemStreak,
 });
 
 const handleToggleDueNowNotifications = async () => {
@@ -1370,24 +2441,117 @@ const handleSendTestNotification = async () => {
 };
 
 // ── Native Android Home Screen Widget Sync Hook ──
-const { syncNativeWidget, getNativeWidgetData } = useNativeWidget();
+const { syncNativeWidget, getNativeWidgetData, drainNativeZoetiQueue } = useNativeWidget();
+
+const buildHabitScheduleMap = () => {
+  const map = {};
+  for (const h of (localHabits.value || [])) {
+    const s = getScheduleForHabit(h);
+    if (s) {
+      map[String(h.id)] = s;
+    }
+  }
+  return map;
+};
+
 const pushToNativeWidget = () => {
   try {
+    const scheduleMap = buildHabitScheduleMap();
+    const enrichedHabits = (localHabits.value || []).map(h => {
+      const s = scheduleMap[String(h.id)] || getScheduleForHabit(h);
+      return {
+        id: String(h.id),
+        name: h.name,
+        points: h.points ?? 1,
+        completed_days: h.completed_days || [],
+        startTime: h.startTime || s?.start || null,
+        endTime: h.endTime || s?.end || null,
+        hint: h.hint || h.instruction || h.description || '',
+      };
+    });
+
+    const adherenceVal = Number(consistencyScore.value) || 0;
+    const streakVal = Number(systemStreak.value?.currentStreak || systemStreak.value?.current || 0);
+    const directiveStr = isAshish.value
+      ? 'Target 3.5L-4.0L hydration with pink salt & hourly posture decompression.'
+      : isJyoti.value
+        ? 'Morning natural sunlight within 30m & gentle joint mobility flow.'
+        : 'Maintain peak protocol consistency.';
+
     syncNativeWidget({
       userId: effectiveUserId.value,
-      habits: localHabits.value || [],
-      schedule: habitTimeSchedule || {},
-      streak: systemStreak.value?.currentStreak || systemStreak.value?.current || 0,
+      habits: enrichedHabits,
+      schedule: scheduleMap,
+      streak: streakVal,
       todayPoints: todayPoints.value ?? 0,
+      adherenceRate: adherenceVal,
+      complianceStatus: performanceGrade.value?.grade ? `${performanceGrade.value.grade} Grade (${adherenceVal}%)` : 'Active Protocol',
+      clinicalDirective: directiveStr,
     });
   } catch (e) {
     console.warn('Widget sync error:', e);
   }
 };
 
-watch([localHabits, todayPoints, systemStreak], () => {
-  pushToNativeWidget();
+let isWidgetReconciled = !Capacitor.isNativePlatform();
+
+const reconcileNativeWidget = async () => {
+  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) {
+    isWidgetReconciled = true;
+    return;
+  }
+  try {
+    // 1. Drain pending native ZoetiCoach events into web queue & flush
+    await drainNativeZoetiQueue();
+
+    // 2. Read widget SharedPreferences to synchronize any habits marked done from widget
+    const nativeData = await getNativeWidgetData();
+    if (nativeData?.habitsJson) {
+      const widgetHabits = JSON.parse(nativeData.habitsJson);
+      if (Array.isArray(widgetHabits)) {
+        let modified = false;
+        for (const wh of widgetHabits) {
+          const match = (localHabits.value || []).find(h => String(h.id) === String(wh.id));
+          if (match && Array.isArray(wh.completed_days)) {
+            for (const dayNum of wh.completed_days) {
+              if (!match.completed_days.includes(dayNum)) {
+                match.completed_days.push(dayNum);
+                modified = true;
+              }
+            }
+          }
+        }
+        if (modified) {
+          saveState();
+        }
+      }
+    }
+  } catch (err) {
+    console.debug('Reconcile native widget note:', err);
+  } finally {
+    isWidgetReconciled = true;
+    pushToNativeWidget();
+  }
+};
+
+watch([localHabits, todayPoints, systemStreak, consistencyScore, dayType, activeProtocol], () => {
+  if (isWidgetReconciled) {
+    pushToNativeWidget();
+  }
 }, { deep: true });
+
+onMounted(async () => {
+  await reconcileNativeWidget();
+  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    try {
+      App.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          await reconcileNativeWidget();
+        }
+      });
+    } catch {}
+  }
+});
 
 const isShareModalOpen = ref(false);
 
@@ -1401,23 +2565,6 @@ const todayCompletedHabitsList = computed(() => {
 const shareDailyScorecard = () => {
   isShareModalOpen.value = true;
 };
-
-// ── Real-Time Routine Phase Window Helper ──
-const currentRoutineWindow = computed(() => {
-  const now = currentClock.value;
-  const mins = now.getHours() * 60 + now.getMinutes();
-  if (mins < 9 * 60) {
-    return { name: 'Morning Protocol', time: '04:45 – 09:00', icon: '🌅' };
-  } else if (mins < 14 * 60) {
-    return { name: 'Deep Execution Block', time: '09:00 – 14:00', icon: '⚡' };
-  } else if (mins < 18 * 60 + 30) {
-    return { name: 'Midday & Operations Block', time: '14:00 – 18:30', icon: '☀️' };
-  } else if (mins < 21 * 60 + 30) {
-    return { name: 'Evening Routine & Shutdown', time: '18:30 – 21:30', icon: '🌙' };
-  } else {
-    return { name: 'Night Wind-down & Rest', time: '21:30+', icon: '✨' };
-  }
-});
 
 // ── Quick Productivity Launchers ──
 const startQuickFocus = (minutes = 25) => {
@@ -1528,7 +2675,7 @@ const applyLoadedState = (data, isRemote = false) => {
       return { ...h, completed_days: days };
     });
 
-  localHabits.value = [...mergedSystemHabits, ...customHabits];
+  localHabits.value = applyTaxonomyHabitOrder([...mergedSystemHabits, ...customHabits]);
 
   // 3. Keep master historical archive of all unique completed habits
   const historicalUniqueMap = new Map();
@@ -1548,24 +2695,81 @@ const applyLoadedState = (data, isRemote = false) => {
   }
   allHistoricalHabits.value = Array.from(historicalUniqueMap.values());
 
-  if (Array.isArray(data.rewards)) rewards.value = data.rewards;
+  if (Array.isArray(data.rewards)) {
+    rewards.value = data.rewards.map((r, idx) => ({
+      id: r.id || `rew-saved-${idx}-${Date.now()}`,
+      type: r.type || 'Weekly',
+      item: r.item || '',
+      cost: Number(r.cost) || 10,
+    }));
+  }
+  if (Array.isArray(data.coupleSynergyRewards)) {
+    coupleSynergyRewards.value = data.coupleSynergyRewards.map((r, idx) => ({
+      id: r.id || `couple-reward-${idx}-${Date.now()}`,
+      item: r.item || '',
+      type: r.type || 'Couple Synergy',
+      cost: Number(r.cost) || 0,
+      description: r.description || '',
+      icon: r.icon || '🎁',
+    }));
+  }
   if (Array.isArray(data.rewardLedger)) rewardLedger.value = data.rewardLedger;
   if (data.progressiveSettings) progressiveSettings.value = { ...progressiveSettings.value, ...data.progressiveSettings };
   if (data.enhancedState) enhancedState.value = { ...enhancedState.value, ...data.enhancedState };
+  if (data.weeklyReview && typeof data.weeklyReview === 'object') {
+    const defaultRev = createDefaultWeeklyReview();
+    weeklyReview.value = {
+      ...defaultRev,
+      ...data.weeklyReview,
+      metrics: {
+        ...defaultRev.metrics,
+        ...(data.weeklyReview.metrics || {}),
+      },
+      reflections: {
+        ...defaultRev.reflections,
+        ...(data.weeklyReview.reflections || {}),
+      },
+      checks: Array.isArray(data.weeklyReview.checks) ? data.weeklyReview.checks : defaultRev.checks,
+      coupleChecks: Array.isArray(data.weeklyReview.coupleChecks) ? data.weeklyReview.coupleChecks : defaultRev.coupleChecks,
+      coupleReflections: {
+        ...defaultRev.coupleReflections,
+        ...(data.weeklyReview.coupleReflections || {}),
+      },
+    };
+  }
   if (data.dayType !== undefined) dayType.value = data.dayType;
   else if (data.travelMode !== undefined) dayType.value = data.travelMode ? 'office-mon' : 'home'; // Migrate legacy
-  if (data.darkMode !== undefined) darkMode.value = data.darkMode;
+  darkMode.value = false;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('habuilt_theme', 'light');
+  }
+  if (data.biomarkers && typeof data.biomarkers === 'object') {
+    biomarkersState.value = { ...biomarkersState.value, ...data.biomarkers };
+  }
+  if (data.hydration_ml !== undefined) {
+    hydrationMlState.value = Number(data.hydration_ml) || 0;
+  } else if (data.hydrationMl !== undefined) {
+    hydrationMlState.value = Number(data.hydrationMl) || 0;
+  }
+  if (Array.isArray(data.claimedSynergyRewards)) {
+    claimedSynergyRewards.value = data.claimedSynergyRewards;
+  }
 
   try {
     const payload = {
       habits: localHabits.value,
       allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
       rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
@@ -1578,30 +2782,149 @@ const applyLoadedState = (data, isRemote = false) => {
   }, 50);
 };
 
+let debouncedSaveTimeout = null;
+const debouncedSaveState = (delayMs = 400) => {
+  try {
+    const payload = {
+      habits: localHabits.value,
+      allHistoricalHabits: allHistoricalHabits.value,
+      rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
+      rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
+      progressiveSettings: progressiveSettings.value,
+      enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
+      dayType: dayType.value,
+      darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
+      updated_at: new Date().toISOString(),
+    };
+    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
+  } catch { /* offline fallback */ }
+
+  if (debouncedSaveTimeout) clearTimeout(debouncedSaveTimeout);
+  debouncedSaveTimeout = setTimeout(() => {
+    saveState();
+  }, delayMs);
+};
+
 const saveState = async () => {
   try {
     const payload = {
       habits: localHabits.value,
       allHistoricalHabits: allHistoricalHabits.value,
       rewards: rewards.value,
+      coupleSynergyRewards: coupleSynergyRewards.value,
       rewardLedger: rewardLedger.value,
+      claimedSynergyRewards: claimedSynergyRewards.value,
       progressiveSettings: progressiveSettings.value,
       enhancedState: enhancedState.value,
+      weeklyReview: weeklyReview.value,
       dayType: dayType.value,
       darkMode: darkMode.value,
+      biomarkers: biomarkersState.value,
+      hydration_ml: hydrationMlState.value,
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(localStateKey.value, JSON.stringify(payload));
     pushToNativeWidget();
     if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
       await saveUserMonthlyState(effectiveUserId.value, monthScope.value, payload);
+      await saveUserSettings(effectiveUserId.value, payload);
     }
   } catch (err) {
     console.warn('Failed to save dashboard state:', err);
   }
 };
 
-const PRESET_VERSION = '2026-08-25-v11-history-protection';
+const lifetimeData = ref(null);
+
+// ── Cross-Month Points, Wallet & Lifetime History Calculator ──
+const calculateHistoricalTotals = async () => {
+  let earnedBefore = 0;
+  let redeemedBefore = 0;
+  const currentKey = monthScope.value;
+  const allMonthlyRows = [];
+
+  // 1. Scan LocalStorage for all months saved for this user
+  try {
+    const prefix = `habuilt.dashboard.${effectiveUserId.value}.`;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        const monthKey = k.replace(prefix, '');
+        if (/^\d{4}-\d{2}$/.test(monthKey)) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              allMonthlyRows.push({ month_key: monthKey, state_data: parsed });
+            } catch {}
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('LocalStorage historical scan warning:', e);
+  }
+
+  // 2. Fetch remote months from Supabase if logged in
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    try {
+      const remoteMonths = await loadAllUserMonthlyStates(effectiveUserId.value);
+      if (Array.isArray(remoteMonths)) {
+        remoteMonths.forEach(rm => {
+          if (rm && rm.month_key && rm.state_data) {
+            const existingIdx = allMonthlyRows.findIndex(r => r.month_key === rm.month_key);
+            if (existingIdx > -1) {
+              allMonthlyRows[existingIdx] = rm;
+            } else {
+              allMonthlyRows.push(rm);
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Remote historical months fetch warning:', e);
+    }
+  }
+
+  // 3. Aggregate prior months (month_key < currentKey)
+  allMonthlyRows.forEach(row => {
+    if (!row || !row.month_key || row.month_key >= currentKey) return;
+    const data = row.state_data;
+    if (!data) return;
+
+    const habits = getMonthlyHabits(data);
+    habits.forEach(h => {
+      const pts = Number(h.points) || 1;
+      const cd = getHabitCompletedDays(h);
+      earnedBefore += pts * cd.length;
+    });
+
+    const ledger = Array.isArray(data.rewardLedger) ? data.rewardLedger : [];
+    redeemedBefore += ledger.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+  });
+
+  earnedBeforeCurrentMonth.value = earnedBefore;
+  redeemedBeforeCurrentMonth.value = redeemedBefore;
+
+  // 4. Compute comprehensive lifetime stats across all months
+  try {
+    lifetimeData.value = computeLifetimeStats(allMonthlyRows, {
+      year: props.year,
+      month: props.month,
+      day: props.currentDay,
+      habits: localHabits.value,
+    });
+  } catch (e) {
+    console.warn('Lifetime stats computation warning:', e);
+  }
+};
+
+const PRESET_VERSION = '2026-10-14-v14-ashish-master-full-aligned';
 
 const loadLocalState = () => {
   try {
@@ -1610,7 +2933,7 @@ const loadLocalState = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       // Auto-detect day type from office calendar if not explicitly saved
-      if (parsed.dayType === undefined && isAshish.value) {
+      if (parsed.dayType === undefined && (isAshish.value || isAshishProtocol.value)) {
         parsed.dayType = getDayType(new Date());
       }
       applyLoadedState(parsed, false);
@@ -1619,7 +2942,7 @@ const loadLocalState = () => {
         saveState();
       }
     } else {
-      if (isAshish.value) {
+      if (isAshish.value || isAshishProtocol.value) {
         dayType.value = getDayType(new Date());
       }
       localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
@@ -1627,11 +2950,12 @@ const loadLocalState = () => {
       saveState();
     }
   } catch {
-    if (isAshish.value) {
+    if (isAshish.value || isAshishProtocol.value) {
       dayType.value = getDayType(new Date());
     }
     localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
   }
+  calculateHistoricalTotals();
   drainQueuedCompletions?.();
 };
 
@@ -1641,6 +2965,14 @@ watch(fallbackHabits, (newFallbacks) => {
   }
 }, { deep: true });
 
+watch(monthScope, async (newScope, oldScope) => {
+  if (newScope && newScope !== oldScope) {
+    loadLocalState();
+    await calculateHistoricalTotals();
+    await syncCloudState(true);
+  }
+});
+
 const syncCloudState = async (force = false) => {
   const now = Date.now();
   if (!force && now - lastSyncTimestamp < 10000) return;
@@ -1648,11 +2980,66 @@ const syncCloudState = async (force = false) => {
 
   try {
     isSyncingCloud.value = true;
-    const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
-    if (remoteData) {
-      applyLoadedState(remoteData, true);
-      lastSyncTimestamp = Date.now();
+
+    // 1. First, attempt to load from normalized habit_check_ins ledger
+    const ledgerRows = await loadMonthCheckIns(effectiveUserId.value, monthScope.value);
+    if (Array.isArray(ledgerRows) && ledgerRows.length > 0) {
+      const habitDayMap = new Map();
+      ledgerRows.forEach(row => {
+        const hid = String(row.habit_id);
+        if (!habitDayMap.has(hid)) habitDayMap.set(hid, new Set());
+        habitDayMap.get(hid).add(Number(row.day));
+      });
+
+      localHabits.value = (localHabits.value || []).map(h => {
+        const hid = String(h.id);
+        const canonKey = getCanonicalHabitKey(h.name);
+        const set = habitDayMap.get(hid) || new Set();
+        return {
+          ...h,
+          completed_days: Array.from(set).sort((a, b) => a - b),
+        };
+      });
+    } else {
+      // Fallback to legacy monthly state document
+      const remoteData = await loadUserMonthlyState(effectiveUserId.value, monthScope.value);
+      if (remoteData) {
+        applyLoadedState(remoteData, true);
+        // Silently backfill to the new normalized ledger
+        silentBackfillLegacyState(effectiveUserId.value, monthScope.value, localHabits.value);
+      }
     }
+
+    // 2. Load user settings & reviews
+    const settingsData = await loadUserSettings(effectiveUserId.value);
+    if (settingsData) {
+      if (settingsData.day_type) dayType.value = settingsData.day_type;
+      darkMode.value = false;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('habuilt_theme', 'light');
+      }
+      if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
+      if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
+      if (Array.isArray(settingsData.reward_ledger)) rewardLedger.value = settingsData.reward_ledger;
+      if (settingsData.weekly_reviews) weeklyReview.value = { ...weeklyReview.value, ...settingsData.weekly_reviews };
+      if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
+      if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
+      if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
+    }
+
+    // 3. Load latest daily biomarker from user_biomarkers
+    const todayDate = new Date();
+    const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    const latestBio = await loadLatestBiomarker(effectiveUserId.value, todayIso);
+    if (latestBio) {
+      if (latestBio.stiffness_minutes !== undefined) biomarkersState.value.stiffnessMin = Number(latestBio.stiffness_minutes);
+      if (latestBio.hydration_ml !== undefined) hydrationMlState.value = Number(latestBio.hydration_ml);
+      if (latestBio.energy_level !== undefined) biomarkersState.value.energyRating = Number(latestBio.energy_level);
+      if (latestBio.notes) biomarkersState.value.note = latestBio.notes;
+    }
+
+    lastSyncTimestamp = Date.now();
+    await calculateHistoricalTotals();
   } catch (err) {
     console.warn('Cloud sync on open failed:', err);
   } finally {
@@ -1781,11 +3168,25 @@ const startEditingRewards = () => {
     item: r.item || '',
     cost: Number(r.cost) !== undefined && !isNaN(Number(r.cost)) ? Number(r.cost) : 10,
   }));
+
+  const coupleSource = (coupleSynergyRewards.value && coupleSynergyRewards.value.length > 0)
+    ? coupleSynergyRewards.value
+    : defaultCoupleSynergyRewards;
+  coupleSynergyRewardsDraft.value = coupleSource.map((r, idx) => ({
+    id: r.id || `couple-reward-${Date.now()}-${idx}`,
+    type: r.type || 'Couple Synergy',
+    item: r.item || '',
+    cost: 0,
+    description: r.description || '',
+    icon: r.icon || '🎁',
+  }));
+
   rewardsEditing.value = true;
 };
 
 const cancelEditingRewards = () => {
   rewardsEditing.value = false;
+  coupleSynergyRewardsDraft.value = [];
 };
 
 const saveRewardsCatalog = () => {
@@ -1801,8 +3202,36 @@ const saveRewardsCatalog = () => {
   if (sanitized.length > 0) {
     rewards.value = sanitized;
   }
+
+  const sanitizedCouple = (coupleSynergyRewardsDraft.value || [])
+    .filter(r => r.item && r.item.trim().length > 0)
+    .map(r => ({
+      id: r.id || `couple-reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'Couple Synergy',
+      item: r.item.trim(),
+      cost: 0,
+      description: r.description ? r.description.trim() : '',
+      icon: r.icon && r.icon.trim().length > 0 ? r.icon.trim() : '🎁',
+    }));
+
+  let coupleUpdated = false;
+  if (sanitizedCouple.length > 0) {
+    coupleSynergyRewards.value = sanitizedCouple;
+    coupleUpdated = true;
+  }
+
   rewardsEditing.value = false;
   saveState();
+
+  if (coupleUpdated && isPartnerPaired.value) {
+    broadcastPartnerEvent({
+      type: 'partner_couple_rewards_update',
+      rewards: coupleSynergyRewards.value,
+      by: displayName.value,
+    }, pairChannelId.value);
+  }
+
+  showToast('✅ Rewards catalog updated successfully!');
 };
 
 const restoreDefaultRewards = () => {
@@ -1812,6 +3241,27 @@ const restoreDefaultRewards = () => {
   }));
   rewardsEditing.value = false;
   saveState();
+  showToast('🔄 Restored default personal rewards!');
+};
+
+const restoreDefaultSynergyRewards = () => {
+  coupleSynergyRewards.value = defaultCoupleSynergyRewards.map((r, i) => ({
+    id: `default-couple-reward-${i}`,
+    ...r,
+  }));
+  coupleSynergyRewardsDraft.value = defaultCoupleSynergyRewards.map((r, i) => ({
+    id: `default-couple-reward-${i}`,
+    ...r,
+  }));
+  saveState();
+  if (isPartnerPaired.value) {
+    broadcastPartnerEvent({
+      type: 'partner_couple_rewards_update',
+      rewards: coupleSynergyRewards.value,
+      by: displayName.value,
+    }, pairChannelId.value);
+  }
+  showToast('🔄 Restored default couple synergy rewards!');
 };
 
 const addDraftReward = () => {
@@ -1827,14 +3277,92 @@ const removeDraftReward = (index) => {
   rewardsDraft.value.splice(index, 1);
 };
 
+const addDraftSynergyReward = () => {
+  coupleSynergyRewardsDraft.value.push({
+    id: `couple-reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: 'Couple Synergy',
+    item: '',
+    cost: 0,
+    description: '',
+    icon: '🎁',
+  });
+};
+
+const removeDraftSynergyReward = (index) => {
+  coupleSynergyRewardsDraft.value.splice(index, 1);
+};
+
+const isRewardClaimedThisMonth = (rewardId) => {
+  if (!rewardId) return false;
+  const targetReward = (rewards.value || []).find(r => r.id === rewardId);
+  const isOneTimeType = targetReward && ['Month', 'Monthly', 'Quarter', 'Quarterly', 'Half-Yr', 'Half-Year', 'Yearly'].includes(targetReward.type);
+  if (!isOneTimeType) return false; // Daily and Weekly rewards are repeatable
+  return (rewardLedger.value || []).some(entry => entry.reward_id === rewardId || (targetReward && entry.item === targetReward.item));
+};
+
+const handleRedeemReward = (r) => {
+  if (!r) return;
+  if (availableWallet.value < r.cost) {
+    showToast('❌ Not enough points in wallet to redeem this reward.');
+    return;
+  }
+  const isOneTimeType = ['Month', 'Monthly', 'Quarter', 'Quarterly', 'Half-Yr', 'Half-Year', 'Yearly'].includes(r.type);
+  if (isOneTimeType && isRewardClaimedThisMonth(r.id)) {
+    showToast('⚠️ This reward has already been claimed for this month.');
+    return;
+  }
+  const rewardId = r.id || `reward-${Date.now()}`;
+  rewardLedger.value.unshift({
+    id: Date.now(),
+    reward_id: rewardId,
+    item: r.item,
+    cost: Number(r.cost) || 0,
+    type: r.type || 'Weekly',
+    month_scope: monthScope.value,
+    claimed_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  });
+  saveState();
+  showToast(`🎉 Claimed: ${r.item} (-${r.cost} pts)`);
+};
+
 // Month Navigation
 const goToPreviousMonth = () => {
   if (!props.canNavigatePrevMonth) return;
-  router.visit(`/?month=${props.previousMonth.month}&year=${props.previousMonth.year}`);
+  const target = props.previousMonth;
+  try {
+    if (typeof window !== 'undefined' && window.__inertia_app) {
+      router.visit(`/?month=${target.month}&year=${target.year}`);
+      return;
+    }
+  } catch (e) {
+    console.warn('Inertia navigation skipped, using SPA event navigation:', e);
+  }
+  emit('navigate-month', target);
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', target.month);
+    url.searchParams.set('year', target.year);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 const goToNextMonth = () => {
   if (!props.canNavigateNextMonth) return;
-  router.visit(`/?month=${props.nextMonth.month}&year=${props.nextMonth.year}`);
+  const target = props.nextMonth;
+  try {
+    if (typeof window !== 'undefined' && window.__inertia_app) {
+      router.visit(`/?month=${target.month}&year=${target.year}`);
+      return;
+    }
+  } catch (e) {
+    console.warn('Inertia navigation skipped, using SPA event navigation:', e);
+  }
+  emit('navigate-month', target);
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', target.month);
+    url.searchParams.set('year', target.year);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 
 // SPA URL Tab Synchronization
@@ -1844,6 +3372,8 @@ const syncTabWithUrl = () => {
     const tab = params.get('tab');
     if (tab && ['today', 'focus', 'stats', 'rewards'].includes(tab)) {
       activeMobileTab.value = tab;
+    } else if (!tab) {
+      activeMobileTab.value = 'today';
     }
   } catch { /* URL param fallback */ }
 };
@@ -1858,10 +3388,13 @@ const handlePopState = (e) => {
 
 let clockInterval = null;
 let cloudSyncInterval = null;
+let partnerHeartbeatInterval = null;
+let nativeBackButtonHandle = null;
 
 const handleAppResume = async () => {
-  // 1. Immediately update clock time
+  // 1. Immediately update clock time and partner heartbeat
   updateCurrentClock();
+  sendPartnerHeartbeat();
 
   // 2. Check if date rolled over midnight
   const now = new Date();
@@ -1915,6 +3448,21 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(() => {
+  // Check for shared protocol import in URL hash (#import-protocol=base64)
+  if (typeof window !== 'undefined' && window.location.hash.includes('#import-protocol=')) {
+    try {
+      const hashData = window.location.hash.split('#import-protocol=')[1];
+      const decoded = decodeProtocolFromHash(hashData);
+      if (decoded) {
+        importProtocolJson(decoded);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        showToast(`Imported shared protocol: ${decoded.name}`);
+      }
+    } catch (e) {
+      console.warn('Failed to import protocol from URL hash:', e);
+    }
+  }
+
   if (props.isCurrentMonth) {
     mobileSelectedDay.value = props.currentDay;
   }
@@ -1934,8 +3482,17 @@ onMounted(() => {
   window.addEventListener('popstate', handlePopState);
   window.addEventListener('focus', handleAppResume);
   window.addEventListener('pageshow', handleAppResume);
-  window.addEventListener('online', () => syncCloudState(true));
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  window.addEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
+  window.addEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
+  updateOfflineQueueCount();
+  window.addEventListener('keydown', handleZenKeyDown);
   document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleSwPeriodicSync);
+  }
 
   // ── Desktop PWA Install Prompt Capture (Chrome / Edge / Windows) ──
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -1949,22 +3506,216 @@ onMounted(() => {
     showToast('🎉 Habuilt Desktop App ready!');
   });
 
+  // ── Realtime Multi-Device Check-In Subscription ──
+  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+    realtimeCheckInsChannel = subscribeToHabitCheckIns(effectiveUserId.value, ({ eventType, new: newRec, old: oldRec }) => {
+      if (eventType === 'INSERT' && newRec && newRec.month_key === monthScope.value) {
+        const targetHabitId = String(newRec.habit_id);
+        const targetDay = Number(newRec.day);
+        let updated = false;
+        localHabits.value = (localHabits.value || []).map(h => {
+          if (String(h.id) === targetHabitId) {
+            const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+            if (!cds.includes(targetDay)) {
+              updated = true;
+              return { ...h, completed_days: [...cds, targetDay].sort((a, b) => a - b) };
+            }
+          }
+          return h;
+        });
+        if (updated) {
+          calculateHistoricalTotals();
+        }
+      } else if (eventType === 'DELETE' && oldRec && oldRec.month_key === monthScope.value) {
+        const targetHabitId = String(oldRec.habit_id);
+        const targetDay = Number(oldRec.day);
+        let updated = false;
+        localHabits.value = (localHabits.value || []).map(h => {
+          if (String(h.id) === targetHabitId) {
+            const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
+            if (cds.includes(targetDay)) {
+              updated = true;
+              return { ...h, completed_days: cds.filter(d => d !== targetDay) };
+            }
+          }
+          return h;
+        });
+        if (updated) {
+          calculateHistoricalTotals();
+        }
+      }
+    });
+
+    // ── Realtime Partner Connection Sync Listener ──
+    realtimePartnerChannel = subscribeToPartnerConnection(effectiveUserId.value, async (payload) => {
+      if (payload?.new && payload.new.status === 'connected') {
+        const partnerName = payload.new.alias || (payload.new.partner_user_id === 'ashish' ? 'Ashish' : (payload.new.partner_user_id === 'jyoti' ? 'Jyoti' : 'Partner'));
+        showToast(`🤝 Connected with ${partnerName}! Real-time synchronization active. ✨`, 4500);
+        firePartnerCelebration();
+        const updated = await getPartnerConnection(effectiveUserId.value);
+        if (updated) {
+          activePartnerConnection.value = updated;
+          refreshPartnerLiveMetrics();
+        }
+      } else if (payload?.new && payload.new.status === 'revoked') {
+        activePartnerConnection.value = null;
+        refreshPartnerLiveMetrics();
+        showToast('Partner connection unlinked. Switched to Standalone mode.');
+      }
+    });
+
+    // ── Realtime Couple Broadcast Listener ──
+    const handlePartnerBroadcastMessage = (msg) => {
+      const sender = msg.partner || msg.from || msg.by || 'Partner';
+      const isOwn = (msg.userId === effectiveUserId.value) ||
+                    (sender && sender.toLowerCase() === displayName.value.toLowerCase());
+
+      if (msg && (msg.type === 'shared_habit_done' || msg.type === 'habit_completed')) {
+        if (!isOwn) {
+          showToast(`🌸 ${sender} completed "${msg.habitName}"! (+${msg.points} pts) ✨`, 4500);
+          firePartnerCelebration();
+          playSharedAnchorSync();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([25, 50, 25]);
+          }
+          dispatchPartnerNotification({
+            title: `🌸 ${sender} crushed "${msg.habitName}"! (+${msg.points || 1} pts)`,
+            body: 'Keep your warrior momentum synced! Tap to open your protocol.',
+          });
+          refreshPartnerLiveMetrics();
+        }
+      } else if (msg && msg.type === 'partner_unpair') {
+        showToast(`Partner (${sender}) unlinked. Switched to Standalone mode.`);
+        activePartnerConnection.value = null;
+        refreshPartnerLiveMetrics();
+      } else if (msg && msg.type === 'warrior_high_five') {
+        if (!isOwn) {
+          showToast(`🙌 ${sender} just sent you a Warrior High-Five! Keep conquering! ⚡`, 5000);
+          fireDualCannons();
+          playPartnerHighFive();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([50, 100, 50, 100]);
+          }
+          dispatchPartnerNotification({
+            title: `🙌 High-Five from ${sender}!`,
+            body: `${sender} sent you warrior energy! Keep conquering today's habits.`,
+          });
+        }
+      } else if (msg && msg.type === 'partner_emote') {
+        if (!isOwn) {
+          showToast(`${msg.label || '💌'} ${sender} ${msg.message || 'sent you encouragement!'}`, 5500);
+          fireDualCannons();
+          playPartnerEmote();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([35, 70, 35, 70]);
+          }
+          dispatchPartnerNotification({
+            title: `${msg.label || '💌'} ${sender}`,
+            body: `${sender} ${msg.message || 'sent you encouragement!'}`,
+          });
+        }
+      } else if (msg && msg.type === 'partner_heartbeat') {
+        if (!isOwn) {
+          const windowName = msg.window || 'Active Protocol';
+          partnerPresence.value = {
+            isOnline: true,
+            lastSeen: Date.now(),
+            currentWindow: windowName,
+            statusLabel: `Active in ${windowName}`,
+          };
+        }
+      } else if (msg && msg.type === 'partner_nudge') {
+        if (!isOwn) {
+          const nudge = msg.nudge || {};
+          showToast(`${nudge.icon || '🔔'} ${sender}: ${nudge.label || 'Gentle Nudge'} — ${nudge.message || 'Stay focused!'}`, 5500);
+          playPartnerNudge();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([40, 80, 40]);
+          }
+          dispatchPartnerNotification({
+            title: `${nudge.icon || '🔔'} ${nudge.label || 'Partner Nudge'} from ${sender}`,
+            body: nudge.message || 'Stay focused and conquer your protocol!',
+          });
+          const windowName = msg.window || 'Active Protocol';
+          partnerPresence.value = {
+            isOnline: true,
+            lastSeen: Date.now(),
+            currentWindow: windowName,
+            statusLabel: `Active in ${windowName}`,
+          };
+        }
+      } else if (msg && msg.type === 'partner_synergy_claim') {
+        if (!isOwn) {
+          showToast(`🎉 ${sender} claimed Couple Synergy Reward: "${msg.reward}"! Celebrated together! ❤️`, 6000);
+          playSharedAnchorSync();
+          fireDualCannons();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([50, 100, 50, 100]);
+          }
+        }
+      } else if (msg && msg.type === 'partner_couple_rewards_update') {
+        if (!isOwn && Array.isArray(msg.rewards)) {
+          coupleSynergyRewards.value = msg.rewards;
+          saveState();
+          showToast(`🎁 ${sender} updated the Couple Synergy Rewards catalog!`, 4000);
+        }
+      }
+    };
+
+    coupleLiveChannel = initCoupleBroadcastChannel(handlePartnerBroadcastMessage, pairChannelId.value);
+
+    // Initial heartbeat pulse and 25s recurring presence cycle
+    sendPartnerHeartbeat();
+    partnerHeartbeatInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      sendPartnerHeartbeat();
+      if (partnerPresence.value.isOnline && partnerPresence.value.lastSeen && (Date.now() - partnerPresence.value.lastSeen > 45000)) {
+        partnerPresence.value.isOnline = false;
+        partnerPresence.value.statusLabel = 'Offline';
+      }
+    }, 25000);
+  }
+
   // ── Native Android Hardware / Gesture Back Button Handler ──
   if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
     let lastBackPressTime = 0;
     try {
       App.addListener('backButton', () => {
-        // 1. Close any open modal dialogs
-        if (isMorningSetupOpen.value) {
-          isMorningSetupOpen.value = false;
+        // 1. Close any open modal dialogs or drawers
+        if (isSpotlightOpen.value) {
+          isSpotlightOpen.value = false;
           return;
         }
-        if (isHabitEditorOpen.value) {
-          isHabitEditorOpen.value = false;
+        if (isDataBackupModalOpen.value) {
+          isDataBackupModalOpen.value = false;
+          return;
+        }
+        if (isCalendarSyncModalOpen.value) {
+          isCalendarSyncModalOpen.value = false;
+          return;
+        }
+        if (isHabitFormModalOpen.value) {
+          closeHabitFormModal();
+          return;
+        }
+        if (habitsEditing.value) {
+          habitsEditing.value = false;
+          return;
+        }
+        if (rewardsEditing.value) {
+          rewardsEditing.value = false;
+          return;
+        }
+        if (isAppInstallModalOpen.value) {
+          isAppInstallModalOpen.value = false;
           return;
         }
         if (isShareModalOpen.value) {
           isShareModalOpen.value = false;
+          return;
+        }
+        if (partnerViewOpen.value) {
+          partnerViewOpen.value = false;
           return;
         }
         if (weeklyReviewExpanded.value) {
@@ -1975,12 +3726,8 @@ onMounted(() => {
           tierDetailHabitId.value = null;
           return;
         }
-        if (Object.values(habitNotesOpen.value).some(Boolean)) {
-          habitNotesOpen.value = {};
-          return;
-        }
-        if (mobileHeroExpanded.value) {
-          mobileHeroExpanded.value = false;
+        if (habitNotesOpen.value) {
+          habitNotesOpen.value = null;
           return;
         }
 
@@ -2007,67 +3754,53 @@ onMounted(() => {
             navigator.vibrate(20);
           }
         }
+      }).then(handle => {
+        nativeBackButtonHandle = handle;
+      }).catch(e => {
+        console.warn('Capacitor backButton listener attach error:', e);
       });
     } catch (e) {
-      console.warn('Native back button registration:', e);
+      console.warn('Capacitor backButton listener error:', e);
     }
   }
 });
 
 onBeforeUnmount(() => {
+  if (nativeBackButtonHandle) {
+    try { nativeBackButtonHandle.remove(); } catch {}
+    nativeBackButtonHandle = null;
+  }
   if (clockInterval) clearInterval(clockInterval);
   if (cloudSyncInterval) clearInterval(cloudSyncInterval);
+  if (partnerHeartbeatInterval) clearInterval(partnerHeartbeatInterval);
+  if (realtimeCheckInsChannel) {
+    try { realtimeCheckInsChannel.unsubscribe(); } catch {}
+  }
+  if (realtimePartnerChannel) {
+    try { realtimePartnerChannel.unsubscribe(); } catch {}
+  }
+  if (coupleLiveChannel) {
+    try { coupleLiveChannel.unsubscribe(); } catch {}
+  }
   window.removeEventListener('popstate', handlePopState);
   window.removeEventListener('focus', handleAppResume);
   window.removeEventListener('pageshow', handleAppResume);
+  window.removeEventListener('online', handleOnline);
+  window.removeEventListener('offline', handleOffline);
+  window.removeEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
+  window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
+  window.removeEventListener('keydown', handleZenKeyDown);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', handleSwPeriodicSync);
+  }
 });
 </script>
 
 <template>
   <AppLayout :title="appName">
-    <!-- Global Floating Action Feedback Toast -->
-    <transition name="toast-fade">
-      <div v-if="toastMessage" class="global-toast-banner" role="status" aria-live="polite">
-        <span class="global-toast-text">{{ toastMessage }}</span>
-      </div>
-    </transition>
-
-    <!-- Pinned Top Deep Work Timer Bar -->
-    <div v-if="timerState && activeMobileTab !== 'focus'" class="deep-timer" :class="{ 'deep-timer--running': timerState.running }">
-      <div class="deep-timer__bar">
-        <div class="deep-timer__left">
-          <span class="deep-timer__pulse"></span>
-          <span class="deep-timer__icon"><Timer class="icon-sm" /></span>
-          <span class="deep-timer__time mono-num">{{ timerElapsedFormatted }}</span>
-          <span class="deep-timer__target mono-num">/ {{ timerState.targetMin }}m</span>
-          <span v-if="timerLinkedHabit" class="deep-timer__linked">
-            🎯 {{ timerLinkedHabit.name }}
-          </span>
-          <span v-else-if="timerState.isBreak" class="deep-timer__linked deep-timer__linked--break">
-            ☕ Break
-          </span>
-        </div>
-        <div class="deep-timer__right">
-          <div class="deep-timer__progress-bar">
-            <div class="deep-timer__progress-fill" :style="{ width: timerProgressPct + '%' }"></div>
-          </div>
-          <button v-if="!timerState.running" class="deep-timer__btn" @click="resumeDeepWorkTimer">
-            <Play class="icon-xs" />
-          </button>
-          <button v-if="timerState.running" class="deep-timer__btn" @click="pauseDeepWorkTimer">
-            <Pause class="icon-xs" />
-          </button>
-          <button class="deep-timer__btn deep-timer__btn--danger" @click="stopDeepWorkTimer">
-            <X class="icon-xs" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Compact Bar (Top Summary + Live UP NEXT for Today tab) -->
+    <!-- Mobile Compact Bar (Persistent across Today, Focus, Stats & Rewards tabs) -->
     <MobileCompactBar
-      v-if="activeMobileTab === 'today'"
       :time-greeting="timeGreeting"
       :performance-grade="performanceGrade"
       :system-streak="systemStreak"
@@ -2080,23 +3813,115 @@ onBeforeUnmount(() => {
       :up-next-habit-info="upNextHabitInfo"
       :has-completed-day="hasCompletedDay"
       :is-ashish="isAshish"
+      :display-name="displayName"
       :travel-mode="travelMode"
       :day-type="dayType"
       :day-type-label="getDayTypeLabel(dayType)"
-      :dark-mode="darkMode"
+      :zen-mode="zenMode"
       :is-syncing="isSyncingCloud"
       :notifications-supported="notificationsSupported"
       :due-now-notifications-enabled="dueNowNotificationsEnabled"
+      :tier-thresholds="tierThresholds"
+      :is-guest-active="isGuestActive"
       @toggle-up-next="toggleHabitForDay"
-      @toggle-theme="toggleTheme"
+      @toggle-zen="toggleZenMode"
       @toggle-travel="toggleTravelMode"
       @share-scorecard="shareDailyScorecard"
       @reload-app="handleAppReload"
       @toggle-notifications="handleToggleDueNowNotifications"
+      @open-spotlight="openSpotlight"
+      @open-calendar-sync="isCalendarSyncModalOpen = true"
+      @open-partner-sync="partnerViewOpen = true"
+      @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+      @open-protocol-wizard="isProtocolWizardOpen = true"
+      @sign-out="emit('sign-out')"
+    />
+
+    <!-- Pinned Floating Deep Work Timer HUD -->
+    <div
+      v-if="timerState && activeMobileTab !== 'focus'"
+      class="deep-timer"
+      :class="{
+        'deep-timer--running': timerState.running,
+        'deep-timer--paused': !timerState.running,
+        'deep-timer--break': timerState.isBreak,
+      }"
+      role="region"
+      aria-label="Active Focus Timer HUD"
+    >
+      <div class="deep-timer__bar">
+        <div
+          class="deep-timer__left"
+          @click="activeMobileTab = 'focus'"
+          title="Open Focus Workstation"
+          role="button"
+          tabindex="0"
+          @keydown.enter="activeMobileTab = 'focus'"
+        >
+          <span class="deep-timer__pulse" aria-hidden="true"></span>
+          <span class="deep-timer__icon"><Timer class="icon-sm" /></span>
+          <span class="deep-timer__time mono-num">{{ timerElapsedFormatted }}</span>
+          <span class="deep-timer__target mono-num">/ {{ timerState.targetMin }}m</span>
+          <span v-if="timerLinkedHabit" class="deep-timer__linked" :title="timerLinkedHabit.name">
+            🎯 {{ timerLinkedHabit.name }}
+          </span>
+          <span v-else-if="timerState.isBreak" class="deep-timer__linked deep-timer__linked--break">
+            ☕ Break
+          </span>
+        </div>
+        <div class="deep-timer__right">
+          <div
+            class="deep-timer__progress-bar"
+            :title="`${timerProgressPct}% complete (${timerRemainingFormatted} remaining)`"
+          >
+            <div class="deep-timer__progress-fill" :style="{ width: timerProgressPct + '%' }"></div>
+          </div>
+          <button
+            v-if="!timerState.running"
+            type="button"
+            class="deep-timer__btn"
+            @click="resumeDeepWorkTimer"
+            title="Resume Focus Timer"
+            aria-label="Resume Focus Timer"
+          >
+            <Play class="icon-xs" />
+          </button>
+          <button
+            v-if="timerState.running"
+            type="button"
+            class="deep-timer__btn"
+            @click="pauseDeepWorkTimer"
+            title="Pause Focus Timer"
+            aria-label="Pause Focus Timer"
+          >
+            <Pause class="icon-xs" />
+          </button>
+          <button
+            type="button"
+            class="deep-timer__btn deep-timer__btn--danger"
+            @click="stopDeepWorkTimer"
+            title="Stop & Dismiss Timer"
+            aria-label="Stop Timer"
+          >
+            <X class="icon-xs" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
+    <StickyMiniHud
+      :show-sticky-hud="showStickyHud"
+      :today-points="todayPoints"
+      :today-possible-daily-points="todayPossibleDailyPoints"
+      :system-streak="systemStreak"
+      :hud-time-label="hudTimeLabel"
+      :zen-mode="zenMode"
+      :up-next-habit-info="upNextHabitInfo"
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
-    <div class="dashboard-flow" :class="{ 'dark-mode': darkMode }">
+    <div class="dashboard-flow" :class="{ 'dashboard-flow--zen': zenMode }">
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
         class="card card--hero mobile-tab-hero"
@@ -2105,7 +3930,12 @@ onBeforeUnmount(() => {
         <TopCommandBar
           :is-jyoti="isJyoti"
           :is-ashish="isAshish"
+          :is-guest-active="isGuestActive"
           :display-name="displayName"
+          :active-protocol-name="activeProtocolDisplayName"
+          :all-protocols="allProtocols"
+          :active-protocol-id="activeProtocolId"
+          :is-partner-paired="isPartnerPaired"
           :level-data="levelData"
           :level-title="levelTitle"
           :total-x-p="totalXP"
@@ -2117,250 +3947,109 @@ onBeforeUnmount(() => {
           :is-navigating-month="isNavigatingMonth"
           :month-label="monthLabel"
           :year="props.year"
-          :dark-mode="darkMode"
+          :zen-mode="zenMode"
           :active-tab="activeMobileTab"
           :timer-running="timerState && timerState.running"
           :notifications-enabled="dueNowNotificationsEnabled"
+          :partner-presence="partnerPresence"
+          :circadian-phase="circadianPhase"
+          :active-circadian-mode="activeCircadianMode"
+          @cycle-circadian="handleCycleCircadianAtmosphere"
           @set-tab="tab => activeMobileTab = tab"
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
-          @toggle-theme="toggleTheme"
+          @sign-out="emit('sign-out')"
+          @toggle-zen="toggleZenMode"
           @open-install-modal="isAppInstallModalOpen = true"
+          @open-spotlight="openSpotlight"
+          @open-calendar-sync="isCalendarSyncModalOpen = true"
+          @open-partner-sync="partnerViewOpen = true"
+          @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+          @open-protocol-wizard="isProtocolWizardOpen = true"
+          @open-protocol-settings="isProtocolSettingsOpen = true"
+          @switch-protocol="handleQuickSwitchProtocol"
         />
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
-        <div class="hero-executive-deck">
-          <!-- Left Column: Greeting, Routine Phase, Live Up Next & Quick Actions -->
-          <div class="hero-deck-left">
-            <div class="hero-greeting-text">
-              <div class="hero-greeting-title">
-                <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
-                <span class="hero-greeting-wave">👋</span>
-                <span class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-                
-                <!-- Live Routine Phase Window Pill -->
-                <div class="hero-routine-pill" :title="`Active Routine Window: ${currentRoutineWindow.name} (${currentRoutineWindow.time})`">
-                  <span class="hero-routine-pill__icon">{{ currentRoutineWindow.icon }}</span>
-                  <span class="hero-routine-pill__name">{{ currentRoutineWindow.name }}</span>
-                  <span class="hero-routine-pill__time mono-num">{{ currentRoutineWindow.time }}</span>
-                </div>
-              </div>
-              <p class="hero-greeting-quote">
-                {{ timeGreeting.quote }}
-              </p>
-            </div>
-
-            <!-- Live Up Next / Due Now Action Strip -->
-            <div
-              v-if="props.isCurrentMonth && upNextHabitInfo && !hasCompletedDay(upNextHabitInfo.habit, props.currentDay)"
-              class="hero-upnext-strip"
-            >
-              <div class="hero-upnext-tag" :class="{ 'hero-upnext-tag--due': upNextHabitInfo.status === 'due' }">
-                <Clock class="icon-xs" />
-                <span>{{ upNextHabitInfo.shortBadge }}</span>
-              </div>
-              <div class="hero-upnext-info">
-                <span class="hero-upnext-name">{{ upNextHabitInfo.habit.name }}</span>
-                <span class="hero-upnext-time mono-num">{{ upNextHabitInfo.timeLabel }}</span>
-              </div>
-              <button
-                type="button"
-                class="hero-upnext-action-btn"
-                @click="toggleHabitForDay(upNextHabitInfo.habit, props.currentDay)"
-                :title="`Mark '${upNextHabitInfo.habit.name}' as completed (+${upNextHabitInfo.habit.points} XP)`"
-              >
-                <Check class="icon-xs" />
-                <span>Mark Done (+{{ upNextHabitInfo.habit.points }}pt)</span>
-              </button>
-            </div>
-
-            <div
-              v-else-if="props.isCurrentMonth && todayScheduledCount > 0 && todayCompletedCount >= todayScheduledCount"
-              class="hero-upnext-strip hero-upnext-strip--all-done"
-            >
-              <div class="hero-upnext-tag hero-upnext-tag--done">
-                <Crown class="icon-xs" />
-                <span>ALL PROTOCOLS MET</span>
-              </div>
-              <span class="hero-upnext-done-msg">🏆 Elite execution! All {{ todayScheduledCount }} scheduled habits completed for today.</span>
-            </div>
-
-            <!-- Quick Productivity Launchers -->
-            <div class="hero-quick-launchers">
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--focus"
-                @click="startQuickFocus(25)"
-                title="Launch a 25-minute Pomodoro Deep Work Focus Session"
-              >
-                <Timer class="icon-xs" />
-                <span>{{ timerState && timerState.running ? 'Focus Active' : 'Start 25m Focus' }}</span>
-                <span v-if="timerState && timerState.running" class="hero-launch-btn__pulse"></span>
-              </button>
-
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--share"
-                @click="shareDailyScorecard"
-                title="Generate and Share your Daily Scorecard"
-              >
-                <Share2 class="icon-xs" />
-                <span>Share Scorecard</span>
-              </button>
-
-              <button
-                type="button"
-                class="hero-launch-btn hero-launch-btn--sync"
-                @click="handleAppReload"
-                :title="isSyncingCloud ? 'Syncing with Supabase cloud database...' : 'Manual Sync Database'"
-              >
-                <RefreshCw class="icon-xs" :class="{ 'animate-spin': isSyncingCloud }" />
-                <span>{{ isSyncingCloud ? 'Syncing...' : 'Sync' }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right Column: Today's Protocol Command Card -->
-          <div class="hero-deck-right">
-            <div class="hero-protocol-card">
-              <div class="hero-protocol-card__header">
-                <div class="hero-protocol-card__title">
-                  <Shield class="icon-sm icon-gold" />
-                  <span>Today's Protocol</span>
-                </div>
-                <div class="hero-protocol-card__score-chip">
-                  <span class="hero-protocol-card__current mono-num">{{ todayPoints }}</span>
-                  <span class="hero-protocol-card__target mono-num">/ 15 pts</span>
-                </div>
-              </div>
-
-              <!-- Segmented Milestone Gauge Bar -->
-              <div class="hero-milestone-gauge">
-                <div
-                  class="hero-milestone-gauge__fill"
-                  :style="{ width: `${Math.min(100, Math.round((todayPoints / 15) * 100))}%` }"
-                ></div>
-              </div>
-
-              <!-- 3 Milestone Tier Chips (Clean Horizontal Grid) -->
-              <div class="hero-protocol-tiers-grid">
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 4 }"
-                  :title="todayPoints >= 4 ? 'Floor Safe (Streak & Baseline Protected)' : `Need ${4 - todayPoints} more pts for Floor`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Shield class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Floor</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 4 ? '✓ Safe' : `${todayPoints}/4p` }}
-                  </div>
-                </div>
-
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 8 }"
-                  :title="todayPoints >= 8 ? 'Half Protocol Achieved (Solid Execution)' : `Need ${8 - todayPoints} more pts for Half`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Zap class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Half</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 8 ? '✓ Hit' : `${todayPoints}/8p` }}
-                  </div>
-                </div>
-
-                <div
-                  class="hero-tier-card"
-                  :class="{ 'hero-tier-card--met': todayPoints >= 15 }"
-                  :title="todayPoints >= 15 ? 'Full Target Achieved (Elite Performance)' : `Need ${15 - todayPoints} more pts for Full`"
-                >
-                  <div class="hero-tier-card__head">
-                    <Trophy class="icon-xs hero-tier-card__icon" />
-                    <span class="hero-tier-card__title">Full</span>
-                  </div>
-                  <div class="hero-tier-card__status mono-num">
-                    {{ todayPoints >= 15 ? '👑 Peak' : `${todayPoints}/15p` }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HeroExecutiveDeck
+          :time-greeting="timeGreeting"
+          :performance-grade="performanceGrade"
+          :current-routine-window="currentRoutineWindow"
+          :up-next-habit-info="upNextHabitInfo"
+          :is-current-month="props.isCurrentMonth"
+          :current-day="props.currentDay"
+          :today-points="todayPoints"
+          :today-completed-count="todayCompletedCount"
+          :today-scheduled-count="todayScheduledCount"
+          :tier-thresholds="tierThresholds"
+          :timer-state="timerState"
+          :is-syncing-cloud="isSyncingCloud"
+          :has-completed-day="hasCompletedDay"
+          @toggle-up-next="toggleHabitForDay"
+          @start-focus="startQuickFocus"
+          @share-scorecard="shareDailyScorecard"
+          @sync-app="handleAppReload"
+        />
 
         <!-- ── Mission Control Row 2: Executive 4-Card KPI Ribbon ── -->
-        <div class="hero-kpi-ribbon">
-          <!-- Card 1: System Streak -->
-          <div class="hero-kpi-card hero-kpi-card--streak" :title="`Current Streak: ${systemStreak.current} Days | Longest: ${systemStreak.longest || systemStreak.current} Days`">
-            <div class="hero-kpi-card__icon-wrap">
-              <Flame class="hero-kpi-card__icon icon-flame" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">System Streak</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ systemStreak.current }}</span>
-                <span class="hero-kpi-card__unit">Days</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span class="hero-kpi-card__sub-highlight mono-num">Best {{ systemStreak.longest || systemStreak.current }}d</span> • Protected
-              </span>
-            </div>
-          </div>
-
-          <!-- Card 2: Reward Vault / Available Wallet -->
-          <div class="hero-kpi-card hero-kpi-card--wallet" :title="`${availableWallet} Points Available in Reward Vault • Click to open Vault`" @click="activeMobileTab = 'rewards'">
-            <div class="hero-kpi-card__icon-wrap">
-              <Award class="hero-kpi-card__icon icon-vault-gold" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Reward Vault</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ availableWallet }}</span>
-                <span class="hero-kpi-card__unit">pts</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span class="hero-kpi-card__sub-highlight mono-num">+{{ monthlyTotalEarned }}</span> this month
-              </span>
-            </div>
-          </div>
-
-          <!-- Card 3: Monthly Stickiness -->
-          <div class="hero-kpi-card hero-kpi-card--consistency" :title="`Monthly Stickiness: ${consistencyScore}% (Grade: ${consistencyGrade.grade || 'D'}) • Click for Analytics`" @click="activeMobileTab = 'stats'">
-            <div class="hero-kpi-card__icon-wrap">
-              <TrendingUp class="hero-kpi-card__icon icon-teal" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Monthly Consistency</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ consistencyScore }}%</span>
-                <span class="hero-kpi-card__badge mono-num" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
-              </div>
-              <span class="hero-kpi-card__subtext">{{ performanceGrade.text || 'Target: 85%+ Consistency' }}</span>
-            </div>
-          </div>
-
-          <!-- Card 4: Daily Execution -->
-          <div class="hero-kpi-card hero-kpi-card--today" :title="`${todayCompletedCount} of ${todayScheduledCount} habits completed today`" @click="activeMobileTab = 'today'">
-            <div class="hero-kpi-card__icon-wrap">
-              <CheckCircle2 class="hero-kpi-card__icon icon-emerald" />
-            </div>
-            <div class="hero-kpi-card__body">
-              <span class="hero-kpi-card__label">Today's Habits</span>
-              <div class="hero-kpi-card__value-row">
-                <span class="hero-kpi-card__value mono-num">{{ todayCompletedCount }}/{{ todayScheduledCount }}</span>
-                <span class="hero-kpi-card__unit mono-num">({{ todayScheduledCount > 0 ? Math.round((todayCompletedCount / todayScheduledCount) * 100) : 0 }}%)</span>
-              </div>
-              <span class="hero-kpi-card__subtext">
-                <span v-if="todayScheduledCount - todayCompletedCount > 0" class="hero-kpi-card__sub-highlight">{{ todayScheduledCount - todayCompletedCount }} pending</span>
-                <span v-else class="hero-kpi-card__sub-done">🎉 All Done Today!</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <ExecutiveKpiRibbon
+          :system-streak="systemStreak"
+          :available-wallet="availableWallet"
+          :monthly-total-earned="monthlyTotalEarned"
+          :consistency-score="consistencyScore"
+          :performance-grade="performanceGrade"
+          :today-completed-count="todayCompletedCount"
+          :today-scheduled-count="todayScheduledCount"
+          @navigate-tab="tab => activeMobileTab = tab"
+        />
       </section>
+
+      <!-- ── SECTION: ZOETICOACH LIVE ADHERENCE & AI INSIGHTS HUD ── -->
+      <ZoetiCoachAdherenceHud
+        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :user-id="effectiveUserId"
+        :display-name="displayName"
+        :current-day="props.currentDay"
+        :consistency-score="consistencyScore"
+        :system-streak="systemStreak"
+        :today-completed-count="todayCompletedCount"
+        :today-scheduled-count="todayScheduledCount"
+        :today-habits="todayScheduledHabits"
+        @toast="p => showToast(typeof p === 'string' ? p : p.message)"
+      />
+
+      <!-- ── SECTION: WARRIOR INTELLIGENCE COCKPIT (Circadian Battle Plan, Keystone Analysis & Biometrics) ── -->
+      <WarriorIntelligenceCockpit
+        ref="cockpitRef"
+        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :partner-name="partnerDisplayName"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :current-day="props.currentDay"
+        :today-points="todayPoints"
+        :today-completed-count="todayCompletedCount"
+        :today-scheduled-count="todayScheduledCount"
+        :today-habits="todayScheduledHabits"
+        :all-habits="localHabits"
+        :system-streak="systemStreak"
+        :performance-grade="performanceGrade"
+        :has-completed-day="hasCompletedDay"
+        :biomarkers="biomarkersState"
+        :hydration-ml="hydrationMlState"
+        :tier-thresholds="tierThresholds"
+        :consistency-score="consistencyScore"
+        @send-high-five="sendWarriorHighFive"
+        @update-biomarkers="handleUpdateBiomarkers"
+        @update-hydration="handleUpdateHydration"
+        @open-data-backup="isDataBackupModalOpen = true"
+        @toast="msg => showToast(msg)"
+      />
 
       <!-- ── SECTION: DEDICATED DEEP WORK FOCUS STATION (Focus Tab on Mobile) ── -->
       <DeepWorkStation
@@ -2377,10 +4066,16 @@ onBeforeUnmount(() => {
         :timer-habit-options="timerHabitOptions"
         :current-day="props.currentDay"
         :has-completed-day="hasCompletedDay"
+        :soundscape-type="soundscapeType"
+        :soundscape-volume="soundscapeVolume"
+        :is-soundscape-playing="isSoundscapePlaying"
         @update:custom-timer-min="val => customTimerMin = val"
         @update:timer-launcher-duration="val => timerLauncherDuration = val"
         @update:timer-launcher-habit-id="val => timerLauncherHabitId = val"
         @update:timer-sound-enabled="val => timerSoundEnabled = val"
+        @set-soundscape-type="setSoundscapeType"
+        @update-soundscape-volume="updateSoundscapeVolume"
+        @toggle-soundscape-manual="toggleSoundscapeManual"
         @start-timer="startDeepWorkTimer"
         @pause-timer="pauseDeepWorkTimer"
         @resume-timer="resumeDeepWorkTimer"
@@ -2428,6 +4123,19 @@ onBeforeUnmount(() => {
           @save="saveHabits"
         />
 
+        <!-- Zen Focus Mode Active Notice & Fast Exit Bar -->
+        <div v-if="zenMode" class="dashboard-flow--zen-banner">
+          <span>🧘 <strong>Zen Flow Mode Active</strong> — Secondary executive cards hidden. Focused on today's execution.</span>
+          <button
+            type="button"
+            class="dashboard-flow--zen-banner__btn"
+            @click="toggleZenMode"
+            title="Exit Zen Mode (Press Z)"
+          >
+            Exit Zen Mode (Z)
+          </button>
+        </div>
+
         <!-- Mobile Daily Checklist View -->
         <TodayChecklist
           :mobile-day="mobileDay"
@@ -2439,9 +4147,9 @@ onBeforeUnmount(() => {
           :active-time-filter="activeTimeFilter"
           :time-slot-counts="timeSlotCounts"
           :time-slot-completed="timeSlotCompleted"
+          :time-slot-definitions="dynamicTimeSlotDefinitions"
           :get-current-time-block="getCurrentTimeBlock"
           :is-ashish="isAshish"
-          :travel-mode="travelMode"
           :mobile-day-completed="mobileDayCompleted"
           :total-habits="mobileDayTotalHabits"
           :mobile-day-points="mobileDayPoints"
@@ -2467,8 +4175,10 @@ onBeforeUnmount(() => {
           :get-habit-note="getHabitNote"
           :on-touch-start="onTouchStart"
           :on-touch-end="onTouchEnd"
+          :current-day="props.currentDay"
           @prev-day="mobilePrevDay"
           @next-day="mobileNextDay"
+          @set-day="setMobileDay"
           @go-today="mobileGoToday"
           @update:active-time-filter="val => activeTimeFilter = val"
           @toggle-schedule-filter="scheduleFilterMode = (scheduleFilterMode === 'scheduled' ? 'all' : 'scheduled')"
@@ -2483,6 +4193,8 @@ onBeforeUnmount(() => {
           @set-note="setHabitNote"
           @add-habit="openAddHabitModal"
           @edit-habit="openEditHabitModal"
+          @batch-complete-slot="handleBatchCompleteSlot"
+          @open-protocol-wizard="isProtocolWizardOpen = true"
         />
 
         <!-- Desktop Month Grid Table -->
@@ -2504,7 +4216,6 @@ onBeforeUnmount(() => {
           :cell-aria-label="cellAriaLabel"
           :cell-tooltip="cellTooltip"
           :get-day-total="getDayTotal"
-          :mobile-view-mode="mobileViewMode"
           @toggle-cell="toggleHabitForDay"
         />
       </section>
@@ -2534,15 +4245,22 @@ onBeforeUnmount(() => {
           :total-x-p="totalXP"
           :available-wallet="availableWallet"
           :monthly-total-earned="monthlyTotalEarned"
-          :daily-average="todayPoints"
-          :target-daily-points="targetDailyPoints"
           :heatmap-data="heatmapData"
           :hovered-heatmap-day="hoveredHeatmapDay"
           :hovered-heatmap-cell="hoveredHeatmapCell"
           :habit-streaks="habitStreaks"
           :milestone-badges="milestoneBadges"
+          :biomarkers="biomarkersState"
+          :hydration-ml="hydrationMlState"
+          :month-scope="monthScope"
+          :month="props.month"
+          :year="props.year"
+          :current-day="props.currentDay"
+          :habits="localHabits"
+          :display-name="displayName"
           @update:hovered-heatmap-day="val => hoveredHeatmapDay = val"
           @select-heatmap-day="day => mobileSelectedDay = day"
+          @toast="msg => showToast(msg)"
         />
       </section>
 
@@ -2571,8 +4289,16 @@ onBeforeUnmount(() => {
           :active-rewards="rewards"
           :reward-ledger="rewardLedger"
           :is-redeeming="false"
-          :is-claimed-this-month="() => false"
+          :is-claimed-this-month="isRewardClaimedThisMonth"
           :can-afford-reward="r => availableWallet >= r.cost"
+          :is-partner-paired="isPartnerPaired"
+          :partner-display-name="partnerDisplayName"
+          :alignment-score="partnerAlignmentScore || 0"
+          :combined-weekly-points="combinedWeeklyPoints"
+          :is-synergy-unlocked="isCoupleSynergyUnlocked"
+          :claimed-synergy-rewards="claimedSynergyRewards"
+          :active-couple-synergy-rewards="coupleSynergyRewards"
+          :couple-synergy-rewards-draft="coupleSynergyRewardsDraft"
           @toggle-expand="() => {}"
           @start-editing="startEditingRewards"
           @cancel-editing="cancelEditingRewards"
@@ -2580,7 +4306,11 @@ onBeforeUnmount(() => {
           @restore-default-rewards="restoreDefaultRewards"
           @add-draft-reward="addDraftReward"
           @remove-draft-reward="removeDraftReward"
-          @redeem-reward="r => { rewardLedger.push({ id: Date.now(), item: r.item, cost: r.cost, claimed_at: new Date().toLocaleDateString() }); saveState(); }"
+          @redeem-reward="handleRedeemReward"
+          @redeem-synergy-reward="handleRedeemSynergyReward"
+          @add-draft-synergy-reward="addDraftSynergyReward"
+          @remove-draft-synergy-reward="removeDraftSynergyReward"
+          @restore-default-synergy-rewards="restoreDefaultSynergyRewards"
         />
       </section>
 
@@ -2597,15 +4327,83 @@ onBeforeUnmount(() => {
           :weekly-points="calculatePastWeekPoints()"
           :monthly-points="monthlyTotalEarned"
           :weekly-review="weeklyReview"
+          :is-partner-paired="isPartnerPaired"
+          :partner-display-name="partnerDisplayName"
+          :partner-points="partnerPointsToday || 0"
+          :shared-anchors="dynamicSharedAnchors"
+          :alignment-score="partnerAlignmentScore || 0"
           @toggle-expand="weeklyReviewExpanded = !weeklyReviewExpanded"
           @fill-metrics="fillSundayMetrics"
           @save-review="saveState"
+          @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+          @open-reward-vault="handleOpenRewardVault"
+          @toast="msg => showToast(msg)"
         />
       </section>
 
-      <!-- Global Floating Toast Notification -->
+      <!-- Offline State & Background Sync Indicator Pill -->
+      <transition name="offline-pill-fade">
+        <div
+          v-if="isOffline"
+          id="offline-status-pill"
+          class="offline-pill"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="offline-pill__content">
+            <span class="offline-pill__icon" aria-hidden="true">
+              <WifiOff class="icon-xs" />
+            </span>
+            <div class="offline-pill__text">
+              <span class="offline-pill__title">Offline Mode</span>
+              <span class="offline-pill__sub">
+                {{ offlineQueuedCount > 0 ? `${offlineQueuedCount} action${offlineQueuedCount > 1 ? 's' : ''} queued locally` : 'Changes saved locally' }}
+              </span>
+            </div>
+          </div>
+          <button
+            id="btn-offline-sync-now"
+            type="button"
+            class="offline-pill__sync-btn"
+            :disabled="isManualSyncing"
+            @click="handleManualOfflineSync"
+            title="Attempt network reconnect & sync pending check-ins"
+            aria-label="Sync offline changes now"
+          >
+            <RefreshCw class="icon-xs" :class="{ 'animate-spin': isManualSyncing }" />
+            <span>{{ isManualSyncing ? 'Syncing...' : 'Sync Now' }}</span>
+          </button>
+        </div>
+      </transition>
+
+      <!-- Global Floating Toast Notification & Optimistic Undo Capsule -->
       <transition name="toast-fade">
-        <div v-if="toastMessage" class="habuilt-floating-toast">
+        <div v-if="undoToastAction" class="habuilt-floating-toast habuilt-floating-toast--undo" role="alert">
+          <span class="habuilt-floating-toast__badge">
+            <CheckSquare v-if="!undoToastAction.wasDone" class="icon-xs" />
+            <RotateCcw v-else class="icon-xs" />
+          </span>
+          <span class="habuilt-floating-toast__msg">
+            <template v-if="!undoToastAction.wasDone">
+              Marked <strong>{{ undoToastAction.habitName }}</strong> done (+{{ undoToastAction.points }} pts)
+            </template>
+            <template v-else>
+              Unchecked <strong>{{ undoToastAction.habitName }}</strong>
+            </template>
+          </span>
+          <button
+            type="button"
+            class="habuilt-floating-toast__undo-btn"
+            @click="executeUndo"
+            title="Undo this action"
+          >
+            Undo (5s)
+          </button>
+          <div class="habuilt-floating-toast__progress-bar">
+            <div class="habuilt-floating-toast__progress-fill"></div>
+          </div>
+        </div>
+        <div v-else-if="toastMessage" class="habuilt-floating-toast" role="status" aria-live="polite">
           <span>{{ toastMessage }}</span>
         </div>
       </transition>
@@ -2626,8 +4424,14 @@ onBeforeUnmount(() => {
         :performance-grade="performanceGrade"
         :completed-habits-list="todayCompletedHabitsList"
         :date-label="mobileDayIsToday ? '' : mobileDayLabel"
+        :is-partner-paired="isPartnerPaired"
+        :partner-display-name="partnerDisplayName"
+        :partner-points="partnerPointsToday || 0"
+        :shared-anchors="dynamicSharedAnchors"
+        :alignment-score="partnerAlignmentScore || 0"
         @close="isShareModalOpen = false"
         @toast="msg => showToast(msg)"
+        @open-partner-pair="isUniversalPartnerPairModalOpen = true"
       />
 
       <!-- Single Habit Add/Edit Modal (Time Pickers, Custom Schedule & Points) -->
@@ -2635,6 +4439,8 @@ onBeforeUnmount(() => {
         :is-open="isHabitFormModalOpen"
         :habit="editingHabitTarget"
         :default-slot="defaultSlotForNewHabit"
+        :active-protocol-id="activeProtocolId || activeProtocol?.id || 'default'"
+        :user-id="effectiveUserId"
         @close="closeHabitFormModal"
         @save="handleSaveHabitForm"
         @delete="handleDeleteHabitFromForm"
@@ -2653,6 +4459,157 @@ onBeforeUnmount(() => {
         @toggle-notifications="handleToggleDueNowNotifications"
         @test-notification="handleSendTestNotification"
       />
+
+      <!-- Spotlight Command Palette Modal (Cmd+K / Ctrl+K) -->
+      <SpotlightCommandModal
+        :is-open="isSpotlightOpen"
+        :habits="todayScheduledHabits"
+        :has-completed-day="hasCompletedDay"
+        :current-day="props.currentDay"
+        :is-ashish="isAshish"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :active-tab="activeMobileTab"
+        :due-now-notifications-enabled="dueNowNotificationsEnabled"
+        @close="isSpotlightOpen = false"
+        @open="isSpotlightOpen = true"
+        @toggle-habit="habit => toggleHabitForDay(habit, props.currentDay)"
+        @start-timer="(min, hId) => { activeMobileTab = 'focus'; startDeepWorkTimer(min, hId); }"
+        @set-tab="tab => activeMobileTab = tab"
+        @toggle-zen="toggleZenMode"
+        @toggle-travel="toggleTravelMode"
+        @open-add-habit="() => openAddHabitModal('morning')"
+        @open-share-scorecard="() => isShareModalOpen = true"
+        @toggle-notifications="handleToggleDueNowNotifications"
+        @trigger-celebration="() => fireTierMilestone('full')"
+        @open-backup="isDataBackupModalOpen = true"
+        @open-calendar-sync="isCalendarSyncModalOpen = true"
+        @open-partner-sync="partnerViewOpen = true"
+        @open-partner-pair="isUniversalPartnerPairModalOpen = true"
+        @open-protocol-wizard="isProtocolWizardOpen = true"
+        @open-protocol-settings="isProtocolSettingsOpen = true"
+        @switch-protocol="handleQuickSwitchProtocol"
+        @open-clinical-report="activeMobileTab = 'stats'"
+        @play-tactical-briefing="handlePlayTacticalBriefingFromSpotlight"
+      />
+
+      <!-- Data Portability & Backup Hub Modal (JSON snapshot & RFC 4180 CSV export) -->
+      <DataBackupModal
+        :is-open="isDataBackupModalOpen"
+        :local-habits="localHabits"
+        :all-historical-habits="allHistoricalHabits"
+        :month-scope="monthScope"
+        :year="props.year"
+        :month="props.month"
+        :available-wallet="availableWallet"
+        :system-streak="systemStreak"
+        :weekly-review="weeklyReview"
+        :biomarkers="biomarkersState"
+        :hydration-ml="hydrationMlState"
+        @close="isDataBackupModalOpen = false"
+        @toast="msg => showToast(msg)"
+        @restore-data="handleRestoreData"
+      />
+
+      <!-- Calendar Focus Projection Modal (Google & Outlook / Apple .ics sync) -->
+      <CalendarSyncModal
+        :is-open="isCalendarSyncModalOpen"
+        :day-type="dayType"
+        :day-type-label="getDayTypeLabel(dayType)"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :year="props.year"
+        :month="props.month"
+        :current-day="props.currentDay"
+        @close="isCalendarSyncModalOpen = false"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Shared Couple Cockpit Modal (Live Peer Visibility & Emote Cheers) -->
+      <PartnerSyncModal
+        :is-open="partnerViewOpen"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :partner-name="partnerDisplayName"
+        :partner-completed-count="partnerCompletedCountToday"
+        :partner-total-count="partnerTotalHabitsCount"
+        :partner-points="partnerPointsToday"
+        :current-day="props.currentDay"
+        :shared-anchors="dynamicSharedAnchors"
+        :alignment-score="partnerAlignmentScore"
+        :is-offline="partnerLiveOffline"
+        :partner-presence="partnerPresence"
+        @close="partnerViewOpen = false"
+        @send-emote="handleSendPartnerEmote"
+        @send-nudge="handleSendPartnerNudge"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Dynamic Protocol Builder & Onboarding Wizard Modal -->
+      <ProtocolWizardModal
+        :is-open="isProtocolWizardOpen"
+        :current-protocol="activeProtocol"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        @close="isProtocolWizardOpen = false"
+        @activate="handleActivateCustomProtocol"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Protocol Settings & Dynamic Scoring Tiers Modal -->
+      <ProtocolSettingsModal
+        :is-open="isProtocolSettingsOpen"
+        :progressive-settings="progressiveSettings"
+        :tier-thresholds="tierThresholds"
+        :today-possible-daily-points="todayPossibleDailyPoints"
+        :time-slot-definitions="dynamicTimeSlotDefinitions"
+        :all-protocols="allProtocols"
+        :custom-protocols="customProtocols"
+        :active-protocol="activeProtocol"
+        :active-protocol-id="activeProtocolId || activeProtocol?.id || 'default'"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        :display-name="displayName"
+        :habits="visibleHabits"
+        :user-id="effectiveUserId"
+        @close="isProtocolSettingsOpen = false"
+        @save-settings="handleSaveProtocolSettings"
+        @update-habits="handleUpdateProtocolHabits"
+        @switch-protocol="handleQuickSwitchProtocol"
+        @create-protocol="handleActivateCustomProtocol"
+        @clone-protocol="handleCloneProtocol"
+        @delete-protocol="handleDeleteProtocol"
+        @import-protocol="handleImportProtocol"
+        @open-wizard="isProtocolWizardOpen = true"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Universal Partner Pairing Modal (Invite Code, Link, QR & Peer Link) -->
+      <UniversalPartnerPairModal
+        :is-open="isUniversalPartnerPairModalOpen"
+        :user-id="effectiveUserId"
+        :display-name="displayName"
+        :is-ashish="isAshish"
+        :is-jyoti="isJyoti"
+        @close="isUniversalPartnerPairModalOpen = false"
+        @paired="handlePartnerPaired"
+        @unpaired="handlePartnerUnpaired"
+        @toast="msg => showToast(msg)"
+      />
+
+      <!-- Android Floating Action Button (FAB) for Quick Add Habit -->
+      <button
+        v-if="activeMobileTab === 'today'"
+        id="mobile-habits-fab"
+        type="button"
+        class="mobile-fab"
+        @click="openAddHabitModal('morning')"
+        aria-label="Add Habit"
+        title="Add Habit"
+      >
+        <Plus class="mobile-fab__icon" />
+      </button>
 
       <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
       <MobileBottomNav

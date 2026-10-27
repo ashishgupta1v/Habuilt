@@ -1,12 +1,35 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
+import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
-const authLoading = ref(true);
+const props = defineProps({
+  appName: { type: String, default: 'Warrior Tracker (Habuilt)' },
+  today: { type: String, default: '' },
+  month: { type: Number, default: 0 },
+  year: { type: Number, default: 0 },
+  monthDays: { type: Number, default: 31 },
+  currentDay: { type: Number, default: 1 },
+  isCurrentMonth: { type: Boolean, default: true },
+  isFutureMonth: { type: Boolean, default: false },
+  canNavigatePrevMonth: { type: Boolean, default: true },
+  canNavigateNextMonth: { type: Boolean, default: true },
+  previousMonth: { type: Object, default: () => ({ month: 1, year: 2026 }) },
+  nextMonth: { type: Object, default: () => ({ month: 1, year: 2026 }) },
+  userId: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
+  wallet: { type: Number, default: 0 },
+  habits: { type: Array, default: () => [] },
+  staticPreview: { type: Boolean, default: false },
+});
+
+const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
+const isGuestPreCheck = typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
+const authLoading = ref(!cachedUserJson && !isGuestPreCheck);
 
 // PWA Install prompt
 const deferredPrompt = ref(null);
@@ -70,31 +93,146 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
-const isGuestActive = ref(localStorage.getItem('habuilt_guest_mode') === 'true');
+const isGuestActive = ref(typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
 
-const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
 let initialUser = null;
-try { initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null; } catch { initialUser = null; }
+try {
+  const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
+  initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null;
+} catch {
+  initialUser = null;
+}
 if (!initialUser && isGuestActive.value) {
   initialUser = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
 }
 const activeUser = ref(initialUser);
 
-const isUserJyoti = computed(() => {
-  const email = (activeUser.value?.email || '').toLowerCase().trim();
-  return email === 'goyaljyoti007@gmail.com' || email.includes('jyoti');
+const userDisplayName = computed(() => {
+  return activeUser.value?.user_metadata?.full_name ||
+    activeUser.value?.user_metadata?.name ||
+    (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'Warrior');
 });
 
 const userInitial = computed(() => {
-  if (!activeUser.value?.email) return 'U';
-  return activeUser.value.email.charAt(0).toUpperCase();
+  return userDisplayName.value.trim().charAt(0).toUpperCase() || 'W';
 });
 
-const handleNavigateMonth = (monthOffset) => {
-  let newMonth = month.value + monthOffset, newYear = year.value;
-  if (newMonth > 12) { newMonth = 1; newYear++; }
-  if (newMonth < 1) { newMonth = 12; newYear--; }
-  window.location.search = `?month=${newMonth}&year=${newYear}`;
+const userTrackLabel = computed(() => {
+  return `✨ ${userDisplayName.value}'s Workspace`;
+});
+
+// ── First-Run Onboarding Flow Gate ────────────────────────────────
+const checkIsOnboardingComplete = (user) => {
+  if (!user) return true;
+  const uid = user.id || 'guest';
+  if (typeof window === 'undefined') return true;
+
+  if (localStorage.getItem(`habuilt_onboarding_completed_${uid}`) === 'true') {
+    return true;
+  }
+  if (user.user_metadata?.onboarding_completed === true) {
+    return true;
+  }
+  if (localStorage.getItem(`habuilt_active_protocol_id_${uid}`)) {
+    return true;
+  }
+  // Check if legacy master profile
+  const lowerUid = String(uid).toLowerCase();
+  const email = (user.email || '').toLowerCase();
+  if (lowerUid === 'ashish' || lowerUid === 'jyoti' || email === 'ashishgupta1v@gmail.com' || email === 'goyaljyoti007@gmail.com') {
+    return true;
+  }
+  return false;
+};
+
+const isOnboardingComplete = ref(checkIsOnboardingComplete(activeUser.value));
+
+const handleOnboardingComplete = async (payload) => {
+  const uid = activeUser.value?.id || 'guest';
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`habuilt_onboarding_completed_${uid}`, 'true');
+    localStorage.setItem(`habuilt_user_name_${uid}`, payload.displayName);
+    localStorage.setItem(`habuilt_active_protocol_id_${uid}`, payload.archetypeId);
+    if (payload.circadian) {
+      localStorage.setItem(`habuilt_circadian_${uid}`, JSON.stringify(payload.circadian));
+    }
+  }
+
+  if (activeUser.value) {
+    const updated = {
+      ...activeUser.value,
+      user_metadata: {
+        ...(activeUser.value.user_metadata || {}),
+        full_name: payload.displayName,
+        onboarding_completed: true,
+        preferred_archetype: payload.archetypeId,
+        focus_goal: payload.goal,
+      }
+    };
+    activeUser.value = updated;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('habuilt_cached_user', JSON.stringify(updated));
+    }
+  }
+
+  isOnboardingComplete.value = true;
+
+  if (isSupabaseConfigured() && activeUser.value?.id && activeUser.value.id !== 'guest') {
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          await supabase.auth.updateUser({
+            data: {
+              full_name: payload.displayName,
+              onboarding_completed: true,
+              preferred_archetype: payload.archetypeId,
+              focus_goal: payload.goal
+            }
+          });
+          await supabase.from('user_settings').upsert({
+            user_id: activeUser.value.id,
+            enhanced_state: {
+              onboarding_completed: true,
+              focus_goal: payload.goal,
+              circadian: payload.circadian
+            },
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.debug('[Onboarding] Supabase sync fallback:', e);
+      }
+    })();
+  }
+};
+
+const handleOnboardingSkip = () => {
+  const uid = activeUser.value?.id || 'guest';
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`habuilt_onboarding_completed_${uid}`, 'true');
+  }
+  isOnboardingComplete.value = true;
+};
+
+const handleNavigateMonth = (target) => {
+  if (typeof target === 'number') {
+    let newMonth = month.value + target, newYear = year.value;
+    if (newMonth > 12) { newMonth = 1; newYear++; }
+    if (newMonth < 1) { newMonth = 12; newYear--; }
+    month.value = newMonth;
+    year.value = newYear;
+  } else if (target && typeof target === 'object' && target.month && target.year) {
+    month.value = Number(target.month);
+    year.value = Number(target.year);
+  }
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', month.value);
+    url.searchParams.set('year', year.value);
+    window.history.replaceState({}, '', url.toString());
+  }
 };
 
 // ── History / Back-button management ─────────────────────────────
@@ -141,15 +279,53 @@ const handleKeydown = (e) => {
   }
 };
 
-// ── Auth helpers ──────────────────────────────────────────────────
-const enterGuestMode = (guestUser) => {
-  const user = guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-  localStorage.setItem('habuilt_guest_mode', 'true');
+const enterUserSession = (user) => {
+  if (!user) return;
+  const isGuest = user.id === 'guest';
+  if (isGuest) {
+    isGuestActive.value = true;
+    localStorage.setItem('habuilt_guest_mode', 'true');
+  }
   localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
-  isGuestActive.value = true;
   activeUser.value = user;
+  isOnboardingComplete.value = checkIsOnboardingComplete(user);
   pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
 };
+
+const enterGuestMode = (guestUser) => {
+  isGuestActive.value = true;
+  localStorage.setItem('habuilt_guest_mode', 'true');
+  enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } });
+};
+
+const handleLoginSuccess = (user) => {
+  enterUserSession(user);
+};
+
+const handleToggleTrack = () => {
+  const currentId = (activeUser.value?.id || '').toLowerCase();
+  const currentEmail = (activeUser.value?.email || '').toLowerCase();
+  if (currentId === 'ashish' || currentEmail === 'ashishgupta1v@gmail.com') {
+    const jyotiUser = {
+      id: 'jyoti',
+      email: 'goyaljyoti007@gmail.com',
+      user_metadata: { full_name: 'Jyoti Goyal', preferred_archetype: 'archetype-jyoti', onboarding_completed: true }
+    };
+    enterUserSession(jyotiUser);
+    localStorage.setItem('habuilt_active_protocol_id_jyoti', 'archetype-jyoti');
+    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: jyotiUser }));
+  } else {
+    const ashishUser = {
+      id: 'ashish',
+      email: 'ashishgupta1v@gmail.com',
+      user_metadata: { full_name: 'Ashish Gupta', preferred_archetype: 'archetype-ashish', onboarding_completed: true }
+    };
+    enterUserSession(ashishUser);
+    localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: ashishUser }));
+  }
+};
+
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
@@ -162,7 +338,7 @@ const handleSignOut = async () => {
   } catch {}
   // Reset history state to clean landing page
   try {
-    window.history.replaceState({ [APP_HISTORY_KEY]: false }, '', window.location.pathname);
+    window.history.replaceState({ [APP_HISTORY_KEY]: false }, '', '/');
   } catch {}
 };
 
@@ -186,109 +362,191 @@ onMounted(async () => {
     await StatusBar.setBackgroundColor({ color: '#090D16' });
   } catch { /* non-native */ }
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user) {
-    activeUser.value = session.user;
-    localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
-    pushAppHistoryEntry();
-  } else if (isGuestActive.value) {
-    activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-    pushAppHistoryEntry();
-  } else if (!activeUser.value) {
-    activeUser.value = null;
-  }
-  authLoading.value = false;
+  // ── URL OAuth & Deep Link Handlers ──
+  const processUrlAuthTokens = async () => {
+    if (typeof window === 'undefined') return false;
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+    // 1. Process URL Hash (#access_token=...&refresh_token=... or #error=...)
+    const rawHash = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
+    if (rawHash) {
+      const hashParams = new URLSearchParams(rawHash);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const errorDesc = hashParams.get('error_description') || hashParams.get('error');
+
+      if (accessToken && refreshToken) {
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+            window.history.replaceState({}, document.title, '/');
+            return true;
+          }
+        } catch (err) {
+          console.warn('[MainAuth] Error setting session from hash:', err);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainAuth] OAuth error in hash:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+        window.history.replaceState({}, document.title, '/');
+      }
+    }
+
+    // 2. Process URL Query (?code=... or ?error=...)
+    const rawSearch = window.location.search;
+    if (rawSearch) {
+      const searchParams = new URLSearchParams(rawSearch);
+      const code = searchParams.get('code');
+      const errorDesc = searchParams.get('error_description') || searchParams.get('error');
+
+      if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+            window.history.replaceState({}, document.title, '/');
+            return true;
+          }
+        } catch (err) {
+          console.warn('[MainAuth] Error exchanging code for session:', err);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainAuth] OAuth error in query:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+        window.history.replaceState({}, document.title, '/');
+      }
+    }
+
+    return false;
+  };
+
+  // 1. Check if returning with OAuth tokens or code in URL
+  const hasAuthParams = typeof window !== 'undefined' && (
+    (window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('error='))) ||
+    (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('error=')))
+  );
+
+  if (hasAuthParams) {
+    authLoading.value = true;
+    const handled = await processUrlAuthTokens();
+    if (handled) {
+      authLoading.value = false;
+      return;
+    }
+  }
+
+  // 2. Session check from Supabase or cached user
+  try {
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: {} }), 2500));
+    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
     if (session?.user) {
-      activeUser.value = session.user;
-      localStorage.setItem('habuilt_cached_user', JSON.stringify(session.user));
-      pushAppHistoryEntry();
-    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
-      activeUser.value = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+      enterUserSession(session.user);
+    } else if (activeUser.value) {
+      enterUserSession(activeUser.value);
+    } else if (isGuestActive.value) {
+      enterGuestMode();
     } else {
       activeUser.value = null;
+    }
+  } catch (err) {
+    console.debug('[MainAuth] Session check fallback:', err);
+  } finally {
+    authLoading.value = false;
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      enterUserSession(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      activeUser.value = null;
+      isGuestActive.value = false;
       localStorage.removeItem('habuilt_cached_user');
+      localStorage.removeItem('habuilt_guest_mode');
+    } else if (activeUser.value) {
+      // Retain active cached user (offline or fast resume)
+      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
+    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
+      enterGuestMode();
     }
   });
-
-  // ── Native Android Hardware Back Button ──
-  try {
-    const { App } = await import('@capacitor/app');
-    App.addListener('backButton', () => {
-      if (!activeUser.value) return; // On landing page — let OS handle
-      showExitDialog.value = true;   // Inside app — show exit dialog
-    });
-  } catch { /* non-native */ }
 
   // ── Native Deep Link Handler for OAuth Callback ──
   try {
     const { App } = await import('@capacitor/app');
     const { Browser } = await import('@capacitor/browser');
 
-    App.addListener('appUrlOpen', async (event) => {
+    const handleDeepLinkUrl = async (url) => {
+      if (!url) return;
       try { await Browser.close(); } catch { /* ignore */ }
-      if (event.url) {
-        const rawUrl = event.url
-          .replace('habuilt://', 'https://habuilt.com/')
-          .replace('com.habuilt.app://', 'https://habuilt.com/');
-        try {
-          const parsed = new URL(rawUrl);
-          const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-          const accessToken  = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          const code = parsed.searchParams.get('code') || hashParams.get('code');
 
-          if (accessToken && refreshToken) {
-            const { data } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              pushAppHistoryEntry();
-            }
-          } else if (code) {
-            const { data } = await supabase.auth.exchangeCodeForSession(code);
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              pushAppHistoryEntry();
-            }
-          }
-        } catch (e) { console.warn('Error parsing deep link auth:', e); }
+      let searchStr = '';
+      let hashStr = '';
+      try {
+        const rawUrl = url
+          .replace('habuilt://', 'https://www.habuilt.com/')
+          .replace('com.habuilt.app://', 'https://www.habuilt.com/');
+        const parsed = new URL(rawUrl);
+        searchStr = parsed.search.replace(/^\?/, '');
+        hashStr = parsed.hash.replace(/^#/, '');
+      } catch {}
+
+      if (!searchStr && !hashStr) {
+        const queryIdx = url.indexOf('?');
+        const hashIdx = url.indexOf('#');
+        if (queryIdx !== -1) searchStr = url.substring(queryIdx + 1).split('#')[0];
+        if (hashIdx !== -1) hashStr = url.substring(hashIdx + 1);
       }
+
+      const hashParams = new URLSearchParams(hashStr);
+      const searchParams = new URLSearchParams(searchStr);
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+      const code = searchParams.get('code') || hashParams.get('code');
+      const errorDesc = hashParams.get('error_description') || searchParams.get('error_description') || hashParams.get('error') || searchParams.get('error');
+
+      if (accessToken && refreshToken) {
+        try {
+          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+          }
+        } catch (e) {
+          console.warn('[MainDeepLink] Error setting session:', e);
+        }
+      } else if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          if (data?.user) {
+            enterUserSession(data.user);
+          }
+        } catch (e) {
+          console.warn('[MainDeepLink] Error exchanging code:', e);
+        }
+      } else if (errorDesc) {
+        console.warn('[MainDeepLink] OAuth error:', errorDesc);
+        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+      }
+    };
+
+    // Cold-start deep link (when app is launched by OS via intent)
+    const launchUrl = await App.getLaunchUrl();
+    if (launchUrl?.url) {
+      await handleDeepLinkUrl(launchUrl.url);
+    }
+
+    // Warm deep link listener
+    App.addListener('appUrlOpen', async (event) => {
+      await handleDeepLinkUrl(event?.url);
     });
   } catch { /* non-native */ }
-
-  // ── Web OAuth Code Exchange ──
-  if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
-    const hash   = window.location.hash;
-    const search = window.location.search;
-    if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        try { window.location.href = `habuilt://auth/callback${hash}`; } catch { /* ignore */ }
-      }
-    } else if (search && search.includes('code=')) {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        try { window.location.href = `habuilt://auth/callback${search}`; } catch { /* ignore */ }
-      } else {
-        const params = new URLSearchParams(search);
-        const code = params.get('code');
-        if (code) {
-          try {
-            const { data } = await supabase.auth.exchangeCodeForSession(code);
-            if (data?.user) {
-              activeUser.value = data.user;
-              localStorage.setItem('habuilt_cached_user', JSON.stringify(data.user));
-              window.history.replaceState({}, document.title, window.location.pathname);
-              pushAppHistoryEntry();
-            }
-          } catch (e) { console.warn('Error exchanging web OAuth code:', e); }
-        }
-      }
-    }
-  }
 
   checkIOS();
 });
@@ -308,82 +566,103 @@ onUnmounted(() => {
   </div>
 
   <template v-else>
-    <div v-if="activeUser" class="app-root">
-      <main class="app-main-content">
-        <nav class="app-nav">
-          <div class="app-nav__container">
-            <div class="app-nav__left">
-              <HabuiltLogo size="md" :with-text="true" />
-              <!-- Guest mode indicator -->
-              <span v-if="isGuestActive" class="guest-mode-pill">
-                Guest Preview
-              </span>
-            </div>
+    <template v-if="activeUser">
+      <!-- First-Run Guided Onboarding Flow -->
+      <FirstRunOnboarding
+        v-if="!isOnboardingComplete"
+        :initial-name="userDisplayName"
+        :user-email="activeUser.email"
+        :user-id="activeUser.id"
+        @complete="handleOnboardingComplete"
+        @skip="handleOnboardingSkip"
+      />
 
-            <div class="app-nav__right">
-              <!-- PWA Install Button -->
-              <button
-                v-if="showInstallBtn"
-                @click="handleInstall"
-                class="btn btn--install"
-                :title="isIOS ? 'Install on iOS' : 'Install Habuilt App'"
-              >
-                <Download v-if="!isIOS" class="icon-sm" />
-                <Share2 v-else class="icon-sm" />
-                <span class="install-text">Install App</span>
-              </button>
-
-              <div class="user-badge" :title="activeUser.email">
-                <div class="user-avatar" :class="isUserJyoti ? 'user-avatar--jyoti' : 'user-avatar--ashish'">
-                  {{ userInitial }}
-                </div>
-                <span class="user-badge__text">{{ activeUser.email }}</span>
-                <span class="user-track-pill" :class="isUserJyoti ? 'user-track-pill--jyoti' : 'user-track-pill--ashish'">
-                  {{ isUserJyoti ? 'Jyoti Track' : 'Ashish Track' }}
+      <!-- Main Habit Matrix & Workspace -->
+      <div v-else class="app-root">
+        <main class="app-main-content">
+          <nav class="app-nav">
+            <div class="app-nav__container">
+              <div class="app-nav__left">
+                <HabuiltLogo size="md" :with-text="true" />
+                <!-- Guest mode indicator -->
+                <span v-if="isGuestActive" class="guest-mode-pill">
+                  Guest Preview
                 </span>
               </div>
 
-              <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
-                <LogOut class="icon-sm" />
-                <span class="logout-text">{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
-              </button>
+              <div class="app-nav__right">
+                <!-- PWA Install Button -->
+                <button
+                  v-if="showInstallBtn"
+                  @click="handleInstall"
+                  class="btn btn--install"
+                  :title="isIOS ? 'Install on iOS' : 'Install Habuilt App'"
+                >
+                  <Download v-if="!isIOS" class="icon-sm" />
+                  <Share2 v-else class="icon-sm" />
+                  <span class="install-text">Install App</span>
+                </button>
+
+                <div
+                  class="user-badge"
+                  :title="isGuestActive ? 'Guest Mode Active — Click to switch track' : activeUser.email"
+                  :style="{ cursor: 'pointer' }"
+                  @click="handleToggleTrack"
+                >
+                  <div class="user-avatar user-avatar--generic">
+                    {{ userInitial }}
+                  </div>
+                  <span class="user-badge__text">{{ activeUser.email }}</span>
+                  <span class="user-track-pill user-track-pill--generic">
+                    {{ userTrackLabel }}
+                  </span>
+                </div>
+
+                <button @click="handleSignOut" class="btn btn--logout" title="Sign out of Habuilt">
+                  <LogOut class="icon-sm" />
+                  <span class="logout-text">{{ isGuestActive ? 'Exit Guest' : 'Sign Out' }}</span>
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          <!-- iOS Install Instructions -->
+          <div v-if="showIOSInstructions" class="ios-install-banner">
+            <div class="ios-install-content">
+              <p class="ios-install-title">Install Habuilt on iOS</p>
+              <ol class="ios-install-steps">
+                <li>Tap the <strong>Share</strong> button <Share2 style="width:14px;height:14px;vertical-align:middle;" /> in Safari</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> to install</li>
+              </ol>
+              <button @click="showIOSInstructions = false" class="btn btn--ios-dismiss">Got it</button>
             </div>
           </div>
-        </nav>
 
-        <!-- iOS Install Instructions -->
-        <div v-if="showIOSInstructions" class="ios-install-banner">
-          <div class="ios-install-content">
-            <p class="ios-install-title">Install Habuilt on iOS</p>
-            <ol class="ios-install-steps">
-              <li>Tap the <strong>Share</strong> button <Share2 style="width:14px;height:14px;vertical-align:middle;" /> in Safari</li>
-              <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-              <li>Tap <strong>"Add"</strong> to install</li>
-            </ol>
-            <button @click="showIOSInstructions = false" class="btn btn--ios-dismiss">Got it</button>
-          </div>
-        </div>
+          <Dashboard
+            :key="activeUser ? activeUser.id : 'guest'"
+            v-bind="props"
+            :userId="activeUser.id"
+            :userEmail="activeUser.email"
+            :month="month"
+            :year="year"
+            :monthDays="monthDays"
+            :today="todayDate.toISOString().slice(0, 10)"
+            :currentDay="currentDay"
+            :isCurrentMonth="isCurrentMonth"
+            :isFutureMonth="isFutureMonth"
+            :canNavigatePrevMonth="true"
+            :canNavigateNextMonth="true"
+            :previousMonth="previousMonth"
+            :nextMonth="nextMonth"
+            @navigate-month="handleNavigateMonth"
+            @sign-out="handleSignOut"
+          />
+        </main>
+      </div>
+    </template>
 
-        <Dashboard
-          :userId="activeUser.id"
-          :userEmail="activeUser.email"
-          :month="month"
-          :year="year"
-          :monthDays="monthDays"
-          :today="todayDate.toISOString().slice(0, 10)"
-          :currentDay="currentDay"
-          :isCurrentMonth="isCurrentMonth"
-          :isFutureMonth="isFutureMonth"
-          :canNavigatePrevMonth="true"
-          :canNavigateNextMonth="true"
-          :previousMonth="previousMonth"
-          :nextMonth="nextMonth"
-          @sign-out="handleSignOut"
-        />
-      </main>
-    </div>
-
-    <Auth v-else @guest-login="enterGuestMode" />
+    <Auth v-else @guest-login="enterGuestMode" @login-success="handleLoginSuccess" />
   </template>
 
   <!-- ── Exit / Sign-out Confirmation Dialog ─────────────────────── -->

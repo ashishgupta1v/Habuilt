@@ -4,12 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:vercel": "vite build && node scripts/prepare-vercel-dist.mjs",
-    "preview": "vite preview",
+    "build": "vite build && node scripts/prepare-dist.mjs",
+    "preview": "vite preview --outDir dist",
     "cap:add": "cap add android",
-    "cap:sync": "cap sync android",
-    "cap:build": "npm run build:vercel && cap sync android",
+    "cap:sync": "npm run build && cap sync android",
+    "cap:build": "npm run build && cap sync android",
     "cap:open": "cap open android"
   },
   "dependencies": {
@@ -22,6 +21,7 @@
     "@capacitor/status-bar": "^8.0.3",
     "@inertiajs/vue3": "^3.0.0",
     "@supabase/supabase-js": "^2.101.1",
+    "gsap": "^3.15.0",
     "lucide-vue-next": "^0.577.0",
     "vue": "^3.5.13"
   },
