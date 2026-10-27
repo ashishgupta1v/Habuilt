@@ -1,7 +1,8 @@
 <template>
   <div class="app-shell">
-    <div class="app-shell__content">
+    <a href="#main-content" class="skip-to-content-link">Skip to main content</a>
+    <main class="app-shell__content" id="main-content">
       <slot />
-    </div>
+    </main>
   </div>
 </template>

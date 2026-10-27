@@ -289,13 +289,28 @@ class SpeechSynthesizer {
     utterance.rate = (persona.rate || 1.0) * speed;
     utterance.pitch = persona.pitch || 1.0;
 
-    utterance.onstart = () => {
+    // Headless / non-interactive browser fallback: Web Speech onstart can fail to trigger
+    // if no active audio device exists or tab is unmuted. Ensure visual waveform and state update reliably.
+    let fallbackTimer = null;
+    if (typeof window !== 'undefined') {
+      fallbackTimer = setTimeout(() => {
+        if (!this.isPlaying && this.currentUtterance === utterance) {
+          this.isPlaying = true;
+          this.isPaused = false;
+          if (onStart) onStart();
+        }
+      }, 100);
+    }
+
+    utterance.onstart = (e) => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       this.isPlaying = true;
       this.isPaused = false;
-      if (onStart) onStart();
+      if (onStart) onStart(e);
     };
 
     utterance.onend = () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       this.isPlaying = false;
       this.isPaused = false;
       this.currentUtterance = null;
@@ -307,6 +322,7 @@ class SpeechSynthesizer {
     };
 
     utterance.onerror = (e) => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       this.isPlaying = false;
       this.isPaused = false;
       this.currentUtterance = null;

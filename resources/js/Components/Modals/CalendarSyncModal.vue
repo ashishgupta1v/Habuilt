@@ -369,6 +369,28 @@ const getGoogleCalendarUrl = (evt) => {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 };
 
+// Generate 1-Click Outlook Web Direct URL
+const getOutlookCalendarUrl = (evt) => {
+  const d = String(props.currentDay).padStart(2, '0');
+  const m = String(props.month).padStart(2, '0');
+  const y = props.year;
+  const dateStr = `${y}-${m}-${d}`;
+
+  const startIso = `${dateStr}T${evt.startTime}:00`;
+  const endIso = `${dateStr}T${evt.endTime}:00`;
+
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: evt.title,
+    body: `${evt.description}\n\n[Tracked via Habuilt Warrior Cockpit • Day Type: ${props.dayTypeLabel}]`,
+    startdt: startIso,
+    enddt: endIso,
+  });
+
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+};
+
 // 1-Click Download RFC 5545 iCalendar (.ics) file
 const downloadIcsFile = () => {
   try {
@@ -445,18 +467,25 @@ const copyEventDetails = async (evt) => {
 
 <template>
   <div v-if="isOpen" class="modal-backdrop" @click.self="emit('close')">
-    <div class="modal-card modal-card--calendar-sync" role="dialog" aria-modal="true">
+    <div
+      class="modal-card modal-card--calendar-sync"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="calendar-sync-title"
+    >
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="modal-header__title-wrap">
-          <div class="modal-header__icon-badge">
-            <Calendar class="icon-md icon-indigo" />
+          <div class="modal-header__icon-badge modal-icon-badge--indigo">
+            <Calendar class="icon-md" />
           </div>
           <div>
-            <h3 class="modal-header__title">Calendar Focus Projection</h3>
-            <p class="modal-header__sub">
-              Lock your Deep Work & Sadhana into Google, Outlook & Apple Calendar for
+            <div class="modal-title-row">
+              <h3 id="calendar-sync-title" class="modal-header__title">Calendar Focus Projection</h3>
               <span class="highlight-day-type">{{ dayTypeLabel }}</span>
+            </div>
+            <p class="modal-header__sub">
+              Lock your Deep Work & Sadhana blocks into Google, Outlook & Apple Calendar
             </p>
           </div>
         </div>
@@ -474,24 +503,27 @@ const copyEventDetails = async (evt) => {
       <div class="calendar-action-bar">
         <div class="calendar-action-bar__info">
           <span class="badge-blocks-count mono-num">{{ calendarEvents.length }} Strategic Blocks</span>
-          <span class="text-subtle">• 1-Tap to block external calendar distractions</span>
+          <span class="calendar-action-bar__hint">• 1-Tap to lock schedules & block meeting distractions</span>
         </div>
         <button
+          id="btn-download-ics"
           type="button"
           class="btn btn--primary-action btn-calendar-download"
           @click="downloadIcsFile"
+          aria-label="Download All Focus Blocks as .ics"
         >
           <Download class="icon-xs" />
           <span>Download All (.ics)</span>
         </button>
       </div>
 
-      <!-- Scheduled Blocks List -->
+      <!-- Scheduled Blocks List (Inner Scroll Container) -->
       <div class="calendar-events-list">
         <div
           v-for="evt in calendarEvents"
           :key="evt.id"
           class="calendar-event-card"
+          :id="`cal-card-${evt.id}`"
         >
           <div class="calendar-event-card__time mono-num">
             <span class="calendar-event-card__start">{{ evt.startTime }}</span>
@@ -516,11 +548,25 @@ const copyEventDetails = async (evt) => {
               :href="getGoogleCalendarUrl(evt)"
               target="_blank"
               rel="noopener noreferrer"
-              class="btn-cal-link"
-              title="Add this block to Google Calendar"
+              class="btn-cal-link btn-cal-link--google"
+              :title="`Add '${evt.title}' to Google Calendar`"
+              aria-label="Add to Google Calendar"
             >
               <ExternalLink class="icon-xs" />
-              <span>Google Cal</span>
+              <span>Google</span>
+            </a>
+
+            <!-- 1-Click Outlook Web Link -->
+            <a
+              :href="getOutlookCalendarUrl(evt)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-cal-link btn-cal-link--outlook"
+              :title="`Add '${evt.title}' to Outlook Calendar`"
+              aria-label="Add to Outlook Calendar"
+            >
+              <ExternalLink class="icon-xs" />
+              <span>Outlook</span>
             </a>
 
             <!-- Copy Snippet Button -->
@@ -528,7 +574,8 @@ const copyEventDetails = async (evt) => {
               type="button"
               class="btn-cal-copy"
               @click="copyEventDetails(evt)"
-              title="Copy event snippet"
+              :title="`Copy '${evt.title}' snippet`"
+              :aria-label="`Copy '${evt.title}' details`"
             >
               <Check v-if="copySuccessId === evt.id" class="icon-xs icon-emerald" />
               <Copy v-else class="icon-xs" />
@@ -540,14 +587,15 @@ const copyEventDetails = async (evt) => {
       <!-- Modal Footer -->
       <div class="modal-footer">
         <div class="calendar-sync-tips">
-          <Sparkles class="icon-xs icon-amber" />
+          <Sparkles class="icon-xs icon-amber flex-shrink-0" />
           <span>
             <strong>Pro Tip:</strong> Importing the <code>.ics</code> automatically sets 10-minute pre-focus alarms to get your hydration & notes ready.
           </span>
         </div>
         <button
+          id="btn-calendar-close"
           type="button"
-          class="btn btn--secondary"
+          class="btn btn--secondary modal-close-action"
           @click="emit('close')"
         >
           Close

@@ -30,11 +30,13 @@ import {
   Eye,
   EyeOff,
   MoreHorizontal,
+  LogOut,
 } from 'lucide-vue-next';
 
 const props = defineProps({
   isJyoti: { type: Boolean, default: false },
   isAshish: { type: Boolean, default: false },
+  isGuestActive: { type: Boolean, default: false },
   displayName: { type: String, default: 'User' },
   activeProtocolName: { type: String, default: 'Master Protocol' },
   allProtocols: { type: Array, default: () => [] },
@@ -73,7 +75,7 @@ const emit = defineEmits([
   'toggle-travel',
   'prev-month',
   'next-month',
-  'toggle-theme',
+  'sign-out',
   'toggle-zen',
   'cycle-circadian',
   'set-tab',
@@ -419,21 +421,21 @@ onBeforeUnmount(() => {
         <kbd class="hero-spotlight-kbd">⌘K</kbd>
       </button>
 
-      <!-- Theme Switcher -->
+      <!-- Sign Out / Exit Guest Action Button -->
       <button
         type="button"
-        class="hero-icon-btn hero-icon-btn--theme"
-        @click="emit('toggle-theme')"
-        :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-        aria-label="Toggle Theme"
+        class="hero-icon-btn hero-icon-btn--logout"
+        @click="emit('sign-out')"
+        :title="isGuestActive ? 'Exit Guest Mode' : 'Sign Out of Habuilt'"
+        :aria-label="isGuestActive ? 'Exit Guest Mode' : 'Sign Out'"
       >
-        <Sun v-if="darkMode" class="icon-sm icon-sun" />
-        <Moon v-else class="icon-sm icon-moon" />
+        <LogOut class="icon-sm" />
       </button>
 
       <!-- Quick Tools Consolidated Menu [•••] -->
       <div class="hero-tools-menu-wrap" ref="toolsMenuRef">
         <button
+          id="btn-desktop-tools-menu"
           type="button"
           class="hero-icon-btn hero-tools-trigger"
           :class="{ 'hero-icon-btn--active': isToolsMenuOpen, 'hero-icon-btn--paired': isPartnerPaired }"
@@ -533,6 +535,22 @@ onBeforeUnmount(() => {
                   <span class="hero-tools-item__sub flex items-center gap-1">
                     <span>{{ circadianPhase?.icon || '☀️' }} {{ circadianPhase?.name?.split(' ')[0] || 'Solar' }} ({{ activeCircadianMode === 'auto' ? 'Auto' : 'Manual' }})</span>
                   </span>
+                </div>
+              </button>
+
+              <div class="hero-tools-divider"></div>
+
+              <button
+                type="button"
+                class="hero-tools-item hero-tools-item--signout"
+                @click="emit('sign-out'); isToolsMenuOpen = false;"
+              >
+                <div class="hero-tools-item__icon text-rose-500">
+                  <LogOut class="icon-xs" />
+                </div>
+                <div class="hero-tools-item__text">
+                  <span class="hero-tools-item__title text-rose-600">{{ isGuestActive ? 'Exit Guest Mode' : 'Sign Out' }}</span>
+                  <span class="hero-tools-item__sub">End current session</span>
                 </div>
               </button>
             </div>

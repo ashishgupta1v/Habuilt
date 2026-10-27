@@ -4,6 +4,7 @@
 const CACHE_NAME = 'habuilt-cache';
 const SHELL_ASSETS = [
   '/',
+  '/manifest.webmanifest',
   '/favicon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -137,6 +138,10 @@ self.addEventListener('message', (event) => {
 
   if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  if (data.type === 'PING') {
+    event.source?.postMessage({ type: 'PONG', timestamp: Date.now() });
   }
 
   // Show interactive Due Now notification

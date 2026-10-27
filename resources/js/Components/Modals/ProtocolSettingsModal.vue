@@ -1057,13 +1057,13 @@ const handleDeletePasskey = async (id, name) => {
 
         <!-- ── TAB 3: PROTOCOL STUDIO & ARCHETYPES ── -->
         <div v-else-if="activeTab === 'presets'" class="proto-section proto-section--studio animate-fadeIn">
-          <div class="proto-studio-header flex items-center justify-between mb-3 pb-3 border-b border-white/10">
+          <div class="proto-studio-header flex items-center justify-between mb-3 pb-3 border-b border-slate-200">
             <div>
-              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Layers class="icon-xs icon-gold" />
                 <span>Protocol Studio &amp; Archetypes</span>
               </h3>
-              <p class="text-xs text-gray-400 mt-0.5">
+              <p class="text-xs text-slate-500 mt-0.5">
                 Design custom protocols, clone blueprints, or export and share your routine.
               </p>
             </div>
@@ -1182,8 +1182,8 @@ const handleDeletePasskey = async (id, name) => {
           <!-- ── SUB-MODAL 1: PROTOCOL STUDIO BUILDER / EDITOR ── -->
           <div v-if="isStudioEditorOpen" class="proto-cat-form-overlay" id="proto-studio-editor-modal">
             <div class="proto-cat-form-card max-w-lg">
-              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Layers class="icon-xs icon-gold" />
                   <span>Custom Protocol Studio</span>
                 </h4>
@@ -1194,7 +1194,7 @@ const handleDeletePasskey = async (id, name) => {
 
               <div class="proto-cat-form-body space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1">Protocol Name</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Protocol Name</label>
                   <input
                     type="text"
                     v-model="editingStudioProtocol.name"
@@ -1357,8 +1357,8 @@ const handleDeletePasskey = async (id, name) => {
           <!-- ── SUB-MODAL 2: EXPORT / IMPORT / SHARE MODAL ── -->
           <div v-if="isShareModalOpen" class="proto-cat-form-overlay" id="proto-studio-share-modal">
             <div class="proto-cat-form-card max-w-md">
-              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Share2 class="icon-xs text-sky-400" />
                   <span>{{ shareModalMode === 'export' ? 'Export & Share Protocol' : 'Import Protocol' }}</span>
                 </h4>
@@ -1369,13 +1369,13 @@ const handleDeletePasskey = async (id, name) => {
 
               <!-- Export Mode -->
               <div v-if="shareModalMode === 'export'" class="space-y-3">
-                <div class="text-xs text-gray-400">
+                <div class="text-xs text-slate-500">
                   Share <strong>{{ exportTargetProtocol?.name }}</strong> via one-click link or JSON file.
                 </div>
 
                 <!-- One-Click Shareable Link -->
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1">Shareable Universal URL</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Shareable Universal URL</label>
                   <div class="flex items-center gap-1.5">
                     <input
                       type="text"
@@ -2029,8 +2029,8 @@ const handleDeletePasskey = async (id, name) => {
             <!-- Inline Category Edit Modal / Form -->
             <div v-if="isCategoryFormOpen" class="proto-cat-form-overlay" id="proto-category-modal">
               <div class="proto-cat-form-card">
-                <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-                  <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+                  <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Palette class="icon-xs text-amber-400" />
                     <span>{{ isEditingCategory ? 'Edit Category' : 'Create Custom Category' }}</span>
                   </h4>
@@ -2041,7 +2041,7 @@ const handleDeletePasskey = async (id, name) => {
 
                 <div class="proto-cat-form-body space-y-3">
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Category Name</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Category Name</label>
                     <input
                       type="text"
                       v-model="editingCategory.label"
@@ -2214,10 +2214,10 @@ const handleDeletePasskey = async (id, name) => {
 .proto-settings-modal {
   max-width: 680px;
   width: 95%;
-  background: var(--card-bg, #0f172a);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 16px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
@@ -2226,8 +2226,8 @@ const handleDeletePasskey = async (id, name) => {
 
 .proto-settings-tabs {
   display: flex;
-  background: rgba(15, 23, 42, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-inset, #f1f5f9);
+  border-bottom: 1px solid var(--surface-border, #e2e8f0);
   padding: 0 1.25rem;
   gap: 0.5rem;
   overflow-x: auto;
@@ -2241,7 +2241,7 @@ const handleDeletePasskey = async (id, name) => {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -2250,12 +2250,12 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-settings-tab:hover {
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-settings-tab--active {
-  color: #d4af37;
-  border-bottom-color: #d4af37;
+  color: var(--brand-gold, #0d9488);
+  border-bottom-color: var(--brand-gold, #0d9488);
 }
 
 .proto-settings-body {
@@ -2271,12 +2271,12 @@ const handleDeletePasskey = async (id, name) => {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.25);
   border-radius: 10px;
   font-size: 0.85rem;
   line-height: 1.45;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-mode-selector {
@@ -2290,8 +2290,8 @@ const handleDeletePasskey = async (id, name) => {
   flex-direction: column;
   align-items: flex-start;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2301,22 +2301,22 @@ const handleDeletePasskey = async (id, name) => {
 .proto-mode-btn span {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-mode-btn small {
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   margin-top: 0.2rem;
 }
 
 .proto-mode-btn--active {
-  background: rgba(212, 175, 55, 0.12);
-  border-color: #d4af37;
+  background: rgba(13, 148, 136, 0.08);
+  border-color: var(--brand-gold, #0d9488);
 }
 
 .proto-mode-btn--active span {
-  color: #d4af37;
+  color: var(--brand-gold, #0d9488);
 }
 
 .proto-sliders-grid {
@@ -2326,8 +2326,8 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-tier-control {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -2346,6 +2346,7 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  color: var(--text-primary, #090d16);
 }
 
 .proto-tier-control__value {
@@ -2354,30 +2355,31 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.5rem;
   font-size: 0.9rem;
   font-weight: 700;
+  color: var(--text-primary, #090d16);
 }
 
 .proto-pts-chip {
   padding: 0.2rem 0.5rem;
-  background: rgba(212, 175, 55, 0.15);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: rgba(13, 148, 136, 0.12);
+  border: 1px solid rgba(13, 148, 136, 0.25);
   border-radius: 6px;
   font-size: 0.75rem;
-  color: #d4af37;
+  color: var(--brand-gold, #0d9488);
 }
 
 .proto-slider {
   width: 100%;
-  accent-color: #d4af37;
+  accent-color: var(--brand-gold, #0d9488);
   cursor: pointer;
 }
 
-.proto-slider--floor { accent-color: #fbbf24; }
-.proto-slider--half { accent-color: #38bdf8; }
-.proto-slider--full { accent-color: #34d399; }
+.proto-slider--floor { accent-color: #f59e0b; }
+.proto-slider--half { accent-color: #0ea5e9; }
+.proto-slider--full { accent-color: #0d9488; }
 
 .proto-tier-control__desc {
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   margin: 0;
 }
 
@@ -2388,8 +2390,8 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-fixed-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 10px;
   padding: 0.85rem;
   display: flex;
@@ -2403,6 +2405,7 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.4rem;
   font-size: 0.8rem;
   font-weight: 600;
+  color: var(--text-primary, #090d16);
 }
 
 .proto-input-wrap {
@@ -2414,18 +2417,18 @@ const handleDeletePasskey = async (id, name) => {
 .proto-num-input {
   width: 70px;
   padding: 0.4rem 0.6rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary, #090d16);
   font-size: 0.95rem;
   font-weight: 700;
   text-align: center;
 }
 
 .proto-preview-deck {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   padding: 1rem;
 }
@@ -2435,7 +2438,7 @@ const handleDeletePasskey = async (id, name) => {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: #d4af37;
+  color: var(--brand-gold, #0d9488);
   margin-bottom: 0.6rem;
 }
 
@@ -2446,7 +2449,8 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-preview-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
   padding: 0.6rem;
   text-align: center;
@@ -2455,13 +2459,13 @@ const handleDeletePasskey = async (id, name) => {
 .proto-preview-title {
   display: block;
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
 }
 
 .proto-preview-val {
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 /* Slots */
@@ -2476,8 +2480,8 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 10px;
 }
 
@@ -2486,9 +2490,10 @@ const handleDeletePasskey = async (id, name) => {
   height: 42px;
   text-align: center;
   font-size: 1.3rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 8px;
+  color: var(--text-primary, #090d16);
 }
 
 .proto-slot-fields {
@@ -2506,15 +2511,15 @@ const handleDeletePasskey = async (id, name) => {
 
 .proto-slot-field label {
   font-size: 0.7rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
 }
 
 .proto-text-input {
   padding: 0.4rem 0.6rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary, #090d16);
   font-size: 0.85rem;
 }
 
@@ -2532,8 +2537,8 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-preset-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -2543,12 +2548,12 @@ const handleDeletePasskey = async (id, name) => {
 }
 
 .proto-preset-card:hover {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(13, 148, 136, 0.4);
 }
 
 .proto-preset-card--active {
-  background: rgba(212, 175, 55, 0.08);
-  border-color: #d4af37;
+  background: rgba(13, 148, 136, 0.06);
+  border-color: var(--brand-gold, #0d9488);
 }
 
 .proto-preset-card__head {
@@ -2561,7 +2566,7 @@ const handleDeletePasskey = async (id, name) => {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-inset, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2571,18 +2576,18 @@ const handleDeletePasskey = async (id, name) => {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-preset-card__badge {
   font-size: 0.7rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
 }
 
 .proto-preset-card__desc {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   line-height: 1.4;
   flex: 1;
 }
@@ -2593,8 +2598,8 @@ const handleDeletePasskey = async (id, name) => {
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(212, 175, 55, 0.3);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px dashed rgba(13, 148, 136, 0.35);
   border-radius: 12px;
   margin-top: 0.5rem;
 }
@@ -2602,28 +2607,28 @@ const handleDeletePasskey = async (id, name) => {
 .proto-wizard-launch-strip strong {
   display: block;
   font-size: 0.85rem;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-wizard-launch-strip p {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
 }
 
 .proto-settings-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--surface-border, #e2e8f0);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--surface-ground, #f8fafc);
 }
 
 /* Audio & Haptics Styles */
 .proto-audio-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   padding: 1.1rem;
   margin-bottom: 1rem;
@@ -2646,7 +2651,7 @@ const handleDeletePasskey = async (id, name) => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-inset, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2660,14 +2665,14 @@ const handleDeletePasskey = async (id, name) => {
 .proto-audio-card__info strong {
   display: block;
   font-size: 0.9rem;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
   margin-bottom: 2px;
 }
 
 .proto-audio-card__info p {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   line-height: 1.35;
 }
 
@@ -2677,7 +2682,7 @@ const handleDeletePasskey = async (id, name) => {
   gap: 6px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
   margin-bottom: 0.75rem;
 }
 
@@ -2703,22 +2708,22 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.35rem;
   padding: 0.85rem;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
 }
 
 .proto-sound-profile-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(212, 175, 55, 0.3);
+  background: var(--surface-inset, #f1f5f9);
+  border-color: rgba(13, 148, 136, 0.3);
 }
 
 .proto-sound-profile-btn--active {
-  background: rgba(212, 175, 55, 0.12);
-  border-color: rgba(212, 175, 55, 0.5);
-  box-shadow: 0 0 14px rgba(212, 175, 55, 0.15);
+  background: rgba(13, 148, 136, 0.08);
+  border-color: var(--brand-gold, #0d9488);
+  box-shadow: 0 0 14px rgba(13, 148, 136, 0.12);
 }
 
 .proto-sound-profile-btn__head {
@@ -2729,12 +2734,12 @@ const handleDeletePasskey = async (id, name) => {
 
 .proto-sound-profile-btn__head strong {
   font-size: 0.85rem;
-  color: var(--text-main, #f8fafc);
+  color: var(--text-primary, #090d16);
 }
 
 .proto-sound-profile-btn small {
   font-size: 0.7rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64748b);
   line-height: 1.3;
 }
 
@@ -2758,19 +2763,19 @@ const handleDeletePasskey = async (id, name) => {
   font-weight: 600;
 }
 .proto-badge--active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(13, 148, 136, 0.15);
+  color: #0d9488;
+  border: 1px solid rgba(13, 148, 136, 0.3);
 }
 .proto-badge--muted {
   background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
+  color: #64748b;
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .proto-ephemeris-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -2781,26 +2786,26 @@ const handleDeletePasskey = async (id, name) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-border, #e2e8f0);
   padding-bottom: 0.5rem;
 }
 .proto-ephemeris-card__city {
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--text-primary, #090d16);
   font-size: 0.85rem;
   margin-right: 0.5rem;
 }
 .proto-ephemeris-card__coords {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 .proto-ephemeris-phase-badge {
   font-size: 0.75rem;
-  background: rgba(212, 175, 55, 0.12);
-  color: #d4af37;
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--brand-gold, #0d9488);
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(13, 148, 136, 0.25);
   font-weight: 600;
 }
 
@@ -2810,8 +2815,8 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.5rem;
 }
 .proto-ephemeris-pill {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
   padding: 0.5rem;
   text-align: center;
@@ -2820,18 +2825,18 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.2rem;
 }
 .proto-ephemeris-pill--zenith {
-  background: rgba(212, 175, 55, 0.08);
-  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.3);
 }
 .proto-ephemeris-pill__label {
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 .proto-ephemeris-pill__time {
   font-size: 0.95rem;
-  color: #f8fafc;
+  color: var(--text-primary, #090d16);
   font-weight: 700;
 }
 
@@ -2841,24 +2846,24 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.4rem;
 }
 .proto-city-chip {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 20px;
   padding: 0.3rem 0.65rem;
   font-size: 0.75rem;
-  color: #cbd5e1;
+  color: var(--text-secondary, #334155);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .proto-city-chip:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(212, 175, 55, 0.35);
-  color: #f8fafc;
+  background: var(--surface-inset, #f1f5f9);
+  border-color: var(--brand-gold, #0d9488);
+  color: var(--text-primary, #090d16);
 }
 .proto-city-chip--active {
-  background: rgba(212, 175, 55, 0.15);
-  border-color: #d4af37;
-  color: #d4af37;
+  background: rgba(13, 148, 136, 0.12);
+  border-color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0d9488);
   font-weight: 600;
 }
 
@@ -2871,22 +2876,22 @@ const handleDeletePasskey = async (id, name) => {
 .proto-input-field {
   display: flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 8px;
   overflow: hidden;
 }
 .proto-input-addon {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   padding: 0.35rem 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-inset, #f1f5f9);
+  border-right: 1px solid var(--surface-border, #cbd5e1);
 }
 .proto-text-input {
   background: transparent;
   border: none;
-  color: #f8fafc;
+  color: var(--text-primary, #090d16);
   padding: 0.35rem 0.55rem;
   font-size: 0.82rem;
   outline: none;
@@ -2898,33 +2903,33 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-border, #e2e8f0);
 }
 .proto-toggle-info strong {
   display: block;
   font-size: 0.85rem;
-  color: #f8fafc;
+  color: var(--text-primary, #090d16);
 }
 .proto-toggle-info p {
   margin: 0.15rem 0 0;
   font-size: 0.74rem;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
 }
 
 .proto-switch-btn {
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #cbd5e1;
+  border: 1px solid #94a3b8;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
   padding: 0;
 }
 .proto-switch-btn--on {
-  background: #10b981;
-  border-color: #34d399;
+  background: #0d9488;
+  border-color: #0f766e;
 }
 .proto-switch-thumb {
   position: absolute;
@@ -2951,12 +2956,12 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #cbd5e1;
+  color: var(--text-secondary, #334155);
   cursor: pointer;
 }
 
 .proto-passkeys-list-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--surface-border, #e2e8f0);
   padding-top: 0.75rem;
 }
 .proto-passkeys-head {
@@ -2968,14 +2973,14 @@ const handleDeletePasskey = async (id, name) => {
 .proto-chip-counter {
   font-size: 0.72rem;
   padding: 0.15rem 0.45rem;
-  background: rgba(212, 175, 55, 0.1);
-  color: #d4af37;
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--brand-gold, #0d9488);
   border-radius: 10px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(13, 148, 136, 0.2);
 }
 .proto-empty-keys {
   font-size: 0.76rem;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   font-style: italic;
   padding: 0.5rem 0;
 }
@@ -2989,8 +2994,8 @@ const handleDeletePasskey = async (id, name) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
 }
@@ -3004,13 +3009,13 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
-  color: #f8fafc;
+  color: var(--text-primary, #090d16);
 }
 .proto-user-tag {
   font-size: 0.68rem;
   padding: 0.1rem 0.35rem;
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
   border-radius: 4px;
 }
 .proto-key-date {
@@ -3027,14 +3032,15 @@ const handleDeletePasskey = async (id, name) => {
 .proto-enroll-input-row .proto-text-input,
 .proto-pin-input-row .proto-text-input {
   flex: 1;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 8px;
   padding: 0.45rem 0.65rem;
+  color: var(--text-primary, #090d16);
 }
 .proto-enroll-msg {
   font-size: 0.72rem;
-  color: #34d399;
+  color: #0d9488;
 }
 
 /* ── Taxonomy Tab Styles ── */
@@ -3045,7 +3051,7 @@ const handleDeletePasskey = async (id, name) => {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--surface-border, #e2e8f0);
   padding-bottom: 0.5rem;
 }
 .proto-taxonomy-subtab {
@@ -3054,22 +3060,22 @@ const handleDeletePasskey = async (id, name) => {
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-muted, #94a3b8);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  color: var(--text-muted, #64748b);
   font-size: 0.775rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .proto-taxonomy-subtab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  background: var(--surface-inset, #f1f5f9);
+  color: var(--text-primary, #090d16);
 }
 .proto-taxonomy-subtab--active {
-  background: rgba(212, 175, 55, 0.15);
-  border-color: rgba(212, 175, 55, 0.4);
-  color: #f8fafc;
+  background: rgba(13, 148, 136, 0.12);
+  border-color: rgba(13, 148, 136, 0.4);
+  color: var(--brand-gold, #0d9488);
 }
 .proto-categories-grid {
   display: grid;
@@ -3081,8 +3087,8 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.85rem;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 12px;
   transition: transform 0.15s ease, border-color 0.2s ease;
 }
@@ -3106,7 +3112,7 @@ const handleDeletePasskey = async (id, name) => {
 }
 .proto-cat-name {
   font-size: 0.825rem;
-  color: #fff;
+  color: var(--text-primary, #090d16);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3115,8 +3121,8 @@ const handleDeletePasskey = async (id, name) => {
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.2);
-  color: #f59e0b;
+  background: rgba(13, 148, 136, 0.15);
+  color: var(--brand-gold, #0d9488);
   font-weight: 700;
 }
 .proto-cat-meta-row {
@@ -3124,7 +3130,7 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   gap: 0.5rem;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   margin-top: 2px;
 }
 .proto-cat-actions {
@@ -3146,14 +3152,14 @@ const handleDeletePasskey = async (id, name) => {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 10px;
   gap: 0.5rem;
   transition: background 0.15s ease;
 }
 .proto-reorder-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-ground, #f8fafc);
 }
 .proto-reorder-left {
   display: flex;
@@ -3165,7 +3171,7 @@ const handleDeletePasskey = async (id, name) => {
 .proto-order-badge {
   font-size: 11px;
   font-weight: 700;
-  color: #d4af37;
+  color: var(--brand-gold, #0d9488);
   min-width: 26px;
 }
 .proto-habit-info {
@@ -3175,22 +3181,22 @@ const handleDeletePasskey = async (id, name) => {
 .proto-habit-title {
   display: block;
   font-size: 0.8rem;
-  color: #fff;
+  color: var(--text-primary, #090d16);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .proto-habit-pts {
   font-size: 10px;
-  color: #f59e0b;
+  color: #0d9488;
   font-weight: 600;
 }
 .proto-habit-slot-pill {
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #94a3b8;
+  background: var(--surface-inset, #f1f5f9);
+  color: var(--text-muted, #64748b);
   text-transform: capitalize;
 }
 .proto-reorder-right {
@@ -3200,9 +3206,9 @@ const handleDeletePasskey = async (id, name) => {
   flex-shrink: 0;
 }
 .proto-cat-select {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f8fafc;
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #cbd5e1);
+  color: var(--text-primary, #090d16);
   font-size: 11px;
   border-radius: 6px;
   padding: 3px 6px;
@@ -3217,7 +3223,7 @@ const handleDeletePasskey = async (id, name) => {
 .proto-cat-form-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3227,11 +3233,11 @@ const handleDeletePasskey = async (id, name) => {
 .proto-cat-form-card {
   width: 100%;
   max-width: 440px;
-  background: #0e1626;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: #ffffff;
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 16px;
   padding: 1.25rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
 }
 .proto-color-swatches {
   display: flex;
@@ -3250,7 +3256,7 @@ const handleDeletePasskey = async (id, name) => {
   transition: transform 0.15s ease;
 }
 .proto-color-dot--active {
-  border-color: #fff;
+  border-color: #090d16;
   transform: scale(1.15);
 }
 .proto-icon-picker-grid {
@@ -3260,7 +3266,8 @@ const handleDeletePasskey = async (id, name) => {
   max-height: 120px;
   overflow-y: auto;
   padding: 0.25rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
 }
 .proto-icon-btn {
@@ -3272,13 +3279,13 @@ const handleDeletePasskey = async (id, name) => {
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   cursor: pointer;
 }
 .proto-icon-btn--active {
-  background: rgba(212, 175, 55, 0.2);
-  border-color: #d4af37;
-  color: #fff;
+  background: rgba(13, 148, 136, 0.15);
+  border-color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0d9488);
 }
 .proto-circadian-pill {
   display: flex;
@@ -3286,10 +3293,10 @@ const handleDeletePasskey = async (id, name) => {
   justify-content: space-between;
   padding: 0.375rem 0.6rem;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-inset, #f1f5f9);
+  border: 1px solid var(--surface-border, #e2e8f0);
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-muted, #64748b);
   margin-bottom: 0.75rem;
 }
 .proto-card-actions-row {

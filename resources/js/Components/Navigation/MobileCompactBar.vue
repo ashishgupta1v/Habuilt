@@ -326,8 +326,10 @@ const autoProtocolBadge = computed(() => {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  min-height: 44px;
   cursor: pointer;
   user-select: none;
+  touch-action: manipulation;
 }
 
 .mcb-user-name {
@@ -357,13 +359,25 @@ const autoProtocolBadge = computed(() => {
   border: 1px solid rgba(200, 164, 86, 0.28);
   border-radius: 999px;
   padding: 4px 10px;
+  min-height: 32px;
+  position: relative;
   font-size: 0.75rem;
   font-weight: 750;
   color: var(--brand-gold, #C8A456);
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
+  touch-action: manipulation;
   transition: all 0.2s ease;
+}
+.mcb-combined-pill::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100%;
+  min-height: 44px;
 }
 .mcb--light .mcb-combined-pill {
   background: rgba(200, 164, 86, 0.1);
@@ -443,6 +457,17 @@ const autoProtocolBadge = computed(() => {
   padding: 0;
   transition: all 0.14s ease;
   touch-action: manipulation;
+  position: relative;
+}
+
+.mcb-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .mcb-btn:active {
@@ -668,14 +693,24 @@ const autoProtocolBadge = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.06);
   border: none;
   color: #64748b;
   cursor: pointer;
   touch-action: manipulation;
+}
+
+.mcb-tools-close::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .mcb-tools-grid {

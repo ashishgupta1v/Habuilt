@@ -486,6 +486,7 @@ defineExpose({
         <!-- Tab Switcher -->
         <div class="warrior-ai-tabs" @click.stop>
           <button
+            id="btn-cockpit-tab-briefing"
             type="button"
             class="warrior-ai-tab"
             :class="{ 'warrior-ai-tab--active': activeIntelligenceTab === 'briefing' }"
@@ -495,6 +496,7 @@ defineExpose({
             <span>Briefing</span>
           </button>
           <button
+            id="btn-cockpit-tab-biometrics"
             type="button"
             class="warrior-ai-tab"
             :class="{ 'warrior-ai-tab--active': activeIntelligenceTab === 'biometrics' }"
@@ -504,6 +506,7 @@ defineExpose({
             <span>Biometrics</span>
           </button>
           <button
+            id="btn-cockpit-tab-partner"
             type="button"
             class="warrior-ai-tab"
             :class="{ 'warrior-ai-tab--active': activeIntelligenceTab === 'partner' }"
@@ -515,6 +518,7 @@ defineExpose({
         </div>
 
         <button
+          id="btn-cockpit-toggle-expand"
           type="button"
           class="btn btn--icon-only warrior-ai-expand-btn"
           @click.stop="isExpanded = !isExpanded"
@@ -532,24 +536,25 @@ defineExpose({
       <!-- ── TAB 1: TACTICAL BRIEFING & CIRCADIAN ADVISORY ── -->
       <div v-if="activeIntelligenceTab === 'briefing'" class="warrior-ai-pane">
         <!-- Live Circadian Phase Pill -->
-        <div class="circadian-phase-card">
+        <div id="circadian-phase-card" class="circadian-phase-card">
           <div class="circadian-phase-left">
             <component :is="circadianWindow.icon" class="icon-sm icon-focus-gold" />
             <div class="circadian-phase-text">
-              <span class="circadian-phase-name">{{ circadianWindow.title }}</span>
-              <span class="circadian-phase-time mono-num">{{ circadianWindow.time }}</span>
+              <span id="circadian-phase-name" class="circadian-phase-name">{{ circadianWindow.title }}</span>
+              <span id="circadian-phase-time" class="circadian-phase-time mono-num">{{ circadianWindow.time }}</span>
             </div>
           </div>
           <div class="circadian-phase-right">
-            <span class="circadian-phase-advice">{{ circadianWindow.advice }}</span>
+            <span id="circadian-phase-advice" class="circadian-phase-advice">{{ circadianWindow.advice }}</span>
           </div>
         </div>
 
         <!-- Tactical Audio Briefing Card -->
-        <div class="warrior-audio-briefing-card">
+        <div id="warrior-audio-card" class="warrior-audio-briefing-card">
           <div class="warrior-audio-head">
             <div class="warrior-audio-head-left">
               <div
+                id="warrior-audio-icon-wrap"
                 class="warrior-audio-icon-wrap"
                 :class="{ 'warrior-audio-icon-wrap--playing': isAudioPlaying && !isAudioPaused }"
               >
@@ -558,15 +563,16 @@ defineExpose({
               </div>
               <div>
                 <div class="warrior-audio-title-row">
-                  <span class="warrior-audio-title">Daily Tactical Audio Briefing</span>
+                  <span id="warrior-audio-title" class="warrior-audio-title">Daily Tactical Audio Briefing</span>
                   <span
+                    id="warrior-audio-engine-badge"
                     class="warrior-audio-engine-badge"
                     :class="currentBriefing?.source === 'gemini-1.5-flash' ? 'badge-gemini' : 'badge-neural'"
                   >
                     {{ currentBriefing?.source === 'gemini-1.5-flash' ? '✨ Gemini AI' : '⚡ Smart Neural' }}
                   </span>
                 </div>
-                <p class="warrior-audio-subtitle">
+                <p id="warrior-audio-subtitle" class="warrior-audio-subtitle">
                   Circadian & keystone intelligence voiced dynamically for your day
                 </p>
               </div>
@@ -576,6 +582,7 @@ defineExpose({
               <!-- Voice Persona Selector -->
               <div class="warrior-persona-select-wrap">
                 <select
+                  id="warrior-persona-select"
                   v-model="selectedPersonaKey"
                   class="warrior-persona-select"
                   aria-label="AI Voice Persona"
@@ -593,10 +600,12 @@ defineExpose({
 
               <!-- Regenerate button -->
               <button
+                id="warrior-audio-regenerate-btn"
                 type="button"
                 class="warrior-audio-icon-btn"
                 :disabled="isGeneratingBriefing"
                 title="Regenerate Tactical Audio Briefing"
+                aria-label="Regenerate Tactical Audio Briefing"
                 @click="refreshAIBriefing"
               >
                 <RefreshCw class="icon-xs" :class="{ 'spin-anim': isGeneratingBriefing }" />
@@ -604,10 +613,12 @@ defineExpose({
 
               <!-- Gemini API Key configuration button -->
               <button
+                id="warrior-audio-config-btn"
                 type="button"
                 class="warrior-audio-icon-btn"
                 :class="{ 'is-active': hasCustomApiKey }"
                 :title="hasCustomApiKey ? 'Gemini 1.5 Flash API Key Configured' : 'Configure Custom Gemini API Key'"
+                aria-label="Configure Custom Gemini API Key"
                 @click="showApiKeyInput = !showApiKeyInput"
               >
                 <Sliders class="icon-xs" />
@@ -616,9 +627,10 @@ defineExpose({
           </div>
 
           <!-- Inline API Key configuration drawer -->
-          <div v-if="showApiKeyInput" class="warrior-audio-key-drawer">
+          <div v-if="showApiKeyInput" id="warrior-audio-key-drawer" class="warrior-audio-key-drawer">
             <div class="warrior-audio-key-form">
               <input
+                id="warrior-audio-api-key-input"
                 v-model="customApiKeyInput"
                 type="password"
                 class="warrior-audio-key-input"
@@ -626,6 +638,7 @@ defineExpose({
                 autocomplete="off"
               />
               <button
+                id="warrior-audio-key-save-btn"
                 type="button"
                 class="warrior-audio-key-save-btn"
                 @click="saveApiKey"
@@ -633,6 +646,7 @@ defineExpose({
                 Save Key
               </button>
               <button
+                id="warrior-audio-key-cancel-btn"
                 type="button"
                 class="warrior-audio-key-cancel-btn"
                 @click="showApiKeyInput = false"
@@ -646,9 +660,10 @@ defineExpose({
           </div>
 
           <!-- Player Controls & Waveform Strip -->
-          <div class="warrior-audio-player-strip">
+          <div id="warrior-audio-player-strip" class="warrior-audio-player-strip">
             <div class="warrior-audio-player-left">
               <button
+                id="warrior-audio-play-btn"
                 type="button"
                 class="warrior-audio-play-btn"
                 :class="{ 'is-playing': isAudioPlaying && !isAudioPaused }"
@@ -665,9 +680,11 @@ defineExpose({
 
               <button
                 v-if="isAudioPlaying"
+                id="warrior-audio-stop-btn"
                 type="button"
                 class="warrior-audio-stop-btn"
                 title="Stop Briefing"
+                aria-label="Stop Briefing"
                 @click="stopAudioBriefing"
               >
                 <VolumeX class="icon-xs" />
@@ -675,6 +692,7 @@ defineExpose({
 
               <!-- Waveform Animation -->
               <div
+                id="warrior-waveform-visualizer"
                 class="warrior-waveform"
                 :class="{ 'is-active': isAudioPlaying && !isAudioPaused }"
                 aria-label="Audio Waveform"
@@ -695,6 +713,7 @@ defineExpose({
                 <button
                   v-for="spd in [1.0, 1.25, 1.5]"
                   :key="spd"
+                  :id="'btn-audio-speed-' + (spd === 1 ? '1_0' : spd.toString().replace('.', '_'))"
                   type="button"
                   class="audio-speed-chip"
                   :class="{ 'is-active': playbackSpeed === spd }"
@@ -707,14 +726,14 @@ defineExpose({
           </div>
 
           <!-- Briefing Transcript & Strategic Insights Excerpt -->
-          <div class="warrior-audio-transcript">
+          <div id="warrior-audio-transcript" class="warrior-audio-transcript">
             <div class="warrior-audio-transcript-head">
               <Sparkles class="icon-xs icon-focus-gold" />
-              <span class="warrior-audio-transcript-headline">
+              <span id="warrior-transcript-headline" class="warrior-audio-transcript-headline">
                 {{ currentBriefing?.headline || tacticalBriefing.headline }}
               </span>
             </div>
-            <p class="warrior-audio-transcript-text">
+            <p id="warrior-transcript-text" class="warrior-audio-transcript-text">
               {{ currentBriefing?.directive || tacticalBriefing.directive }}
             </p>
             <div v-if="currentBriefing?.keystoneFocus || currentBriefing?.stiffnessAdvisory" class="warrior-audio-transcript-meta">
@@ -794,9 +813,9 @@ defineExpose({
 
       <!-- ── TAB 2: BIOMETRIC & METABOLIC JOURNALING RAIL ── -->
       <div v-else-if="activeIntelligenceTab === 'biometrics'" class="warrior-ai-pane">
-        <div class="warrior-bio-grid">
+        <div id="warrior-bio-grid" class="warrior-bio-grid">
           <!-- Hydration Tracker -->
-          <div class="warrior-bio-card warrior-bio-card--hydration">
+          <div id="card-bio-hydration" class="warrior-bio-card warrior-bio-card--hydration">
             <div class="warrior-bio-head">
               <div class="warrior-bio-title-wrap">
                 <Droplets class="icon-sm icon-teal" />
@@ -806,47 +825,69 @@ defineExpose({
             </div>
 
             <!-- Fluid Bar -->
-            <div class="hydration-track">
+            <div id="hydration-track-bar" class="hydration-track">
               <div
+                id="hydration-fill-bar"
                 class="hydration-fill"
                 :style="{ width: `${Math.min(100, Math.round((localHydration / 3000) * 100))}%` }"
               ></div>
             </div>
             <div class="hydration-stats-row">
-              <span class="hydration-current mono-num">{{ localHydration }} ml</span>
-              <span class="hydration-pct mono-num">{{ Math.round((localHydration / 3000) * 100) }}% Complete</span>
+              <span id="hydration-current-val" class="hydration-current mono-num">{{ localHydration }} ml</span>
+              <span id="hydration-pct-val" class="hydration-pct mono-num">{{ Math.round((localHydration / 3000) * 100) }}% Complete</span>
             </div>
 
             <!-- Hydration Quick Tap Buttons -->
             <div class="hydration-btn-group">
-              <button type="button" class="btn btn--secondary btn--sm" @click="addHydration(250)">
+              <button
+                id="btn-hydration-add-250"
+                type="button"
+                class="btn btn--secondary btn--sm hydration-btn"
+                @click="addHydration(250)"
+              >
                 +250ml (Glass)
               </button>
-              <button type="button" class="btn btn--secondary btn--sm" @click="addHydration(500)">
+              <button
+                id="btn-hydration-add-500"
+                type="button"
+                class="btn btn--secondary btn--sm hydration-btn"
+                @click="addHydration(500)"
+              >
                 +500ml (Bottle)
               </button>
-              <button type="button" class="btn btn--secondary btn--sm" @click="addHydration(-250)" :disabled="localHydration <= 0">
+              <button
+                id="btn-hydration-undo"
+                type="button"
+                class="btn btn--secondary btn--sm hydration-btn"
+                :disabled="localHydration <= 0"
+                @click="addHydration(-250)"
+              >
                 Undo
               </button>
             </div>
           </div>
 
           <!-- Morning Stiffness & Energy Logger -->
-          <div class="warrior-bio-card warrior-bio-card--stiffness">
+          <div id="card-bio-stiffness" class="warrior-bio-card warrior-bio-card--stiffness">
             <div class="warrior-bio-head">
               <div class="warrior-bio-title-wrap">
                 <Activity class="icon-sm icon-focus-gold" />
                 <span class="warrior-bio-title">Morning Stiffness &amp; Vigor</span>
               </div>
-              <span class="warrior-bio-status-badge" :class="localStiffness <= 15 ? 'badge--optimal' : localStiffness <= 35 ? 'badge--mild' : 'badge--elevated'">
+              <span
+                id="badge-bio-stiffness-status"
+                class="warrior-bio-status-badge"
+                :class="localStiffness <= 15 ? 'badge--optimal' : localStiffness <= 35 ? 'badge--mild' : 'badge--elevated'"
+              >
                 {{ localStiffness <= 15 ? 'Optimal (<15m)' : localStiffness <= 35 ? 'Mild (15-35m)' : 'Elevated (>35m)' }}
               </span>
             </div>
 
             <div class="bio-inputs-row">
               <div class="bio-field">
-                <label class="bio-label">Stiffness (minutes):</label>
+                <label for="input-bio-stiffness" class="bio-label">Stiffness (minutes):</label>
                 <input
+                  id="input-bio-stiffness"
                   v-model.number="localStiffness"
                   type="number"
                   min="0"
@@ -858,8 +899,9 @@ defineExpose({
               </div>
 
               <div class="bio-field">
-                <label class="bio-label">Energy Level ({{ localEnergy }}/10):</label>
+                <label for="slider-bio-energy" class="bio-label">Energy Level ({{ localEnergy }}/10):</label>
                 <input
+                  id="slider-bio-energy"
                   v-model.number="localEnergy"
                   type="range"
                   min="1"
@@ -870,7 +912,9 @@ defineExpose({
             </div>
 
             <div class="bio-field bio-field--full">
+              <label for="input-bio-note" class="sr-only">Physical Notes</label>
               <input
+                id="input-bio-note"
                 v-model="localBioNote"
                 type="text"
                 class="bio-input bio-input--text"
@@ -878,7 +922,12 @@ defineExpose({
               />
             </div>
 
-            <button type="button" class="btn btn--primary-action btn--sm bio-save-btn" @click="saveBiomarkers">
+            <button
+              id="btn-save-biomarkers"
+              type="button"
+              class="btn btn--primary-action btn--sm bio-save-btn"
+              @click="saveBiomarkers"
+            >
               <Check class="icon-xs" />
               <span>Save Biomarkers</span>
             </button>

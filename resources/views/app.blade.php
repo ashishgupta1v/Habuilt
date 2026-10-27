@@ -7,9 +7,9 @@
         <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260418">
         <link rel="shortcut icon" href="/favicon.svg?v=20260418">
         <link rel="manifest" href="/manifest.webmanifest">
-        <meta name="theme-color" content="#0f172a">
+        <meta name="theme-color" content="#ffffff">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="Habuilt">
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
         <meta name="mobile-web-app-capable" content="yes">

@@ -21,7 +21,9 @@ import {
   loadUserSettings,
   saveUserBiomarker,
   loadLatestBiomarker,
+  flushOfflineQueue,
 } from '@/lib/supabase';
+import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
 import {
   computeLifetimeStats,
   getMonthlyHabits,
@@ -180,6 +182,7 @@ import {
   Link2,
   Volume2,
   VolumeX,
+  WifiOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -828,7 +831,6 @@ const handleQuickSwitchProtocol = async (protoId) => {
 
       await saveState();
       showToast(`⚡ Protocol "${targetProto.name}" Activated!`);
-      fireTierMilestone('full');
     }
   } catch (err) {
     console.error('Failed to switch protocol:', err);
@@ -1103,9 +1105,14 @@ const handleCycleCircadianAtmosphere = () => {
 };
 
 // ── Service Worker Periodic Background Sync Listener ──
-const handleSwPeriodicSync = (event) => {
+const handleSwPeriodicSync = async (event) => {
   if (event.data?.type === 'HABUILT_PERIODIC_SYNC') {
     refreshPartnerLiveMetrics();
+    syncCloudState(false);
+  } else if (event.data?.type === 'FLUSH_OFFLINE_QUEUE') {
+    await flushOfflineQueue();
+    await flushZoetiCoachQueue();
+    updateOfflineQueueCount();
     syncCloudState(false);
   }
 };
@@ -1129,6 +1136,17 @@ const toggleZenMode = () => {
 };
 
 const handleZenKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    if (isShareModalOpen.value) { isShareModalOpen.value = false; return; }
+    if (isProtocolSettingsOpen.value) { isProtocolSettingsOpen.value = false; return; }
+    if (isUniversalPartnerPairModalOpen.value) { isUniversalPartnerPairModalOpen.value = false; return; }
+    if (isCalendarSyncModalOpen.value) { isCalendarSyncModalOpen.value = false; return; }
+    if (partnerViewOpen.value) { partnerViewOpen.value = false; return; }
+    if (isProtocolWizardOpen.value) { isProtocolWizardOpen.value = false; return; }
+    if (isHabitFormModalOpen.value) { isHabitFormModalOpen.value = false; return; }
+    if (isAppInstallModalOpen.value) { isAppInstallModalOpen.value = false; return; }
+  }
+
   // Only trigger on 'z' or 'Z' without ctrl/meta/alt
   if (e.key && e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     const activeEl = document.activeElement;
@@ -1250,6 +1268,104 @@ const showToast = (message, duration = 2800) => {
   toastTimeoutId = setTimeout(() => {
     toastMessage.value = '';
   }, duration);
+};
+
+// ── OFFLINE PWA & BACKGROUND SYNC ENGINE ──
+const isOffline = ref(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+const offlineQueuedCount = ref(0);
+const isManualSyncing = ref(false);
+
+const updateOfflineQueueCount = () => {
+  if (typeof window === 'undefined') return;
+  let checkInsCount = 0;
+  try {
+    const raw = localStorage.getItem('habuilt_offline_queue');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) checkInsCount = parsed.length;
+    }
+  } catch {}
+
+  let zoetiCount = 0;
+  try {
+    zoetiCount = getZoetiCoachQueueCount();
+  } catch {}
+
+  offlineQueuedCount.value = checkInsCount + zoetiCount;
+};
+
+const handleOnline = async () => {
+  isOffline.value = false;
+  updateOfflineQueueCount();
+  showToast('🟢 Back online · Synchronizing offline actions...', 3000);
+
+  try {
+    const flushedCheckIns = await flushOfflineQueue();
+    const zoetiRes = await flushZoetiCoachQueue();
+    await syncCloudState(true);
+    updateOfflineQueueCount();
+    const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
+    if (totalFlushed > 0) {
+      showToast(`✨ Synced ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} with cloud!`, 3000);
+    } else {
+      showToast('✨ Connected to cloud · Everything is up to date', 2500);
+    }
+  } catch (err) {
+    console.warn('[Offline Engine] Online recovery sync warning:', err);
+  }
+};
+
+const handleOffline = () => {
+  isOffline.value = true;
+  updateOfflineQueueCount();
+  showToast('⚡ Offline Mode: Changes saved locally and queued for auto-sync', 3500);
+};
+
+const handleManualOfflineSync = async () => {
+  if (isManualSyncing.value) return;
+  isManualSyncing.value = true;
+  updateOfflineQueueCount();
+
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    isOffline.value = false;
+    try {
+      const flushedCheckIns = await flushOfflineQueue();
+      const zoetiRes = await flushZoetiCoachQueue();
+      await syncCloudState(true);
+      updateOfflineQueueCount();
+      const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
+      if (totalFlushed > 0) {
+        showToast(`🎉 Flushed ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} to cloud!`, 3500);
+      } else {
+        showToast('✅ Cloud connection verified · All records up to date', 3000);
+      }
+    } catch (e) {
+      showToast('⚠️ Sync warning. Local records remain safely queued.');
+    } finally {
+      isManualSyncing.value = false;
+    }
+  } else {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch('/manifest.webmanifest?t=' + Date.now(), { method: 'HEAD', signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        isOffline.value = false;
+        await flushOfflineQueue();
+        await flushZoetiCoachQueue();
+        await syncCloudState(true);
+        updateOfflineQueueCount();
+        showToast('🟢 Reconnected! Offline records synced.', 3000);
+      } else {
+        showToast('📡 Still offline. All changes safely stored on device.', 3000);
+      }
+    } catch {
+      showToast('📡 Still offline. All changes safely stored on device.', 3000);
+    } finally {
+      isManualSyncing.value = false;
+    }
+  }
 };
 
 const monthScope = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`);
@@ -1923,6 +2039,7 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
 
   saveState();
   syncDueNowNotification?.();
+  updateOfflineQueueCount();
 
   // Optimistic Undo Toast Trigger (only for direct user clicks, not during undo rollback)
   if (!isUndo) {
@@ -3255,6 +3372,8 @@ const syncTabWithUrl = () => {
     const tab = params.get('tab');
     if (tab && ['today', 'focus', 'stats', 'rewards'].includes(tab)) {
       activeMobileTab.value = tab;
+    } else if (!tab) {
+      activeMobileTab.value = 'today';
     }
   } catch { /* URL param fallback */ }
 };
@@ -3363,7 +3482,11 @@ onMounted(() => {
   window.addEventListener('popstate', handlePopState);
   window.addEventListener('focus', handleAppResume);
   window.addEventListener('pageshow', handleAppResume);
-  window.addEventListener('online', () => syncCloudState(true));
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  window.addEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
+  window.addEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
+  updateOfflineQueueCount();
   window.addEventListener('keydown', handleZenKeyDown);
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -3662,6 +3785,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('popstate', handlePopState);
   window.removeEventListener('focus', handleAppResume);
   window.removeEventListener('pageshow', handleAppResume);
+  window.removeEventListener('online', handleOnline);
+  window.removeEventListener('offline', handleOffline);
+  window.removeEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
+  window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
   window.removeEventListener('keydown', handleZenKeyDown);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -3672,45 +3799,6 @@ onBeforeUnmount(() => {
 
 <template>
   <AppLayout :title="appName">
-    <!-- Global Floating Action Feedback Toast -->
-    <transition name="toast-fade">
-      <div v-if="toastMessage" class="global-toast-banner" role="status" aria-live="polite">
-        <span class="global-toast-text">{{ toastMessage }}</span>
-      </div>
-    </transition>
-
-    <!-- Pinned Top Deep Work Timer Bar -->
-    <div v-if="timerState && activeMobileTab !== 'focus'" class="deep-timer" :class="{ 'deep-timer--running': timerState.running }">
-      <div class="deep-timer__bar">
-        <div class="deep-timer__left">
-          <span class="deep-timer__pulse"></span>
-          <span class="deep-timer__icon"><Timer class="icon-sm" /></span>
-          <span class="deep-timer__time mono-num">{{ timerElapsedFormatted }}</span>
-          <span class="deep-timer__target mono-num">/ {{ timerState.targetMin }}m</span>
-          <span v-if="timerLinkedHabit" class="deep-timer__linked">
-            🎯 {{ timerLinkedHabit.name }}
-          </span>
-          <span v-else-if="timerState.isBreak" class="deep-timer__linked deep-timer__linked--break">
-            ☕ Break
-          </span>
-        </div>
-        <div class="deep-timer__right">
-          <div class="deep-timer__progress-bar">
-            <div class="deep-timer__progress-fill" :style="{ width: timerProgressPct + '%' }"></div>
-          </div>
-          <button v-if="!timerState.running" class="deep-timer__btn" @click="resumeDeepWorkTimer">
-            <Play class="icon-xs" />
-          </button>
-          <button v-if="timerState.running" class="deep-timer__btn" @click="pauseDeepWorkTimer">
-            <Pause class="icon-xs" />
-          </button>
-          <button class="deep-timer__btn deep-timer__btn--danger" @click="stopDeepWorkTimer">
-            <X class="icon-xs" />
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Mobile Compact Bar (Persistent across Today, Focus, Stats & Rewards tabs) -->
     <MobileCompactBar
       :time-greeting="timeGreeting"
@@ -3749,6 +3837,78 @@ onBeforeUnmount(() => {
       @sign-out="emit('sign-out')"
     />
 
+    <!-- Pinned Floating Deep Work Timer HUD -->
+    <div
+      v-if="timerState && activeMobileTab !== 'focus'"
+      class="deep-timer"
+      :class="{
+        'deep-timer--running': timerState.running,
+        'deep-timer--paused': !timerState.running,
+        'deep-timer--break': timerState.isBreak,
+      }"
+      role="region"
+      aria-label="Active Focus Timer HUD"
+    >
+      <div class="deep-timer__bar">
+        <div
+          class="deep-timer__left"
+          @click="activeMobileTab = 'focus'"
+          title="Open Focus Workstation"
+          role="button"
+          tabindex="0"
+          @keydown.enter="activeMobileTab = 'focus'"
+        >
+          <span class="deep-timer__pulse" aria-hidden="true"></span>
+          <span class="deep-timer__icon"><Timer class="icon-sm" /></span>
+          <span class="deep-timer__time mono-num">{{ timerElapsedFormatted }}</span>
+          <span class="deep-timer__target mono-num">/ {{ timerState.targetMin }}m</span>
+          <span v-if="timerLinkedHabit" class="deep-timer__linked" :title="timerLinkedHabit.name">
+            🎯 {{ timerLinkedHabit.name }}
+          </span>
+          <span v-else-if="timerState.isBreak" class="deep-timer__linked deep-timer__linked--break">
+            ☕ Break
+          </span>
+        </div>
+        <div class="deep-timer__right">
+          <div
+            class="deep-timer__progress-bar"
+            :title="`${timerProgressPct}% complete (${timerRemainingFormatted} remaining)`"
+          >
+            <div class="deep-timer__progress-fill" :style="{ width: timerProgressPct + '%' }"></div>
+          </div>
+          <button
+            v-if="!timerState.running"
+            type="button"
+            class="deep-timer__btn"
+            @click="resumeDeepWorkTimer"
+            title="Resume Focus Timer"
+            aria-label="Resume Focus Timer"
+          >
+            <Play class="icon-xs" />
+          </button>
+          <button
+            v-if="timerState.running"
+            type="button"
+            class="deep-timer__btn"
+            @click="pauseDeepWorkTimer"
+            title="Pause Focus Timer"
+            aria-label="Pause Focus Timer"
+          >
+            <Pause class="icon-xs" />
+          </button>
+          <button
+            type="button"
+            class="deep-timer__btn deep-timer__btn--danger"
+            @click="stopDeepWorkTimer"
+            title="Stop & Dismiss Timer"
+            aria-label="Stop Timer"
+          >
+            <X class="icon-xs" />
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
     <StickyMiniHud
       :show-sticky-hud="showStickyHud"
@@ -3770,6 +3930,7 @@ onBeforeUnmount(() => {
         <TopCommandBar
           :is-jyoti="isJyoti"
           :is-ashish="isAshish"
+          :is-guest-active="isGuestActive"
           :display-name="displayName"
           :active-protocol-name="activeProtocolDisplayName"
           :all-protocols="allProtocols"
@@ -3798,6 +3959,7 @@ onBeforeUnmount(() => {
           @toggle-travel="toggleTravelMode"
           @prev-month="goToPreviousMonth"
           @next-month="goToNextMonth"
+          @sign-out="emit('sign-out')"
           @toggle-zen="toggleZenMode"
           @open-install-modal="isAppInstallModalOpen = true"
           @open-spotlight="openSpotlight"
@@ -4178,6 +4340,41 @@ onBeforeUnmount(() => {
           @toast="msg => showToast(msg)"
         />
       </section>
+
+      <!-- Offline State & Background Sync Indicator Pill -->
+      <transition name="offline-pill-fade">
+        <div
+          v-if="isOffline"
+          id="offline-status-pill"
+          class="offline-pill"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="offline-pill__content">
+            <span class="offline-pill__icon" aria-hidden="true">
+              <WifiOff class="icon-xs" />
+            </span>
+            <div class="offline-pill__text">
+              <span class="offline-pill__title">Offline Mode</span>
+              <span class="offline-pill__sub">
+                {{ offlineQueuedCount > 0 ? `${offlineQueuedCount} action${offlineQueuedCount > 1 ? 's' : ''} queued locally` : 'Changes saved locally' }}
+              </span>
+            </div>
+          </div>
+          <button
+            id="btn-offline-sync-now"
+            type="button"
+            class="offline-pill__sync-btn"
+            :disabled="isManualSyncing"
+            @click="handleManualOfflineSync"
+            title="Attempt network reconnect & sync pending check-ins"
+            aria-label="Sync offline changes now"
+          >
+            <RefreshCw class="icon-xs" :class="{ 'animate-spin': isManualSyncing }" />
+            <span>{{ isManualSyncing ? 'Syncing...' : 'Sync Now' }}</span>
+          </button>
+        </div>
+      </transition>
 
       <!-- Global Floating Toast Notification & Optimistic Undo Capsule -->
       <transition name="toast-fade">
