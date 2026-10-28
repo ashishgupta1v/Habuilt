@@ -3925,6 +3925,7 @@ onBeforeUnmount(() => {
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
         class="card card--hero mobile-tab-hero"
+        :class="{ 'card--hero-compact': activeMobileTab !== 'today' }"
         id="overview"
       >
         <TopCommandBar
@@ -3973,6 +3974,7 @@ onBeforeUnmount(() => {
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
         <HeroExecutiveDeck
+          v-if="activeMobileTab === 'today'"
           :time-greeting="timeGreeting"
           :performance-grade="performanceGrade"
           :current-routine-window="currentRoutineWindow"
@@ -3994,6 +3996,7 @@ onBeforeUnmount(() => {
 
         <!-- ── Mission Control Row 2: Executive 4-Card KPI Ribbon ── -->
         <ExecutiveKpiRibbon
+          v-if="activeMobileTab === 'today'"
           :system-streak="systemStreak"
           :available-wallet="availableWallet"
           :monthly-total-earned="monthlyTotalEarned"

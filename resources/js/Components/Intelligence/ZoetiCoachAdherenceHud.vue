@@ -807,11 +807,11 @@ onUnmounted(() => {
 <style scoped>
 /* ── Container (Pure Light Theme) ── */
 .zoeticoach-hud {
-  margin-top: 1.25rem;
-  margin-bottom: 1.5rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.85rem;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -828,8 +828,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1.25rem;
+  gap: 0.85rem;
+  padding: 0.55rem 1rem;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
@@ -953,8 +953,8 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.74rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
@@ -1010,7 +1010,7 @@ onUnmounted(() => {
 
 /* ── Content & Tabs ── */
 .hud-content {
-  padding: 1rem 1.25rem 1.25rem;
+  padding: 0.65rem 1rem 0.75rem;
   background: #ffffff;
 }
 
@@ -1019,8 +1019,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 0.65rem;
-  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.65rem;
   overflow-x: auto;
 }
 
@@ -1028,8 +1028,8 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.76rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.74rem;
   font-weight: 600;
   border-radius: 8px;
   background: transparent;
@@ -1076,8 +1076,8 @@ onUnmounted(() => {
 .hud-metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
 }
 
 @media (max-width: 900px) {
@@ -1095,12 +1095,12 @@ onUnmounted(() => {
 .metric-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.95rem 1rem;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.35rem;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1178,7 +1178,7 @@ onUnmounted(() => {
 }
 
 .metric-val {
-  font-size: 1.85rem;
+  font-size: 1.55rem;
   font-weight: 800;
   line-height: 1;
   color: #090d16;
@@ -1331,17 +1331,17 @@ onUnmounted(() => {
 .hud-nudge-banner {
   display: flex;
   align-items: flex-start;
-  gap: 0.85rem;
+  gap: 0.65rem;
   background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(248, 250, 252, 0.95) 100%);
   border: 1px solid rgba(255, 107, 53, 0.25);
-  border-radius: 12px;
-  padding: 0.9rem 1.15rem;
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
 }
 
 .nudge-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
   background: rgba(255, 107, 53, 0.12);
   border: 1px solid rgba(255, 107, 53, 0.3);
   color: #ea580c;
@@ -1618,8 +1618,8 @@ onUnmounted(() => {
 
 /* ── Footer ── */
 .hud-footer {
-  margin-top: 0.95rem;
-  padding-top: 0.65rem;
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
   border-top: 1px solid #e2e8f0;
 }
 
