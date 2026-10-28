@@ -1,0 +1,156 @@
+{
+  "desktop": {
+    "flow": {
+      "selector": ".dashboard-flow",
+      "width": 1198,
+      "height": 4224,
+      "top": 63,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "display": "flex",
+      "flexDirection": "column",
+      "gap": "normal"
+    },
+    "appHeader": null,
+    "heroCard": {
+      "selector": ".card--hero",
+      "width": 1198,
+      "height": 742,
+      "top": 63,
+      "padding": "32px 36px 32px 36px",
+      "margin": "0px 0px 0px 0px",
+      "display": "block",
+      "flexDirection": "row",
+      "gap": "normal"
+    },
+    "topCommandBar": {
+      "selector": ".hero-command-bar",
+      "width": 1126,
+      "height": 166,
+      "top": 95,
+      "padding": "8px 18px 8px 18px",
+      "margin": "0px 0px 20px 0px",
+      "display": "flex",
+      "flexDirection": "column",
+      "gap": "12px"
+    },
+    "executiveDeck": {
+      "selector": ".hero-executive-deck",
+      "width": 1126,
+      "height": 312,
+      "top": 281,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 22px 0px",
+      "display": "grid",
+      "flexDirection": "row",
+      "gap": "20px"
+    },
+    "todayProtocolCard": null,
+    "kpiRibbon": {
+      "selector": ".hero-kpi-ribbon",
+      "width": 1126,
+      "height": 133,
+      "top": 616,
+      "padding": "0px 0px 0px 0px",
+      "margin": "10px 0px 24px 0px",
+      "display": "grid",
+      "flexDirection": "row",
+      "gap": "16px"
+    },
+    "kpiCards": [
+      {
+        "h": 133,
+        "p": "22px 24px"
+      },
+      {
+        "h": 133,
+        "p": "22px 24px"
+      },
+      {
+        "h": 133,
+        "p": "22px 24px"
+      },
+      {
+        "h": 133,
+        "p": "22px 24px"
+      }
+    ],
+    "zoetiHud": null,
+    "cockpit": null,
+    "habitsSection": {
+      "selector": "#habits",
+      "width": 1198,
+      "height": 2747,
+      "top": 1507,
+      "padding": "20px 22px 20px 22px",
+      "margin": "0px 0px 0px 0px",
+      "display": "block",
+      "flexDirection": "row",
+      "gap": "normal"
+    },
+    "monthGrid": null
+  },
+  "desktop_focus": {
+    "height": 502,
+    "padding": "28px 28px 28px 28px",
+    "margin": "0px 0px"
+  },
+  "mobile": {
+    "mobileCompactBar": {
+      "selector": ".mobile-compact-bar",
+      "width": 393,
+      "height": 54,
+      "top": 0,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "gap": "5px"
+    },
+    "mobileHeroWrap": {
+      "selector": ".mobile-tab-hero",
+      "width": 0,
+      "height": 0,
+      "top": 0,
+      "padding": "12px 14px 12px 14px",
+      "margin": "0px 0px 0px 0px",
+      "gap": "normal"
+    },
+    "mobileExecutiveDeck": {
+      "selector": ".hero-executive-deck",
+      "width": 0,
+      "height": 0,
+      "top": 0,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 22px 0px",
+      "gap": "20px"
+    },
+    "mobileKpiRibbon": {
+      "selector": ".hero-kpi-ribbon",
+      "width": 0,
+      "height": 0,
+      "top": 0,
+      "padding": "0px 0px 0px 0px",
+      "margin": "10px 0px 24px 0px",
+      "gap": "16px"
+    },
+    "mobileTodayChecklist": null,
+    "mobileHabitItems": [],
+    "mobileBottomNav": {
+      "selector": ".mobile-bottom-nav",
+      "width": 393,
+      "height": 64,
+      "top": 788,
+      "padding": "4px 8px 10px 8px",
+      "margin": "0px 0px 0px 0px",
+      "gap": "normal"
+    },
+    "mobileFab": {
+      "selector": "#mobile-habits-fab",
+      "width": 52,
+      "height": 52,
+      "top": 722,
+      "padding": "1px 6px 1px 6px",
+      "margin": "0px 0px 0px 0px",
+      "gap": "normal"
+    }
+  }
+}

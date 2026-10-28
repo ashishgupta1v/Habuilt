@@ -186,9 +186,9 @@ onUnmounted(() => {
             <Shield class="icon-sm icon-gold" />
             <span>Today's Protocol</span>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="hero-protocol-card__gauge-wrap">
             <!-- Kinetic SVG Mini-Gauge -->
-            <svg viewBox="0 0 36 36" class="w-7 h-7 flex-shrink-0 hidden sm:block" aria-hidden="true">
+            <svg viewBox="0 0 36 36" class="hero-protocol-card__svg-ring" aria-hidden="true">
               <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3" />
               <circle
                 cx="18"
