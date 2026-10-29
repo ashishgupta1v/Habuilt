@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\HabitLedgerApiController;
+use App\Http\Controllers\Api\TelemetryApiController;
 use App\Http\Middleware\VerifyApiAuthorization;
 use Illuminate\Support\Facades\Route;
 
-// Healthcheck (public)
+// Healthcheck & Telemetry (Public)
 Route::get('/health', fn () => response()->json(['status' => 'healthy', 'server' => 'Hostinger KVM 2', 'db' => 'pgsql', 'time' => now()]));
+Route::get('/telemetry/health', [TelemetryApiController::class, 'health']);
+Route::post('/telemetry/tunnel', [TelemetryApiController::class, 'tunnel']);
+Route::post('/telemetry/test-event', [TelemetryApiController::class, 'recordTestEvent']);
 
 // Multi-tenant Protected API Endpoints (Requires Bearer Token & User Ownership)
 Route::middleware([VerifyApiAuthorization::class])->group(function (): void {

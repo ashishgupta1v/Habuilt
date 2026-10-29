@@ -1172,6 +1172,10 @@ watch(partnerViewOpen, (open) => {
   }
 });
 
+const handleOpenProtocolSettingsEvent = () => {
+  isProtocolSettingsOpen.value = true;
+};
+
 onMounted(async () => {
   applyTheme(darkMode.value);
   await loadProtocols();
@@ -1226,6 +1230,9 @@ onMounted(async () => {
       }, 1000);
     }
   }
+
+  // Global event listener for opening Protocol & Routine Settings modal
+  window.addEventListener('habuilt:open-protocol-settings', handleOpenProtocolSettingsEvent);
 });
 
 const weeklyReviewExpanded = ref(false);
@@ -3790,6 +3797,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
   window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
   window.removeEventListener('keydown', handleZenKeyDown);
+  window.removeEventListener('habuilt:open-protocol-settings', handleOpenProtocolSettingsEvent);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.removeEventListener('message', handleSwPeriodicSync);

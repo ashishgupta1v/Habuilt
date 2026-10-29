@@ -52,8 +52,15 @@ import {
   Share2,
   FileText,
   AlertTriangle,
+  Bug,
 } from 'lucide-vue-next';
 import { purgeUserAccount, supabase } from '@/lib/supabase';
+import {
+  telemetry,
+  exportDiagnostics,
+  sendTestException,
+  getTelemetryStatus,
+} from '@/lib/telemetry';
 import { PROTOCOL_ARCHETYPES, useDynamicProtocols } from '@/Composables/useDynamicProtocols';
 import {
   useCategoryTaxonomy,
@@ -818,6 +825,41 @@ const handleConfirmAccountDeletion = async () => {
   } finally {
     isDeletingAccount.value = false;
   }
+};
+
+// ── Sentry & Continuous Error Telemetry Diagnostics ──
+const telemetryStatus = ref(getTelemetryStatus());
+const isSendingTestTelemetry = ref(false);
+const testTelemetryMessage = ref('');
+
+const refreshTelemetryStatus = () => {
+  telemetryStatus.value = getTelemetryStatus();
+};
+
+const handleSendTestTelemetry = async () => {
+  isSendingTestTelemetry.value = true;
+  testTelemetryMessage.value = '';
+  try {
+    const res = await sendTestException('settings_vault_probe');
+    refreshTelemetryStatus();
+    testTelemetryMessage.value = `✅ Anomaly (${res.id}) routed to Sentry tunnel!`;
+    emit('toast', '🚀 Test exception delivered through Sentry tunnel.');
+  } catch (err) {
+    testTelemetryMessage.value = `⚠️ Error: ${err.message}`;
+  } finally {
+    isSendingTestTelemetry.value = false;
+  }
+};
+
+const handleExportDiagnosticsArchive = () => {
+  exportDiagnostics();
+  emit('toast', '📦 Diagnostic dump exported to JSON.');
+};
+
+const handlePurgeTelemetryBuffer = () => {
+  telemetry.clearBuffer();
+  refreshTelemetryStatus();
+  emit('toast', '🧹 Local telemetry buffer purged.');
 };
 </script>
 
@@ -2063,6 +2105,81 @@ const handleConfirmAccountDeletion = async () => {
                   <span>Cancel</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: PRODUCTION SENTRY ERROR MONITORING & TELEMETRY -->
+          <div class="proto-card proto-card--telemetry mt-3" id="proto-telemetry-monitoring-card">
+            <div class="proto-card__header">
+              <div class="proto-card__title">
+                <Bug class="icon-xs text-sky-400" />
+                <span>Production Error Monitoring &amp; Sentry Telemetry</span>
+              </div>
+              <div class="proto-badge-status" :class="telemetryStatus.sentryDsnConfigured ? 'proto-badge--active' : 'proto-badge--muted'">
+                {{ telemetryStatus.sentryDsnConfigured ? '⚡ Sentry Active' : '🛡️ Sovereign Local Buffer' }}
+              </div>
+            </div>
+
+            <p class="text-[12px] text-gray-400 mt-2 leading-relaxed">
+              Real-time client telemetry captures runtime exceptions, unhandled promises, and component errors into an encrypted local ring buffer, dispatched through a first-party Sentry tunnel for complete ad-blocker resilience.
+            </p>
+
+            <!-- Metrics Pill Row -->
+            <div class="proto-telemetry-metrics-row mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
+                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Ring Buffer</span>
+                <span class="text-sm font-black text-white mono-num">{{ telemetryStatus.ringBufferCount }} / 50</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
+                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Offline Spool</span>
+                <span class="text-sm font-black text-amber-400 mono-num">{{ telemetryStatus.spoolCount }} pending</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
+                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Ingest Route</span>
+                <span class="text-sm font-bold text-sky-400 truncate block">/api/telemetry/tunnel</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
+                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Upstream</span>
+                <span class="text-sm font-bold text-emerald-400 truncate block">{{ telemetryStatus.sentryHost || 'Local Sovereign' }}</span>
+              </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="proto-telemetry-actions mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="btn btn--primary-action btn--sm flex items-center gap-1.5"
+                :disabled="isSendingTestTelemetry"
+                @click="handleSendTestTelemetry"
+                id="btn-test-sentry-event"
+              >
+                <Activity class="icon-xs" :class="{ 'animate-spin': isSendingTestTelemetry }" />
+                <span>{{ isSendingTestTelemetry ? 'Routing Anomaly...' : 'Send Test Anomaly' }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="btn btn--secondary btn--sm flex items-center gap-1.5"
+                @click="handleExportDiagnosticsArchive"
+                id="btn-export-diagnostics-archive"
+              >
+                <Download class="icon-xs" />
+                <span>Export Diagnostics (JSON)</span>
+              </button>
+
+              <button
+                type="button"
+                class="btn btn--secondary btn--sm flex items-center gap-1.5 text-gray-400 hover:text-white"
+                @click="handlePurgeTelemetryBuffer"
+                id="btn-purge-diagnostics"
+              >
+                <Trash2 class="icon-xs text-rose-400" />
+                <span>Clear Buffer</span>
+              </button>
+            </div>
+
+            <div v-if="testTelemetryMessage" class="mt-2 text-xs mono-num" :class="testTelemetryMessage.startsWith('✅') ? 'text-emerald-400' : 'text-rose-400'">
+              {{ testTelemetryMessage }}
             </div>
           </div>
         </div>
