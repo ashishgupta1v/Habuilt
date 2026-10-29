@@ -28,8 +28,8 @@ def run_live_production_verification():
             failed_checks.append((name, details))
             print(f"  [FAIL] {name} - {details}", flush=True)
 
-    # 1. Direct HTTPS API Health Check
-    print("\n>>> STEP 1: Live HTTPS API Health Check <<<")
+    # 1. Direct HTTPS API Health & Telemetry Check
+    print("\n>>> STEP 1: Live HTTPS API Health & Telemetry Check <<<")
     try:
         ctx = ssl.create_default_context()
         req = urllib.request.Request(
@@ -39,12 +39,41 @@ def run_live_production_verification():
         with urllib.request.urlopen(req, context=ctx, timeout=15) as res:
             status = res.status
             body = json.loads(res.read().decode())
-            print(f"       Status: {status}, Body: {body}", flush=True)
+            print(f"       Health: Status: {status}, Body: {body}", flush=True)
             check("API /api/health HTTP 200", status == 200)
             check("API reports healthy status", body.get("status") == "healthy")
             check("API reports Hostinger KVM 2 server", body.get("server") == "Hostinger KVM 2")
+
+        # Telemetry Health Endpoint Check
+        telemetry_req = urllib.request.Request(
+            "https://habuilt.com/api/telemetry/health",
+            headers={"User-Agent": "Habuilt-Production-HealthCheck/1.0"}
+        )
+        with urllib.request.urlopen(telemetry_req, context=ctx, timeout=15) as res:
+            t_status = res.status
+            t_body = json.loads(res.read().decode())
+            print(f"       Telemetry Health: Status: {t_status}, Body: {t_body}", flush=True)
+            check("API /api/telemetry/health HTTP 200", t_status == 200)
+            check("Telemetry operational", t_body.get("status") == "operational")
+            check("Telemetry engine active", "Habuilt" in t_body.get("engine", ""))
+
+        # Telemetry Tunnel Proxy Endpoint Check (Synthetic Sentry Envelope Relay)
+        envelope_content = '{"event_id":"00000000000000000000000000000001","sent_at":"2026-10-29T07:15:00.000Z"}\n{"type":"event","content_type":"application/json"}\n{"message":"Live Production Verification Ping"}\n'
+        tunnel_req = urllib.request.Request(
+            "https://habuilt.com/api/telemetry/tunnel",
+            data=envelope_content.encode("utf-8"),
+            headers={"Content-Type": "text/plain", "User-Agent": "Habuilt-Telemetry-LiveTest/1.0"},
+            method="POST"
+        )
+        with urllib.request.urlopen(tunnel_req, context=ctx, timeout=15) as res:
+            tune_status = res.status
+            tune_body = json.loads(res.read().decode())
+            print(f"       Telemetry Tunnel: Status: {tune_status}, Body: {tune_body}", flush=True)
+            check("API /api/telemetry/tunnel HTTP 200", tune_status == 200)
+            check("Telemetry Tunnel accepted envelope", tune_body.get("success") is True)
+
     except Exception as e:
-        check("API /api/health Reachable", False, str(e))
+        check("API Health & Telemetry Reachable", False, str(e))
 
     # 2. Browser E2E Live Testing on https://habuilt.com/
     with sync_playwright() as p:
@@ -119,6 +148,30 @@ def run_live_production_verification():
             return localStorage.getItem('habuilt_diagnostics_ring_buffer') !== null;
         }""")
         check("Live Telemetry Ring Buffer Active", telemetry_ok)
+
+        print("\n>>> STEP 5: Live UI Protocol Settings & Telemetry Inspector <<<")
+        page.evaluate("""() => {
+            window.dispatchEvent(new CustomEvent('habuilt:open-protocol-settings'));
+        }""")
+        page.wait_for_selector("#proto-tab-security", timeout=8000)
+        vault_tab = page.locator("#proto-tab-security")
+        check("Live Vault & Solar Tab Present", vault_tab.count() > 0)
+        
+        if vault_tab.count() > 0:
+            vault_tab.click()
+            page.wait_for_selector("#proto-telemetry-monitoring-card", timeout=8000)
+            telemetry_card = page.locator("#proto-telemetry-monitoring-card")
+            check("Live Telemetry Monitoring Card Present", telemetry_card.count() > 0)
+            check("Live Telemetry Monitoring Card Visible", telemetry_card.is_visible())
+
+            # Test Send Test Anomaly in live UI
+            test_anomaly_btn = page.locator("#btn-test-sentry-event")
+            check("Live Test Anomaly Button Present", test_anomaly_btn.count() > 0)
+            if test_anomaly_btn.count() > 0:
+                test_anomaly_btn.click()
+                page.wait_for_timeout(1200)
+                card_text = telemetry_card.inner_text()
+                check("Live Test Anomaly feedback rendered", "Anomaly" in card_text or "routed" in card_text)
 
         page.screenshot(path="tests/screenshots/live_02_dashboard_synced.png")
 
