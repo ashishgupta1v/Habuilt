@@ -24,5 +24,11 @@ jobs:
             if [ ! -d /var/www/Habuilt ]; then
               git clone -b ${{ github.ref_name }} https://github.com/ashishgupta1v/Habuilt.git /var/www/Habuilt
             fi
+            cd /var/www/Habuilt
+            git reset --hard HEAD
+            git clean -fd
+            git fetch origin ${{ github.ref_name }}
+            git checkout -B ${{ github.ref_name }} origin/${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
             chmod +x /var/www/Habuilt/deploy/deploy.sh
             /var/www/Habuilt/deploy/deploy.sh ${{ github.ref_name }}
