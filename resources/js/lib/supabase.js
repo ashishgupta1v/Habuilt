@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
+import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from './syncEngine.js';
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -12,6 +13,14 @@ const USE_LOCAL_API = true;
 
 export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
   if (typeof window === 'undefined') return null;
+
+  // Guest users store data locally in the browser; do not pollute multi-tenant PostgreSQL
+  const isGuestQuery = typeof endpoint === 'string' && endpoint.includes('user_id=guest');
+  const isGuestBody = body && (body.user_id === 'guest' || String(body.user_id || '').startsWith('guest'));
+  if (isGuestQuery || isGuestBody) {
+    return { success: true, guest: true };
+  }
+
   try {
     const opts = {
       method,
@@ -20,6 +29,26 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
         'Content-Type': 'application/json',
       },
     };
+
+    // Attach Bearer token from Supabase session if available
+    try {
+      if (typeof supabase !== 'undefined' && supabase.auth) {
+        const sessionRes = await supabase.auth.getSession();
+        const token = sessionRes?.data?.session?.access_token;
+        if (token) {
+          opts.headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    } catch {
+      // Fallback: check cached session
+      try {
+        const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+        if (cached?.access_token) {
+          opts.headers['Authorization'] = `Bearer ${cached.access_token}`;
+        }
+      } catch {}
+    }
+
     if (body) {
       opts.body = JSON.stringify(body);
     }
@@ -29,6 +58,21 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
   } catch (err) {
     console.warn(`[Local KVM API] ${method} ${endpoint} note:`, err.message);
     return null;
+  }
+};
+
+/**
+ * Permanently purge user account and all personal data.
+ * Complies with Apple App Store Guideline 5.1.1(v) & GDPR Right to Erasure.
+ */
+export const purgeUserAccount = async (userId) => {
+  if (!userId || userId === 'guest') return true;
+  try {
+    const res = await callLocalApi('/api/user-account', 'DELETE', { user_id: userId });
+    return res?.success ?? false;
+  } catch (e) {
+    console.error('[PurgeAccount] Error:', e);
+    return false;
   }
 };
 
@@ -68,7 +112,7 @@ export const recordHabitCheckIn = async ({
   points = 1,
   canonicalKey = '',
   source = 'web',
-}) => {
+}, skipQueue = false) => {
   if (!userId || !habitId || !monthKey || !day) return false;
 
   const dateStr = completedOn || `${monthKey}-${String(day).padStart(2, '0')}`;
@@ -150,17 +194,26 @@ export const recordHabitCheckIn = async ({
     } catch {}
   }
 
-  queueOfflineAction({
-    type: 'INSERT',
-    payload: { userId, habitId, habitName, monthKey, day, completedOn: dateStr, points, canonicalKey, source },
-  });
+  if (!skipQueue) {
+    enqueueOfflineMutation('INSERT', {
+      userId,
+      habitId: String(habitId),
+      habitName,
+      monthKey,
+      day: Number(day),
+      completedOn: dateStr,
+      points,
+      canonicalKey,
+      source,
+    });
+  }
   return false;
 };
 
 /**
  * Removes a habit check-in record from the normalized ledger.
  */
-export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => {
+export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, skipQueue = false) => {
   if (!userId || !habitId || !monthKey || !day) return false;
 
   // 1. Primary: Hostinger KVM 2 local API
@@ -223,10 +276,14 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }) => 
     } catch {}
   }
 
-  queueOfflineAction({
-    type: 'DELETE',
-    payload: { userId, habitId, monthKey, day },
-  });
+  if (!skipQueue) {
+    enqueueOfflineMutation('DELETE', {
+      userId,
+      habitId: String(habitId),
+      monthKey,
+      day: Number(day),
+    });
+  }
   return false;
 };
 
@@ -508,58 +565,27 @@ export const broadcastPartnerEvent = async (arg1, arg2) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. OFFLINE QUEUE
+// 4. OFFLINE QUEUE & SYNC ENGINE BRIDGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const OFFLINE_QUEUE_KEY = 'habuilt_offline_queue';
+// Register executors for the background sync engine
+syncEngine.registerExecutor('INSERT', async (payload) => {
+  return await recordHabitCheckIn(payload, true /* skipQueue to prevent re-enqueue loop */);
+});
 
-const queueOfflineAction = (action) => {
-  if (typeof window === 'undefined') return;
-  try {
-    const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
-    queue.push({ ...action, queuedAt: new Date().toISOString() });
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-  } catch {}
+syncEngine.registerExecutor('DELETE', async (payload) => {
+  return await removeHabitCheckIn(payload, true /* skipQueue to prevent re-enqueue loop */);
+});
+
+export const queueOfflineAction = (action) => {
+  if (!action || !action.type) return;
+  enqueueOfflineMutation(action.type, action.payload);
 };
 
 export const flushOfflineQueue = async () => {
-  if (typeof window === 'undefined') return 0;
-  let queue = [];
-  try {
-    queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
-  } catch {
-    queue = [];
-  }
-  if (!queue.length) return 0;
-
-  const remaining = [];
-  let flushed = 0;
-
-  for (const item of queue) {
-    try {
-      if (item.type === 'INSERT') {
-        const ok = await recordHabitCheckIn(item.payload);
-        if (ok) flushed++; else remaining.push(item);
-      } else if (item.type === 'DELETE') {
-        const ok = await removeHabitCheckIn(item.payload);
-        if (ok) flushed++; else remaining.push(item);
-      }
-    } catch {
-      remaining.push(item);
-    }
-  }
-
-  try {
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
-  } catch {}
-  return flushed;
+  return await flushOfflineMutationQueue();
 };
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    flushOfflineQueue();
-  });
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 5. LEGACY FALLBACK API

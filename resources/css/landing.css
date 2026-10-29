@@ -1714,3 +1714,75 @@
   color: #0d9488 !important;
 }
 
+/* ── Apple OAuth Button (HIG Compliant) ── */
+.lp__apple-btn {
+  background: #000000 !important;
+  border: 1px solid rgba(0, 0, 0, 0.9) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
+.lp__apple-btn:hover {
+  background: #18181b !important;
+  border-color: #18181b !important;
+  color: #ffffff !important;
+}
+
+.lp__apple-btn svg {
+  fill: #ffffff !important;
+}
+
+/* ── Landing Page Legal Footer ── */
+.lp__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #06080d !important;
+  padding: 36px 24px !important;
+}
+
+.lp__footer-inner {
+  max-width: 1150px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.lp__footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp__footer-brand-tag {
+  color: #64748b;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.lp__footer-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.lp__footer-link {
+  color: #94a3b8 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+}
+
+.lp__footer-link:hover {
+  color: #10b981 !important;
+}
+
+.lp__footer-copy {
+  color: #64748b;
+  font-size: 11.5px;
+  font-family: monospace;
+}
+

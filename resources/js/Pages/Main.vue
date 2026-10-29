@@ -4,7 +4,12 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
 import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
+import CookieConsentBanner from '@/Components/Legal/CookieConsentBanner.vue';
+import Privacy from './Privacy.vue';
+import Terms from './Terms.vue';
+import Disclaimer from './Disclaimer.vue';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
+import ErrorBoundary from '@/Components/Recovery/ErrorBoundary.vue';
 import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -30,6 +35,9 @@ const props = defineProps({
 const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
 const isGuestPreCheck = typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
 const authLoading = ref(!cachedUserJson && !isGuestPreCheck);
+
+// Client-side routing for public legal views (Privacy, Terms, Disclaimer)
+const currentPath = ref(typeof window !== 'undefined' ? window.location.pathname : '/');
 
 // PWA Install prompt
 const deferredPrompt = ref(null);
@@ -249,6 +257,9 @@ const pushAppHistoryEntry = () => {
 };
 
 const handlePopState = (event) => {
+  if (typeof window !== 'undefined') {
+    currentPath.value = window.location.pathname;
+  }
   if (!activeUser.value) return; // Not inside app — let it navigate freely
 
   // If popping to an internal app state (e.g. mobile tab switch), do not show exit modal
@@ -549,6 +560,7 @@ onMounted(async () => {
   } catch { /* non-native */ }
 
   checkIOS();
+  window.addEventListener('popstate', handlePopState);
 });
 
 onUnmounted(() => {
@@ -558,7 +570,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="authLoading" class="app-loading">
+  <!-- Public Legal & Compliance Views (GDPR / CCPA / App Store Mandate) -->
+  <template v-if="currentPath === '/privacy'">
+    <Privacy />
+  </template>
+  <template v-else-if="currentPath === '/terms'">
+    <Terms />
+  </template>
+  <template v-else-if="currentPath === '/disclaimer'">
+    <Disclaimer />
+  </template>
+
+  <div v-else-if="authLoading" class="app-loading">
     <div class="app-spinner">
       <HabuiltLogo size="xl" animated />
       <div class="loading-text">Loading Habuilt Workspace...</div>
@@ -639,25 +662,27 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <Dashboard
-            :key="activeUser ? activeUser.id : 'guest'"
-            v-bind="props"
-            :userId="activeUser.id"
-            :userEmail="activeUser.email"
-            :month="month"
-            :year="year"
-            :monthDays="monthDays"
-            :today="todayDate.toISOString().slice(0, 10)"
-            :currentDay="currentDay"
-            :isCurrentMonth="isCurrentMonth"
-            :isFutureMonth="isFutureMonth"
-            :canNavigatePrevMonth="true"
-            :canNavigateNextMonth="true"
-            :previousMonth="previousMonth"
-            :nextMonth="nextMonth"
-            @navigate-month="handleNavigateMonth"
-            @sign-out="handleSignOut"
-          />
+          <ErrorBoundary>
+            <Dashboard
+              :key="activeUser ? activeUser.id : 'guest'"
+              v-bind="props"
+              :userId="activeUser.id"
+              :userEmail="activeUser.email"
+              :month="month"
+              :year="year"
+              :monthDays="monthDays"
+              :today="todayDate.toISOString().slice(0, 10)"
+              :currentDay="currentDay"
+              :isCurrentMonth="isCurrentMonth"
+              :isFutureMonth="isFutureMonth"
+              :canNavigatePrevMonth="true"
+              :canNavigateNextMonth="true"
+              :previousMonth="previousMonth"
+              :nextMonth="nextMonth"
+              @navigate-month="handleNavigateMonth"
+              @sign-out="handleSignOut"
+            />
+          </ErrorBoundary>
         </main>
       </div>
     </template>
@@ -697,4 +722,7 @@ onUnmounted(() => {
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Global Cookie & Privacy Consent Banner (GDPR / CCPA) -->
+  <CookieConsentBanner />
 </template>

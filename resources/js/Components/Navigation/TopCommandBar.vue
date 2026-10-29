@@ -31,7 +31,26 @@ import {
   EyeOff,
   MoreHorizontal,
   LogOut,
+  CloudOff,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-vue-next';
+import { useOfflineSync } from '@/Composables/useOfflineSync';
+
+const {
+  isOnline,
+  syncState,
+  pendingCount,
+  statusLabel,
+  statusTooltip,
+  flushQueue,
+} = useOfflineSync();
+
+const handleSyncClick = async () => {
+  if (isOnline.value) {
+    await flushQueue();
+  }
+};
 
 const props = defineProps({
   isJyoti: { type: Boolean, default: false },
@@ -408,6 +427,28 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
+      <!-- Sovereign Cloud & Offline Health Sync Capsule -->
+      <button
+        id="sync-status-capsule"
+        type="button"
+        class="hero-sync-capsule"
+        :class="[
+          `hero-sync-capsule--${syncState}`,
+          { 'hero-sync-capsule--offline': !isOnline }
+        ]"
+        @click="handleSyncClick"
+        :title="statusTooltip"
+        :aria-label="statusLabel"
+      >
+        <span class="hero-sync-indicator">
+          <RefreshCw v-if="syncState === 'syncing'" class="icon-xxs sync-spin text-amber" />
+          <CloudOff v-else-if="!isOnline" class="icon-xxs text-amber" />
+          <AlertCircle v-else-if="syncState === 'error'" class="icon-xxs text-rose" />
+          <span v-else class="hero-sync-dot"></span>
+        </span>
+        <span class="hero-sync-text">{{ statusLabel }}</span>
+      </button>
+
       <!-- Spotlight Command Palette Launcher -->
       <button
         type="button"
@@ -612,3 +653,143 @@ onBeforeUnmount(() => {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.hero-sync-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.hero-sync-capsule:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+}
+
+.hero-sync-capsule:active {
+  transform: translateY(0);
+}
+
+.hero-sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+}
+
+.hero-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  display: inline-block;
+  animation: pulse-dot 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+  }
+}
+
+.sync-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hero-sync-capsule--synced {
+  border-color: rgba(16, 185, 129, 0.22);
+  color: #065f46;
+  background: rgba(240, 253, 244, 0.9);
+}
+
+.hero-sync-capsule--syncing {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #b45309;
+  background: rgba(254, 252, 232, 0.9);
+}
+
+.hero-sync-capsule--offline {
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+  background: rgba(254, 243, 199, 0.9);
+}
+
+.hero-sync-capsule--error {
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #be123c;
+  background: rgba(255, 241, 242, 0.92);
+}
+
+.text-amber {
+  color: #d97706;
+}
+
+.text-rose {
+  color: #e11d48;
+}
+
+.icon-xxs {
+  width: 12px;
+  height: 12px;
+}
+
+:global(body.dark-mode) .hero-sync-capsule {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+:global(body.dark-mode) .hero-sync-capsule--synced {
+  background: rgba(6, 78, 59, 0.35);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+:global(body.dark-mode) .hero-sync-capsule--offline {
+  background: rgba(120, 53, 15, 0.35);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fcd34d;
+}
+
+:global(body.dark-mode) .hero-sync-capsule--error {
+  background: rgba(136, 19, 55, 0.35);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+}
+
+@media (max-width: 640px) {
+  .hero-sync-text {
+    display: none;
+  }
+  .hero-sync-capsule {
+    padding: 6px 8px;
+  }
+}
+</style>

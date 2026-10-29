@@ -72,7 +72,19 @@ const goals = [
 // Step 2: Routine Archetype Selection
 const selectedArchetypeId = ref('archetype-founder');
 
-const archetypeOptions = [
+const isAshishUser = computed(() => {
+  const email = String(props.userEmail || '').toLowerCase().trim();
+  const id = String(props.userId || '').toLowerCase().trim();
+  return email === 'ashishgupta1v@gmail.com' || id === 'ashish';
+});
+
+const isJyotiUser = computed(() => {
+  const email = String(props.userEmail || '').toLowerCase().trim();
+  const id = String(props.userId || '').toLowerCase().trim();
+  return email === 'goyaljyoti007@gmail.com' || id === 'jyoti';
+});
+
+const commercialArchetypes = [
   {
     id: 'archetype-founder',
     key: 'founder',
@@ -94,36 +106,55 @@ const archetypeOptions = [
     description: 'NOAA solar sunrise exposure, spinal mobility, parasympathetic breathing, nutrition windows.'
   },
   {
+    id: 'archetype-athlete',
+    key: 'athlete',
+    name: 'High-Performance Athlete & Discipline',
+    tagline: 'Hyper-focused training, metabolic recovery & stamina',
+    badge: '15 Habits • 25 Pts',
+    icon: Flame,
+    colorClass: 'text-orange-400 border-orange-500/40 bg-orange-500/10',
+    description: 'Compound strength training, cold contrast rinse, lean nutrition, and restorative 8h sleep.'
+  },
+  {
     id: 'archetype-postpartum',
     key: 'postpartum',
-    name: 'Postpartum & Maternal Harmony',
-    tagline: 'Maternal healing, infant milestones & energy',
+    name: 'Parenting & Family Harmony',
+    tagline: 'Family balance, protected recovery & personal focus',
     badge: '15 Habits • 20 Pts',
     icon: Heart,
     colorClass: 'text-pink-400 border-pink-500/40 bg-pink-500/10',
-    description: 'Pelvic health, hydration, balanced maternal nutrition, milestone tracking, gentle recovery.'
-  },
-  {
-    id: 'archetype-ashish',
-    key: 'ashishMaster',
-    name: 'Ashish Master Protocol',
-    tagline: '3-Week assessment: 3.5–4L seed hydration & spine shield',
-    badge: '3-Week Protocol',
-    icon: Crown,
-    colorClass: 'text-gold border-gold/40 bg-gold/10',
-    description: '3-Week clinical protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3 circuits, spine preservation & 21:00 shutdown.'
-  },
-  {
-    id: 'archetype-jyoti',
-    key: 'jyotiMaster',
-    name: 'Jyoti Master Protocol',
-    tagline: 'Maternal nutrition, parenting & professional focus',
-    badge: '37 Habits • Master',
-    icon: Sparkles,
-    colorClass: 'text-purple-400 border-purple-500/40 bg-purple-500/10',
-    description: 'Postpartum nourishment, baby motor development, evening couple walks, calm bedtime routine.'
+    description: 'Protected sleep recovery, wholesome nutrition, family bonding, and stress reduction.'
   }
 ];
+
+const archetypeOptions = computed(() => {
+  const list = [...commercialArchetypes];
+  if (isAshishUser.value) {
+    list.push({
+      id: 'archetype-ashish',
+      key: 'ashishMaster',
+      name: 'Ashish Master Protocol',
+      tagline: '3-Week assessment: 3.5–4L seed hydration & spine shield',
+      badge: '3-Week Protocol',
+      icon: Crown,
+      colorClass: 'text-gold border-gold/40 bg-gold/10',
+      description: '3-Week clinical protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3 circuits, spine preservation & 21:00 shutdown.'
+    });
+  }
+  if (isJyotiUser.value) {
+    list.push({
+      id: 'archetype-jyoti',
+      key: 'jyotiMaster',
+      name: 'Jyoti Master Protocol',
+      tagline: 'Maternal nutrition, parenting & professional focus',
+      badge: '37 Habits • Master',
+      icon: Sparkles,
+      colorClass: 'text-purple-400 border-purple-500/40 bg-purple-500/10',
+      description: 'Postpartum nourishment, baby motor development, evening couple walks, calm bedtime routine.'
+    });
+  }
+  return list;
+});
 
 // Step 3: Circadian Rhythm Tuning
 const wakeTime = ref('05:30');
@@ -151,13 +182,14 @@ const handleBack = () => {
 };
 
 const handleFinish = () => {
-  const chosenArchetype = archetypeOptions.find(a => a.id === selectedArchetypeId.value) || archetypeOptions[0];
+  const options = archetypeOptions.value || [];
+  const chosenArchetype = options.find(a => a.id === selectedArchetypeId.value) || options[0] || {};
   
   emit('complete', {
     displayName: displayName.value.trim() || 'Champion',
     goal: selectedGoal.value,
     archetypeId: selectedArchetypeId.value,
-    archetypeKey: chosenArchetype.key,
+    archetypeKey: chosenArchetype.key || 'founder',
     circadian: {
       wakeTime: wakeTime.value,
       workStart: workStart.value,

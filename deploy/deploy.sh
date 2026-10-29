@@ -19,7 +19,8 @@ cd "${APP_DIR}"
 # 1. Update Git Repository
 echo "--> Fetching and checking out branch: ${BRANCH}..."
 git fetch origin "${BRANCH}"
-git checkout "${BRANCH}"
+git checkout -B "${BRANCH}" "origin/${BRANCH}" || git checkout "${BRANCH}"
+git reset --hard "origin/${BRANCH}"
 git pull origin "${BRANCH}"
 
 # 2. Environment Verification

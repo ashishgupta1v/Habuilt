@@ -319,4 +319,33 @@ final class HabitLedgerApiController
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Delete user account and permanently purge all personal data.
+     * Required for Apple App Store Guideline 5.1.1(v) & GDPR Right to Erasure.
+     */
+    public function deleteUserAccount(Request $request): JsonResponse
+    {
+        $userId = (string) $request->input('user_id');
+        if ($userId === '') {
+            return response()->json(['error' => 'user_id required'], 400);
+        }
+
+        DB::transaction(function () use ($userId): void {
+            DB::table('habit_check_ins')->where('user_id', $userId)->delete();
+            DB::table('user_settings')->where('user_id', $userId)->delete();
+            DB::table('user_protocols')->where('user_id', $userId)->delete();
+            DB::table('user_biomarkers')->where('user_id', $userId)->delete();
+            DB::table('partner_connections')
+                ->where('user_id', $userId)
+                ->orWhere('partner_user_id', $userId)
+                ->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All user account records permanently deleted.',
+            'user_id' => $userId,
+        ]);
+    }
 }

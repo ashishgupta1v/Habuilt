@@ -7,6 +7,10 @@ import '../css/design-system/framer-bento.css';
 import MainSPA from './Pages/Main.vue';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { telemetry } from './lib/telemetry.js';
+
+// Early initialization of global error & telemetry listeners
+telemetry.init();
 
 // Native Android Status Bar Harmony (Pure Light Theme)
 if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
@@ -21,7 +25,9 @@ if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
 const rootElement = document.getElementById('app');
 const mountMainSPA = () => {
   if (rootElement) {
-    createApp(MainSPA).mount(rootElement);
+    const app = createApp(MainSPA);
+    telemetry.init(app);
+    app.mount(rootElement);
   }
 };
 
@@ -56,9 +62,9 @@ if (canBootInertia) {
       return page;
     },
     setup({ el, App, props, plugin }) {
-      createApp({ render: () => h(App, props) })
-        .use(plugin)
-        .mount(el);
+      const app = createApp({ render: () => h(App, props) });
+      telemetry.init(app);
+      app.use(plugin).mount(el);
     },
     progress: {
       color: '#111827',

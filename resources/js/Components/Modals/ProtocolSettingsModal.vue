@@ -51,7 +51,9 @@ import {
   Upload,
   Share2,
   FileText,
+  AlertTriangle,
 } from 'lucide-vue-next';
+import { purgeUserAccount, supabase } from '@/lib/supabase';
 import { PROTOCOL_ARCHETYPES, useDynamicProtocols } from '@/Composables/useDynamicProtocols';
 import {
   useCategoryTaxonomy,
@@ -758,6 +760,64 @@ const handleEnrollPasskey = async () => {
 const handleDeletePasskey = async (id, name) => {
   await deleteCredential(id);
   emit('toast', `🗑️ Device key removed: ${name}`);
+};
+
+// ── ACCOUNT & DATA MANAGEMENT (Apple 5.1.1(v) & GDPR) ──
+const isDeleteConfirmOpen = ref(false);
+const deleteConfirmText = ref('');
+const isDeletingAccount = ref(false);
+
+const handleExportAllUserData = () => {
+  try {
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      userId: props.userId,
+      displayName: props.displayName,
+      activeProtocolId: props.activeProtocolId,
+      progressiveSettings: props.progressiveSettings,
+      habits: props.habits,
+      allProtocols: props.allProtocols,
+    };
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `habuilt-data-export-${props.userId}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    emit('toast', '📦 All personal data exported to JSON.');
+  } catch (err) {
+    emit('toast', `⚠️ Export failed: ${err.message}`);
+  }
+};
+
+const handleConfirmAccountDeletion = async () => {
+  if (deleteConfirmText.value !== 'DELETE') {
+    emit('toast', '⚠️ Type DELETE in uppercase to confirm.');
+    return;
+  }
+  isDeletingAccount.value = true;
+  try {
+    await purgeUserAccount(props.userId);
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('habuilt_'));
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }
+    emit('toast', '✅ Account and all records permanently purged.');
+    setTimeout(() => {
+      window.location.href = '/auth';
+    }, 1200);
+  } catch (e) {
+    emit('toast', `⚠️ Deletion error: ${e.message}`);
+  } finally {
+    isDeletingAccount.value = false;
+  }
 };
 </script>
 
@@ -1912,6 +1972,97 @@ const handleDeletePasskey = async (id, name) => {
                 </button>
               </div>
               <small class="proto-subtext">Used if biometric hardware is unavailable or in non-secure browser contexts.</small>
+            </div>
+          </div>
+
+          <!-- SECTION 3: ACCOUNT & DATA MANAGEMENT (Apple Guideline 5.1.1(v) & GDPR Compliance) -->
+          <div class="proto-card proto-card--danger mt-3" id="proto-account-management-card">
+            <div class="proto-card__header">
+              <div class="proto-card__title">
+                <AlertTriangle class="icon-xs text-rose-400" />
+                <span>Account &amp; Data Sovereignty (GDPR &amp; App Store)</span>
+              </div>
+              <div class="proto-badge-status proto-badge--danger">
+                User Sovereignty
+              </div>
+            </div>
+
+            <div class="proto-account-actions-grid mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Export Data -->
+              <div class="proto-account-action-card p-3 rounded-xl bg-white/[0.02] border border-white/10">
+                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Download class="icon-xs text-amber-400" />
+                  <span>Export Personal Data</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1 leading-snug">
+                  Download an offline JSON archive containing your habit ledger, custom protocols, settings, and biomarkers.
+                </p>
+                <button
+                  type="button"
+                  class="btn btn--secondary btn--sm mt-3 w-full"
+                  @click="handleExportAllUserData"
+                  id="proto-export-data-btn"
+                >
+                  <Download class="icon-xs" />
+                  <span>Download JSON Export</span>
+                </button>
+              </div>
+
+              <!-- Delete Account & Data -->
+              <div class="proto-account-action-card p-3 rounded-xl bg-rose-500/[0.04] border border-rose-500/20">
+                <div class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                  <Trash2 class="icon-xs text-rose-400" />
+                  <span>Delete Account &amp; Purge Data</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1 leading-snug">
+                  Permanently delete your profile, habits, check-ins, and cloud records. This action is irreversible.
+                </p>
+                <button
+                  type="button"
+                  class="btn btn--danger btn--sm mt-3 w-full bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
+                  @click="isDeleteConfirmOpen = true"
+                  id="proto-delete-account-btn"
+                >
+                  <Trash2 class="icon-xs" />
+                  <span>Delete Account...</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Delete Confirmation Box -->
+            <div v-if="isDeleteConfirmOpen" class="proto-delete-confirm-box mt-3 p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 animate-fadeIn" id="proto-delete-confirm-box">
+              <div class="text-xs font-bold text-rose-300 flex items-center gap-2">
+                <AlertTriangle class="icon-xs" />
+                <span>Confirm Irreversible Account Deletion</span>
+              </div>
+              <p class="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                Type <strong class="text-white font-mono bg-white/10 px-1 py-0.5 rounded">DELETE</strong> below to permanently erase your account and all associated cloud ledger records across all devices.
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <input
+                  type="text"
+                  v-model="deleteConfirmText"
+                  placeholder="Type DELETE"
+                  id="proto-delete-confirm-input"
+                  class="proto-text-input mono-num text-xs uppercase flex-1"
+                />
+                <button
+                  type="button"
+                  class="btn btn--danger btn--sm shrink-0 bg-rose-600 hover:bg-rose-500 text-white font-bold"
+                  :disabled="deleteConfirmText !== 'DELETE' || isDeletingAccount"
+                  @click="handleConfirmAccountDeletion"
+                  id="proto-delete-confirm-final-btn"
+                >
+                  <span>{{ isDeletingAccount ? 'Purging...' : 'Permanently Delete' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--secondary btn--sm shrink-0"
+                  @click="isDeleteConfirmOpen = false; deleteConfirmText = '';"
+                >
+                  <span>Cancel</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -127,6 +127,37 @@ export const PROTOCOL_ARCHETYPES = {
     ]
   },
 
+  athlete: {
+    id: 'archetype-athlete',
+    key: 'athlete',
+    name: 'High-Performance Athlete & Discipline',
+    badge: '🏆 Peak Performance',
+    icon: 'flame',
+    tagline: 'Hyper-focused training, metabolic recovery, zone 2 endurance & deep discipline.',
+    description: 'Engineered for athletes, fitness competitors, and high-energy operators. Built around clean high-protein nutrition, deliberate cardio & strength, physical recovery, and evening mental clearing.',
+    wakeTime: '05:00',
+    sleepTime: '21:30',
+    workStart: '08:30',
+    workEnd: '17:30',
+    habits: [
+      { id: 'ath-1', name: '05:00 Awakening & 750ml Electrolyte Hydration', points: 1, category: 'nutrition', timeSlot: 'morning', hint: 'Immediate metabolic kickstart with pink Himalayan salt and fresh lemon.' },
+      { id: 'ath-2', name: '05:15 Joint Mobility & Dynamic Warmup (15 min)', points: 1, category: 'fitness', timeSlot: 'morning', hint: 'Ankles, hips, thoracic spine, and shoulder capsule mobility.' },
+      { id: 'ath-3', name: '05:30 High-Intensity or Compound Strength Block (50 min)', points: 3, category: 'fitness', timeSlot: 'morning', hint: 'Primary training window. Heavy resistance or athletic conditioning.' },
+      { id: 'ath-4', name: '06:25 Cold Recovery Rinse / Contrast Shower (3 min)', points: 1, category: 'fitness', timeSlot: 'morning', hint: 'Reduces systemic inflammation, boosts dopamine and mental grit.' },
+      { id: 'ath-5', name: '07:00 Nutrient-Dense High-Protein Fuel (40g+)', points: 2, category: 'nutrition', timeSlot: 'morning', hint: 'Fast-absorbing protein, complex carbs, and essential micronutrients.' },
+      { id: 'ath-6', name: '08:30 Deep Focus Cognitive Block 1 (90 min)', points: 2, category: 'work', timeSlot: 'work', hint: 'Channeled mental discipline: single-task execution with zero notifications.' },
+      { id: 'ath-7', name: '10:15 Hydration Check & Postural Reset', points: 1, category: 'rest', timeSlot: 'work', hint: 'Drink 500ml water, stretch hip flexors and decompress lumbar spine.' },
+      { id: 'ath-8', name: '10:45 High-Impact Output Block 2 (90 min)', points: 2, category: 'work', timeSlot: 'work', hint: 'Critical business tasks, architecture, or creative build.' },
+      { id: 'ath-9', name: '13:00 Lean Whole-Food Fuel & Anti-Inflammatory Fats', points: 1, category: 'nutrition', timeSlot: 'work', hint: 'Lean protein source, antioxidant greens, avocado/olive oil.' },
+      { id: 'ath-10', name: '13:45 15-Min Low-Intensity Flush Walk', points: 1, category: 'fitness', timeSlot: 'work', hint: 'Aids digestion, flushes metabolic byproducts from morning session.' },
+      { id: 'ath-11', name: '14:30 Afternoon Execution Sprint (75 min)', points: 2, category: 'work', timeSlot: 'work', hint: 'Closing communications, reviews, and forward planning.' },
+      { id: 'ath-12', name: '17:30 Zone 2 Cardio or Active Foam Rolling (30 min)', points: 2, category: 'fitness', timeSlot: 'evening', hint: 'Aerobic base building or tissue release to accelerate recovery.' },
+      { id: 'ath-13', name: '19:00 Clean Recovery Dinner', points: 1, category: 'nutrition', timeSlot: 'evening', hint: 'High-fiber carbohydrates and recovery proteins. Hydrate with magnesium.' },
+      { id: 'ath-14', name: '20:30 Total Screen Blackout & Static Stretching', points: 1, category: 'rest', timeSlot: 'evening', hint: 'Hamstring, glute, and spinal decompression in dim amber light.' },
+      { id: 'ath-15', name: '21:30 Lights Out in Cool Sanctuary (8h Target)', points: 2, category: 'rest', timeSlot: 'evening', hint: 'Deep anabolic repair, growth hormone release, and physical rejuvenation.' }
+    ]
+  },
+
   ashishMaster: {
     id: 'archetype-ashish',
     key: 'ashish-master',
@@ -169,14 +200,35 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
 
   // Compute available list of all protocols (built-in archetypes + user custom protocols)
   const allProtocols = computed(() => {
+    // Determine user identity
+    const lowerEmail = String(userEmail || '').toLowerCase().trim();
+    let cachedEmail = '';
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+        cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
+      }
+    } catch (_) {}
+
+    const isAshishUser = lowerEmail === 'ashishgupta1v@gmail.com' || cachedEmail === 'ashishgupta1v@gmail.com' || String(userId || '').toLowerCase() === 'ashish' || defaultArchetypeId === true;
+    const isJyotiUser = lowerEmail === 'goyaljyoti007@gmail.com' || cachedEmail === 'goyaljyoti007@gmail.com' || String(userId || '').toLowerCase() === 'jyoti' || legacyJyotiParam === true;
+
     const list = [
       PROTOCOL_ARCHETYPES.founder,
       PROTOCOL_ARCHETYPES.longevity,
+      PROTOCOL_ARCHETYPES.athlete,
       PROTOCOL_ARCHETYPES.postpartum,
-      PROTOCOL_ARCHETYPES.ashishMaster,
-      PROTOCOL_ARCHETYPES.jyotiMaster,
-      ...customProtocols.value
     ];
+
+    // Only expose private blueprints for verified private accounts
+    if (isAshishUser) {
+      list.push(PROTOCOL_ARCHETYPES.ashishMaster);
+    }
+    if (isJyotiUser) {
+      list.push(PROTOCOL_ARCHETYPES.jyotiMaster);
+    }
+
+    list.push(...customProtocols.value);
     return list;
   });
 
