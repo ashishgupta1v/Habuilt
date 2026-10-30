@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Telemetry\SentryRelayService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,7 +23,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Intentionally minimal bootstrap for current phase.
+        $exceptions->reportable(function (Throwable $e): void {
+            SentryRelayService::captureException($e);
+        });
     })
     ->create();
 

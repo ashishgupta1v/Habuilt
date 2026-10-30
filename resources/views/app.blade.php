@@ -17,6 +17,10 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <script>
+            window.__HABUILT_SENTRY_DSN__ = @json(config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN'));
+            window.__HABUILT_APP_ENV__ = @json(config('services.sentry.environment') ?: config('app.env', 'production'));
+        </script>
         @vite('resources/js/app.js')
         @inertiaHead
     </head>

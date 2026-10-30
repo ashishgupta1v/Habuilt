@@ -8,6 +8,7 @@ set -e
 
 APP_DIR="/var/www/Habuilt"
 BRANCH="${1:-HB-AG-01}"
+SENTRY_ARG="${2:-}"
 
 echo "=========================================================="
 echo " Starting Habuilt Zero-Downtime Deployment: [${BRANCH}]"
@@ -28,6 +29,21 @@ if [ ! -f .env ]; then
     echo "--> .env not found, creating from .env.example..."
     cp .env.example .env
     php artisan key:generate --force
+fi
+
+# Optional Sentry DSN Configuration
+if [ -n "$SENTRY_ARG" ]; then
+    echo "--> Configuring live Sentry DSN in .env..."
+    if grep -q "^SENTRY_LARAVEL_DSN=" .env; then
+        sed -i "s|^SENTRY_LARAVEL_DSN=.*|SENTRY_LARAVEL_DSN=${SENTRY_ARG}|" .env
+    else
+        echo "SENTRY_LARAVEL_DSN=${SENTRY_ARG}" >> .env
+    fi
+    if grep -q "^VITE_SENTRY_DSN=" .env; then
+        sed -i "s|^VITE_SENTRY_DSN=.*|VITE_SENTRY_DSN=${SENTRY_ARG}|" .env
+    else
+        echo "VITE_SENTRY_DSN=${SENTRY_ARG}" >> .env
+    fi
 fi
 
 # 3. Backend Dependencies

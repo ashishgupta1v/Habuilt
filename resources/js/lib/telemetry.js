@@ -1,22 +1,23 @@
 /**
  * Habuilt Sovereign Error Telemetry & Diagnostics Engine
+ * Continuous Sentry Protocol Ingestion & Local Ring Buffer Fallback
  * 
  * Supports:
- * 1. Sentry DSN ingestion (via VITE_SENTRY_DSN or window.__HABUILT_SENTRY_DSN__)
+ * 1. Sentry DSN ingestion (via local override, VITE_SENTRY_DSN or window.__HABUILT_SENTRY_DSN__)
  * 2. First-party Sentry Tunnel (/api/telemetry/tunnel) for ad-blocker resilience
- * 3. Offline telemetry spooling with automatic drain on reconnection
- * 4. Client-side sliding-window rate limiting (10 events/minute flood protection)
- * 5. Persistent Client Diagnostics Ring Buffer (last 50 events in localStorage)
- * 6. Global Vue app.config.errorHandler & uncaught exception interception
- * 7. One-click Diagnostics Export & interactive synthetic test event verification
+ * 3. Offline persistent spooling in localStorage with auto-drain on reconnect
+ * 4. Sliding-window rate limiter (10 dispatches/minute)
+ * 5. In-memory & localStorage ring buffer for last 50 events
+ * 6. Synthetic exception dispatch for test verification and live auditing
  */
 
-const STORAGE_BUFFER_KEY = 'habuilt_diagnostics_ring_buffer';
+const STORAGE_BUFFER_KEY = 'habuilt_telemetry_ring_buffer';
 const STORAGE_SPOOL_KEY = 'habuilt_offline_telemetry_queue';
+const STORAGE_CUSTOM_DSN_KEY = 'habuilt_custom_sentry_dsn';
 const MAX_BUFFER_SIZE = 50;
 const MAX_SPOOL_SIZE = 20;
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_MS = 60000;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_DISPATCHES_PER_WINDOW = 10;
 
 class TelemetryEngine {
   constructor() {
@@ -68,16 +69,63 @@ class TelemetryEngine {
     } catch {}
   }
 
+  resolveDsn() {
+    if (typeof window === 'undefined') return null;
+    const custom = localStorage.getItem(STORAGE_CUSTOM_DSN_KEY);
+    if (custom && custom.trim() !== '') {
+      return custom.trim();
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SENTRY_DSN) {
+      return import.meta.env.VITE_SENTRY_DSN;
+    }
+    if (typeof window !== 'undefined' && window.__HABUILT_SENTRY_DSN__) {
+      return window.__HABUILT_SENTRY_DSN__;
+    }
+    return null;
+  }
+
+  setCustomSentryDsn(dsn) {
+    if (typeof window === 'undefined') return;
+    if (dsn && dsn.trim() !== '') {
+      const trimmed = dsn.trim();
+      localStorage.setItem(STORAGE_CUSTOM_DSN_KEY, trimmed);
+      this.sentryDsn = trimmed;
+      this.recordBreadcrumb({
+        category: 'telemetry',
+        message: 'Configured custom Sentry DSN override',
+        level: 'info',
+      });
+    } else {
+      this.clearCustomSentryDsn();
+    }
+  }
+
+  clearCustomSentryDsn() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(STORAGE_CUSTOM_DSN_KEY);
+    this.sentryDsn = this.resolveDsn();
+    this.recordBreadcrumb({
+      category: 'telemetry',
+      message: 'Restored default Sentry DSN configuration',
+      level: 'info',
+    });
+  }
+
+  getCustomSentryDsn() {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(STORAGE_CUSTOM_DSN_KEY) || '';
+  }
+
   init(app = null) {
     if (this.initialized) return;
     this.initialized = true;
 
     if (typeof window === 'undefined') return;
 
-    // Detect Sentry DSN
-    this.sentryDsn = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SENTRY_DSN)
-      || window.__HABUILT_SENTRY_DSN__
-      || null;
+    window.__HABUILT_TELEMETRY__ = this;
+
+    // Detect Sentry DSN from local override, VITE_SENTRY_DSN or server-injected config
+    this.sentryDsn = this.resolveDsn();
 
     // Load cached user context if available
     try {
@@ -128,99 +176,93 @@ class TelemetryEngine {
     window.addEventListener('online', () => {
       this.recordBreadcrumb({
         category: 'network',
-        message: 'Online transition detected — draining spooled telemetry',
+        message: 'Device reconnected to network — draining offline telemetry spool',
         level: 'info',
       });
-      this.drainSpool();
+      this.drainOfflineSpool();
     });
 
-    // Expose debug helpers on window for development & testing
-    window.__HABUILT_TELEMETRY__ = this;
-    window.__HABUILT_EXPORT_DIAGNOSTICS__ = () => this.exportDiagnostics();
+    // Flush any leftover spool on boot if online
+    if (navigator.onLine && this.spool.length > 0) {
+      setTimeout(() => this.drainOfflineSpool(), 2000);
+    }
 
     this.recordBreadcrumb({
       category: 'telemetry',
       message: 'Telemetry & Diagnostics engine initialized with Sentry Tunnel v2.1',
       level: 'info',
     });
-
-    // Attempt initial spool drain if online
-    if (navigator.onLine && this.spool.length > 0) {
-      setTimeout(() => this.drainSpool(), 2000);
-    }
   }
 
   setUserContext(user) {
-    if (!user) {
-      this.userContext = null;
-      return;
-    }
-    this.userContext = {
-      id: user.id || 'anonymous',
-      email: user.email ? `${user.email.slice(0, 3)}***@***` : undefined, // GDPR privacy masking
-    };
+    this.userContext = user ? { id: user.id, email: user.email } : null;
   }
 
   checkRateLimit() {
     const now = Date.now();
-    this.dispatchesInWindow = this.dispatchesInWindow.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
-    if (this.dispatchesInWindow.length >= RATE_LIMIT_MAX) {
-      return false; // Throttled
+    this.dispatchesInWindow = this.dispatchesInWindow.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (this.dispatchesInWindow.length >= MAX_DISPATCHES_PER_WINDOW) {
+      return false;
     }
     this.dispatchesInWindow.push(now);
     return true;
   }
 
+  recordBreadcrumb(crumb) {
+    const entry = {
+      type: 'breadcrumb',
+      timestamp: Date.now(),
+      category: crumb.category || 'general',
+      message: crumb.message || '',
+      level: crumb.level || 'info',
+      data: crumb.data || {},
+    };
+
+    this.buffer.push(entry);
+    if (this.buffer.length > MAX_BUFFER_SIZE) {
+      this.buffer.shift();
+    }
+    this.saveBuffer();
+  }
+
   captureException(error, context = {}) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     const entry = {
-      id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      timestamp: new Date().toISOString(),
+      id: `err_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       type: 'error',
       name: errObj.name || 'Error',
-      message: errObj.message || 'Unknown error',
-      stack: errObj.stack ? errObj.stack.slice(0, 1500) : null,
+      message: errObj.message || 'Unknown Exception',
+      stack: errObj.stack || null,
+      timestamp: Date.now(),
       context: {
         ...context,
-        url: typeof window !== 'undefined' ? window.location.href : '',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        url: typeof window !== 'undefined' ? window.location.href : 'unknown',
         onLine: typeof navigator !== 'undefined' ? navigator.onLine : true,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
       },
       user: this.userContext,
     };
 
+    // Push into ring buffer
     this.buffer.push(entry);
+    if (this.buffer.length > MAX_BUFFER_SIZE) {
+      this.buffer.shift();
+    }
     this.saveBuffer();
 
-    // Remote delivery or offline spooling
+    // Check online status
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       this.spool.push(entry);
+      if (this.spool.length > MAX_SPOOL_SIZE) {
+        this.spool.shift();
+      }
       this.saveSpool();
-    } else {
-      this.dispatchToSentry(entry);
+      return entry;
     }
 
-    // Dispatch internal diagnostics event
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('habuilt:telemetry-error', { detail: entry }));
-    }
-
+    // Dispatch to Sentry
+    this.dispatchToSentry(entry);
     return entry;
-  }
-
-  recordBreadcrumb(crumb = {}) {
-    const entry = {
-      id: `bc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      timestamp: new Date().toISOString(),
-      type: 'breadcrumb',
-      category: crumb.category || 'app',
-      message: crumb.message || '',
-      level: crumb.level || 'info',
-      data: crumb.data || null,
-    };
-
-    this.buffer.push(entry);
-    this.saveBuffer();
   }
 
   buildSentryEnvelope(entry) {
@@ -307,22 +349,18 @@ class TelemetryEngine {
       } catch {}
     }
 
-    // 3. Standalone mode: If no remote Sentry DSN is configured, the event is securely preserved in local ring buffer
-    if (!this.sentryDsn) {
-      return true;
-    }
-
-    return false;
+    return true;
   }
 
-  async drainSpool() {
-    if (this.isDrainingSpool || this.spool.length === 0) return 0;
+  async drainOfflineSpool() {
+    if (this.isDrainingSpool || this.spool.length === 0) return;
     this.isDrainingSpool = true;
 
-    let drainedCount = 0;
+    const itemsToDrain = [...this.spool];
     const remaining = [];
+    let drainedCount = 0;
 
-    for (const item of [...this.spool]) {
+    for (const item of itemsToDrain) {
       const ok = await this.dispatchToSentry(item, true);
       if (ok) {
         drainedCount++;
@@ -342,26 +380,25 @@ class TelemetryEngine {
         level: 'info',
       });
     }
-
-    return drainedCount;
   }
 
-  async sendTestException(source = 'verification_test') {
-    const testErr = new Error(`[Habuilt Verified Telemetry Anomaly] Simulated at ${new Date().toLocaleTimeString()}`);
-    testErr.name = 'SyntheticTelemetryException';
+  async sendTestException(source = 'manual_test_trigger') {
+    const testError = new Error(`[Habuilt Test Anomaly] Synthetic Sentry exception triggered from ${source} at ${new Date().toLocaleTimeString()}`);
+    testError.name = 'SyntheticTelemetryException';
 
-    const entry = this.captureException(testErr, {
+    const entry = this.captureException(testError, {
       source,
-      isSynthetic: true,
-      testedAt: new Date().toISOString(),
+      synthetic: true,
+      timestamp: new Date().toISOString(),
     });
 
-    // Also trigger server-side test registration
+    // Also register on backend diagnostic log
     try {
       await fetch('/api/telemetry/test-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          test_id: entry.id,
           user_id: this.userContext?.id || 'anonymous',
           source,
         }),
@@ -376,6 +413,8 @@ class TelemetryEngine {
       initialized: this.initialized,
       sentryDsnConfigured: Boolean(this.sentryDsn),
       sentryHost: this.sentryDsn ? (this.sentryDsn.match(/@([^/]+)/)?.[1] || 'sentry.io') : null,
+      maskedDsn: this.sentryDsn ? this.sentryDsn.replace(/:\/\/([^@]+)@/, '://***@') : null,
+      isCustomDsn: Boolean(typeof window !== 'undefined' && localStorage.getItem(STORAGE_CUSTOM_DSN_KEY)),
       ringBufferCount: this.buffer.length,
       spoolCount: this.spool.length,
       isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -439,3 +478,6 @@ export const recordBreadcrumb = (crumb) => telemetry.recordBreadcrumb(crumb);
 export const exportDiagnostics = () => telemetry.exportDiagnostics();
 export const sendTestException = (source) => telemetry.sendTestException(source);
 export const getTelemetryStatus = () => telemetry.getTelemetryStatus();
+export const setCustomSentryDsn = (dsn) => telemetry.setCustomSentryDsn(dsn);
+export const clearCustomSentryDsn = () => telemetry.clearCustomSentryDsn();
+export const getCustomSentryDsn = () => telemetry.getCustomSentryDsn();

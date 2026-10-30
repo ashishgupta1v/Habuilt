@@ -6,6 +6,11 @@ on:
       - HB-AG-01
       - main
   workflow_dispatch:
+    inputs:
+      sentry_dsn:
+        description: 'Optional Sentry DSN to configure on server'
+        required: false
+        type: string
 
 jobs:
   deploy:
@@ -31,4 +36,4 @@ jobs:
             git checkout -B ${{ github.ref_name }} origin/${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             chmod +x /var/www/Habuilt/deploy/deploy.sh
-            /var/www/Habuilt/deploy/deploy.sh ${{ github.ref_name }}
+            /var/www/Habuilt/deploy/deploy.sh ${{ github.ref_name }} "${{ secrets.SENTRY_DSN || inputs.sentry_dsn || '' }}"

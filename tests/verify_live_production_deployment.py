@@ -173,6 +173,15 @@ def run_live_production_verification():
                 card_text = telemetry_card.inner_text()
                 check("Live Test Anomaly feedback rendered", "Anomaly" in card_text or "routed" in card_text)
 
+            # Test Configure Sentry DSN button
+            cfg_dsn_btn = page.locator("#btn-toggle-sentry-dsn")
+            check("Live Configure Sentry DSN Button Present", cfg_dsn_btn.count() > 0)
+            if cfg_dsn_btn.count() > 0:
+                cfg_dsn_btn.click()
+                page.wait_for_selector("#sentry-dsn-config-drawer", timeout=3000)
+                check("Live Sentry DSN Drawer Visible", page.locator("#sentry-dsn-config-drawer").is_visible())
+                cfg_dsn_btn.click()
+
         page.screenshot(path="tests/screenshots/live_02_dashboard_synced.png")
 
         print("\n" + "=" * 75)
