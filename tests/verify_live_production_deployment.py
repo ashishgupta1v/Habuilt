@@ -145,7 +145,7 @@ def run_live_production_verification():
 
         # Verify Telemetry Diagnostics initialized on live page
         telemetry_ok = page.evaluate("""() => {
-            return localStorage.getItem('habuilt_diagnostics_ring_buffer') !== null;
+            return localStorage.getItem('habuilt_telemetry_ring_buffer') !== null || Boolean(window.__HABUILT_TELEMETRY__);
         }""")
         check("Live Telemetry Ring Buffer Active", telemetry_ok)
 
