@@ -28,6 +28,12 @@ object SupabaseSyncClient {
                     return@Thread
                 }
 
+                val accessToken = prefs.getString("supabase_access_token", "") ?: ""
+                if (accessToken.isBlank()) {
+                    Log.d(TAG, "No signed-in session token. Widget completion stays on device.")
+                    return@Thread
+                }
+
                 val now = Date()
                 val monthKey = SimpleDateFormat("yyyy-MM", Locale.US).format(now)
 
@@ -36,7 +42,7 @@ object SupabaseSyncClient {
                 val getConn = fetchUrl.openConnection() as HttpURLConnection
                 getConn.requestMethod = "GET"
                 getConn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
-                getConn.setRequestProperty("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                getConn.setRequestProperty("Authorization", "Bearer $accessToken")
                 getConn.setRequestProperty("Content-Type", "application/json")
                 getConn.connectTimeout = 10000
                 getConn.readTimeout = 10000
@@ -85,11 +91,11 @@ object SupabaseSyncClient {
                         stateObj.put("updated_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
 
                         // Upsert record back to Supabase
-                        val upsertUrl = URL("$SUPABASE_URL/rest/v1/user_monthly_states")
+                        val upsertUrl = URL("$SUPABASE_URL/rest/v1/user_monthly_states?on_conflict=user_id,month_key")
                         val postConn = upsertUrl.openConnection() as HttpURLConnection
                         postConn.requestMethod = "POST"
                         postConn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
-                        postConn.setRequestProperty("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                        postConn.setRequestProperty("Authorization", "Bearer $accessToken")
                         postConn.setRequestProperty("Content-Type", "application/json")
                         postConn.setRequestProperty("Prefer", "resolution=merge-duplicates")
                         postConn.doOutput = true
@@ -112,11 +118,11 @@ object SupabaseSyncClient {
 
                     // 2. Also write atomically to normalized habit_check_ins table for instant Realtime sync
                     try {
-                        val ledgerUrl = URL("$SUPABASE_URL/rest/v1/habit_check_ins")
+                        val ledgerUrl = URL("$SUPABASE_URL/rest/v1/habit_check_ins?on_conflict=user_id,habit_id,month_key,day")
                         val ledgerConn = ledgerUrl.openConnection() as HttpURLConnection
                         ledgerConn.requestMethod = "POST"
                         ledgerConn.setRequestProperty("apikey", SUPABASE_ANON_KEY)
-                        ledgerConn.setRequestProperty("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                        ledgerConn.setRequestProperty("Authorization", "Bearer $accessToken")
                         ledgerConn.setRequestProperty("Content-Type", "application/json")
                         ledgerConn.setRequestProperty("Prefer", "resolution=merge-duplicates")
                         ledgerConn.doOutput = true
@@ -143,62 +149,8 @@ object SupabaseSyncClient {
                         Log.w(TAG, "Ledger atomic sync note: ${le.message}")
                     }
 
-                    // 3. Also dispatch non-blocking event to ZoetiCoach WS18 Habit Cloud if configured
-                    try {
-                        val zoetiUrl = prefs.getString("zoeticoach_api_url", "") ?: ""
-                        val zoetiToken = prefs.getString("zoeticoach_token", "") ?: ""
-                        if (zoetiUrl.isNotEmpty() && zoetiToken.isNotEmpty()) {
-                            val zUrl = URL("${zoetiUrl.trimEnd('/')}/api/v3/habit-cloud/events")
-                            val zConn = zUrl.openConnection() as HttpURLConnection
-                            zConn.requestMethod = "POST"
-                            zConn.setRequestProperty("Authorization", "Bearer $zoetiToken")
-                            zConn.setRequestProperty("Content-Type", "application/json")
-                            zConn.connectTimeout = 5000
-                            zConn.readTimeout = 5000
-                            zConn.doOutput = true
-
-                            val zPayload = JSONObject().apply {
-                                put("external_participant_id", userId)
-                                put("event_type", "habit_completed")
-                                put("event_value", habitId)
-                                put("occurred_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(now))
-                                put("payload", JSONObject().apply {
-                                    put("habit_id", habitId)
-                                    put("points", 1)
-                                    put("source", "android_widget")
-                                })
-                            }
-                            val zWriter = OutputStreamWriter(zConn.outputStream)
-                            zWriter.write(zPayload.toString())
-                            zWriter.flush()
-                            zWriter.close()
-                            val zCode = zConn.responseCode
-                            Log.d(TAG, "ZoetiCoach Habit Cloud response: $zCode")
-                            if (zCode !in 200..299) {
-                                enqueueNativeZoetiEvent(context, zPayload)
-                            }
-                        }
-                    } catch (ze: Exception) {
-                        Log.d(TAG, "ZoetiCoach background sync note (enqueuing): ${ze.message}")
-                        try {
-                            val zoetiUrl = prefs.getString("zoeticoach_api_url", "") ?: ""
-                            val zoetiToken = prefs.getString("zoeticoach_token", "") ?: ""
-                            if (zoetiUrl.isNotEmpty() && zoetiToken.isNotEmpty()) {
-                                val zPayload = JSONObject().apply {
-                                    put("external_participant_id", userId)
-                                    put("event_type", "habit_completed")
-                                    put("event_value", habitId)
-                                    put("occurred_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()))
-                                    put("payload", JSONObject().apply {
-                                        put("habit_id", habitId)
-                                        put("points", 1)
-                                        put("source", "android_widget")
-                                    })
-                                }
-                                enqueueNativeZoetiEvent(context, zPayload)
-                            }
-                        } catch (_: Exception) {}
-                    }
+                    // ZoetiCoach is reached only by the signed-in app through the server proxy.
+                    // The widget does not store or send that credential.
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed background sync to Supabase: ${e.message}")
@@ -206,18 +158,5 @@ object SupabaseSyncClient {
                 onComplete?.invoke()
             }
         }.start()
-    }
-
-    private fun enqueueNativeZoetiEvent(context: Context, payload: JSONObject) {
-        try {
-            val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
-            val rawQueue = prefs.getString("zoeticoach_native_offline_queue", "[]") ?: "[]"
-            val queue = JSONArray(rawQueue)
-            queue.put(payload)
-            prefs.edit().putString("zoeticoach_native_offline_queue", queue.toString()).apply()
-            Log.d(TAG, "Enqueued native ZoetiCoach event (queue depth: ${queue.length()})")
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to enqueue native ZoetiCoach event: ${e.message}")
-        }
     }
 }

@@ -144,10 +144,7 @@ const checkIsOnboardingComplete = (user) => {
   if (localStorage.getItem(`habuilt_active_protocol_id_${uid}`)) {
     return true;
   }
-  // Check if legacy master profile
-  const lowerUid = String(uid).toLowerCase();
-  const email = (user.email || '').toLowerCase();
-  if (lowerUid === 'ashish' || lowerUid === 'jyoti' || email === 'ashishgupta1v@gmail.com' || email === 'goyaljyoti007@gmail.com') {
+  if (localStorage.getItem('habuilt_guest_mode') === 'true') {
     return true;
   }
   return false;
@@ -312,31 +309,6 @@ const enterGuestMode = (guestUser) => {
 const handleLoginSuccess = (user) => {
   enterUserSession(user);
 };
-
-const handleToggleTrack = () => {
-  const currentId = (activeUser.value?.id || '').toLowerCase();
-  const currentEmail = (activeUser.value?.email || '').toLowerCase();
-  if (currentId === 'ashish' || currentEmail === 'ashishgupta1v@gmail.com') {
-    const jyotiUser = {
-      id: 'jyoti',
-      email: 'goyaljyoti007@gmail.com',
-      user_metadata: { full_name: 'Jyoti Goyal', preferred_archetype: 'archetype-jyoti', onboarding_completed: true }
-    };
-    enterUserSession(jyotiUser);
-    localStorage.setItem('habuilt_active_protocol_id_jyoti', 'archetype-jyoti');
-    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: jyotiUser }));
-  } else {
-    const ashishUser = {
-      id: 'ashish',
-      email: 'ashishgupta1v@gmail.com',
-      user_metadata: { full_name: 'Ashish Gupta', preferred_archetype: 'archetype-ashish', onboarding_completed: true }
-    };
-    enterUserSession(ashishUser);
-    localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
-    window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: ashishUser }));
-  }
-};
-
 
 const handleSignOut = async () => {
   localStorage.removeItem('habuilt_guest_mode');
@@ -628,9 +600,7 @@ onUnmounted(() => {
 
                 <div
                   class="user-badge"
-                  :title="isGuestActive ? 'Guest Mode Active — Click to switch track' : activeUser.email"
-                  :style="{ cursor: 'pointer' }"
-                  @click="handleToggleTrack"
+                  :title="isGuestActive ? 'Guest Mode Active' : activeUser.email"
                 >
                   <div class="user-avatar user-avatar--generic">
                     {{ userInitial }}

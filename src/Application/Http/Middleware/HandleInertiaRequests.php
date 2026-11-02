@@ -36,9 +36,9 @@ final class HandleInertiaRequests extends Middleware
                     'points' => $this->walletForAuthIdentifier($authUser->getAuthIdentifier()),
                 ] : null,
             ],
-            'wallet' => $this->walletFor($resolvedUserId),
+            'wallet' => $resolvedUserId === null ? 0 : $this->walletFor($resolvedUserId),
             'context' => [
-                'userId' => $resolvedUserId->value(),
+                'userId' => $resolvedUserId?->value() ?? '',
             ],
             'flash' => [
                 'success' => fn (): mixed => $request->session()->get('success'),

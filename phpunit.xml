@@ -23,5 +23,6 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="SUPABASE_JWT_SECRET" value="habuilt-test-only-jwt-secret"/>
     </php>
 </phpunit>

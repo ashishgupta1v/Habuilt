@@ -50,14 +50,11 @@ const pairUrl = computed(() => {
 });
 
 const isPaired = computed(() => {
-  return (activeConnection.value && activeConnection.value.status === 'connected') ||
-    ((props.isAshish || props.isJyoti) && activeConnection.value?.status !== 'disconnected');
+  return Boolean(activeConnection.value && activeConnection.value.status === 'connected');
 });
 
 const partnerName = computed(() => {
   if (activeConnection.value?.alias) return activeConnection.value.alias;
-  if (props.isAshish) return 'Jyoti';
-  if (props.isJyoti) return 'Ashish';
   return 'Partner';
 });
 
@@ -341,7 +338,7 @@ const handleDisconnect = async () => {
                 id="partner-input-alias"
                 v-model="partnerInputAlias"
                 type="text"
-                placeholder="e.g. Jyoti, Alex, Soulmate"
+                placeholder="e.g. Alex, Partner"
                 class="partner-pair-text-input"
               />
             </div>

@@ -18196,6 +18196,31 @@ body .mobile-daily__checkmark {
   cursor: not-allowed;
 }
 
+.offline-pill--attention {
+  border-radius: 18px;
+  background: rgba(255, 241, 242, 0.96);
+  border-color: rgba(225, 29, 72, 0.45);
+  color: #881337;
+}
+
+.offline-pill__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.offline-pill__discard-btn {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: transparent;
+  color: #9f1239;
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .offline-pill-fade-enter-active,
 .offline-pill-fade-leave-active {
   transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { ArrowLeft, Shield, Lock, Eye, Download, Trash2, FileText, CheckCircle2, Globe, HeartHandshake } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
-const lastUpdated = 'October 28, 2026';
+const lastUpdated = 'November 2, 2026';
 const activeSection = ref('data-collection');
 
 const scrollToSection = (id) => {
@@ -53,7 +53,7 @@ const scrollToSection = (id) => {
         <div class="legal-meta">
           <span>Effective Date: {{ lastUpdated }}</span>
           <span>•</span>
-          <span>Version: 2.1 (GDPR, CCPA &amp; App Store Compliant)</span>
+          <span>Version: 2.2</span>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ const scrollToSection = (id) => {
             <div class="proc-grid">
               <div class="proc-card">
                 <div class="proc-name">Supabase Inc.</div>
-                <div class="proc-desc">Authentication, encrypted PostgreSQL hosting, and WebSocket realtime messaging.</div>
+                <div class="proc-desc">Authentication, PostgreSQL hosting, and realtime messaging.</div>
               </div>
               <div class="proc-card">
                 <div class="proc-name">Hostinger VPS (KVM 2)</div>
@@ -170,7 +170,7 @@ const scrollToSection = (id) => {
               <li><strong>Right to Access:</strong> Request a complete copy of your habit check-ins, custom protocols, and account metadata.</li>
               <li><strong>Right to Portability:</strong> Export all your personal data in standard machine-readable JSON format anytime via <em>Settings &gt; Security &gt; Export My Data</em>.</li>
               <li><strong>Right to Rectification:</strong> Edit or correct any inaccurate habit details directly in the interface.</li>
-              <li><strong>Right to Erasure (To Be Forgotten):</strong> Irrevocably delete your account, streaks, and check-in history.</li>
+              <li><strong>Right to Erasure:</strong> Delete the app rows tied to your login. The login identity itself is removed only when the server is configured to delete it.</li>
             </ul>
           </section>
 
@@ -181,18 +181,18 @@ const scrollToSection = (id) => {
               <span>6. Self-Service Account Deletion (Apple 5.1.1(v) Compliant)</span>
             </h2>
             <p>
-              In accordance with Apple App Store Review Guideline 5.1.1(v) and global privacy mandates, Habuilt offers an immediate, automated self-service account deletion mechanism:
+              Signed-in people can delete their own app data from Protocol Settings. Deletion removes the caller's rows in both ledgers: habit check-ins, settings, protocols, biomarkers, domain habits, domain check-ins, and point transactions. It also removes partner rows where that person is a party. Points are not cash.
             </p>
             <div class="callout-box rose-box">
-              <div class="callout-title">How to Delete Your Account Instantly:</div>
+              <div class="callout-title">How to delete your app data:</div>
               <ol class="styled-ol">
-                <li>Open Habuilt and tap <strong>Protocol Settings</strong> in the top header.</li>
-                <li>Navigate to the <strong>Security &amp; Privacy Vault</strong> tab.</li>
-                <li>Under Account Management, click <strong>Delete Account &amp; All Data</strong>.</li>
+                <li>Open Habuilt and tap <strong>Protocol Settings</strong>.</li>
+                <li>Open the account section.</li>
+                <li>Choose <strong>Delete Account...</strong>.</li>
                 <li>Confirm by typing <code>DELETE</code>.</li>
               </ol>
               <p style="margin-top: 10px; font-size: 11.5px; opacity: 0.9;">
-                Once confirmed, our atomic cleanup protocol executes immediately: all habit check-ins, custom habits, partner connections, and cloud user records are permanently purged from database replicas.
+                The Supabase Auth user is deleted only when the server has the service-role key. When it does not, the account data is removed and the login identity may remain until the operator completes Auth deletion. Deletion is not always total.
               </p>
             </div>
           </section>
@@ -204,10 +204,11 @@ const scrollToSection = (id) => {
               <span>7. Data Security &amp; Storage Architecture</span>
             </h2>
             <ul class="styled-list">
-              <li>All databases enforce PostgreSQL Row Level Security (RLS) guaranteeing that queries only return data belonging to the authenticated tenant.</li>
-              <li>All network transmissions use TLS 1.3 cryptographic protocols with Let&apos;s Encrypt SSL certificates.</li>
-              <li>Bearer tokens are verified on every incoming API request with strict user-matching authorization (IDOR protection).</li>
-              <li>Optional local passkey biometric authentication (WebAuthn / Touch ID / Face ID) protects local telemetry.</li>
+              <li>Signed-in API requests are limited to the caller's own rows. A partner can see a limited progress summary only after a confirmed pairing, and cannot read the other person's check-ins directly.</li>
+              <li>On this device, habit data is stored in plain browser storage until it syncs. It is not an encrypted local ledger.</li>
+              <li>Network access uses HTTPS.</li>
+              <li>Bearer tokens are verified on protected API requests, and the token subject has to match the account being changed.</li>
+              <li>You can enroll a device passkey in this browser.</li>
             </ul>
           </section>
 

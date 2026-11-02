@@ -281,22 +281,13 @@ const systemCommands = computed(() => {
       action: () => emit('switch-protocol', 'archetype-postpartum'),
     },
     {
-      id: 'cmd-switch-ashish',
+      id: 'cmd-switch-athlete',
       category: 'Protocols',
-      title: 'Switch to Ashish Master Protocol (3-Week Assessment Aligned)',
-      subtitle: '3-Week protocol: 3.5–4L fennel/coriander hydration, A1/A2/A3 circuits & 21:00 shutdown',
-      icon: Crown,
-      badge: 'Flagship',
-      action: () => emit('switch-protocol', 'archetype-ashish'),
-    },
-    {
-      id: 'cmd-switch-jyoti',
-      category: 'Protocols',
-      title: 'Switch to Jyoti Master Protocol (Flagship 37-Step)',
-      subtitle: 'Complete 37-step maternal & family protocol with baby milestones',
-      icon: Sparkles,
-      badge: 'Flagship',
-      action: () => emit('switch-protocol', 'archetype-jyoti'),
+      title: 'Switch to High-Performance Athlete',
+      subtitle: '15 core habits • Training blocks, recovery, and sleep',
+      icon: Zap,
+      badge: 'Archetype',
+      action: () => emit('switch-protocol', 'archetype-athlete'),
     },
     {
       id: 'cmd-partner-pair',
@@ -327,17 +318,15 @@ const systemCommands = computed(() => {
     },
   ];
 
-  if (props.isAshish) {
-    list.unshift({
-      id: 'cmd-travel-cycle',
-      category: 'Schedule',
-      title: `Cycle Day Type (Currently ${props.dayTypeLabel})`,
-      subtitle: 'Switch between Home, Office, Half-day, and Holiday',
-      icon: Calendar,
-      badge: 'Day Type',
-      action: () => emit('toggle-travel'),
-    });
-  }
+  list.unshift({
+    id: 'cmd-travel-cycle',
+    category: 'Schedule',
+    title: `Cycle Day Type (Currently ${props.dayTypeLabel})`,
+    subtitle: 'Switch between Home, Office, Half-day, and Holiday',
+    icon: Calendar,
+    badge: 'Day Type',
+    action: () => emit('toggle-travel'),
+  });
 
   return list;
 });

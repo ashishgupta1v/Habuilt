@@ -14,10 +14,10 @@ from playwright.sync_api import sync_playwright
 
 def capture_fitflow_showcase():
     print("Capturing comprehensive Fitflow Framer showcase screenshots...")
-    ashish_user = {
-        "id": "ashish",
-        "email": "ashishgupta1v@gmail.com",
-        "user_metadata": {"full_name": "Ashish Gupta"}
+    founder_user = {
+        "id": "founder",
+        "email": "founder@habuilt.test",
+        "user_metadata": {"full_name": "Test Founder"}
     }
     
     with sync_playwright() as p:
@@ -99,8 +99,8 @@ def capture_fitflow_showcase():
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_theme', 'light');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         page.goto("http://localhost:4173/", wait_until="domcontentloaded")
         page.wait_for_selector(".dashboard-flow", timeout=12000)
@@ -161,8 +161,8 @@ def capture_fitflow_showcase():
         page_mob.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_theme', 'light');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         page_mob.goto("http://localhost:4173/", wait_until="domcontentloaded")
         page_mob.wait_for_selector(".dashboard-flow", timeout=12000)

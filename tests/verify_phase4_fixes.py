@@ -22,8 +22,8 @@ def run_phase4_verification():
             print(f"  [FAIL] {name} - {extra}")
 
     test_user = {
-        "id": "ashish-test-phase4",
-        "email": "ashish@zoeticoach.com",
+        "id": "founder-test-phase4",
+        "email": "founder@zoeticoach.com",
         "name": "Ashis Gupta",
         "role": "admin"
     }
@@ -159,7 +159,7 @@ def run_phase4_verification():
 
         partner_alias_input = page.locator("#partner-input-alias")
         check("Partner Alias Input is Visible", partner_alias_input.is_visible())
-        partner_alias_input.fill("Jyoti")
+        partner_alias_input.fill("Partner")
 
         connect_btn = page.locator("#btn-pair-connect")
         check("Connect & Sync Button is Visible and Enabled", connect_btn.is_visible() and connect_btn.is_enabled())

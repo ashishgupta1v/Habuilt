@@ -28,10 +28,10 @@ def run_dynamic_audit():
             failed_checks.append((name, details))
             print(f"  [FAIL] {name} - {details}", flush=True)
 
-    ashish_user = {
-        "id": "ashish",
-        "email": "ashishgupta1v@gmail.com",
-        "user_metadata": {"full_name": "Ashish Gupta"}
+    founder_user = {
+        "id": "founder",
+        "email": "founder@habuilt.test",
+        "user_metadata": {"full_name": "Test Founder"}
     }
 
     with sync_playwright() as p:
@@ -49,7 +49,7 @@ def run_dynamic_audit():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
             localStorage.removeItem('habuilt_vault_configured');
         """)
 

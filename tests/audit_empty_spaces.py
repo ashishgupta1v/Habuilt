@@ -3,9 +3,9 @@ import json
 from playwright.sync_api import sync_playwright
 
 test_user = {
-    "id": "ashish",
-    "email": "ashishgupta1v@gmail.com",
-    "user_metadata": {"full_name": "Ashish Gupta"}
+    "id": "founder",
+    "email": "founder@habuilt.test",
+    "user_metadata": {"full_name": "Test Founder"}
 }
 
 def audit_spaces():
@@ -19,7 +19,7 @@ def audit_spaces():
         page_d.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(test_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         page_d.goto("http://localhost:4173/", wait_until="networkidle")
         page_d.wait_for_selector(".dashboard-flow", timeout=10000)
@@ -112,7 +112,7 @@ def audit_spaces():
         page_m.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(test_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         page_m.goto("http://localhost:4173/", wait_until="networkidle")
         page_m.wait_for_selector(".dashboard-flow", timeout=10000)

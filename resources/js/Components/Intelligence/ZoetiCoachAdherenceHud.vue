@@ -28,7 +28,6 @@ import {
 } from 'lucide-vue-next';
 import {
   fetchZoetiCoachAdherence,
-  isZoetiCoachConnected,
   getZoetiCoachQueueCount,
   flushZoetiCoachQueue,
 } from '@/lib/zoetiCoachBridge';
@@ -36,7 +35,7 @@ import {
 const props = defineProps({
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false },
-  userId: { type: String, default: 'ashish' },
+  userId: { type: String, default: '' },
   displayName: { type: String, default: 'Warrior' },
   currentDay: { type: Number, default: 1 },
   consistencyScore: { type: Number, default: 0 },
@@ -63,19 +62,14 @@ let clockTimer = null;
 
 // ── Participant ID Resolution ──
 const participantId = computed(() => {
-  if (props.isAshish) return 'ashish';
-  if (props.isJyoti) return 'jyoti';
-  const id = String(props.userId || '').toLowerCase();
-  if (id.includes('ashish') || id.includes('founder')) return 'ashish';
-  if (id.includes('jyoti')) return 'jyoti';
-  return 'ashish';
+  const id = String(props.userId || '').trim();
+  if (!id || id === 'guest') return '';
+  return id;
 });
 
 const participantName = computed(() => {
   if (rawTelemetry.value?.name) return rawTelemetry.value.name;
-  if (props.isAshish) return 'Ashish Gupta';
-  if (props.isJyoti) return 'Jyoti Gupta';
-  return props.displayName || 'Warrior';
+  return props.displayName || 'Member';
 });
 
 // ── Live Telemetry Metrics ──
@@ -207,68 +201,30 @@ const milestones = computed(() => {
 
 // ── Dynamic Clinical Insights & AI Directives ──
 const clinicalPillars = computed(() => {
-  if (props.isJyoti) {
-    return [
-      {
-        id: 'thyroid',
-        label: 'Endocrine & Thyroid Rhythm',
-        status: 'Optimal Flow',
-        badgeColor: 'gold',
-        directive: 'Morning natural sunlight within 30m of waking to stabilize circadian thyroid pacing.',
-        icon: Sparkles,
-      },
-      {
-        id: 'mobility',
-        label: 'Joint Lubrication & Flexibility',
-        status: 'Active Protocol',
-        badgeColor: 'emerald',
-        directive: '15-20m gentle somatic yoga & joint circles. Focus on hip and thoracic decompression.',
-        icon: Activity,
-      },
-      {
-        id: 'parasympathetic',
-        label: 'Parasympathetic Sleep Hygiene',
-        status: 'Night Directive',
-        badgeColor: 'teal',
-        directive: 'Screen cut-off 45m prior to sleep with warm chamomile or golden turmeric infusion.',
-        icon: Moon,
-      },
-    ];
-  }
-
-  // Ashish Master Clinical Assessment Pillars
   return [
     {
       id: 'hydration',
-      label: 'Renal Defense & Electrolyte Hydration',
-      status: 'P1 Clinical Target',
+      label: 'Daily Hydration',
+      status: 'Active',
       badgeColor: 'gold',
-      directive: 'Target 3.5L - 4.0L structured hydration today. Sip in 500ml blocks between meals with pink Himalayan salt to maintain optimal BUN & Creatinine balance.',
+      directive: 'Drink water steadily through the day, especially around training and deep work blocks.',
       icon: Droplets,
     },
     {
-      id: 'spine',
-      label: 'Spinal Decompression & Posture Hygiene',
-      status: 'High Priority',
+      id: 'movement',
+      label: 'Movement & Posture',
+      status: 'Active Protocol',
       badgeColor: 'emerald',
-      directive: 'Hourly posture breaks: 3-min McKenzie lumbar extensions & dead hangs to offload L4-L5 compression from desk sprints.',
-      icon: ShieldCheck,
+      directive: 'Stand up during long work blocks and keep a short mobility or walk session on the schedule.',
+      icon: Activity,
     },
     {
-      id: 'cardio',
-      label: 'Zone 2 Base & Metabolic Health',
-      status: 'Cardio Protocol',
+      id: 'sleep',
+      label: 'Sleep Wind-down',
+      status: 'Night Directive',
       badgeColor: 'teal',
-      directive: '35-45m continuous Zone 2 (130-140 bpm conversational pace) to accelerate mitochondrial density and lipid clearance.',
-      icon: Heart,
-    },
-    {
-      id: 'circadian',
-      label: 'Circadian Anchoring & Sleep Architecture',
-      status: 'Recovery Shield',
-      badgeColor: 'violet',
-      directive: 'Outdoor morning sunlight anchor before 8 AM. Night wind-down at 10:30 PM with blue-light blocking and magnesium bisglycinate.',
-      icon: Clock,
+      directive: 'Dim screens before bed and protect a consistent lights-out time.',
+      icon: Moon,
     },
   ];
 });
@@ -281,9 +237,7 @@ const immediateCoachNudge = computed(() => {
     return {
       window: 'Morning Priming Window (05:00 - 09:00)',
       headline: 'Sunlight Anchor & Hydration Ignition',
-      text: props.isJyoti
-        ? 'Anchor your morning circadian rhythm with 10 minutes of direct outdoor natural light, followed by 500ml warm water.'
-        : 'Get 10-15m morning sunlight exposure before screen time. Drink 750ml electrolyte water and complete your morning spine mobility routine.',
+      text: 'Get morning light, drink water, and complete the first movement block before deep work.',
       priority: 'High Impact',
       icon: Zap,
     };
@@ -293,9 +247,7 @@ const immediateCoachNudge = computed(() => {
     return {
       window: 'Executive Deep Work Window (09:00 - 13:00)',
       headline: 'Posture Elevation & Cognitive Endurance',
-      text: props.isJyoti
-        ? 'Maintain calm mental focus. Take a 5-minute deep breathing break and drink fresh water between tasks.'
-        : 'Ensure monitor is at eye level. Take a 2-minute posture decompression break every 60 minutes and hit your 1.5L hydration milestone.',
+      text: 'Keep the next focus block single-tasked and take a short posture break each hour.',
       priority: 'Focused Flow',
       icon: Brain,
     };
@@ -305,9 +257,7 @@ const immediateCoachNudge = computed(() => {
     return {
       window: 'Midday Metabolic Window (13:00 - 17:00)',
       headline: 'Post-Lunch Movement & Hydration Push',
-      text: props.isJyoti
-        ? 'Take a gentle 10-minute walk after lunch. Ensure adequate water intake throughout the afternoon.'
-        : 'Post-lunch 10-minute brisk walk prevents glycemic dip. Reach 2.75L water intake and perform standing calf raises during calls.',
+      text: 'Take a short walk after lunch and keep water nearby through the afternoon.',
       priority: 'Metabolic Base',
       icon: Activity,
     };
@@ -317,9 +267,7 @@ const immediateCoachNudge = computed(() => {
     return {
       window: 'Physical Training & Transition (17:00 - 21:00)',
       headline: 'Zone 2 / Strength Session Execution',
-      text: props.isJyoti
-        ? 'Complete your evening movement session or gentle stretching. Transition gracefully away from daily responsibilities.'
-        : 'Execute your 40-minute Zone 2 cardio or hypertrophy session. Hydrate with electrolyte replenishment immediately post-workout.',
+      text: 'Finish the planned training or walk, then start winding work down.',
       priority: 'High Performance',
       icon: Flame,
     };
@@ -328,9 +276,7 @@ const immediateCoachNudge = computed(() => {
   return {
     window: 'Evening Circadian Wind-down (21:00 - 05:00)',
     headline: 'Blue Light Cutoff & Deep Sleep Architecture',
-    text: props.isJyoti
-      ? 'Dim ambient lighting, step away from screens, and prepare for restorative sleep by 10:30 PM.'
-      : 'Activate blue-light filters, take magnesium bisglycinate, and cool the bedroom to 20°C for optimal deep delta wave recovery.',
+    text: 'Dim screens and keep the bedroom dark and cool before lights out.',
     priority: 'Cellular Restoration',
     icon: Compass,
   };

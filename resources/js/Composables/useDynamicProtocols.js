@@ -1,6 +1,21 @@
 import { ref, computed } from 'vue';
-import { ashishHabits, jyotiHabits } from './useHabitsState';
 import { supabase, isSupabaseConfigured, callLocalApi } from '@/lib/supabase';
+
+const PUBLIC_PROTOCOL_KEYS = ['founder', 'longevity', 'postpartum', 'athlete'];
+
+const LEGACY_PRIVATE_PROTOCOL_IDS = {
+  'archetype-ashish': 'archetype-founder',
+  ashishMaster: 'archetype-founder',
+  'ashish-master': 'archetype-founder',
+  'archetype-jyoti': 'archetype-postpartum',
+  jyotiMaster: 'archetype-postpartum',
+  'jyoti-master': 'archetype-postpartum',
+};
+
+export function resolvePublicProtocolId(protocolId) {
+  if (!protocolId) return protocolId;
+  return LEGACY_PRIVATE_PROTOCOL_IDS[protocolId] || protocolId;
+}
 
 const LOCAL_STORAGE_ACTIVE_PROTOCOL = 'habuilt_active_protocol_id_';
 const LOCAL_STORAGE_CUSTOM_PROTOCOLS = 'habuilt_custom_protocols_';
@@ -156,36 +171,6 @@ export const PROTOCOL_ARCHETYPES = {
       { id: 'ath-14', name: '20:30 Total Screen Blackout & Static Stretching', points: 1, category: 'rest', timeSlot: 'evening', hint: 'Hamstring, glute, and spinal decompression in dim amber light.' },
       { id: 'ath-15', name: '21:30 Lights Out in Cool Sanctuary (8h Target)', points: 2, category: 'rest', timeSlot: 'evening', hint: 'Deep anabolic repair, growth hormone release, and physical rejuvenation.' }
     ]
-  },
-
-  ashishMaster: {
-    id: 'archetype-ashish',
-    key: 'ashish-master',
-    name: 'Ashish Master Protocol (3-Week Assessment Aligned)',
-    badge: '👑 Master Blueprint',
-    icon: 'crown',
-    tagline: '3-Week Protocol: 3.5–4L Fennel/Coriander Waters (BUN Defense), Training A1/A2/A3, Spine Shield & 21:00 Shutdown.',
-    description: 'The solution-oriented 3-week clinical protocol: Aggressive 3.5–4L fennel and coriander hydration for elevated BUN & internal dryness, indoor A1 Surya Namaskar/Sukha Kriya (allergy safe), A2 Downward Dog & 6x5m deep squats, A3(i) spine mobility, A3(ii) strength circuit, deep build blocks, and strict 21:00 shutdown.',
-    wakeTime: '04:45',
-    sleepTime: '22:00',
-    workStart: '08:30',
-    workEnd: '21:00',
-    habits: ashishHabits
-  },
-
-  jyotiMaster: {
-    id: 'archetype-jyoti',
-    key: 'jyoti-master',
-    name: 'Jyoti Master Protocol (Flagship 37-Step)',
-    badge: '🌸 Master Blueprint',
-    icon: 'sun',
-    tagline: 'Postpartum recovery, maternal nutrition, career sprint & Shaarvi milestones.',
-    description: 'The complete 37-step maternal protocol protecting sleep windows, nutritional repletion, baby developmental milestones, and partner synergy.',
-    wakeTime: '05:00',
-    sleepTime: '22:00',
-    workStart: '08:00',
-    workEnd: '17:00',
-    habits: jyotiHabits
   }
 };
 
@@ -193,90 +178,39 @@ export const PROTOCOL_ARCHETYPES = {
  * Composable for dynamic protocols management
  * Supports explicit archetype IDs, saved preferences, and fallback archetypes.
  */
-export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null, legacyJyotiParam = false, userEmail = '') {
+export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null, legacyJyotiParam = false, _userEmail = '') {
   const customProtocols = ref([]);
-  const activeProtocolId = ref(typeof localStorage !== 'undefined' ? (localStorage.getItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`) || null) : null);
+  const storedProtocolId = typeof localStorage !== 'undefined'
+    ? localStorage.getItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`)
+    : null;
+  const activeProtocolId = ref(resolvePublicProtocolId(storedProtocolId));
   const isLoading = ref(false);
 
-  // Compute available list of all protocols (built-in archetypes + user custom protocols)
   const allProtocols = computed(() => {
-    // Determine user identity
-    const lowerEmail = String(userEmail || '').toLowerCase().trim();
-    let cachedEmail = '';
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-        cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
-      }
-    } catch (_) {}
-
-    const isAshishUser = lowerEmail === 'ashishgupta1v@gmail.com' || cachedEmail === 'ashishgupta1v@gmail.com' || String(userId || '').toLowerCase() === 'ashish' || defaultArchetypeId === true;
-    const isJyotiUser = lowerEmail === 'goyaljyoti007@gmail.com' || cachedEmail === 'goyaljyoti007@gmail.com' || String(userId || '').toLowerCase() === 'jyoti' || legacyJyotiParam === true;
-
-    const list = [
-      PROTOCOL_ARCHETYPES.founder,
-      PROTOCOL_ARCHETYPES.longevity,
-      PROTOCOL_ARCHETYPES.athlete,
-      PROTOCOL_ARCHETYPES.postpartum,
-    ];
-
-    // Only expose private blueprints for verified private accounts
-    if (isAshishUser) {
-      list.push(PROTOCOL_ARCHETYPES.ashishMaster);
-    }
-    if (isJyotiUser) {
-      list.push(PROTOCOL_ARCHETYPES.jyotiMaster);
-    }
-
+    const list = PUBLIC_PROTOCOL_KEYS
+      .map((key) => PROTOCOL_ARCHETYPES[key])
+      .filter(Boolean);
     list.push(...customProtocols.value);
     return list;
   });
 
-  // Active protocol resolution
   const activeProtocol = computed(() => {
-    // Determine user identity upfront
-    const lowerEmail = String(userEmail || '').toLowerCase().trim();
-    let cachedEmail = '';
-    let emailOverride = '';
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const cachedUser = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-        cachedEmail = (cachedUser?.email || '').toLowerCase().trim();
-        emailOverride = localStorage.getItem('habuilt_protocol_email_override') || '';
-      }
-    } catch (_) {}
-
-    const isAshishUser = lowerEmail === 'ashishgupta1v@gmail.com' || cachedEmail === 'ashishgupta1v@gmail.com' || String(userId || '').toLowerCase() === 'ashish' || defaultArchetypeId === true || emailOverride === 'ashish';
-    const isJyotiUser = lowerEmail === 'goyaljyoti007@gmail.com' || cachedEmail === 'goyaljyoti007@gmail.com' || String(userId || '').toLowerCase() === 'jyoti' || legacyJyotiParam === true || emailOverride === 'jyoti';
-
-    // 1. If activeProtocolId is explicitly set, find in all protocols
-    if (activeProtocolId.value) {
-      // If Ashish or Jyoti has an accidental generic/founder preset saved in localStorage, route to their master protocol
-      if (isAshishUser && (activeProtocolId.value === 'archetype-founder' || activeProtocolId.value === 'default')) {
-        return PROTOCOL_ARCHETYPES.ashishMaster;
-      }
-      if (isJyotiUser && (activeProtocolId.value === 'archetype-founder' || activeProtocolId.value === 'default')) {
-        return PROTOCOL_ARCHETYPES.jyotiMaster;
-      }
-      const found = allProtocols.value.find(p => p.id === activeProtocolId.value || p.key === activeProtocolId.value);
+    const requestedId = resolvePublicProtocolId(activeProtocolId.value);
+    if (requestedId) {
+      const found = allProtocols.value.find((p) => p.id === requestedId || p.key === requestedId);
       if (found) return found;
     }
 
-    // 2. If defaultArchetypeId string is passed, look up matching archetype
     if (typeof defaultArchetypeId === 'string' && defaultArchetypeId.trim()) {
-      const found = allProtocols.value.find(p => p.id === defaultArchetypeId || p.key === defaultArchetypeId);
+      const resolvedDefault = resolvePublicProtocolId(defaultArchetypeId.trim());
+      const found = allProtocols.value.find((p) => p.id === resolvedDefault || p.key === resolvedDefault);
       if (found) return found;
     }
 
-    // 3. User Identity Resolution
-    if (isAshishUser) {
-      return PROTOCOL_ARCHETYPES.ashishMaster;
-    }
-    if (isJyotiUser) {
-      return PROTOCOL_ARCHETYPES.jyotiMaster;
+    if (legacyJyotiParam === true) {
+      return PROTOCOL_ARCHETYPES.postpartum;
     }
 
-    // 4. Universal default for new / guest / standard users: Founder Executive
     return PROTOCOL_ARCHETYPES.founder;
   });
 
@@ -304,7 +238,11 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       // 1. Load active ID from localStorage
       const savedActiveId = localStorage.getItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`);
       if (savedActiveId) {
-        activeProtocolId.value = savedActiveId;
+        const resolvedId = resolvePublicProtocolId(savedActiveId);
+        activeProtocolId.value = resolvedId;
+        if (resolvedId !== savedActiveId) {
+          localStorage.setItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`, resolvedId);
+        }
       }
 
       // 2. Load custom protocols from localStorage
@@ -316,7 +254,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       }
 
       // 3. Load from Hostinger KVM 2 Local API (Primary) or Supabase (Fallback)
-      const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+      const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
       if (userId && userId !== 'guest' && !isGuestMode) {
         let remoteData = null;
         try {
@@ -379,7 +317,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     localStorage.setItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`, protocolId);
 
     // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
-    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
         await callLocalApi('/api/user-protocols', 'POST', {
@@ -441,7 +379,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     await switchProtocol(id);
 
     // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
-    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
         await callLocalApi('/api/user-protocols', 'POST', {
@@ -496,14 +434,11 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
 
     // If deleted protocol was active, revert to default archetype
     if (activeProtocolId.value === protocolId) {
-      const fallbackId = String(userId).toLowerCase() === 'ashish' 
-        ? PROTOCOL_ARCHETYPES.ashishMaster.id 
-        : PROTOCOL_ARCHETYPES.founder.id;
-      await switchProtocol(fallbackId);
+      await switchProtocol(PROTOCOL_ARCHETYPES.founder.id);
     }
 
     // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
-    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest' || userId === 'ashish' || userId === 'jyoti');
+    const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
         await callLocalApi(`/api/user-protocols/${encodeURIComponent(protocolId)}`, 'DELETE');

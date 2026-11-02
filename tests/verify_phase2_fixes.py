@@ -27,9 +27,9 @@ def run_phase2_verification():
             print(f"  [FAIL] {name} - {details}", flush=True)
 
     test_user = {
-        "id": "ashish",
-        "email": "ashishgupta1v@gmail.com",
-        "user_metadata": {"full_name": "Ashish Gupta"}
+        "id": "founder",
+        "email": "founder@habuilt.test",
+        "user_metadata": {"full_name": "Test Founder"}
     }
 
     with sync_playwright() as p:

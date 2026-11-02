@@ -80,19 +80,17 @@ def run_decoupling_test():
 
         page.screenshot(path="tests/screenshots/dynamic_test_2_longevity.png")
 
-        # 3. Switching to Ashish Master Archetype
-        print("\n>>> TEST 3: Activating Ashish Master Archetype & Day-Type Engine <<<")
+        print("\n>>> TEST 3: Activating Athlete Archetype & Day-Type Engine <<<")
         page.click(".hero-protocol-chip")
         page.wait_for_selector(".hero-protocol-dropdown", timeout=3000)
-        page.locator("button.hero-protocol-option:has-text('Ashish Master Protocol')").click()
+        page.locator("button.hero-protocol-option:has-text('Athlete Protocol')").click()
         page.wait_for_timeout(800)
 
-        proto_chip_ashish = page.locator(".hero-protocol-chip__name").text_content()
-        check("Switched to Ashish Master Archetype", "Ashish" in proto_chip_ashish)
+        proto_chip_athlete = page.locator(".hero-protocol-chip__name").text_content()
+        check("Switched to Athlete Archetype", "Athlete" in proto_chip_athlete)
 
-        # Verify Day Type cycle button appears
         travel_btn = page.locator(".hero-travel-btn")
-        check("Day Type Cycle Button visible for Ashish Master", travel_btn.is_visible())
+        check("Day Type Cycle Button visible", travel_btn.is_visible())
 
         # Cycle day type
         if travel_btn.is_visible():
@@ -103,7 +101,7 @@ def run_decoupling_test():
             print(f"  Cycled day type from '{initial_text.strip()}' to '{next_text.strip()}'")
             check("Day Type cycled successfully", initial_text.strip() != next_text.strip())
 
-        page.screenshot(path="tests/screenshots/dynamic_test_3_ashish_master.png")
+        page.screenshot(path="tests/screenshots/dynamic_test_3_founder_master.png")
 
         # 4. Universal Partner Pairing
         print("\n>>> TEST 4: Universal Partner Pairing Modal & Anchors <<<")
@@ -121,7 +119,7 @@ def run_decoupling_test():
         page.click("button.partner-pair-tab:has-text('Enter Partner')")
         page.wait_for_timeout(300)
         page.fill("input[placeholder*='HAB-']", "HAB-7890")
-        page.fill("input[placeholder*='e.g. Jyoti']", "Commander John")
+        page.fill("input[placeholder*='e.g. Alex']", "Commander John")
         page.click("button:has-text('Link')")
         page.wait_for_timeout(1000)
 

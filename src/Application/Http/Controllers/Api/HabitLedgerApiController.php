@@ -4,21 +4,30 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\Ledger\SpaCheckInLedger;
+use App\Support\CurrentUserResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class HabitLedgerApiController
 {
+    public function __construct(
+        private readonly SpaCheckInLedger $checkIns,
+    ) {
+    }
+
     /**
-     * Get check-ins for a user (optionally filtered by month).
+     * Get check-ins for the signed-in user (optionally filtered by month).
      */
     public function getCheckIns(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json(['error' => 'user_id required'], 400);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $query = DB::table('habit_check_ins')->where('user_id', $userId);
@@ -33,65 +42,68 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Record/upsert a habit check-in.
+     * Record/upsert a habit check-in for the signed-in user.
      */
     public function recordCheckIn(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
         $habitId = (string) $request->input('habit_id');
         $monthKey = (string) $request->input('month_key');
         $day = (int) $request->input('day');
 
-        if ($userId === '' || $habitId === '' || $monthKey === '' || $day < 1 || $day > 31) {
+        if ($habitId === '' || $monthKey === '' || $day < 1 || $day > 31) {
             return response()->json(['error' => 'Invalid check-in payload'], 400);
         }
 
         $completedOn = (string) ($request->input('completed_on') ?: sprintf('%s-%02d', $monthKey, $day));
-        $points = (int) ($request->input('points') ?: 1);
+        $points = $this->checkIns->resolvePoints(
+            $userId,
+            $habitId,
+            $request->input('points'),
+            $request->exists('points'),
+        );
         $habitName = (string) $request->input('habit_name', '');
         $canonicalKey = $request->input('canonical_key');
         $source = (string) $request->input('source', 'web');
 
-        DB::table('habit_check_ins')->upsert([
-            'id' => (string) Str::uuid(),
-            'user_id' => $userId,
-            'habit_id' => $habitId,
-            'habit_name' => $habitName,
-            'month_key' => $monthKey,
-            'day' => $day,
-            'completed_on' => $completedOn,
-            'points' => $points,
-            'canonical_key' => $canonicalKey,
-            'source' => $source,
-            'updated_at' => now(),
-            'created_at' => now(),
-        ], ['user_id', 'habit_id', 'month_key', 'day'], [
-            'habit_name', 'points', 'canonical_key', 'source', 'updated_at'
-        ]);
+        $this->checkIns->record(
+            $userId,
+            $habitId,
+            $monthKey,
+            $day,
+            $completedOn,
+            $points,
+            $habitName,
+            is_string($canonicalKey) ? $canonicalKey : null,
+            $source,
+        );
 
         return response()->json(['success' => true]);
     }
 
     /**
-     * Remove a habit check-in.
+     * Remove a habit check-in owned by the signed-in user.
      */
     public function removeCheckIn(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
         $habitId = (string) $request->input('habit_id');
         $monthKey = (string) $request->input('month_key');
         $day = (int) $request->input('day');
 
-        if ($userId === '' || $habitId === '' || $monthKey === '' || $day < 1) {
+        if ($habitId === '' || $monthKey === '' || $day < 1) {
             return response()->json(['error' => 'Invalid check-in removal payload'], 400);
         }
 
-        DB::table('habit_check_ins')
-            ->where('user_id', $userId)
-            ->where('habit_id', $habitId)
-            ->where('month_key', $monthKey)
-            ->where('day', $day)
-            ->delete();
+        $this->checkIns->remove($userId, $habitId, $monthKey, $day);
 
         return response()->json(['success' => true]);
     }
@@ -101,9 +113,9 @@ final class HabitLedgerApiController
      */
     public function getUserSettings(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json(null);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $record = DB::table('user_settings')->where('user_id', $userId)->first();
@@ -126,9 +138,9 @@ final class HabitLedgerApiController
      */
     public function saveUserSettings(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json(['error' => 'user_id required'], 400);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $payload = [
@@ -146,7 +158,7 @@ final class HabitLedgerApiController
 
         DB::table('user_settings')->upsert($payload, ['user_id'], [
             'progressive_settings', 'custom_habits', 'rewards', 'reward_ledger',
-            'weekly_reviews', 'enhanced_state', 'day_type', 'dark_mode', 'updated_at'
+            'weekly_reviews', 'enhanced_state', 'day_type', 'dark_mode', 'updated_at',
         ]);
 
         return response()->json(['success' => true]);
@@ -157,9 +169,9 @@ final class HabitLedgerApiController
      */
     public function getUserProtocols(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json([]);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $protocols = DB::table('user_protocols')
@@ -183,15 +195,24 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Save/upsert custom user protocol.
+     * Save/upsert a protocol owned by the signed-in user.
+     * An id that already belongs to someone else is rejected.
      */
     public function saveUserProtocol(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        $id = (string) ($request->input('id') ?: Str::uuid());
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
 
-        if ($userId === '') {
-            return response()->json(['error' => 'user_id required'], 400);
+        $id = trim((string) $request->input('id', ''));
+        if ($id === '') {
+            $id = (string) Str::uuid();
+        } else {
+            $existing = DB::table('user_protocols')->where('id', $id)->first();
+            if ($existing !== null && (string) $existing->user_id !== $userId) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
         }
 
         DB::table('user_protocols')->upsert([
@@ -211,18 +232,32 @@ final class HabitLedgerApiController
             'created_at' => now(),
         ], ['id'], [
             'name', 'archetype', 'description', 'wake_time', 'sleep_time',
-            'work_start', 'work_end', 'is_active', 'slots', 'habits', 'updated_at'
+            'work_start', 'work_end', 'is_active', 'slots', 'habits', 'updated_at',
         ]);
 
         return response()->json(['success' => true, 'id' => $id]);
     }
 
     /**
-     * Delete custom user protocol.
+     * Delete a protocol only when it belongs to the signed-in user.
      */
-    public function deleteUserProtocol(string $id): JsonResponse
+    public function deleteUserProtocol(Request $request, string $id): JsonResponse
     {
-        DB::table('user_protocols')->where('id', $id)->delete();
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        $existing = DB::table('user_protocols')->where('id', $id)->first();
+        if ($existing === null) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+        if ((string) $existing->user_id !== $userId) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        DB::table('user_protocols')->where('id', $id)->where('user_id', $userId)->delete();
+
         return response()->json(['success' => true]);
     }
 
@@ -231,14 +266,15 @@ final class HabitLedgerApiController
      */
     public function getUserBiomarkers(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json([]);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $query = DB::table('user_biomarkers')->where('user_id', $userId);
         if ($request->boolean('latest')) {
             $latest = $query->orderBy('log_date', 'desc')->first();
+
             return response()->json($latest);
         }
 
@@ -246,15 +282,27 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Save user biomarker.
+     * Save a biomarker for the signed-in user.
+     * A client id that belongs to someone else is rejected.
      */
     public function saveUserBiomarker(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        $logDate = (string) $request->input('log_date');
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
 
-        if ($userId === '' || $logDate === '') {
+        $logDate = (string) $request->input('log_date');
+        if ($logDate === '') {
             return response()->json(['error' => 'user_id and log_date required'], 400);
+        }
+
+        $requestedId = trim((string) $request->input('id', ''));
+        if ($requestedId !== '') {
+            $existing = DB::table('user_biomarkers')->where('id', $requestedId)->first();
+            if ($existing !== null && (string) $existing->user_id !== $userId) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
         }
 
         DB::table('user_biomarkers')->upsert([
@@ -269,83 +317,373 @@ final class HabitLedgerApiController
             'updated_at' => now(),
             'created_at' => now(),
         ], ['user_id', 'log_date'], [
-            'stiffness_minutes', 'hydration_ml', 'energy_level', 'sleep_hours', 'notes', 'updated_at'
+            'stiffness_minutes', 'hydration_ml', 'energy_level', 'sleep_hours', 'notes', 'updated_at',
         ]);
 
         return response()->json(['success' => true]);
     }
 
     /**
-     * Get partner connections.
+     * Get partner connections where the signed-in user is a party.
      */
     public function getPartnerConnections(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json([]);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
         $records = DB::table('partner_connections')
-            ->where('user_id', $userId)
-            ->orWhere('partner_user_id', $userId)
+            ->where(function ($query) use ($userId): void {
+                $query->where('user_id', $userId)
+                    ->orWhere('partner_user_id', $userId);
+            })
             ->get();
 
         return response()->json($records);
     }
 
     /**
-     * Save partner connection.
+     * Save a partner connection without adopting another user's row.
      */
     public function savePartnerConnection(Request $request): JsonResponse
     {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
         $inviteCode = (string) $request->input('invite_code');
         if ($inviteCode === '') {
             return response()->json(['error' => 'invite_code required'], 400);
         }
 
-        DB::table('partner_connections')->upsert([
-            'id' => (string) Str::uuid(),
-            'user_id' => (string) $request->input('user_id'),
+        $requestedId = trim((string) $request->input('id', ''));
+        if ($requestedId !== '') {
+            $byId = DB::table('partner_connections')->where('id', $requestedId)->first();
+            if ($byId !== null && !$this->userIsParty($byId, $userId)) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
+
+        $existing = DB::table('partner_connections')->where('invite_code', $inviteCode)->first();
+        if ($existing !== null && !$this->userIsParty($existing, $userId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $fields = [
             'partner_user_id' => $request->input('partner_user_id'),
-            'invite_code' => $inviteCode,
             'status' => (string) $request->input('status', 'pending'),
             'alias' => $request->input('alias'),
             'permissions' => json_encode($request->input('permissions', (object) [])),
             'updated_at' => now(),
+        ];
+
+        if ($existing !== null) {
+            DB::table('partner_connections')->where('id', $existing->id)->update($fields);
+
+            return response()->json(['success' => true]);
+        }
+
+        DB::table('partner_connections')->insert([
+            'id' => (string) Str::uuid(),
+            'user_id' => $userId,
+            'invite_code' => $inviteCode,
             'created_at' => now(),
-        ], ['invite_code'], [
-            'partner_user_id', 'status', 'alias', 'permissions', 'updated_at'
+            ...$fields,
         ]);
 
         return response()->json(['success' => true]);
     }
 
     /**
-     * Delete user account and permanently purge all personal data.
-     * Required for Apple App Store Guideline 5.1.1(v) & GDPR Right to Erasure.
+     * Limited partner progress. The caller must be named on a row the partner owns.
+     * This does not return the partner's full ledger and is the only cross-user read.
      */
-    public function deleteUserAccount(Request $request): JsonResponse
+    public function getPartnerMetrics(Request $request): JsonResponse
     {
-        $userId = (string) $request->input('user_id');
-        if ($userId === '') {
-            return response()->json(['error' => 'user_id required'], 400);
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
         }
 
-        DB::transaction(function () use ($userId): void {
-            DB::table('habit_check_ins')->where('user_id', $userId)->delete();
-            DB::table('user_settings')->where('user_id', $userId)->delete();
-            DB::table('user_protocols')->where('user_id', $userId)->delete();
-            DB::table('user_biomarkers')->where('user_id', $userId)->delete();
-            DB::table('partner_connections')
-                ->where('user_id', $userId)
-                ->orWhere('partner_user_id', $userId)
-                ->delete();
+        $partnerUserId = trim((string) $request->query('partner_user_id', ''));
+        $monthKey = trim((string) $request->query('month_key', ''));
+        if (
+            $partnerUserId === ''
+            || $monthKey === ''
+            || $partnerUserId === $userId
+            || CurrentUserResolver::isGuestSubject($partnerUserId)
+        ) {
+            return response()->json(['error' => 'Invalid partner metrics request'], 400);
+        }
+
+        if (!$this->partnerOwnsLink($partnerUserId, $userId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $rows = DB::table('habit_check_ins')
+            ->where('user_id', $partnerUserId)
+            ->where('month_key', $monthKey)
+            ->orderBy('day')
+            ->get(['habit_id', 'habit_name', 'points', 'day', 'completed_on', 'canonical_key']);
+
+        return response()->json([
+            'partner_user_id' => $partnerUserId,
+            'month_key' => $monthKey,
+            'check_ins' => $rows,
+        ]);
+    }
+
+    /**
+     * Accept another person's invite without letting the client read their check-ins.
+     */
+    public function acceptPartnerInvite(Request $request): JsonResponse
+    {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        $inviteCode = strtoupper(trim((string) $request->input('invite_code', '')));
+        if ($inviteCode === '') {
+            return response()->json(['error' => 'invite_code required'], 400);
+        }
+
+        $existing = DB::table('partner_connections')
+            ->whereRaw('upper(invite_code) = ?', [$inviteCode])
+            ->first();
+        if ($existing === null) {
+            return response()->json(['error' => 'Invite code was not found.'], 404);
+        }
+        if ((string) $existing->user_id === $userId) {
+            return response()->json(['error' => 'You cannot pair with your own invite code.'], 422);
+        }
+
+        $currentPartner = trim((string) ($existing->partner_user_id ?? ''));
+        $status = strtolower((string) ($existing->status ?? ''));
+        if ($currentPartner !== '' && $currentPartner !== $userId && in_array($status, ['connected', 'accepted'], true)) {
+            return response()->json(['error' => 'That invite is already paired.'], 409);
+        }
+
+        $alias = trim((string) $request->input('alias', ''));
+        $reciprocalCode = 'PAIRED-'.$inviteCode;
+        $reciprocal = DB::table('partner_connections')->where('invite_code', $reciprocalCode)->first();
+        if ($reciprocal !== null && !$this->userIsParty($reciprocal, $userId)) {
+            return response()->json(['error' => 'That invite is already paired.'], 409);
+        }
+
+        DB::transaction(function () use ($existing, $userId, $alias, $reciprocalCode, $reciprocal): void {
+            DB::table('partner_connections')->where('id', $existing->id)->update([
+                'partner_user_id' => $userId,
+                'status' => 'connected',
+                'updated_at' => now(),
+            ]);
+
+            $fields = [
+                'user_id' => $userId,
+                'partner_user_id' => (string) $existing->user_id,
+                'status' => 'connected',
+                'alias' => $alias !== '' ? $alias : 'Partner',
+                'updated_at' => now(),
+            ];
+
+            if ($reciprocal === null) {
+                DB::table('partner_connections')->insert([
+                    'id' => (string) Str::uuid(),
+                    'invite_code' => $reciprocalCode,
+                    'permissions' => json_encode((object) []),
+                    'created_at' => now(),
+                    ...$fields,
+                ]);
+            } else {
+                DB::table('partner_connections')->where('id', $reciprocal->id)->update($fields);
+            }
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'All user account records permanently deleted.',
-            'user_id' => $userId,
+            'connection' => [
+                'user_id' => $userId,
+                'partner_user_id' => (string) $existing->user_id,
+                'invite_code' => $inviteCode,
+                'status' => 'connected',
+                'alias' => $alias !== '' ? $alias : 'Partner',
+                'updated_at' => now()->toIso8601String(),
+            ],
         ]);
+    }
+
+    /**
+     * Mark every connection where the caller is a party as revoked.
+     */
+    public function revokePartnerConnections(Request $request): JsonResponse
+    {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        $updated = 0;
+        if (Schema::hasTable('partner_connections')) {
+            $updated = DB::table('partner_connections')
+                ->where(function ($query) use ($userId): void {
+                    $query->where('user_id', $userId)
+                        ->orWhere('partner_user_id', $userId);
+                })
+                ->update([
+                    'status' => 'revoked',
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return response()->json(['success' => true, 'updated' => $updated]);
+    }
+
+    /**
+     * Delete the caller's rows in the SPA ledger and the domain ledger.
+     * Supabase Auth deletion runs only when a server service-role key is configured.
+     */
+    public function deleteUserAccount(Request $request): JsonResponse
+    {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        DB::transaction(function () use ($userId): void {
+            $this->deleteSpaRows($userId);
+            $this->deleteDomainRows($userId);
+        });
+
+        $auth = $this->deleteSupabaseAuthUser($userId);
+
+        return response()->json([
+            'success' => true,
+            'user_id' => $userId,
+            'app_data_deleted' => true,
+            'auth_user_deleted' => $auth['auth_user_deleted'],
+            'auth_user_deletion' => $auth['auth_user_deletion'],
+            'auth_user_deletion_reason' => $auth['auth_user_deletion_reason'],
+            'message' => $auth['auth_user_deleted']
+                ? 'App data and the Supabase Auth user were deleted.'
+                : 'App data was deleted. '.$auth['auth_user_deletion_reason'],
+        ]);
+    }
+
+    private function deleteSpaRows(string $userId): void
+    {
+        foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers'] as $table) {
+            if (Schema::hasTable($table)) {
+                DB::table($table)->where('user_id', $userId)->delete();
+            }
+        }
+
+        if (Schema::hasTable('partner_connections')) {
+            DB::table('partner_connections')
+                ->where(function ($query) use ($userId): void {
+                    $query->where('user_id', $userId)
+                        ->orWhere('partner_user_id', $userId);
+                })
+                ->delete();
+        }
+    }
+
+    private function deleteDomainRows(string $userId): void
+    {
+        $habitIds = [];
+        if (Schema::hasTable('habits')) {
+            $habitIds = DB::table('habits')->where('user_id', $userId)->pluck('id')->all();
+        }
+
+        if (Schema::hasTable('check_ins')) {
+            DB::table('check_ins')->where('user_id', $userId)->delete();
+            if ($habitIds !== []) {
+                DB::table('check_ins')->whereIn('habit_id', $habitIds)->delete();
+            }
+        }
+
+        if (Schema::hasTable('point_transactions')) {
+            DB::table('point_transactions')->where('user_id', $userId)->delete();
+        }
+
+        if (Schema::hasTable('habits') && $habitIds !== []) {
+            DB::table('habits')->where('user_id', $userId)->delete();
+        }
+    }
+
+    /**
+     * @return array{auth_user_deleted: bool, auth_user_deletion: string, auth_user_deletion_reason: string}
+     */
+    private function deleteSupabaseAuthUser(string $userId): array
+    {
+        $key = trim((string) config('services.supabase.service_role_key', ''));
+        $url = rtrim(trim((string) config('services.supabase.url', '')), '/');
+
+        if ($key === '' || $url === '') {
+            return [
+                'auth_user_deleted' => false,
+                'auth_user_deletion' => 'skipped',
+                'auth_user_deletion_reason' => 'Supabase Auth user deletion was skipped because the server key is not configured.',
+            ];
+        }
+
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'apikey' => $key,
+                    'Authorization' => 'Bearer '.$key,
+                ])
+                ->delete($url.'/auth/v1/admin/users/'.rawurlencode($userId));
+        } catch (\Throwable) {
+            return [
+                'auth_user_deleted' => false,
+                'auth_user_deletion' => 'failed',
+                'auth_user_deletion_reason' => 'Supabase Auth user deletion could not be reached.',
+            ];
+        }
+
+        if ($response->successful() || $response->status() === 404) {
+            return [
+                'auth_user_deleted' => true,
+                'auth_user_deletion' => 'deleted',
+                'auth_user_deletion_reason' => '',
+            ];
+        }
+
+        return [
+            'auth_user_deleted' => false,
+            'auth_user_deletion' => 'failed',
+            'auth_user_deletion_reason' => 'Supabase Auth user deletion was rejected.',
+        ];
+    }
+
+    private function userIsParty(object $row, string $userId): bool
+    {
+        return (string) ($row->user_id ?? '') === $userId
+            || (string) ($row->partner_user_id ?? '') === $userId;
+    }
+
+    private function partnerOwnsLink(string $partnerUserId, string $userId): bool
+    {
+        if (!Schema::hasTable('partner_connections')) {
+            return false;
+        }
+
+        return DB::table('partner_connections')
+            ->where('user_id', $partnerUserId)
+            ->where('partner_user_id', $userId)
+            ->whereRaw('lower(status) in (?, ?)', ['connected', 'accepted'])
+            ->exists();
+    }
+
+    private function actor(Request $request): string|JsonResponse
+    {
+        $userId = trim((string) $request->attributes->get('auth_user_id', ''));
+        if ($userId === '' || CurrentUserResolver::isGuestSubject($userId)) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        return $userId;
     }
 }

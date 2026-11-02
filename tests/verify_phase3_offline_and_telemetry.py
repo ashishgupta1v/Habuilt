@@ -31,19 +31,19 @@ def run_phase3_offline_and_telemetry_test():
         context = browser.new_context(viewport={"width": 1440, "height": 900})
         page = context.new_page()
 
-        # Set up authenticated session for Ashish
+        # Set up authenticated session for Founder
         page.add_init_script("""
             localStorage.setItem('habuilt_cached_user', JSON.stringify({
-                id: 'ashish',
-                email: 'ashishgupta1v@gmail.com',
+                id: 'founder',
+                email: 'founder@habuilt.test',
                 user_metadata: {
-                    full_name: 'Ashish Gupta',
-                    preferred_archetype: 'archetype-ashish',
+                    full_name: 'Test Founder',
+                    preferred_archetype: 'archetype-founder',
                     onboarding_completed: true
                 }
             }));
             localStorage.setItem('habuilt_guest_mode', 'false');
-            localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+            localStorage.setItem('habuilt_active_protocol_id_founder', 'archetype-founder');
         """)
 
         print("\n>>> STEP 1: Top Command Bar Cloud Sync Status Capsule Verification <<<")
@@ -86,7 +86,7 @@ def run_phase3_offline_and_telemetry_test():
             queue.push({
                 id: 'mut_test_1',
                 type: 'INSERT',
-                payload: { userId: 'ashish', habitId: 'hydrate', monthKey: '2026-10', day: 29 },
+                payload: { userId: 'founder', habitId: 'hydrate', monthKey: '2026-10', day: 29 },
                 attempts: 0,
                 createdAt: new Date().toISOString()
             });

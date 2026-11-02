@@ -33,20 +33,6 @@ final class OfflineSyncReliabilityTest extends TestCase
         DB::table('habit_check_ins')->delete();
     }
 
-    private function createMockJwt(string $userId, int $ttl = 3600): string
-    {
-        $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
-        $payload = rtrim(strtr(base64_encode(json_encode([
-            'sub' => $userId,
-            'exp' => time() + $ttl,
-            'aud' => 'authenticated',
-            'role' => 'authenticated',
-        ])), '+/', '-_'), '=');
-        $sig = rtrim(strtr(base64_encode(hash('sha256', "{$header}.{$payload}", true)), '+/', '-_'), '=');
-
-        return "{$header}.{$payload}.{$sig}";
-    }
-
     public function test_health_check_returns_operational_status(): void
     {
         $response = $this->getJson('/api/health');
@@ -146,5 +132,39 @@ final class OfflineSyncReliabilityTest extends TestCase
 
         $response->assertStatus(400)
             ->assertJson(['error' => 'Invalid check-in payload']);
+    }
+
+    public function test_sync_rejects_check_in_without_a_signed_jwt(): void
+    {
+        $response = $this->postJson('/api/habits/check-ins', [
+            'user_id' => 'sync_user_101',
+            'habit_id' => 'hydrate',
+            'month_key' => '2026-10',
+            'day' => 29,
+            'completed_on' => '2026-10-29',
+            'points' => 10,
+        ]);
+
+        $response->assertStatus(401);
+        $this->assertEquals(0, DB::table('habit_check_ins')->count());
+    }
+
+    public function test_sync_caps_client_supplied_points(): void
+    {
+        $userId = 'sync_user_104';
+        $token = $this->createMockJwt($userId);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/habits/check-ins', [
+                'user_id' => $userId,
+                'habit_id' => 'hydrate',
+                'month_key' => '2026-10',
+                'day' => 2,
+                'completed_on' => '2026-10-02',
+                'points' => 5000,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertSame(100, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
     }
 }

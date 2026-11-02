@@ -40,11 +40,11 @@ def run_partner_sync_e2e():
         page_a.on('console', lambda msg: console_errors.append(f"[Browser A {msg.type}]: {msg.text}") if msg.type == 'error' else None)
         page_a.on('pageerror', lambda err: console_errors.append(f"[Browser A PageError]: {err}"))
 
-        ashish_user = {'id': 'ashish', 'email': 'ashishgupta1v@gmail.com', 'user_metadata': {'full_name': 'Ashish Gupta'}}
+        founder_user = {'id': 'founder', 'email': 'founder@habuilt.test', 'user_metadata': {'full_name': 'Test Founder'}}
         page_a.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_{ashish_user["id"]}', 'true');
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_{founder_user["id"]}', 'true');
         """)
 
         page_a.goto(APP_URL, wait_until='networkidle')
@@ -93,7 +93,7 @@ def run_partner_sync_e2e():
         # ─────────────────────────────────────────────────────────────
         # TEST 3: Dual-Context Real-Time Synchronization
         # ─────────────────────────────────────────────────────────────
-        print("\n--- Test 3: Dual-Context Real-Time Peer Sync (Ashish <-> Jyoti) ---")
+        print("\n--- Test 3: Dual-Context Real-Time Peer Sync (Founder <-> Partner) ---")
         context_b = browser.new_context(
             viewport={'width': 1280, 'height': 800},
             device_scale_factor=1
@@ -103,18 +103,18 @@ def run_partner_sync_e2e():
         page_b.on('console', lambda msg: console_errors.append(f"[Browser B {msg.type}]: {msg.text}") if msg.type == 'error' else None)
         page_b.on('pageerror', lambda err: console_errors.append(f"[Browser B PageError]: {err}"))
 
-        jyoti_user = {'id': 'jyoti', 'email': 'goyaljyoti007@gmail.com', 'user_metadata': {'full_name': 'Jyoti Goyal'}}
+        partner_user = {'id': 'partner', 'email': 'partner@habuilt.test', 'user_metadata': {'full_name': 'Test Partner'}}
         page_b.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(jyoti_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_{jyoti_user["id"]}', 'true');
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(partner_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_{partner_user["id"]}', 'true');
         """)
 
         page_b.goto(APP_URL, wait_until='networkidle')
         page_b.wait_for_timeout(1000)
 
-        # Ashish (Page A) checks off a habit
-        print("  👉 Ashish checking off an activity on Page A...")
+        # Founder (Page A) checks off a habit
+        print("  👉 Founder checking off an activity on Page A...")
         first_checkbox = page_a.locator(".habit-card__checkbox, .habit-row__checkbox, button[role='checkbox']").first
         if first_checkbox.is_visible():
             first_checkbox.click()
@@ -129,14 +129,14 @@ def run_partner_sync_e2e():
             """)
             page_a.wait_for_timeout(800)
 
-        # Emulate Jyoti broadcasting Warrior Cheer to Ashish via BroadcastChannel
-        print("  👉 Jyoti broadcasting Warrior Cheer to Ashish...")
+        # Emulate Partner broadcasting Warrior Cheer to Founder via BroadcastChannel
+        print("  👉 Partner broadcasting Warrior Cheer to Founder...")
         page_a.evaluate("""
             () => {
                 const bc = new BroadcastChannel('habuilt_local_partner_sync');
                 bc.postMessage({
                     type: 'partner_emote',
-                    partner: 'Jyoti',
+                    partner: 'Partner',
                     label: '🎉 Victory Cheer',
                     message: 'is celebrating your consistency! Peak Warrior! 👑',
                     timestamp: Date.now()
@@ -145,29 +145,29 @@ def run_partner_sync_e2e():
         """)
         page_a.wait_for_timeout(800)
 
-        # Emulate Jyoti emitting Partner Heartbeat to Ashish
-        print("  👉 Jyoti emitting live partner heartbeat...")
+        # Emulate Partner emitting Partner Heartbeat to Founder
+        print("  👉 Partner emitting live partner heartbeat...")
         page_a.evaluate("""
             () => {
                 const bc = new BroadcastChannel('habuilt_local_partner_sync');
                 bc.postMessage({
                     type: 'partner_heartbeat',
-                    userId: 'jyoti',
-                    userName: 'Jyoti',
+                    userId: 'partner',
+                    userName: 'Partner',
                     window: 'Deep Execution Block'
                 });
             }
         """)
         page_a.wait_for_timeout(600)
 
-        # Emulate Jyoti sending Instant Routine Nudge (Shared Lunch) to Ashish
-        print("  👉 Jyoti sending Instant Routine Nudge (Shared Lunch)...")
+        # Emulate Partner sending Instant Routine Nudge (Shared Lunch) to Founder
+        print("  👉 Partner sending Instant Routine Nudge (Shared Lunch)...")
         page_a.evaluate("""
             () => {
                 const bc = new BroadcastChannel('habuilt_local_partner_sync');
                 bc.postMessage({
                     type: 'partner_nudge',
-                    from: 'Jyoti',
+                    from: 'Partner',
                     window: 'Midday Pause',
                     nudge: {
                         id: 'nudge-lunch',
@@ -184,10 +184,10 @@ def run_partner_sync_e2e():
         nudge_toast_received = page_a.evaluate("""
             () => {
                 const toast = document.querySelector('.global-toast-banner') || document.querySelector('.habuilt-floating-toast');
-                return toast ? (toast.textContent.includes('Lunch') || toast.textContent.includes('Jyoti')) : false;
+                return toast ? (toast.textContent.includes('Lunch') || toast.textContent.includes('Partner')) : false;
             }
         """)
-        print(f"  👉 Ashish Toast Received Nudge: {nudge_toast_received}")
+        print(f"  👉 Founder Toast Received Nudge: {nudge_toast_received}")
         assert nudge_toast_received, "Toast for partner nudge was not displayed!"
 
         # Open Partner Cockpit on Page A to verify live presence beacon & nudges grid
@@ -267,10 +267,10 @@ def run_partner_sync_e2e():
             }
         """)
         print(f"  👉 Ping sent toast confirmation: '{toast_text}'")
-        assert "Sent" in toast_text or "Jyoti" in toast_text, "Toast confirmation for custom nudge not shown!"
+        assert "Sent" in toast_text or "Partner" in toast_text, "Toast confirmation for custom nudge not shown!"
 
-        page_a.screenshot(path='tests/screenshots/test3_ashish_cockpit_presence_nudges.png')
-        page_b.screenshot(path='tests/screenshots/test3_jyoti_page.png')
+        page_a.screenshot(path='tests/screenshots/test3_founder_cockpit_presence_nudges.png')
+        page_b.screenshot(path='tests/screenshots/test3_partner_page.png')
         print("  ✅ Partner Presence Beacon, Quick Nudges & Custom Ping Composer verified successfully!")
 
         page_a.evaluate("""

@@ -5,9 +5,9 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import {
   Mail, Lock, ArrowRight, ShieldCheck, Zap, KeyRound, ArrowLeft,
-  Smartphone, Download, CheckCircle2, Sparkles, Timer, Award,
-  Clock, Check, ChevronRight, Play, Star, Flame, Shield,
-  Layers, Compass, BarChart3, Crown, MessageSquare
+  Smartphone, Download, CheckCircle2, Timer, Award,
+  Clock, Check, ChevronRight, Play, Flame, Shield,
+  Layers, Compass, BarChart3, Heart, Activity, MessageSquare
 } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
@@ -302,14 +302,6 @@ const startTicker = () => {
     startTicker();
   }, CYCLE_DURATION);
 };
-
-/* ─── Social Proof Data ─────────────────────────────────────────── */
-const socialUsers = [
-  { initial: 'A', bg: 'linear-gradient(135deg, #10b981, #047857)' },
-  { initial: 'J', bg: 'linear-gradient(135deg, #818cf8, #4f46e5)' },
-  { initial: 'M', bg: 'linear-gradient(135deg, #f59e0b, #b45309)' },
-  { initial: 'S', bg: 'linear-gradient(135deg, #38bdf8, #0284c7)' },
-];
 
 /* ─── Auth Logic ─────────────────────────────────────────────────── */
 onMounted(() => {
@@ -613,40 +605,6 @@ const handleApple = async () => {
   }
 };
 
-const handleQuickLaunchAshish = () => {
-  const ashishUser = {
-    id: 'ashish',
-    email: 'ashishgupta1v@gmail.com',
-    user_metadata: {
-      full_name: 'Ashish Gupta',
-      preferred_archetype: 'archetype-ashish',
-      onboarding_completed: true,
-    },
-  };
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(ashishUser));
-  localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
-  localStorage.removeItem('habuilt_guest_mode');
-  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: ashishUser }));
-  emit('login-success', ashishUser);
-};
-
-const handleQuickLaunchJyoti = () => {
-  const jyotiUser = {
-    id: 'jyoti',
-    email: 'goyaljyoti007@gmail.com',
-    user_metadata: {
-      full_name: 'Jyoti Goyal',
-      preferred_archetype: 'archetype-jyoti',
-      onboarding_completed: true,
-    },
-  };
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(jyotiUser));
-  localStorage.setItem('habuilt_active_protocol_id_jyoti', 'archetype-jyoti');
-  localStorage.removeItem('habuilt_guest_mode');
-  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: jyotiUser }));
-  emit('login-success', jyotiUser);
-};
-
 const handleGuest = (preferredArchetype = 'archetype-founder') => {
   const user = {
     id: 'guest',
@@ -712,8 +670,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
       <div class="fitflow-hero-container">
         <!-- Floating Trust Badge -->
         <div class="fitflow-trust-pill">
-          <span class="fitflow-star">★</span>
-          <span>Excellent <strong>4.9 out of 5</strong> • Trusted by 1,400+ High Performers</span>
+          <span>Web and Android habit tracker</span>
         </div>
 
         <!-- Hero Main Split: Left Monumental Title, Right Body & CTAs -->
@@ -752,26 +709,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
               </a>
             </div>
 
-            <!-- Social Proof Avatar Stack & Stars -->
-            <div class="fitflow-hero-social">
-              <div class="lp__avatar-stack">
-                <div
-                  v-for="(user, idx) in socialUsers"
-                  :key="idx"
-                  class="lp__avatar"
-                  :style="{ background: user.bg, zIndex: 5 - idx }"
-                >
-                  <span>{{ user.initial }}</span>
-                </div>
-              </div>
-              <div class="fitflow-hero-social-info">
-                <div class="fitflow-hero-stars">
-                  <Star v-for="s in 5" :key="s" class="fitflow-star-icon" />
-                  <span class="fitflow-rating-val">4.9/5</span>
-                </div>
-                <span class="fitflow-social-caption">Consistency rating across iOS, Android &amp; Web</span>
-              </div>
-            </div>
+            <p class="fitflow-social-caption">Guest check-ins stay on this device. Points are not cash.</p>
           </div>
         </div>
       </div>
@@ -800,18 +738,18 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
         <!-- 3 Monumental Metric Cards -->
         <div class="fitflow-monumental-metrics">
           <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--pink">1,400+</span>
-            <span class="fitflow-metric-label">ACTIVE BUILDERS</span>
+            <span class="fitflow-metric-number fitflow-metric-number--pink">Guest</span>
+            <span class="fitflow-metric-label">STAYS ON THIS DEVICE</span>
           </div>
           <div style="width: 1px; height: 50px; background: rgba(15, 23, 42, 0.08);"></div>
           <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--purple">98.4%</span>
-            <span class="fitflow-metric-label">CONSISTENCY RATE</span>
+            <span class="fitflow-metric-number fitflow-metric-number--purple">Sync</span>
+            <span class="fitflow-metric-label">WHEN YOU SIGN IN</span>
           </div>
           <div style="width: 1px; height: 50px; background: rgba(15, 23, 42, 0.08);"></div>
           <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--cyan">120K+</span>
-            <span class="fitflow-metric-label">HABITS LOGGED</span>
+            <span class="fitflow-metric-number fitflow-metric-number--cyan">Points</span>
+            <span class="fitflow-metric-label">ARE NOT CASH</span>
           </div>
         </div>
       </div>
@@ -1114,29 +1052,40 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
               </a>
             </div>
 
-            <!-- Ashish Blueprint -->
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleQuickLaunchAshish" style="padding: 22px 24px;">
+            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-longevity')" style="padding: 22px 24px;">
               <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(212, 160, 62, 0.18); color: #b45309; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Crown class="icon-sm" />
+                <div class="lp__guest-bolt-wrap" style="background: rgba(16, 185, 129, 0.18); color: #047857; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                  <Activity class="icon-sm" />
                 </div>
                 <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #92400e; font-weight: 800; font-size: 15px;">👑 Ashish Track &amp; Blueprint</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Dual-Track Blueprint, ZoetiCoach &amp; Digital Builders</span>
+                  <span class="lp__guest-head" style="color: #065f46; font-weight: 800; font-size: 15px;">Longevity Protocol</span>
+                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Circadian health, mobility, and clean daily fuel</span>
                 </div>
               </div>
               <ChevronRight class="lp__guest-arrow" />
             </button>
 
-            <!-- Jyoti Blueprint -->
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleQuickLaunchJyoti" style="padding: 22px 24px;">
+            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-postpartum')" style="padding: 22px 24px;">
               <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(236, 72, 153, 0.18); color: #db2777; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Sparkles class="icon-sm" />
+                <div class="lp__guest-bolt-wrap" style="background: rgba(244, 114, 182, 0.18); color: #be185d; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                  <Heart class="icon-sm" />
                 </div>
                 <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #9d174d; font-weight: 800; font-size: 15px;">🌸 Jyoti Track &amp; Blueprint</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Mind-Body Longevity &amp; Precision Habit Routine</span>
+                  <span class="lp__guest-head" style="color: #9d174d; font-weight: 800; font-size: 15px;">Postpartum Protocol</span>
+                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Protected recovery, family rhythm, and personal focus</span>
+                </div>
+              </div>
+              <ChevronRight class="lp__guest-arrow" />
+            </button>
+
+            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-athlete')" style="padding: 22px 24px;">
+              <div class="lp__guest-main">
+                <div class="lp__guest-bolt-wrap" style="background: rgba(249, 115, 22, 0.18); color: #c2410c; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                  <Flame class="icon-sm" />
+                </div>
+                <div class="lp__guest-text">
+                  <span class="lp__guest-head" style="color: #9a3412; font-weight: 800; font-size: 15px;">Athlete Protocol</span>
+                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Training blocks, recovery, and high-output discipline</span>
                 </div>
               </div>
               <ChevronRight class="lp__guest-arrow" />
@@ -1412,18 +1361,27 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
             <button
               type="button"
               class="fitflow-menu-link"
-              @click="handleQuickLaunchAshish(); isNavMenuOpen = false;"
+              @click="handleGuest('archetype-longevity'); isNavMenuOpen = false;"
             >
-              <span>👑 Ashish Master Blueprint</span>
+              <span>Longevity Protocol</span>
               <span>→</span>
             </button>
 
             <button
               type="button"
               class="fitflow-menu-link"
-              @click="handleQuickLaunchJyoti(); isNavMenuOpen = false;"
+              @click="handleGuest('archetype-postpartum'); isNavMenuOpen = false;"
             >
-              <span>🌸 Jyoti Blueprint</span>
+              <span>Postpartum Protocol</span>
+              <span>→</span>
+            </button>
+
+            <button
+              type="button"
+              class="fitflow-menu-link"
+              @click="handleGuest('archetype-athlete'); isNavMenuOpen = false;"
+            >
+              <span>Athlete Protocol</span>
               <span>→</span>
             </button>
 

@@ -62,17 +62,21 @@ final class VerifyApiAuthorization
             ], 401);
         }
 
-        // 4. Cryptographic signature check (when secret configured)
-        $jwtSecret = (string) (config('services.supabase.jwt_secret') ?: env('SUPABASE_JWT_SECRET', ''));
-        if ($jwtSecret !== '') {
-            $expectedSignature = hash_hmac('sha256', "{$headerB64}.{$payloadB64}", $jwtSecret, true);
-            $actualSignature = $this->base64UrlDecode($sigB64);
+        // 4. Cryptographic signature check. Fail closed when the project secret is missing.
+        $jwtSecret = (string) config('services.supabase.jwt_secret', '');
+        if ($jwtSecret === '') {
+            return new JsonResponse([
+                'error' => 'Unauthenticated: JWT verification is not configured',
+            ], 401);
+        }
 
-            if (!hash_equals($expectedSignature, $actualSignature)) {
-                return new JsonResponse([
-                    'error' => 'Unauthenticated: Invalid cryptographic signature',
-                ], 401);
-            }
+        $expectedSignature = hash_hmac('sha256', "{$headerB64}.{$payloadB64}", $jwtSecret, true);
+        $actualSignature = $this->base64UrlDecode($sigB64);
+
+        if (!hash_equals($expectedSignature, $actualSignature)) {
+            return new JsonResponse([
+                'error' => 'Unauthenticated: Invalid cryptographic signature',
+            ], 401);
         }
 
         $authenticatedUserId = (string) $payload['sub'];

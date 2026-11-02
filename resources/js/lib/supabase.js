@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
 import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from './syncEngine.js';
+import { isRetryableAccountId } from './syncQueuePolicy.js';
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -11,13 +12,33 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || PROD_SUPABASE_
 // ── Native Hostinger KVM 2 Local API Transport (Default & Primary) ──
 const USE_LOCAL_API = true;
 
-export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
-  if (typeof window === 'undefined') return null;
+const collectAccountIds = (endpoint, body) => {
+  const ids = [];
+  if (body && typeof body === 'object') {
+    for (const key of ['user_id', 'userId', 'partner_user_id']) {
+      if (body[key] !== undefined && body[key] !== null && String(body[key]) !== '') {
+        ids.push(String(body[key]));
+      }
+    }
+  }
+  if (typeof endpoint === 'string') {
+    try {
+      const url = new URL(endpoint, 'http://habuilt.local');
+      for (const key of ['user_id', 'partner_user_id']) {
+        const value = url.searchParams.get(key);
+        if (value) ids.push(value);
+      }
+    } catch {}
+  }
+  return ids;
+};
 
-  // Guest users store data locally in the browser; do not pollute multi-tenant PostgreSQL
-  const isGuestQuery = typeof endpoint === 'string' && endpoint.includes('user_id=guest');
-  const isGuestBody = body && (body.user_id === 'guest' || String(body.user_id || '').startsWith('guest'));
-  if (isGuestQuery || isGuestBody) {
+export const callLocalApi = async (endpoint, method = 'GET', body = null, options = null) => {
+  if (typeof window === 'undefined') return null;
+  const returnError = Boolean(options && options.returnError);
+
+  // Guest and other non-account ids stay on this device.
+  if (collectAccountIds(endpoint, body).some((id) => !isRetryableAccountId(id))) {
     return { success: true, guest: true };
   }
 
@@ -53,7 +74,16 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
       opts.body = JSON.stringify(body);
     }
     const res = await fetch(endpoint, opts);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      if (returnError) {
+        try {
+          return await res.json();
+        } catch {
+          return { success: false, error: `HTTP ${res.status}` };
+        }
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.warn(`[Local KVM API] ${method} ${endpoint} note:`, err.message);
@@ -66,22 +96,101 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null) => {
  * Complies with Apple App Store Guideline 5.1.1(v) & GDPR Right to Erasure.
  */
 export const purgeUserAccount = async (userId) => {
-  if (!userId || userId === 'guest') return true;
+  if (!isRetryableAccountId(typeof userId === 'string' ? userId : '')) {
+    return { success: false, guest: true };
+  }
   try {
-    const res = await callLocalApi('/api/user-account', 'DELETE', { user_id: userId });
-    return res?.success ?? false;
+    const res = await callLocalApi('/api/user-account', 'DELETE', { user_id: userId }, { returnError: true });
+    if (!res || res.success !== true) {
+      return { success: false, error: res?.error || 'Account data was not deleted.' };
+    }
+    return res;
   } catch (e) {
     console.error('[PurgeAccount] Error:', e);
-    return false;
+    return { success: false, error: 'Account data was not deleted.' };
   }
 };
 
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
+const readStoredAccessToken = () => {
+  try {
+    if (typeof localStorage === 'undefined') return '';
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      const token = parsed?.access_token || parsed?.currentSession?.access_token;
+      if (typeof token === 'string' && token.trim() !== '' && token.trim() !== supabaseAnonKey) {
+        return token.trim();
+      }
+    }
+    const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+    if (typeof cached?.access_token === 'string' && cached.access_token.trim() !== '' && cached.access_token.trim() !== supabaseAnonKey) {
+      return cached.access_token.trim();
+    }
+  } catch {
+    return '';
+  }
+  return '';
+};
+
+let readingSession = false;
+let clientReady = false;
+
+const sessionAccessToken = async () => {
+  const stored = readStoredAccessToken();
+  if (stored) return stored;
+  if (!clientReady || readingSession || !supabase?.auth) return '';
+  readingSession = true;
+  try {
+    const sessionRes = await supabase.auth.getSession();
+    const token = sessionRes?.data?.session?.access_token;
+    if (typeof token === 'string' && token.trim() !== '' && token.trim() !== supabaseAnonKey) {
+      return token.trim();
+    }
+  } catch {
+    return '';
+  } finally {
+    readingSession = false;
+  }
+  return '';
+};
+
+const requestUrl = (input) => {
+  if (typeof input === 'string') return input;
+  if (typeof URL !== 'undefined' && input instanceof URL) return input.toString();
+  if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
+  return '';
+};
+
+const guardedSupabaseFetch = async (input, init = {}) => {
+  const url = requestUrl(input);
+  if (!url.includes('/rest/v1/')) {
+    return fetch(input, init);
+  }
+
+  const token = await sessionAccessToken();
+  if (!token) {
+    return new Response(JSON.stringify({ message: 'Signed-in session required', code: '401' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const headers = new Headers(init?.headers || (typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined));
+  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('apikey', supabaseAnonKey);
+  return fetch(input, { ...init, headers });
+};
+
 export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
   {
+    global: {
+      fetch: guardedSupabaseFetch,
+    },
     realtime: {
       params: {
         eventsPerSecond: 10,
@@ -89,6 +198,7 @@ export const supabase = createClient(
     },
   }
 );
+clientReady = true;
 
 // Cross-tab broadcast channel for instant zero-latency UI synchronization
 const tabSyncChannel = typeof window !== 'undefined' && window.BroadcastChannel
@@ -131,6 +241,10 @@ export const recordHabitCheckIn = async ({
       source: source,
     });
 
+    if (localRes?.guest) {
+      return true;
+    }
+
     if (localRes && localRes.success) {
       // Notify other open tabs immediately
       if (tabSyncChannel) {
@@ -159,8 +273,9 @@ export const recordHabitCheckIn = async ({
     }
   }
 
-  // Fallback: Supabase or offline queue if local API was unreachable
-  if (isSupabaseConfigured()) {
+  // Fallback only when this browser already has a signed-in session.
+  const insertToken = await sessionAccessToken();
+  if (insertToken && isSupabaseConfigured()) {
     try {
       const { error } = await supabase
         .from('habit_check_ins')
@@ -225,6 +340,10 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, ski
       day: Number(day),
     });
 
+    if (localRes?.guest) {
+      return true;
+    }
+
     if (localRes && localRes.success) {
       if (tabSyncChannel) {
         tabSyncChannel.postMessage({
@@ -251,8 +370,8 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, ski
     }
   }
 
-  // Fallback: Supabase
-  if (isSupabaseConfigured()) {
+  const deleteToken = await sessionAccessToken();
+  if (deleteToken && isSupabaseConfigured()) {
     try {
       const { error } = await supabase
         .from('habit_check_ins')

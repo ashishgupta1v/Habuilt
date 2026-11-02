@@ -10,7 +10,7 @@ Artisan::command('warrior:ping', function (): void {
 })->purpose('Sanity check command for bootstrap readiness.');
 
 Artisan::command('sentry:test {dsn?}', function (?string $dsn = null): void {
-    $dsnToTest = $dsn ?: (string) (config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN', ''));
+    $dsnToTest = $dsn ?: (string) config('services.sentry.dsn', '');
     if ($dsnToTest === '') {
         $this->error('No Sentry DSN provided or configured in .env (SENTRY_LARAVEL_DSN).');
         return;
@@ -53,12 +53,37 @@ Artisan::command('sentry:configure {dsn}', function (string $dsn): void {
     }
 
     if (str_contains($content, 'VITE_SENTRY_DSN=')) {
-        $content = preg_replace('/^VITE_SENTRY_DSN=.*$/m', "VITE_SENTRY_DSN={$dsn}", $content);
-    } else {
-        $content .= "VITE_SENTRY_DSN={$dsn}\n";
+        $content = preg_replace('/^VITE_SENTRY_DSN=.*$/m', 'VITE_SENTRY_DSN=', $content);
     }
 
     file_put_contents($envFile, $content);
-    $this->info(" Successfully updated SENTRY_LARAVEL_DSN and VITE_SENTRY_DSN in .env.");
+    $this->info(' Successfully updated SENTRY_LARAVEL_DSN in .env. The browser bundle is not given the DSN.');
     $this->call('config:clear');
 })->purpose('Configure SENTRY_LARAVEL_DSN in .env and refresh config cache.');
+
+Artisan::command('habuilt:secure-ledger', function (): int {
+    try {
+        $result = (new \App\Services\Ledger\SpaLedgerGuard())->ensure();
+    } catch (\App\Services\Ledger\CheckInConstraintConflict $exception) {
+        $this->error($exception->getMessage());
+        $this->error('conflicting_groups='.$exception->conflictingGroups);
+        $this->error('unique_index=not_created');
+        $this->error('rls=not_applied');
+
+        return 1;
+    }
+
+    $collapse = $result['collapse'];
+    $this->info('collapsed_groups='.$collapse['collapsed_groups']);
+    $this->info('conflicting_groups='.$collapse['conflicting_groups']);
+    $this->info('unique_index='.$result['unique_index']);
+    $this->info('rls='.$result['rls']);
+
+    if ($collapse['aborted'] || $result['unique_index'] === 'not_created') {
+        $this->error('Unique check-in constraint was not created.');
+
+        return 1;
+    }
+
+    return 0;
+})->purpose('Collapse safe duplicate check-ins, add the unique key, and apply Supabase row-level security.');

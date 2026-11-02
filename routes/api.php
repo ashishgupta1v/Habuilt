@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\HabitLedgerApiController;
 use App\Http\Controllers\Api\TelemetryApiController;
+use App\Http\Controllers\Api\ZoetiCoachProxyController;
 use App\Http\Middleware\VerifyApiAuthorization;
 use Illuminate\Support\Facades\Route;
 
-// Healthcheck & Telemetry (Public)
+// Healthcheck & Telemetry (Public). The tunnel only relays the configured DSN.
 Route::get('/health', fn () => response()->json(['status' => 'healthy', 'server' => 'Hostinger KVM 2', 'db' => 'pgsql', 'time' => now()]));
 Route::get('/telemetry/health', [TelemetryApiController::class, 'health']);
 Route::post('/telemetry/tunnel', [TelemetryApiController::class, 'tunnel']);
-Route::post('/telemetry/test-event', [TelemetryApiController::class, 'recordTestEvent']);
 
 // Multi-tenant Protected API Endpoints (Requires Bearer Token & User Ownership)
 Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
@@ -36,7 +36,14 @@ Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
     // Universal Partner Pairing
     Route::get('/partner-connections', [HabitLedgerApiController::class, 'getPartnerConnections']);
     Route::post('/partner-connections', [HabitLedgerApiController::class, 'savePartnerConnection']);
+    Route::post('/partner-connections/accept', [HabitLedgerApiController::class, 'acceptPartnerInvite']);
+    Route::post('/partner-connections/revoke', [HabitLedgerApiController::class, 'revokePartnerConnections']);
+    Route::get('/partner-metrics', [HabitLedgerApiController::class, 'getPartnerMetrics']);
 
     // Account & Data Management (Apple Guideline 5.1.1(v) & GDPR Right to Erasure)
     Route::delete('/user-account', [HabitLedgerApiController::class, 'deleteUserAccount']);
+
+    // ZoetiCoach. The server attaches its own credential. Clients never send that bearer token.
+    Route::post('/zoeticoach/events', [ZoetiCoachProxyController::class, 'storeEvent']);
+    Route::get('/zoeticoach/adherence', [ZoetiCoachProxyController::class, 'adherence']);
 });

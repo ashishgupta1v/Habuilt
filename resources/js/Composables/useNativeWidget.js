@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { getZoetiCoachConfig, enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
+import { enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
 
 export function useNativeWidget() {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
@@ -16,14 +16,30 @@ export function useNativeWidget() {
   }) => {
     if (!isNative) return;
 
+    let accessToken = '';
+    if (userId && userId !== 'guest') {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const sessionRes = await supabase.auth.getSession();
+        const token = sessionRes?.data?.session?.access_token;
+        if (typeof token === 'string' && token.trim() !== '') accessToken = token.trim();
+      } catch {}
+      if (!accessToken) {
+        try {
+          const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+          if (typeof cached?.access_token === 'string') accessToken = cached.access_token.trim();
+        } catch {}
+      }
+    }
+
     try {
       const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);
       const HabuiltWidget = plugins?.HabuiltWidget;
-      const { url: zoetiUrl, token: zoetiToken } = getZoetiCoachConfig();
 
       if (HabuiltWidget && typeof HabuiltWidget.syncWidgetData === 'function') {
         await HabuiltWidget.syncWidgetData({
           userId: userId || 'guest',
+          accessToken,
           habitsJson: JSON.stringify(habits || []),
           scheduleJson: JSON.stringify(schedule || {}),
           streak: Number.isFinite(Number(streak)) ? Number(streak) : 0,
@@ -31,8 +47,6 @@ export function useNativeWidget() {
           adherenceRate: Number.isFinite(Number(adherenceRate)) ? Number(adherenceRate) : 0,
           complianceStatus: String(complianceStatus || 'Active Protocol'),
           clinicalDirective: String(clinicalDirective || ''),
-          zoeticoachUrl: zoetiUrl,
-          zoeticoachToken: zoetiToken,
         });
       }
     } catch (err) {

@@ -1,39 +1,73 @@
 /**
- * ZoetiCoach Habit Cloud Integration Bridge
- * Connects Habuilt / ZoetiHabit client events directly to ZoetiCoach WS18 Habit Cloud API.
- * Endpoints:
- *  - POST /api/v3/habit-cloud/events
- *  - GET  /api/v3/habit-cloud/adherence/{participantId}
+ * ZoetiCoach habit events go through the same-origin Laravel proxy.
+ * The ZoetiCoach bearer token stays on the server. This module never reads
+ * or sends that credential.
  */
 
-const DEFAULT_ZOETICOACH_API_URL = 'https://zoeticoach.com';
-const DEFAULT_ZOETICOACH_API_KEY = '1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe';
 const OFFLINE_QUEUE_KEY = 'habuilt_zoeticoach_offline_queue';
 const MAX_QUEUE_SIZE = 250;
+const EVENTS_PATH = '/api/zoeticoach/events';
+const ADHERENCE_PATH = '/api/zoeticoach/adherence';
 let isFlushingQueue = false;
 
 export const getZoetiCoachConfig = () => {
-  const url =
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ZOETICOACH_API_URL) ||
-    (typeof window !== 'undefined' && window.ZOETICOACH_API_URL) ||
-    DEFAULT_ZOETICOACH_API_URL;
-
-  const token =
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ZOETICOACH_API_KEY) ||
-    (typeof window !== 'undefined' && window.ZOETICOACH_API_KEY) ||
-    DEFAULT_ZOETICOACH_API_KEY;
-
-  return { url: url.replace(/\/+$/, ''), token };
+  return { url: '', token: '' };
 };
 
 export const isZoetiCoachConnected = () => {
-  const { url, token } = getZoetiCoachConfig();
-  return Boolean(url && token);
+  return typeof window !== 'undefined';
 };
 
-/**
- * ── Offline Queue Infrastructure ──
- */
+const sessionAuthorization = async () => {
+  try {
+    const { supabase } = await import('./supabase.js');
+    const sessionRes = await supabase.auth.getSession();
+    const token = sessionRes?.data?.session?.access_token;
+    if (typeof token === 'string' && token.trim() !== '') {
+      return `Bearer ${token.trim()}`;
+    }
+  } catch {
+    // Session lookup is best-effort. Guest mode has no server session.
+  }
+
+  try {
+    const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
+    if (cached?.access_token && cached.id && cached.id !== 'guest') {
+      return `Bearer ${cached.access_token}`;
+    }
+  } catch {
+    // Ignore unreadable cache.
+  }
+
+  return '';
+};
+
+const postProxy = async (path, method, body) => {
+  const authorization = await sessionAuthorization();
+  if (!authorization) {
+    return { ok: false, status: 401, skipped: false, unauthenticated: true, data: null };
+  }
+
+  const response = await fetch(path, {
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: authorization,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  return {
+    ok: response.ok,
+    status: response.status,
+    skipped: Boolean(data?.skipped || data?.disabled),
+    unauthenticated: response.status === 401,
+    data,
+  };
+};
+
 export const getZoetiCoachQueue = () => {
   if (typeof localStorage === 'undefined') return [];
   try {
@@ -90,8 +124,8 @@ export const enqueueZoetiCoachEvent = (payload) => {
 };
 
 /**
- * Flushes all pending queued events to ZoetiCoach Habit Cloud API.
- * Tolerant of transient network glitches with FIFO ordering.
+ * Flushes queued habit events through the same-origin proxy.
+ * The proxy attaches the server credential, or reports that ZoetiCoach is disabled.
  */
 export const flushZoetiCoachQueue = async () => {
   if (isFlushingQueue) return { flushed: 0, pending: getZoetiCoachQueueCount() };
@@ -99,15 +133,11 @@ export const flushZoetiCoachQueue = async () => {
     return { flushed: 0, pending: getZoetiCoachQueueCount() };
   }
 
-  const { url, token } = getZoetiCoachConfig();
-  if (!url || !token) return { flushed: 0, pending: 0 };
-
   const queue = getZoetiCoachQueue();
   if (queue.length === 0) return { flushed: 0, pending: 0 };
 
   isFlushingQueue = true;
   let flushedCount = 0;
-  const endpoint = `${url}/api/v3/habit-cloud/events`;
 
   try {
     const remainingQueue = [...queue];
@@ -116,38 +146,33 @@ export const flushZoetiCoachQueue = async () => {
       const item = remainingQueue[i];
 
       try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(item.payload),
-        });
+        const response = await postProxy(EVENTS_PATH, 'POST', item.payload);
+
+        if (response.unauthenticated) {
+          break;
+        }
+
+        if (response.ok && response.skipped) {
+          break;
+        }
 
         if (response.ok) {
           flushedCount++;
           remainingQueue.splice(i, 1);
           i--;
           saveZoetiCoachQueue(remainingQueue);
+        } else if (response.status >= 400 && response.status < 500) {
+          console.debug('[ZoetiCoach Bridge] Discarding invalid queued event:', response.status, item.id);
+          remainingQueue.splice(i, 1);
+          i--;
+          saveZoetiCoachQueue(remainingQueue);
         } else {
-          // If 4xx client validation error (bad habit payload), discard to avoid poison-pill loops
-          if (response.status >= 400 && response.status < 500) {
-            console.debug('[ZoetiCoach Bridge] Discarding invalid queued event:', response.status, item.id);
-            remainingQueue.splice(i, 1);
-            i--;
-            saveZoetiCoachQueue(remainingQueue);
-          } else {
-            // 5xx or rate limit: increment attempts and retry on next sweep
-            item.attempts = (item.attempts || 0) + 1;
-            item.lastAttempt = Date.now();
-            saveZoetiCoachQueue(remainingQueue);
-            break;
-          }
+          item.attempts = (item.attempts || 0) + 1;
+          item.lastAttempt = Date.now();
+          saveZoetiCoachQueue(remainingQueue);
+          break;
         }
       } catch (networkErr) {
-        // Network dropped mid-drain: stop and wait for reconnection
         item.attempts = (item.attempts || 0) + 1;
         item.lastAttempt = Date.now();
         item.error = networkErr?.message || 'Network error';
@@ -175,14 +200,12 @@ export const flushZoetiCoachQueue = async () => {
   }
 };
 
-// Auto-register browser online recovery and periodic sweep
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     console.debug('[ZoetiCoach Bridge] Network online: triggering auto-flush');
     flushZoetiCoachQueue().catch(() => {});
   });
 
-  // Background drain check every 60s
   setInterval(() => {
     if (typeof navigator !== 'undefined' && navigator.onLine && getZoetiCoachQueueCount() > 0) {
       flushZoetiCoachQueue().catch(() => {});
@@ -190,9 +213,29 @@ if (typeof window !== 'undefined') {
   }, 60000);
 }
 
+const buildPayload = ({
+  eventType = 'habit_completed',
+  eventValue = '',
+  habitId = '',
+  points = 1,
+  unit = 'session',
+  occurredAt = null,
+  source = 'web',
+  metadata = {},
+}) => ({
+  event_type: eventType,
+  event_value: eventValue || habitId || 'Habit Completed',
+  habit_id: String(habitId),
+  unit,
+  occurred_at: occurredAt || new Date().toISOString(),
+  points: Number(points) || 0,
+  source,
+  metadata,
+});
+
 /**
- * Dispatches a habit completion event to ZoetiCoach Habit Cloud.
- * Non-blocking, failsafe, and offline-tolerant with persistent queueing.
+ * Dispatches a habit event through the authenticated same-origin proxy.
+ * The participant id is taken from the JWT on the server.
  */
 export const dispatchZoetiCoachEvent = async ({
   externalParticipantId,
@@ -205,38 +248,22 @@ export const dispatchZoetiCoachEvent = async ({
   source = 'web',
   metadata = {},
 }) => {
-  const { url, token } = getZoetiCoachConfig();
-
-  // If ZoetiCoach integration credentials are not configured yet, silently pass
-  if (!url || !token || !externalParticipantId) {
+  const participantId = String(externalParticipantId || '');
+  if (!participantId || participantId === 'guest' || participantId.startsWith('guest')) {
     return false;
   }
 
-  // Map legacy client IDs to onboarded ZoetiCoach participant IDs
-  const participantId = String(externalParticipantId).toLowerCase() === 'ashish'
-    ? 'ashish'
-    : String(externalParticipantId).toLowerCase() === 'jyoti'
-      ? 'jyoti'
-      : String(externalParticipantId);
+  const payload = buildPayload({
+    eventType,
+    eventValue,
+    habitId,
+    points,
+    unit,
+    occurredAt,
+    source,
+    metadata,
+  });
 
-  const endpoint = `${url}/api/v3/habit-cloud/events`;
-
-  const payload = {
-    external_participant_id: participantId,
-    event_type: eventType,
-    event_value: eventValue || habitId || 'Habit Completed',
-    unit: unit,
-    occurred_at: occurredAt || new Date().toISOString(),
-    payload: {
-      habit_id: String(habitId),
-      points: Number(points) || 1,
-      source: source,
-      app: 'habuilt',
-      ...metadata,
-    },
-  };
-
-  // If browser reports offline, enqueue immediately without failing
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     enqueueZoetiCoachEvent(payload);
     console.debug('[ZoetiCoach Bridge] Offline: enqueued habit event for auto-flush:', payload.event_value);
@@ -244,21 +271,14 @@ export const dispatchZoetiCoachEvent = async ({
   }
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const response = await postProxy(EVENTS_PATH, 'POST', payload);
+
+    if (response.unauthenticated) {
+      enqueueZoetiCoachEvent(payload);
+      return { queued: true };
+    }
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      console.debug('[ZoetiCoach Bridge] Dispatch note:', response.status, errData);
-
-      // If server returned 5xx or 429, enqueue for retry
       if (response.status >= 500 || response.status === 429) {
         enqueueZoetiCoachEvent(payload);
         return { queued: true };
@@ -266,25 +286,24 @@ export const dispatchZoetiCoachEvent = async ({
       return false;
     }
 
-    const data = await response.json().catch(() => ({}));
-    console.debug('[ZoetiCoach Bridge] Event synced successfully:', data?.data?.event_id || 'OK');
+    if (response.skipped) {
+      return false;
+    }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('zoeticoach:event-synced', {
-          detail: { payload, data, success: true, timestamp: Date.now() },
+          detail: { payload, success: true, timestamp: Date.now() },
         })
       );
     }
 
-    // Opportunistically flush any backlog
     if (getZoetiCoachQueueCount() > 0) {
       flushZoetiCoachQueue().catch(() => {});
     }
 
     return true;
   } catch (err) {
-    // Network failure / unreachable: enqueue into persistent queue
     console.debug('[ZoetiCoach Bridge] Network error during event dispatch, enqueuing:', err?.message || err);
     enqueueZoetiCoachEvent(payload);
     return { queued: true };
@@ -292,32 +311,15 @@ export const dispatchZoetiCoachEvent = async ({
 };
 
 /**
- * Fetches 30-day compliance scorecard, streak velocity, and milestones from ZoetiCoach.
+ * Fetches adherence for the signed-in user. The server ignores any other participant id.
  */
-export const fetchZoetiCoachAdherence = async (externalParticipantId = 'ashish', days = 30) => {
-  const { url, token } = getZoetiCoachConfig();
-  if (!url || !token || !externalParticipantId) return null;
-
-  const participantId = String(externalParticipantId).toLowerCase() === 'ashish'
-    ? 'ashish'
-    : String(externalParticipantId).toLowerCase() === 'jyoti'
-      ? 'jyoti'
-      : String(externalParticipantId);
-
-  const endpoint = `${url}/api/v3/habit-cloud/adherence/${encodeURIComponent(participantId)}?days=${Math.max(1, Math.min(365, days))}`;
+export const fetchZoetiCoachAdherence = async (_externalParticipantId = '', days = 30) => {
+  const boundedDays = Math.max(1, Math.min(365, Number(days) || 30));
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) return null;
-    const json = await response.json().catch(() => null);
-    return json?.data || null;
+    const response = await postProxy(`${ADHERENCE_PATH}?days=${boundedDays}`, 'GET');
+    if (!response.ok || response.skipped) return null;
+    return response.data?.data || null;
   } catch (err) {
     console.debug('[ZoetiCoach Bridge] Adherence fetch note:', err?.message || err);
     return null;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Services\Telemetry\SentryRelayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -14,12 +13,9 @@ use Illuminate\Support\Str;
 final class TelemetryApiController
 {
     /**
-     * Sentry Tunnel Endpoint.
-     * Prevents browser ad-blockers from blocking client telemetry by proxying
-     * through the first-party domain to Sentry ingest.
-     * 
-     * Conforms to Sentry Tunneling Specification:
-     * https://docs.sentry.io/platforms/javascript/troubleshooting/#dealing-with-ad-blockers
+     * Same-origin Sentry tunnel.
+     * Relays only to the DSN in server config. Envelope host and project must match.
+     * The DSN secret is not logged and is not required from the browser.
      */
     public function tunnel(Request $request): JsonResponse
     {
@@ -29,65 +25,57 @@ final class TelemetryApiController
             return response()->json(['error' => 'Empty envelope payload'], 400);
         }
 
-        $serverDsn = (string) (config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN', ''));
-        $eventId = (string) Str::uuid();
+        $configured = $this->configuredDsn();
+        if ($configured === null) {
+            return response()->json(['error' => 'Telemetry relay is not configured'], 503);
+        }
+
+        $lines = explode("\n", trim($rawContent));
+        $header = json_decode($lines[0] ?? '{}', true);
+        if (!is_array($header)) {
+            $header = [];
+        }
+
+        $eventId = (isset($header['event_id']) && is_string($header['event_id']) && $header['event_id'] !== '')
+            ? $header['event_id']
+            : (string) Str::uuid();
+
+        if (isset($header['dsn']) && is_string($header['dsn']) && trim($header['dsn']) !== '') {
+            $envelope = $this->parseDsn($header['dsn']);
+            if ($envelope === null
+                || $envelope['host'] !== $configured['host']
+                || $envelope['project'] !== $configured['project']) {
+                return response()->json([
+                    'error' => 'Envelope target does not match the configured Sentry project',
+                ], 403);
+            }
+        }
+
         $relayed = false;
-        $targetHost = null;
-        $targetProjectId = null;
-        $sentryKey = null;
         $upstreamStatus = null;
 
-        // Parse either Sentry Envelope v7 format or standard JSON telemetry
-        $lines = explode("\n", trim($rawContent));
-        $header = json_decode($lines[0] ?? '{}', true) ?: [];
+        try {
+            $queryParams = [
+                'sentry_version' => '7',
+                'sentry_key' => $configured['key'],
+            ];
+            $upstreamUrl = "https://{$configured['host']}/api/{$configured['project']}/envelope/?".http_build_query($queryParams);
 
-        $dsnToUse = (isset($header['dsn']) && is_string($header['dsn']) && trim($header['dsn']) !== '')
-            ? $header['dsn']
-            : $serverDsn;
-
-        if ($dsnToUse !== '') {
-            $parsedDsn = parse_url($dsnToUse);
-            if ($parsedDsn && isset($parsedDsn['host'], $parsedDsn['path'])) {
-                $targetHost = $parsedDsn['host'];
-                $targetProjectId = trim($parsedDsn['path'], '/');
-                $sentryKey = $parsedDsn['user'] ?? null;
-            }
-        }
-
-        if (isset($header['event_id']) && is_string($header['event_id'])) {
-            $eventId = $header['event_id'];
-        }
-
-        // If target host is a valid Sentry ingest host, relay upstream
-        if ($targetHost !== null && str_ends_with($targetHost, '.sentry.io') && $targetProjectId !== null) {
-            try {
-                $queryParams = ['sentry_version' => '7'];
-                if ($sentryKey) {
-                    $queryParams['sentry_key'] = $sentryKey;
-                }
-                $upstreamUrl = "https://{$targetHost}/api/{$targetProjectId}/envelope/?" . http_build_query($queryParams);
-
-                $headers = [
+            $upstreamRes = Http::timeout(4)
+                ->withHeaders([
                     'Content-Type' => 'application/x-sentry-envelope',
-                ];
-                if ($sentryKey) {
-                    $headers['X-Sentry-Auth'] = "Sentry sentry_version=7, sentry_key={$sentryKey}, sentry_client=habuilt-tunnel/2.1";
-                }
+                    'X-Sentry-Auth' => 'Sentry sentry_version=7, sentry_key='.$configured['key'].', sentry_client=habuilt-tunnel/2.1',
+                ])
+                ->withBody($rawContent, 'application/x-sentry-envelope')
+                ->post($upstreamUrl);
 
-                $upstreamRes = Http::timeout(4)
-                    ->withHeaders($headers)
-                    ->withBody($rawContent, 'application/x-sentry-envelope')
-                    ->post($upstreamUrl);
-
-                $upstreamStatus = $upstreamRes->status();
-                $relayed = $upstreamRes->successful();
-            } catch (\Throwable $e) {
-                Log::channel('single')->warning('[SentryTunnel] Upstream relay note: ' . $e->getMessage());
-                $relayed = false;
-            }
+            $upstreamStatus = $upstreamRes->status();
+            $relayed = $upstreamRes->successful();
+        } catch (\Throwable) {
+            Log::channel('single')->warning('[SentryTunnel] Upstream relay failed');
+            $relayed = false;
         }
 
-        // Local sovereign logging fallback: always record in local log
         try {
             Log::build([
                 'driver' => 'single',
@@ -95,12 +83,8 @@ final class TelemetryApiController
             ])->info('[ClientTelemetry]', [
                 'event_id' => $eventId,
                 'relayed' => $relayed,
-                'upstream_host' => $targetHost,
                 'upstream_status' => $upstreamStatus,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
                 'timestamp' => now()->toIso8601String(),
-                'payload_sample' => substr($rawContent, 0, 500),
             ]);
         } catch (\Throwable) {
             // Failsafe
@@ -110,37 +94,27 @@ final class TelemetryApiController
             'success' => true,
             'relayed' => $relayed,
             'event_id' => $eventId,
-            'upstream_host' => $targetHost,
+            'upstream_host' => $configured['host'],
             'upstream_status' => $upstreamStatus,
             'timestamp' => now()->toIso8601String(),
         ]);
     }
 
     /**
-     * Telemetry and Error Monitoring Health Probe.
+     * Telemetry health. Reports whether a DSN is configured without revealing the secret.
      */
     public function health(): JsonResponse
     {
-        $serverDsn = (string) (config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN', ''));
-        $isConfigured = $serverDsn !== '' && !str_contains($serverDsn, 'placeholder');
-
-        $maskedHost = null;
-        $projectId = null;
-        if ($isConfigured) {
-            $parsed = parse_url($serverDsn);
-            $maskedHost = $parsed['host'] ?? null;
-            $projectId = isset($parsed['path']) ? trim($parsed['path'], '/') : null;
-        }
-
+        $configured = $this->configuredDsn();
         $logPath = storage_path('logs/telemetry.log');
         $logSize = file_exists($logPath) ? filesize($logPath) : 0;
 
         return response()->json([
             'status' => 'operational',
             'engine' => 'Habuilt Sovereign Telemetry v2.1',
-            'sentry_configured' => $isConfigured,
-            'sentry_host' => $maskedHost,
-            'sentry_project_id' => $projectId,
+            'sentry_configured' => $configured !== null,
+            'sentry_host' => $configured['host'] ?? null,
+            'sentry_project_id' => $configured['project'] ?? null,
             'upstream_tunnel_active' => true,
             'telemetry_log_bytes' => $logSize,
             'server_time' => now()->toIso8601String(),
@@ -148,45 +122,42 @@ final class TelemetryApiController
     }
 
     /**
-     * Record a verified synthetic test event to confirm pipeline integrity.
+     * @return array{host: string, project: string, key: string}|null
      */
-    public function recordTestEvent(Request $request): JsonResponse
+    private function configuredDsn(): ?array
     {
-        $testId = 'test_' . Str::random(12);
-        $sentryEventId = null;
-
-        $serverDsn = (string) (config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN', ''));
-        if ($serverDsn !== '' && !str_contains($serverDsn, 'placeholder')) {
-            $synthetic = new \RuntimeException("Habuilt synthetic test event: {$testId}");
-            $sentryEventId = SentryRelayService::captureException($synthetic, [
-                'tags' => ['source' => 'api_test_probe'],
-                'extra' => ['user_id' => $request->input('user_id', 'anonymous')],
-            ]);
+        $dsn = trim((string) config('services.sentry.dsn', ''));
+        if ($dsn === '' || str_contains($dsn, 'placeholder')) {
+            return null;
         }
 
-        try {
-            Log::build([
-                'driver' => 'single',
-                'path' => storage_path('logs/telemetry.log'),
-            ])->info('[SyntheticTelemetryVerification]', [
-                'test_id' => $testId,
-                'sentry_event_id' => $sentryEventId,
-                'triggered_by' => $request->input('user_id', 'anonymous'),
-                'source' => $request->input('source', 'api_verification_probe'),
-                'timestamp' => now()->toIso8601String(),
-            ]);
-        } catch (\Throwable) {
-            // Failsafe
+        $parsed = $this->parseDsn($dsn);
+        if ($parsed === null || !str_ends_with($parsed['host'], '.sentry.io')) {
+            return null;
         }
 
-        return response()->json([
-            'success' => true,
-            'verified' => true,
-            'test_id' => $testId,
-            'sentry_relayed' => $sentryEventId !== null,
-            'sentry_event_id' => $sentryEventId,
-            'message' => 'Synthetic telemetry anomaly registered and verified in pipeline.',
-            'timestamp' => now()->toIso8601String(),
-        ]);
+        return $parsed;
+    }
+
+    /**
+     * @return array{host: string, project: string, key: string}|null
+     */
+    private function parseDsn(string $dsn): ?array
+    {
+        $parsed = parse_url(trim($dsn));
+        if (!is_array($parsed) || empty($parsed['host']) || empty($parsed['path']) || empty($parsed['user'])) {
+            return null;
+        }
+
+        $project = trim((string) $parsed['path'], '/');
+        if ($project === '') {
+            return null;
+        }
+
+        return [
+            'host' => strtolower((string) $parsed['host']),
+            'project' => $project,
+            'key' => (string) $parsed['user'],
+        ];
     }
 }

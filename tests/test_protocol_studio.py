@@ -30,9 +30,9 @@ def run_protocol_studio_test():
             print(f"  [FAIL] {name} - {details}", flush=True)
 
     test_user = {
-        "id": "ashish",
-        "email": "ashishgupta1v@gmail.com",
-        "user_metadata": {"full_name": "Ashish Gupta"}
+        "id": "founder",
+        "email": "founder@habuilt.test",
+        "user_metadata": {"full_name": "Test Founder"}
     }
 
     with sync_playwright() as p:
@@ -206,7 +206,7 @@ def run_protocol_studio_test():
         check("Dashboard Remains Responsive and Active", page.is_visible(".dashboard-flow"))
 
         # Verify localStorage persistence
-        saved_custom = page.evaluate("() => localStorage.getItem('habuilt_custom_protocols_ashish')")
+        saved_custom = page.evaluate("() => localStorage.getItem('habuilt_custom_protocols_founder')")
         check("Custom Protocols Persisted in LocalStorage", saved_custom is not None and "Hyper-Focused Biohacker" in saved_custom)
 
         browser.close()

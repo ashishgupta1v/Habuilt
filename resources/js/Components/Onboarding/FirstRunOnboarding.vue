@@ -72,18 +72,6 @@ const goals = [
 // Step 2: Routine Archetype Selection
 const selectedArchetypeId = ref('archetype-founder');
 
-const isAshishUser = computed(() => {
-  const email = String(props.userEmail || '').toLowerCase().trim();
-  const id = String(props.userId || '').toLowerCase().trim();
-  return email === 'ashishgupta1v@gmail.com' || id === 'ashish';
-});
-
-const isJyotiUser = computed(() => {
-  const email = String(props.userEmail || '').toLowerCase().trim();
-  const id = String(props.userId || '').toLowerCase().trim();
-  return email === 'goyaljyoti007@gmail.com' || id === 'jyoti';
-});
-
 const commercialArchetypes = [
   {
     id: 'archetype-founder',
@@ -127,34 +115,7 @@ const commercialArchetypes = [
   }
 ];
 
-const archetypeOptions = computed(() => {
-  const list = [...commercialArchetypes];
-  if (isAshishUser.value) {
-    list.push({
-      id: 'archetype-ashish',
-      key: 'ashishMaster',
-      name: 'Ashish Master Protocol',
-      tagline: '3-Week assessment: 3.5–4L seed hydration & spine shield',
-      badge: '3-Week Protocol',
-      icon: Crown,
-      colorClass: 'text-gold border-gold/40 bg-gold/10',
-      description: '3-Week clinical protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3 circuits, spine preservation & 21:00 shutdown.'
-    });
-  }
-  if (isJyotiUser.value) {
-    list.push({
-      id: 'archetype-jyoti',
-      key: 'jyotiMaster',
-      name: 'Jyoti Master Protocol',
-      tagline: 'Maternal nutrition, parenting & professional focus',
-      badge: '37 Habits • Master',
-      icon: Sparkles,
-      colorClass: 'text-purple-400 border-purple-500/40 bg-purple-500/10',
-      description: 'Postpartum nourishment, baby motor development, evening couple walks, calm bedtime routine.'
-    });
-  }
-  return list;
-});
+const archetypeOptions = computed(() => commercialArchetypes);
 
 // Step 3: Circadian Rhythm Tuning
 const wakeTime = ref('05:30');

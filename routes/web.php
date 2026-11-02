@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HabitCheckInController;
 use App\Http\Controllers\HabitCheckInDeleteController;
 use App\Http\Controllers\HabitProgressResetController;
+use App\Http\Middleware\VerifyApiAuthorization;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -21,7 +22,9 @@ Route::get('/privacy', static fn () => Inertia::render('Privacy'))->name('privac
 Route::get('/terms', static fn () => Inertia::render('Terms'))->name('terms');
 Route::get('/disclaimer', static fn () => Inertia::render('Disclaimer'))->name('disclaimer');
 
-// Legacy & Direct Habit Mutations
-Route::post('/habits/{habit}/check-ins', HabitCheckInController::class)->name('habits.check-ins.store');
-Route::delete('/habits/{habit}/check-ins', HabitCheckInDeleteController::class)->name('habits.check-ins.delete');
-Route::delete('/habits/check-ins', HabitProgressResetController::class)->name('habits.check-ins.clear');
+// Habit mutations. Same fail-closed JWT as the API. The owner is the token subject.
+Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
+    Route::post('/habits/{habit}/check-ins', HabitCheckInController::class)->name('habits.check-ins.store');
+    Route::delete('/habits/{habit}/check-ins', HabitCheckInDeleteController::class)->name('habits.check-ins.delete');
+    Route::delete('/habits/check-ins', HabitProgressResetController::class)->name('habits.check-ins.clear');
+});

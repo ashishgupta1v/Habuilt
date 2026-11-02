@@ -32,31 +32,26 @@ export async function getOrCreateInviteCode(userId) {
 
   let code = generateRandomCode();
 
-  if (isSupabaseConfigured() && !isGuestUser(userId)) {
+  if (!isGuestUser(userId)) {
     try {
-      // Check if user already has an existing connection row with invite_code
-      const { data, error } = await supabase
-        .from('partner_connections')
-        .select('invite_code')
-        .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (!error && data?.invite_code) {
-        code = data.invite_code;
-      } else {
-        // Upsert new invite record
-        await supabase
-          .from('partner_connections')
-          .upsert({
-            user_id: userId,
-            invite_code: code,
-            status: 'pending',
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'invite_code' });
+      const records = await callLocalApi('/api/partner-connections');
+      if (Array.isArray(records)) {
+        const own = records.find((row) => row.user_id === userId && row.invite_code && !String(row.invite_code).startsWith('PAIRED-'));
+        if (own?.invite_code) {
+          code = own.invite_code;
+        } else {
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            const created = await callLocalApi('/api/partner-connections', 'POST', {
+              invite_code: code,
+              status: 'pending',
+            }, { returnError: true });
+            if (created?.success) break;
+            code = generateRandomCode();
+          }
+        }
       }
     } catch (e) {
-      console.warn('[PartnerPairing] Supabase lookup error, using generated code:', e);
+      console.warn('[PartnerPairing] Invite lookup error, using generated code:', e);
     }
   }
 
@@ -76,48 +71,19 @@ export async function pairWithInviteCode(currentUserId, rawCode, partnerAlias = 
 
   let partnerUserId = null;
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('partner_connections')
-        .select('*')
-        .eq('invite_code', cleanCode)
-        .maybeSingle();
+  if (!isGuestUser(currentUserId)) {
+    const accepted = await callLocalApi('/api/partner-connections/accept', 'POST', {
+      invite_code: cleanCode,
+      alias: partnerAlias || '',
+    }, { returnError: true });
 
-      if (error) {
-        console.warn('[PartnerPairing] Error looking up invite code:', error);
-      } else if (data) {
-        partnerUserId = data.user_id;
+    if (accepted?.success && accepted.connection) {
+      localStorage.setItem(`${LOCAL_PAIR_PREFIX}${currentUserId}`, JSON.stringify(accepted.connection));
+      return accepted.connection;
+    }
 
-        if (partnerUserId === currentUserId) {
-          throw new Error('You cannot pair with your own invite code.');
-        }
-
-        // Update host connection record
-        await supabase
-          .from('partner_connections')
-          .update({
-            partner_user_id: currentUserId,
-            status: 'connected',
-            updated_at: new Date().toISOString()
-          })
-          .eq('invite_code', cleanCode);
-
-        // Also create reciprocal connection row for current user
-        await supabase
-          .from('partner_connections')
-          .upsert({
-            user_id: currentUserId,
-            partner_user_id: partnerUserId,
-            invite_code: `PAIRED-${cleanCode}`,
-            status: 'connected',
-            alias: partnerAlias || 'Partner',
-            updated_at: new Date().toISOString()
-          });
-      }
-    } catch (e) {
-      console.warn('[PartnerPairing] Online pairing failed, falling back to local pair:', e);
-      if (e.message && e.message.includes('own invite code')) throw e;
+    if (accepted?.error) {
+      throw new Error(accepted.error);
     }
   }
 
@@ -213,12 +179,9 @@ export async function disconnectPartner(userId) {
 
   localStorage.removeItem(`${LOCAL_PAIR_PREFIX}${userId}`);
 
-  if (isSupabaseConfigured()) {
+  if (!isGuestUser(userId)) {
     try {
-      await supabase
-        .from('partner_connections')
-        .update({ status: 'revoked', partner_user_id: null, updated_at: new Date().toISOString() })
-        .or(`user_id.eq.${userId},partner_user_id.eq.${userId}`);
+      await callLocalApi('/api/partner-connections/revoke', 'POST', {});
     } catch (e) {
       console.warn('[PartnerPairing] Revoke error:', e);
     }
@@ -298,17 +261,14 @@ export async function loadPartnerLiveMetrics(partnerUserId, monthKey, targetDay 
     };
   };
 
-  // If Supabase is configured and not guest, fetch live
-  if (isSupabaseConfigured() && !isGuestUser(partnerUserId)) {
+  // Partner progress comes from the signed-in API projection, never from another person's table.
+  if (!isGuestUser(partnerUserId)) {
     try {
-      const { data, error } = await supabase
-        .from('habit_check_ins')
-        .select('habit_id, habit_name, points, day, completed_on, canonical_key')
-        .eq('user_id', partnerUserId)
-        .eq('month_key', monthKey);
-
-      if (!error && Array.isArray(data)) {
-        const metrics = processCheckIns(data, false);
+      const data = await callLocalApi(
+        `/api/partner-metrics?partner_user_id=${encodeURIComponent(partnerUserId)}&month_key=${encodeURIComponent(monthKey)}`
+      );
+      if (data && Array.isArray(data.check_ins)) {
+        const metrics = processCheckIns(data.check_ins, false);
         try {
           localStorage.setItem(cacheKey, JSON.stringify(metrics));
         } catch (_) {}
@@ -328,7 +288,7 @@ export async function loadPartnerLiveMetrics(partnerUserId, monthKey, targetDay 
     }
   } catch (_) {}
 
-  // If local pair simulation (e.g. Ashish & Jyoti on local test mode)
+  // Local pair simulation when both workspaces exist on this device.
   try {
     const partnerStateKey = `habuilt_state_${partnerUserId}_${monthKey}`;
     const rawLocal = localStorage.getItem(partnerStateKey);
@@ -388,80 +348,34 @@ export function computeSharedAnchorsStatus(userHabits = [], partnerMetrics = nul
     return ids.some(id => partnerCompletedIds.has(String(id)));
   };
 
-  // Flagship couple anchor definitions with exact reciprocal habit ID mappings
-  let rawAnchors = [];
+  const candidateHabits = (userHabits || []).filter(h => {
+    const n = (h.name || '').toLowerCase();
+    return n.includes('shared') || n.includes('walk') || n.includes('lunch') || n.includes('dinner') || n.includes('family');
+  }).slice(0, 4);
 
-  if (isAshish || isJyoti) {
-    const ashishUser = isAshish;
+  let rawAnchors = [];
+  if (candidateHabits.length > 0) {
+    rawAnchors = candidateHabits.map((h) => ({
+      id: `custom-anchor-${h.id}`,
+      time: 'Daily Shared',
+      title: h.name,
+      subtitle: h.hint || 'Shared commitment with your partner',
+      badge: 'Shared Goal',
+      userHabitIds: [String(h.id)],
+      partnerHabitIds: [String(h.id)],
+    }));
+  } else {
     rawAnchors = [
       {
-        id: 'anchor-lunch',
-        time: '13:30 - 14:15',
-        title: 'Shared Wholesome Lunch',
-        subtitle: 'Warm nourishing food, zero screens, active listening',
-        badge: 'Nutrition',
-        userHabitIds: ashishUser ? ['a-29'] : ['j-6'],
-        partnerHabitIds: ashishUser ? ['j-6'] : ['a-29'],
-      },
-      {
-        id: 'anchor-stroller',
-        time: '18:35 - 19:15',
-        title: 'Outdoor Evening Walk',
-        subtitle: 'Outdoor metabolic walk, fresh air, partner connection',
-        badge: 'Family',
-        userHabitIds: ashishUser ? ['a-20', 'at-17', 'af-21'] : ['j-18'],
-        partnerHabitIds: ashishUser ? ['j-18'] : ['a-20', 'at-17', 'af-21'],
-      },
-      {
-        id: 'anchor-dinner',
-        time: '19:25 - 20:15',
-        title: 'Family Dinner & Reconnect',
-        subtitle: 'Wholesome dinner together, table setup & peaceful conversation',
-        badge: 'Household',
-        userHabitIds: ashishUser ? ['a-21', 'at-18', 'af-23'] : ['j-19'],
-        partnerHabitIds: ashishUser ? ['j-19'] : ['a-21', 'at-18', 'af-23'],
-      },
-      {
-        id: 'anchor-diya',
-        time: '20:35 - 20:50',
-        title: 'Evening Reflection & Gratitude',
-        subtitle: 'Quiet reflection, daily thanks & partner appreciation',
-        badge: 'Spiritual',
-        userHabitIds: ashishUser ? ['a-76'] : ['j-21'],
-        partnerHabitIds: ashishUser ? ['j-21'] : ['a-76'],
-      },
+        id: 'anchor-generic-focus',
+        time: 'Morning Focus',
+        title: 'Daily Primary Anchor',
+        subtitle: 'Synchronized morning execution and focus block',
+        badge: 'Focus',
+        userHabitIds: [(userHabits[0]?.id || '1')],
+        partnerHabitIds: [(userHabits[0]?.id || '1')],
+      }
     ];
-  } else {
-    // Universal dynamic matching for generic paired warriors:
-    // Match habits with '★', 'shared', or matching titles
-    const candidateHabits = (userHabits || []).filter(h => {
-      const n = (h.name || '').toLowerCase();
-      return n.includes('★') || n.includes('shared') || n.includes('walk') || n.includes('lunch') || n.includes('dinner');
-    }).slice(0, 4);
-
-    if (candidateHabits.length > 0) {
-      rawAnchors = candidateHabits.map((h, idx) => ({
-        id: `custom-anchor-${h.id}`,
-        time: 'Daily Shared',
-        title: h.name,
-        subtitle: h.hint || 'Synchronized co-warrior commitment',
-        badge: 'Shared Goal',
-        userHabitIds: [String(h.id)],
-        partnerHabitIds: [String(h.id)],
-      }));
-    } else {
-      rawAnchors = [
-        {
-          id: 'anchor-generic-focus',
-          time: 'Morning Focus',
-          title: 'Daily Primary Anchor',
-          subtitle: 'Synchronized morning execution and focus block',
-          badge: 'Focus',
-          userHabitIds: [(userHabits[0]?.id || '1')],
-          partnerHabitIds: [(userHabits[0]?.id || '1')],
-        }
-      ];
-    }
   }
 
   const computedAnchors = rawAnchors.map(anchor => {

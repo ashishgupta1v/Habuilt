@@ -74,20 +74,20 @@ def run_sentry_telemetry_continuous_verification():
         # Bypass onboarding overlay for direct Dashboard testing
         page.add_init_script("""
             localStorage.setItem('habuilt_cached_user', JSON.stringify({
-                id: 'ashish',
-                email: 'ashishgupta1v@gmail.com',
+                id: 'founder',
+                email: 'founder@habuilt.test',
                 user_metadata: {
-                    full_name: 'Ashish Gupta',
-                    preferred_archetype: 'archetype-ashish',
+                    full_name: 'Test Founder',
+                    preferred_archetype: 'archetype-founder',
                     onboarding_completed: true
                 }
             }));
             localStorage.setItem('habuilt_user', JSON.stringify({
-                id: 'ashish',
-                email: 'ashishgupta1v@gmail.com'
+                id: 'founder',
+                email: 'founder@habuilt.test'
             }));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
-            localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
+            localStorage.setItem('habuilt_active_protocol_id_founder', 'archetype-founder');
             localStorage.setItem('habuilt_guest_mode', 'false');
         """)
 

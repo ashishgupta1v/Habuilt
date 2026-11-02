@@ -90,7 +90,7 @@ const autoProtocolBadge = computed(() => {
       <!-- Left: Brand Logo & User Grade -->
       <div class="mcb-identity" @click="isExpanded = !isExpanded">
         <HabuiltLogo size="xs" :with-text="false" class="mcb-brand-icon" />
-        <span class="mcb-user-name">{{ displayName || (isAshish ? 'Ashish' : (timeGreeting?.name || 'User')) }}</span>
+        <span class="mcb-user-name">{{ displayName || timeGreeting?.name || 'User' }}</span>
         <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
 
@@ -190,7 +190,7 @@ const autoProtocolBadge = computed(() => {
 
             <div class="mcb-tools-grid">
 
-              <button v-if="isAshish" type="button" class="mcb-tool-item" @click="emit('toggle-travel'); isToolsOpen = false;">
+              <button type="button" class="mcb-tool-item" @click="emit('toggle-travel'); isToolsOpen = false;">
                 <div class="mcb-tool-icon icon-sky"><Plane v-if="travelMode" class="icon-sm" /><Calendar v-else class="icon-sm" /></div>
                 <span>{{ dayTypeLabel }}</span>
               </button>

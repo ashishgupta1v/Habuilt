@@ -14,9 +14,9 @@ async def run_audit():
         results.append({"name": name, "passed": passed, "details": details})
 
     test_user = {
-        "id": "ashish-test-uuid",
-        "name": "Ashish",
-        "email": "ashish@habuilt.test",
+        "id": "founder-test-uuid",
+        "name": "Founder",
+        "email": "founder@habuilt.test",
         "tier": "sovereign",
     }
     init_script = f"""
@@ -161,7 +161,7 @@ async def run_audit():
                     const queue = JSON.parse(localStorage.getItem('habuilt_offline_queue') || '[]');
                     queue.push({
                         type: 'INSERT',
-                        payload: { userId: 'ashish-test-uuid', habitId: 'test-1', day: 1, completedOn: '2026-10-27' },
+                        payload: { userId: 'founder-test-uuid', habitId: 'test-1', day: 1, completedOn: '2026-10-27' },
                         queuedAt: new Date().toISOString()
                     });
                     localStorage.setItem('habuilt_offline_queue', JSON.stringify(queue));

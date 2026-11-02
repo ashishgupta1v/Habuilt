@@ -23,6 +23,7 @@ import {
   loadLatestBiomarker,
   flushOfflineQueue,
 } from '@/lib/supabase';
+import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
 import {
   computeLifetimeStats,
@@ -81,17 +82,7 @@ import { useNativeWidget } from '@/Composables/useNativeWidget';
 import { useAppBadging } from '@/Composables/useAppBadging';
 import { useCircadianAtmosphere } from '@/Composables/useCircadianAtmosphere';
 import {
-  ashishHabits,
-  jyotiHabits,
-  ashishTravelHabits,
-  ashishOfficeMidHabits,
-  ashishOfficeFriHabits,
-  ashishHalfDayHabits,
-  ashishHolidayHabits,
   genericStarterHabits,
-  ashishTierDescriptions,
-  jyotiTierDescriptions,
-  ashishTravelTierDescriptions,
   timeSlotDefinitions,
   timeSlotOrder,
   getTimeSlotForHabit,
@@ -273,56 +264,15 @@ const {
   decodeProtocolFromHash,
 } = useDynamicProtocols(effectiveUserId.value, null, false, resolvedEmail.value);
 
-// Write email override key to localStorage so protocol resolution persists across page loads
-if (typeof localStorage !== 'undefined' && resolvedEmail.value) {
-  try {
-    const em = resolvedEmail.value.toLowerCase().trim();
-    if (em === 'ashishgupta1v@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'ashish');
-    else if (em === 'goyaljyoti007@gmail.com') localStorage.setItem('habuilt_protocol_email_override', 'jyoti');
-  } catch (_) {}
-}
-
-
 const {
   applyHabitOrder: applyTaxonomyHabitOrder,
   getCategoryMeta: getTaxonomyCategoryMeta
 } = useCategoryTaxonomy(() => activeProtocolId.value || activeProtocol.value?.id || 'default', () => effectiveUserId.value);
 
-const isAshishProtocol = computed(() => {
-  const pId = activeProtocolId.value || activeProtocol.value?.id;
-  const pKey = activeProtocol.value?.key;
-  const matchesAshish = pId === 'archetype-ashish' || pId === 'ashishMaster' || pKey === 'ashish-master' || pKey === 'ashishMaster';
-  if (matchesAshish) return true;
-  const email = (resolvedEmail.value || '').toLowerCase().trim();
-  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
-  if ((email === 'ashishgupta1v@gmail.com' || uid === 'ashish') && pId !== 'archetype-jyoti' && pKey !== 'jyoti-master') return true;
-  return false;
-});
-
-const isJyotiProtocol = computed(() => {
-  const pId = activeProtocolId.value || activeProtocol.value?.id;
-  const pKey = activeProtocol.value?.key;
-  const matchesJyoti = pId === 'archetype-jyoti' || pId === 'jyotiMaster' || pKey === 'jyoti-master' || pKey === 'jyotiMaster';
-  if (matchesJyoti) return true;
-  const email = (resolvedEmail.value || '').toLowerCase().trim();
-  const uid = (effectiveUserId.value || props.userId || '').toLowerCase().trim();
-  if ((email === 'goyaljyoti007@gmail.com' || uid === 'jyoti') && pId !== 'archetype-ashish' && pKey !== 'ashish-master') return true;
-  return false;
-});
-
-// Backward-compatible computed aliases
-const isJyoti = computed(() => {
-  const email = resolvedEmail.value;
-  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
-  return isJyotiProtocol.value || email === 'goyaljyoti007@gmail.com' || uid === 'jyoti';
-});
-
-const isAshish = computed(() => {
-  if (isJyoti.value && !isAshishProtocol.value) return false;
-  const email = resolvedEmail.value;
-  const uid = (effectiveUserId.value || props.userId || '').toLowerCase();
-  return isAshishProtocol.value || email === 'ashishgupta1v@gmail.com' || uid === 'ashish';
-});
+const isAshishProtocol = computed(() => false);
+const isJyotiProtocol = computed(() => false);
+const isJyoti = computed(() => false);
+const isAshish = computed(() => false);
 
 const displayName = computed(() => {
   const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
@@ -349,32 +299,20 @@ const displayName = computed(() => {
       .join(' ');
     if (formatted) return formatted;
   }
-  if (props.userId && props.userId !== 'guest' && props.userId !== 'ashish' && props.userId !== 'jyoti' && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') {
+  if (props.userId && props.userId !== 'guest' && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') {
     return props.userId;
   }
-  if (isJyoti.value && !isAshish.value) return 'Jyoti';
-  if (isAshish.value) return 'Ashish';
   return 'Champion';
 });
 
-const isPartnerPaired = computed(() => {
-  return activePartnerConnection.value?.status === 'connected' ||
-    (activePartnerConnection.value?.status !== 'disconnected' && (isAshish.value || isJyoti.value));
-});
+const isPartnerPaired = computed(() => activePartnerConnection.value?.status === 'connected');
 
 const partnerDisplayName = computed(() => {
   if (activePartnerConnection.value?.alias) return activePartnerConnection.value.alias;
-  if (isJyoti.value && !isAshish.value) return 'Ashish';
-  if (isAshish.value) return 'Jyoti';
   return 'Partner';
 });
 
-const partnerUserId = computed(() => {
-  if (activePartnerConnection.value?.partner_user_id) return activePartnerConnection.value.partner_user_id;
-  if (isAshish.value) return 'jyoti';
-  if (isJyoti.value) return 'ashish';
-  return null;
-});
+const partnerUserId = computed(() => activePartnerConnection.value?.partner_user_id || null);
 
 const pairChannelId = computed(() => {
   if (partnerUserId.value) {
@@ -437,9 +375,7 @@ const refreshPartnerLiveMetrics = async () => {
       partnerCompletedCountToday.value = metrics.todayCompletedCount || 0;
       partnerLiveOffline.value = !!metrics.isOfflineCache;
 
-      if (pId === 'ashish') partnerTotalHabitsCount.value = 68;
-      else if (pId === 'jyoti') partnerTotalHabitsCount.value = 37;
-      else partnerTotalHabitsCount.value = Math.max(metrics.todayCompletedCount, (localHabits.value || []).length);
+      partnerTotalHabitsCount.value = Math.max(metrics.todayCompletedCount, (localHabits.value || []).length);
 
       const anchorCalc = computeSharedAnchorsStatus(
         localHabits.value,
@@ -512,22 +448,6 @@ const activeProtocolDisplayName = computed(() => {
 });
 
 const fallbackHabits = computed(() => {
-  // If active protocol is ashishMaster or user is Ashish, apply dual-track day schedules
-  if (isAshishProtocol.value || (isAshish.value && !isJyotiProtocol.value)) {
-    switch (dayType.value) {
-      case 'office-mon': return ashishTravelHabits;     // Mon: Ludhiana→CHD (long drive + Panchkula stay)
-      case 'office-mid': return ashishOfficeMidHabits;  // Tue–Thu: Panchkula flat→office (30m) + solo evening
-      case 'office-fri': return ashishOfficeFriHabits;  // Fri: Panchkula flat→office→early return to Ludhiana
-      case 'half-day':   return ashishHalfDayHabits;    // Half day: WFH + creative projects & errands
-      case 'holiday':    return ashishHolidayHabits;    // Holiday: Spiritual / family / zero office work
-      default:           return ashishHabits;           // Home: Full Ludhiana baseline
-    }
-  }
-
-  if (isJyotiProtocol.value || (isJyoti.value && !isAshishProtocol.value)) {
-    return jyotiHabits;
-  }
-
   if (activeProtocol.value?.habits && activeProtocol.value.habits.length > 0) {
     return activeProtocol.value.habits;
   }
@@ -1281,6 +1201,9 @@ const showToast = (message, duration = 2800) => {
 const isOffline = ref(typeof navigator !== 'undefined' ? !navigator.onLine : false);
 const offlineQueuedCount = ref(0);
 const isManualSyncing = ref(false);
+const initialSyncState = syncEngine.getState();
+const deadLetterCount = ref(initialSyncState.deadLetterCount || 0);
+const deadLetterMessage = ref(initialSyncState.deadLetterMessage || '');
 
 const updateOfflineQueueCount = () => {
   if (typeof window === 'undefined') return;
@@ -1326,6 +1249,29 @@ const handleOffline = () => {
   isOffline.value = true;
   updateOfflineQueueCount();
   showToast('⚡ Offline Mode: Changes saved locally and queued for auto-sync', 3500);
+};
+
+const handleSyncStatus = (event) => {
+  const detail = event?.detail || syncEngine.getState();
+  const nextCount = Number(detail.deadLetterCount) || 0;
+  if (nextCount > deadLetterCount.value) {
+    showToast(detail.deadLetterMessage || 'A saved change stopped syncing. Retry or discard it from the sync notice.', 6000);
+  }
+  deadLetterCount.value = nextCount;
+  deadLetterMessage.value = detail.deadLetterMessage || '';
+  updateOfflineQueueCount();
+};
+
+const retryStoppedSync = async () => {
+  await retryDeadLetterMutations();
+  handleSyncStatus({ detail: syncEngine.getState() });
+};
+
+const discardStoppedSync = () => {
+  discardDeadLetterMutations();
+  deadLetterCount.value = 0;
+  deadLetterMessage.value = '';
+  showToast('Discarded changes that could not sync.', 2500);
 };
 
 const handleManualOfflineSync = async () => {
@@ -1606,14 +1552,7 @@ const isHabitUpNext = (habit) => upNextHabitInfo.value && upNextHabitInfo.value.
 
 // Tier Helpers
 const getHabitTier = (habitId) => progressiveSettings.value.habitTiers?.[habitId] ?? 1;
-const getTierDescriptions = (habitId) => {
-  if (isJyoti.value && jyotiTierDescriptions[habitId]) return jyotiTierDescriptions[habitId];
-  if (isAshish.value) {
-    if (travelMode.value && ashishTravelTierDescriptions[habitId]) return ashishTravelTierDescriptions[habitId];
-    if (ashishTierDescriptions[habitId]) return ashishTierDescriptions[habitId];
-  }
-  return defaultTierLabels;
-};
+const getTierDescriptions = () => defaultTierLabels;
 const tierColorClass = (tier) => ['tier-pill--t1', 'tier-pill--t2', 'tier-pill--t3', 'tier-pill--t4'][tier - 1] || 'tier-pill--t1';
 const setHabitTier = (habitId, tier) => {
   if (!progressiveSettings.value.habitTiers) progressiveSettings.value.habitTiers = {};
@@ -1660,7 +1599,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('shower') || lower.includes('grooming')) return 'canonical:shower-grooming';
   if (lower.includes('breakfast') || lower.includes('soaked nuts') || lower.includes('papaya')) return 'canonical:breakfast';
   if (lower.includes('mineral bottle') || lower.includes('water protocol') || lower.includes('water intake') || lower.includes('3 litres daily water') || lower.includes('3.5l daily water')) return 'canonical:water-protocol';
-  if (lower.includes('baby duty') || lower.includes('child duty') || ((lower.includes('baby') || lower.includes('infant') || lower.includes('shaarvi')) && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down') || lower.includes('duty')))) return 'canonical:child-care-duty';
+  if (lower.includes('baby duty') || lower.includes('child duty') || ((lower.includes('baby') || lower.includes('infant')) && (lower.includes('take') || lower.includes('play') || lower.includes('bath') || lower.includes('time') || lower.includes('wind-down') || lower.includes('duty')))) return 'canonical:child-care-duty';
   if (lower.includes('1-3-5') || lower.includes('top priority')) return 'canonical:1-3-5-priorities';
   if (lower.includes('block 1') || lower.includes('deep architecture') || lower.includes('office focus') || lower.includes('chandigarh office')) return 'canonical:deep-work-block-1';
   if (lower.includes('block 2') || lower.includes('high-leverage') || lower.includes('pipeline')) return 'canonical:deep-work-block-2';
@@ -1670,7 +1609,7 @@ const getCanonicalHabitKey = (name) => {
   if (lower.includes('post-lunch walk') || (lower.includes('walk') && lower.includes('lunch'))) return 'canonical:post-lunch-walk';
   if (lower.includes('eye drops')) return 'canonical:eye-drops';
   if (lower.includes('shutdown') || lower.includes('work day shutdown') || lower.includes('work shutdown')) return 'canonical:shutdown-ritual';
-  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || lower.includes('partner walk') || (lower.includes('walk') && (lower.includes('family') || lower.includes('partner') || lower.includes('jyoti') || lower.includes('shaarvi')))) return 'canonical:family-walk';
+  if (lower.includes('stroller walk') || lower.includes('family stroller walk') || lower.includes('partner walk') || (lower.includes('walk') && (lower.includes('family') || lower.includes('partner')))) return 'canonical:family-walk';
   if (lower.includes('dinner preparation') || lower.includes('family dinner') || lower.includes('dinner')) return 'canonical:dinner';
   if (lower.includes('post-dinner stroll') || lower.includes('post-dinner walk') || (lower.includes('stroll') && lower.includes('dinner'))) return 'canonical:post-dinner-stroll';
   if (lower.includes('kitchen reset') || lower.includes('counter clean')) return 'canonical:kitchen-reset';
@@ -2111,26 +2050,6 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
     }
   }
 
-  // Optional non-blocking Laravel Backend Sync when running in Inertia environment
-  if (typeof window !== 'undefined' && window.__inertia_app && habit.id) {
-    const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
-    try {
-      if (nextDone) {
-        fetch(`/habits/${habit.id}/check-ins`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-          body: JSON.stringify({ completed_on: checkInDate }),
-        }).catch(() => {});
-      } else {
-        fetch(`/habits/${habit.id}/check-ins`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-          body: JSON.stringify({ completed_on: checkInDate }),
-        }).catch(() => {});
-      }
-    } catch {}
-  }
-
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
       navigator.vibrate([12]);
@@ -2373,9 +2292,7 @@ const cycleDayType = () => {
   saveState();
   syncDueNowNotification?.();
   const label = getDayTypeLabel(nextType);
-  const detail = isOfficeDay(nextType)
-    ? (isFlatEvening(nextType) ? ' (Evening at Panchkula flat)' : ' (Return to Ludhiana)')
-    : '';
+  const detail = isOfficeDay(nextType) ? ' (Office day)' : '';
   showToast(`${label}${detail} Routine Activated`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(20);
@@ -2479,11 +2396,7 @@ const pushToNativeWidget = () => {
 
     const adherenceVal = Number(consistencyScore.value) || 0;
     const streakVal = Number(systemStreak.value?.currentStreak || systemStreak.value?.current || 0);
-    const directiveStr = isAshish.value
-      ? 'Target 3.5L-4.0L hydration with pink salt & hourly posture decompression.'
-      : isJyoti.value
-        ? 'Morning natural sunlight within 30m & gentle joint mobility flow.'
-        : 'Maintain peak protocol consistency.';
+    const directiveStr = 'Maintain peak protocol consistency.';
 
     syncNativeWidget({
       userId: effectiveUserId.value,
@@ -2931,7 +2844,7 @@ const calculateHistoricalTotals = async () => {
   }
 };
 
-const PRESET_VERSION = '2026-10-14-v14-ashish-master-full-aligned';
+const PRESET_VERSION = '2026-11-02-public-archetypes';
 
 const loadLocalState = () => {
   try {
@@ -3491,6 +3404,7 @@ onMounted(() => {
   window.addEventListener('pageshow', handleAppResume);
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
+  window.addEventListener('habuilt:sync-status', handleSyncStatus);
   window.addEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
   window.addEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
   updateOfflineQueueCount();
@@ -3556,7 +3470,7 @@ onMounted(() => {
     // ── Realtime Partner Connection Sync Listener ──
     realtimePartnerChannel = subscribeToPartnerConnection(effectiveUserId.value, async (payload) => {
       if (payload?.new && payload.new.status === 'connected') {
-        const partnerName = payload.new.alias || (payload.new.partner_user_id === 'ashish' ? 'Ashish' : (payload.new.partner_user_id === 'jyoti' ? 'Jyoti' : 'Partner'));
+        const partnerName = payload.new.alias || 'Partner';
         showToast(`🤝 Connected with ${partnerName}! Real-time synchronization active. ✨`, 4500);
         firePartnerCelebration();
         const updated = await getPartnerConnection(effectiveUserId.value);
@@ -3794,6 +3708,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('pageshow', handleAppResume);
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
+  window.removeEventListener('habuilt:sync-status', handleSyncStatus);
   window.removeEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
   window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
   window.removeEventListener('keydown', handleZenKeyDown);
@@ -4355,9 +4270,10 @@ onBeforeUnmount(() => {
       <!-- Offline State & Background Sync Indicator Pill -->
       <transition name="offline-pill-fade">
         <div
-          v-if="isOffline"
+          v-if="isOffline || deadLetterCount > 0"
           id="offline-status-pill"
           class="offline-pill"
+          :class="{ 'offline-pill--attention': deadLetterCount > 0 }"
           role="status"
           aria-live="polite"
         >
@@ -4366,24 +4282,53 @@ onBeforeUnmount(() => {
               <WifiOff class="icon-xs" />
             </span>
             <div class="offline-pill__text">
-              <span class="offline-pill__title">Offline Mode</span>
+              <span class="offline-pill__title">{{ deadLetterCount > 0 ? 'Sync stopped' : 'Offline Mode' }}</span>
               <span class="offline-pill__sub">
-                {{ offlineQueuedCount > 0 ? `${offlineQueuedCount} action${offlineQueuedCount > 1 ? 's' : ''} queued locally` : 'Changes saved locally' }}
+                <template v-if="deadLetterCount > 0">
+                  {{ deadLetterCount }} change{{ deadLetterCount > 1 ? 's' : '' }} stopped retrying. {{ deadLetterMessage }}
+                </template>
+                <template v-else>
+                  {{ offlineQueuedCount > 0 ? `${offlineQueuedCount} action${offlineQueuedCount > 1 ? 's' : ''} queued locally` : 'Changes saved locally' }}
+                </template>
               </span>
             </div>
           </div>
-          <button
-            id="btn-offline-sync-now"
-            type="button"
-            class="offline-pill__sync-btn"
-            :disabled="isManualSyncing"
-            @click="handleManualOfflineSync"
-            title="Attempt network reconnect & sync pending check-ins"
-            aria-label="Sync offline changes now"
-          >
-            <RefreshCw class="icon-xs" :class="{ 'animate-spin': isManualSyncing }" />
-            <span>{{ isManualSyncing ? 'Syncing...' : 'Sync Now' }}</span>
-          </button>
+          <div class="offline-pill__actions">
+            <template v-if="deadLetterCount > 0">
+              <button
+                id="btn-retry-dead-letters"
+                type="button"
+                class="offline-pill__sync-btn"
+                @click="retryStoppedSync"
+                aria-label="Retry changes that stopped syncing"
+              >
+                <RefreshCw class="icon-xs" />
+                <span>Retry</span>
+              </button>
+              <button
+                id="btn-discard-dead-letters"
+                type="button"
+                class="offline-pill__discard-btn"
+                @click="discardStoppedSync"
+                aria-label="Discard changes that stopped syncing"
+              >
+                <span>Discard</span>
+              </button>
+            </template>
+            <button
+              v-else
+              id="btn-offline-sync-now"
+              type="button"
+              class="offline-pill__sync-btn"
+              :disabled="isManualSyncing"
+              @click="handleManualOfflineSync"
+              title="Attempt network reconnect & sync pending check-ins"
+              aria-label="Sync offline changes now"
+            >
+              <RefreshCw class="icon-xs" :class="{ 'animate-spin': isManualSyncing }" />
+              <span>{{ isManualSyncing ? 'Syncing...' : 'Sync Now' }}</span>
+            </button>
+          </div>
         </div>
       </transition>
 

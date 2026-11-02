@@ -13,6 +13,7 @@ import {
   Briefcase,
   Heart,
   Activity,
+  Flame,
   Crown,
   Edit,
   Plus,
@@ -74,11 +75,7 @@ const syncFromArchetype = (key) => {
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     currentStep.value = 1;
-    if (props.isJyoti) {
-      syncFromArchetype('jyotiMaster');
-    } else if (props.isAshish) {
-      syncFromArchetype('ashishMaster');
-    } else if (props.currentProtocol?.key && PROTOCOL_ARCHETYPES[props.currentProtocol.key]) {
+    if (props.currentProtocol?.key && PROTOCOL_ARCHETYPES[props.currentProtocol.key]) {
       syncFromArchetype(props.currentProtocol.key);
     } else {
       syncFromArchetype('founder');
@@ -250,6 +247,25 @@ const handleActivateProtocol = () => {
               </div>
             </div>
 
+            <div
+              @click="handleArchetypeSelect('athlete')"
+              class="group p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-orange-500/5 hover:border-orange-500/50 cursor-pointer transition-all duration-200 relative overflow-hidden"
+              :class="{ 'border-orange-500 bg-orange-500/10 ring-1 ring-orange-500': selectedArchetypeKey === 'athlete' }"
+            >
+              <div class="flex items-start justify-between mb-2">
+                <div class="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                  <Flame class="w-5 h-5" />
+                </div>
+                <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">Athlete</span>
+              </div>
+              <h4 class="font-bold text-white group-hover:text-orange-400 transition-colors text-sm">High-Performance Athlete</h4>
+              <p class="text-xs text-gray-400 mt-1">Training blocks, metabolic recovery, zone-2 work, and a protected sleep window.</p>
+              <div class="mt-3 flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-white/5">
+                <span>⏰ 05:00 Wake · 15 Habits</span>
+                <span class="text-orange-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-1">Select <ChevronRight class="w-3.5 h-3.5" /></span>
+              </div>
+            </div>
+
             <!-- Blank Canvas Protocol -->
             <div
               @click="handleArchetypeSelect('blank')"
@@ -270,45 +286,6 @@ const handleActivateProtocol = () => {
               </div>
             </div>
 
-            <!-- Ashish Master Reference Preset -->
-            <div
-              @click="handleArchetypeSelect('ashishMaster')"
-              class="p-4 rounded-xl border border-gold/30 bg-gold/[0.04] hover:bg-gold/10 hover:border-gold/60 cursor-pointer transition-all duration-200 relative"
-              :class="{ 'border-gold bg-gold/15 ring-1 ring-gold': selectedArchetypeKey === 'ashishMaster' }"
-            >
-              <div class="flex items-start justify-between mb-2">
-                <div class="w-9 h-9 rounded-lg bg-gold/10 border border-gold/40 flex items-center justify-center text-gold">
-                  <Crown class="w-5 h-5" />
-                </div>
-                <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-gold/20 text-gold border border-gold/40">3-Week Assessment Aligned</span>
-              </div>
-              <h4 class="font-bold text-gold text-sm">Ashish Master Protocol</h4>
-              <p class="text-xs text-gray-300 mt-1">3-Week solution-oriented protocol: 3.5–4L fennel/coriander hydration, Training A1/A2/A3, spine shield & 21:00 shutdown.</p>
-              <div class="mt-3 flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gold/10">
-                <span>⏰ 04:45 Wake · 3.5–4L Hydration</span>
-                <span class="text-gold font-medium flex items-center gap-1">Select <ChevronRight class="w-3.5 h-3.5" /></span>
-              </div>
-            </div>
-
-            <!-- Jyoti Master Reference Preset -->
-            <div
-              @click="handleArchetypeSelect('jyotiMaster')"
-              class="p-4 rounded-xl border border-pink-500/30 bg-pink-500/[0.04] hover:bg-pink-500/10 hover:border-pink-500/60 cursor-pointer transition-all duration-200 relative"
-              :class="{ 'border-pink-500 bg-pink-500/15 ring-1 ring-pink-500': selectedArchetypeKey === 'jyotiMaster' }"
-            >
-              <div class="flex items-start justify-between mb-2">
-                <div class="w-9 h-9 rounded-lg bg-pink-500/10 border border-pink-500/40 flex items-center justify-center text-pink-400">
-                  <Heart class="w-5 h-5" />
-                </div>
-                <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/40">Master 37-Step</span>
-              </div>
-              <h4 class="font-bold text-pink-400 text-sm">Jyoti Master Protocol</h4>
-              <p class="text-xs text-gray-300 mt-1">Flagship maternal recovery & career growth blueprint with Shaarvi milestones.</p>
-              <div class="mt-3 flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-pink-500/10">
-                <span>⏰ 05:00 Rest Floor · 37 Activities</span>
-                <span class="text-pink-400 font-medium flex items-center gap-1">Select <ChevronRight class="w-3.5 h-3.5" /></span>
-              </div>
-            </div>
           </div>
         </div>
 

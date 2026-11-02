@@ -25,6 +25,7 @@ import {
   Settings,
   Briefcase,
   Activity,
+  Flame,
   Crown,
   Check,
   Eye,
@@ -280,29 +281,15 @@ onBeforeUnmount(() => {
               <button
                 type="button"
                 class="hero-protocol-option"
-                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId) }"
-                @click="handleSelectProtocol('archetype-ashish')"
+                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-athlete' }"
+                @click="handleSelectProtocol('archetype-athlete')"
               >
-                <div class="hero-protocol-option__icon icon-gold"><Crown class="icon-xs" /></div>
+                <div class="hero-protocol-option__icon text-orange-400"><Flame class="icon-xs" /></div>
                 <div class="hero-protocol-option__info">
-                  <span class="hero-protocol-option__name">Ashish Master Protocol</span>
-                  <span class="hero-protocol-option__sub">3-Week Assessment • 3.5–4L Hydration & A1/A2/A3</span>
+                  <span class="hero-protocol-option__name">Athlete Protocol</span>
+                  <span class="hero-protocol-option__sub">15 habits • Training & Recovery</span>
                 </div>
-                <Check v-if="activeProtocolId === 'archetype-ashish' || (isAshish && !activeProtocolId)" class="icon-xs icon-gold ml-auto" />
-              </button>
-
-              <button
-                type="button"
-                class="hero-protocol-option"
-                :class="{ 'hero-protocol-option--active': activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId) }"
-                @click="handleSelectProtocol('archetype-jyoti')"
-              >
-                <div class="hero-protocol-option__icon text-pink-400"><Sparkles class="icon-xs" /></div>
-                <div class="hero-protocol-option__info">
-                  <span class="hero-protocol-option__name">Jyoti Master Protocol</span>
-                  <span class="hero-protocol-option__sub">37 habits • Maternal & Study</span>
-                </div>
-                <Check v-if="activeProtocolId === 'archetype-jyoti' || (isJyoti && !activeProtocolId)" class="icon-xs icon-gold ml-auto" />
+                <Check v-if="activeProtocolId === 'archetype-athlete'" class="icon-xs icon-gold ml-auto" />
               </button>
             </div>
 
@@ -379,7 +366,6 @@ onBeforeUnmount(() => {
     <div class="hero-command-bar__right">
       <!-- Day Type Cycle Button (Office Calendar Aware) -->
       <button
-        v-if="isAshish || activeProtocolId === 'archetype-ashish' || activeProtocolId === 'ashishMaster' || activeProtocolName?.toLowerCase().includes('ashish') || travelMode || dayType !== 'home'"
         type="button"
         class="hero-travel-btn"
         :class="{ 'hero-travel-btn--active': travelMode, 'hero-travel-btn--half': dayType === 'half-day', 'hero-travel-btn--holiday': dayType === 'holiday' }"

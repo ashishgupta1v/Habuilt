@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 final class ApiSecurityAndAccountDeletionTest extends TestCase
@@ -84,20 +85,8 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             created_at TIMESTAMP,
             updated_at TIMESTAMP
         )');
-    }
 
-    private function createMockJwt(string $userId, int $ttl = 3600): string
-    {
-        $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
-        $payload = rtrim(strtr(base64_encode(json_encode([
-            'sub' => $userId,
-            'exp' => time() + $ttl,
-            'aud' => 'authenticated',
-            'role' => 'authenticated',
-        ])), '+/', '-_'), '=');
-        $sig = rtrim(strtr(base64_encode(hash('sha256', "{$header}.{$payload}", true)), '+/', '-_'), '=');
-
-        return "{$header}.{$payload}.{$sig}";
+        DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS habit_check_ins_composite_uniq ON habit_check_ins (user_id, habit_id, month_key, day)');
     }
 
     public function test_health_endpoint_remains_public(): void
@@ -171,10 +160,566 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
 
         $deleteResponse->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('user_id', $carolId);
+            ->assertJsonPath('user_id', $carolId)
+            ->assertJsonPath('app_data_deleted', true)
+            ->assertJsonPath('auth_user_deleted', false)
+            ->assertJsonPath('auth_user_deletion', 'skipped');
 
         // Verify all records purged
         $this->assertEquals(0, DB::table('habit_check_ins')->where('user_id', $carolId)->count());
         $this->assertEquals(0, DB::table('user_settings')->where('user_id', $carolId)->count());
+    }
+
+    public function test_forged_signature_is_rejected_when_jwt_secret_is_configured(): void
+    {
+        $token = $this->createMockJwt('usr_alice');
+        $parts = explode('.', $token);
+        $signature = $parts[2];
+        // Flip the first character. The last base64 character can change without
+        // changing the decoded bytes, which would leave a valid signature.
+        $parts[2] = $signature === ''
+            ? 'unsigned'
+            : ($signature[0] === 'A' ? 'B' : 'A').substr($signature, 1);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.implode('.', $parts))
+            ->getJson('/api/user-settings?user_id=usr_alice');
+
+        $response->assertStatus(401)
+            ->assertJsonPath('error', 'Unauthenticated: Invalid cryptographic signature');
+    }
+
+    public function test_well_formed_token_is_rejected_when_jwt_secret_is_empty(): void
+    {
+        $token = $this->createMockJwt('usr_alice');
+        config(['services.supabase.jwt_secret' => '']);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/user-settings?user_id=usr_alice');
+
+        $response->assertStatus(401)
+            ->assertJsonPath('error', 'Unauthenticated: JWT verification is not configured');
+    }
+
+    public function test_user_cannot_delete_or_overwrite_another_users_protocol(): void
+    {
+        $bobProtocolId = 'protocol-bob-1';
+        DB::table('user_protocols')->insert([
+            'id' => $bobProtocolId,
+            'user_id' => 'usr_bob',
+            'name' => 'Bob Protocol',
+            'archetype' => 'custom',
+            'is_active' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $aliceToken = $this->createMockJwt('usr_alice');
+
+        $delete = $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->deleteJson('/api/user-protocols/'.$bobProtocolId);
+
+        $delete->assertStatus(403);
+        $this->assertSame('Bob Protocol', DB::table('user_protocols')->where('id', $bobProtocolId)->value('name'));
+
+        $overwrite = $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->postJson('/api/user-protocols', [
+                'id' => $bobProtocolId,
+                'user_id' => 'usr_alice',
+                'name' => 'Stolen Protocol',
+            ]);
+
+        $overwrite->assertStatus(403);
+        $this->assertSame('Bob Protocol', DB::table('user_protocols')->where('id', $bobProtocolId)->value('name'));
+        $this->assertSame('usr_bob', DB::table('user_protocols')->where('id', $bobProtocolId)->value('user_id'));
+    }
+
+    public function test_user_can_save_and_delete_their_own_protocol(): void
+    {
+        $aliceToken = $this->createMockJwt('usr_alice');
+
+        $save = $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->postJson('/api/user-protocols', [
+                'user_id' => 'usr_alice',
+                'name' => 'Alice Protocol',
+            ]);
+
+        $save->assertStatus(200)->assertJsonPath('success', true);
+        $id = (string) $save->json('id');
+        $this->assertNotSame('', $id);
+        $this->assertSame('usr_alice', DB::table('user_protocols')->where('id', $id)->value('user_id'));
+
+        $delete = $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->deleteJson('/api/user-protocols/'.$id);
+
+        $delete->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertEquals(0, DB::table('user_protocols')->where('id', $id)->count());
+    }
+
+    public function test_biomarker_and_partner_writes_cannot_adopt_another_users_row(): void
+    {
+        DB::table('user_biomarkers')->insert([
+            'id' => 'marker-bob',
+            'user_id' => 'usr_bob',
+            'log_date' => '2026-11-01',
+            'notes' => 'bob-note',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'pair-bob',
+            'user_id' => 'usr_bob',
+            'partner_user_id' => 'usr_dave',
+            'invite_code' => 'BOB-INVITE',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $aliceToken = $this->createMockJwt('usr_alice');
+
+        $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->postJson('/api/user-biomarkers', [
+                'id' => 'marker-bob',
+                'user_id' => 'usr_alice',
+                'log_date' => '2026-11-02',
+                'notes' => 'hijack',
+            ])
+            ->assertStatus(403);
+
+        $this->assertSame('bob-note', DB::table('user_biomarkers')->where('id', 'marker-bob')->value('notes'));
+
+        $this->withHeader('Authorization', "Bearer {$aliceToken}")
+            ->postJson('/api/partner-connections', [
+                'id' => 'pair-bob',
+                'user_id' => 'usr_alice',
+                'invite_code' => 'BOB-INVITE',
+                'status' => 'accepted',
+                'partner_user_id' => 'usr_alice',
+            ])
+            ->assertStatus(403);
+
+        $this->assertSame('pending', DB::table('partner_connections')->where('id', 'pair-bob')->value('status'));
+        $this->assertSame('usr_bob', DB::table('partner_connections')->where('id', 'pair-bob')->value('user_id'));
+    }
+
+    public function test_account_deletion_removes_both_ledgers_without_touching_other_users(): void
+    {
+        $carolId = 'usr_carol_both_'.uniqid();
+        $bobId = 'usr_bob_both_'.uniqid();
+        $daveId = 'usr_dave_both_'.uniqid();
+
+        DB::statement('CREATE TABLE IF NOT EXISTS habits (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT,
+            points_per_check_in INTEGER NOT NULL,
+            is_archived INTEGER DEFAULT 0,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )');
+        DB::statement('CREATE TABLE IF NOT EXISTS check_ins (
+            id TEXT PRIMARY KEY,
+            habit_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            completed_at TIMESTAMP,
+            created_at TIMESTAMP
+        )');
+        DB::statement('CREATE TABLE IF NOT EXISTS point_transactions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            reason TEXT,
+            reference_id TEXT,
+            occurred_at TIMESTAMP
+        )');
+        DB::statement('CREATE TABLE IF NOT EXISTS rewards (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            cost INTEGER,
+            is_active INTEGER DEFAULT 1
+        )');
+
+        DB::table('habit_check_ins')->insert([
+            'id' => 'spa-carol',
+            'user_id' => $carolId,
+            'habit_id' => 'water',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('habit_check_ins')->insert([
+            'id' => 'spa-bob',
+            'user_id' => $bobId,
+            'habit_id' => 'read',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('user_protocols')->insert([
+            'id' => 'proto-carol',
+            'user_id' => $carolId,
+            'name' => 'Carol',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('user_protocols')->insert([
+            'id' => 'proto-bob',
+            'user_id' => $bobId,
+            'name' => 'Bob',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('user_settings')->insert([
+            'user_id' => $carolId,
+            'rewards' => '[{"item":"tea"}]',
+            'updated_at' => now(),
+        ]);
+        DB::table('habits')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAC',
+            'user_id' => $carolId,
+            'name' => 'Carol domain habit',
+            'points_per_check_in' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('habits')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAD',
+            'user_id' => $bobId,
+            'name' => 'Bob domain habit',
+            'points_per_check_in' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('check_ins')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAE',
+            'habit_id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAC',
+            'user_id' => $carolId,
+            'completed_at' => '2026-11-02 08:00:00',
+            'created_at' => '2026-11-02 08:00:00',
+        ]);
+        DB::table('check_ins')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAF',
+            'habit_id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAD',
+            'user_id' => $bobId,
+            'completed_at' => '2026-11-02 08:00:00',
+            'created_at' => '2026-11-02 08:00:00',
+        ]);
+        DB::table('point_transactions')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAG',
+            'user_id' => $carolId,
+            'amount' => 2,
+            'reason' => 'check-in',
+            'reference_id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAE',
+            'occurred_at' => '2026-11-02 08:00:00',
+        ]);
+        DB::table('point_transactions')->insert([
+            'id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAH',
+            'user_id' => $bobId,
+            'amount' => 2,
+            'reason' => 'check-in',
+            'reference_id' => '01JQ7M2X4V8K3P6R9T1W5Y7ZAF',
+            'occurred_at' => '2026-11-02 08:00:00',
+        ]);
+        DB::table('rewards')->insert([
+            'id' => 'catalog-reward',
+            'name' => 'Shared catalog reward',
+            'cost' => 10,
+            'is_active' => 1,
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'pair-carol-owner',
+            'user_id' => $carolId,
+            'partner_user_id' => $bobId,
+            'invite_code' => 'CAROL-'.$carolId,
+            'status' => 'accepted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'pair-carol-partner',
+            'user_id' => $bobId,
+            'partner_user_id' => $carolId,
+            'invite_code' => 'BOB-'.$carolId,
+            'status' => 'accepted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'pair-bob-dave',
+            'user_id' => $bobId,
+            'partner_user_id' => $daveId,
+            'invite_code' => 'DAVE-'.$daveId,
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($carolId))
+            ->deleteJson('/api/user-account', ['user_id' => $carolId]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('auth_user_deleted', false)
+            ->assertJsonPath('auth_user_deletion', 'skipped');
+
+        $this->assertEquals(0, DB::table('habit_check_ins')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('user_protocols')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('user_settings')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('habits')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('check_ins')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('point_transactions')->where('user_id', $carolId)->count());
+        $this->assertEquals(0, DB::table('partner_connections')->where('user_id', $carolId)->orWhere('partner_user_id', $carolId)->count());
+
+        $this->assertEquals(1, DB::table('habit_check_ins')->where('user_id', $bobId)->count());
+        $this->assertSame('Bob', DB::table('user_protocols')->where('id', 'proto-bob')->value('name'));
+        $this->assertEquals(1, DB::table('habits')->where('user_id', $bobId)->count());
+        $this->assertEquals(1, DB::table('check_ins')->where('user_id', $bobId)->count());
+        $this->assertEquals(1, DB::table('point_transactions')->where('user_id', $bobId)->count());
+        $this->assertSame('pending', DB::table('partner_connections')->where('id', 'pair-bob-dave')->value('status'));
+        $this->assertSame('Shared catalog reward', DB::table('rewards')->where('id', 'catalog-reward')->value('name'));
+    }
+
+    public function test_legacy_habit_route_requires_jwt_and_stores_uuid_owner(): void
+    {
+        $uuid = '11111111-2222-4333-8444-555555555555';
+
+        $this->postJson('/habits/morning-water/check-ins', [
+            'completed_on' => '2026-11-02',
+            'user_id' => $uuid,
+        ])->assertStatus(401);
+
+        $this->withHeader('X-User-Id', $uuid)
+            ->postJson('/habits/morning-water/check-ins', [
+                'completed_on' => '2026-11-02',
+            ])
+            ->assertStatus(401);
+
+        $this->assertEquals(0, DB::table('habit_check_ins')->count());
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($uuid))
+            ->postJson('/habits/morning-water/check-ins', [
+                'completed_on' => '2026-11-02',
+                'user_id' => 'someone-else',
+                'points' => 9000,
+            ])
+            ->assertStatus(403);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($uuid))
+            ->withHeader('X-User-Id', '01JQ7M2X4V8K3P6R9T1W5Y7ZAB')
+            ->postJson('/habits/morning-water/check-ins', [
+                'completed_on' => '2026-11-02',
+                'points' => 9000,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $row = DB::table('habit_check_ins')->where('habit_id', 'morning-water')->first();
+        $this->assertNotNull($row);
+        $this->assertSame($uuid, $row->user_id);
+        $this->assertSame(100, (int) $row->points);
+    }
+
+    public function test_zoeticoach_proxy_skips_when_server_credential_is_empty(): void
+    {
+        Http::fake();
+        config([
+            'services.zoeticoach.api_key' => '',
+            'services.zoeticoach.api_url' => '',
+        ]);
+
+        $this->postJson('/api/zoeticoach/events', ['habit_id' => 'water'])->assertStatus(401);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'))
+            ->postJson('/api/zoeticoach/events', [
+                'external_participant_id' => 'usr_bob',
+                'habit_id' => 'water',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('skipped', true)
+            ->assertJsonPath('disabled', true);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_zoeticoach_proxy_forwards_only_the_authenticated_subject(): void
+    {
+        config([
+            'services.zoeticoach.api_key' => 'test-only-zoeti-key',
+            'services.zoeticoach.api_url' => 'https://zoeticoach.test',
+        ]);
+        Http::fake([
+            'https://zoeticoach.test/*' => Http::response(['data' => ['event_id' => 'evt_test']], 200),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'))
+            ->postJson('/api/zoeticoach/events', [
+                'external_participant_id' => 'usr_bob',
+                'habit_id' => 'water',
+                'event_value' => 'Water',
+                'points' => 4000,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('skipped', false);
+
+        Http::assertSent(function ($request): bool {
+            $body = $request->data();
+
+            return $request->url() === 'https://zoeticoach.test/api/v3/habit-cloud/events'
+                && ($body['external_participant_id'] ?? null) === 'usr_alice'
+                && ($body['payload']['points'] ?? null) === 100
+                && $request->hasHeader('Authorization', 'Bearer test-only-zoeti-key');
+        });
+    }
+
+    public function test_auth_user_deletion_uses_service_role_only_when_configured(): void
+    {
+        config([
+            'services.supabase.url' => 'https://project.test',
+            'services.supabase.service_role_key' => 'test-service-role',
+        ]);
+        Http::fake([
+            'https://project.test/auth/v1/admin/users/*' => Http::response('', 200),
+        ]);
+
+        $userId = '11111111-2222-4333-8444-555555555555';
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($userId))
+            ->deleteJson('/api/user-account')
+            ->assertStatus(200)
+            ->assertJsonPath('app_data_deleted', true)
+            ->assertJsonPath('auth_user_deleted', true)
+            ->assertJsonPath('auth_user_deletion', 'deleted');
+
+        Http::assertSent(function ($request) use ($userId): bool {
+            return $request->method() === 'DELETE'
+                && $request->url() === 'https://project.test/auth/v1/admin/users/'.$userId
+                && $request->hasHeader('Authorization', 'Bearer test-service-role');
+        });
+    }
+
+    public function test_stored_habit_points_override_client_points(): void
+    {
+        DB::statement('CREATE TABLE IF NOT EXISTS habits (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT,
+            points_per_check_in INTEGER NOT NULL,
+            is_archived INTEGER DEFAULT 0,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )');
+
+        $userId = '01JQ7M2X4V8K3P6R9T1W5Y7ZAC';
+        $habitId = '01JQ7M2X4V8K3P6R9T1W5Y7ZAD';
+        DB::table('habits')->insert([
+            'id' => $habitId,
+            'user_id' => $userId,
+            'name' => 'Hydrate',
+            'points_per_check_in' => 3,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($userId))
+            ->postJson('/api/habits/check-ins', [
+                'habit_id' => $habitId,
+                'month_key' => '2026-11',
+                'day' => 2,
+                'completed_on' => '2026-11-02',
+                'points' => 80,
+            ])
+            ->assertStatus(200);
+
+        $this->assertSame(3, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+    }
+
+    public function test_partner_metrics_are_a_scoped_projection_and_reject_unlinked_users(): void
+    {
+        DB::table('habit_check_ins')->insert([
+            'id' => 'bob-checkin',
+            'user_id' => 'usr_bob',
+            'habit_id' => 'walk',
+            'habit_name' => 'Walk',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 4,
+            'canonical_key' => 'walk',
+            'source' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'forged-by-alice',
+            'user_id' => 'usr_alice',
+            'partner_user_id' => 'usr_bob',
+            'invite_code' => 'FORGED-ALICE',
+            'status' => 'connected',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(401);
+
+        $alice = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'));
+
+        $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(403);
+
+        DB::table('partner_connections')->insert([
+            'id' => 'bob-owns-link',
+            'user_id' => 'usr_bob',
+            'partner_user_id' => 'usr_alice',
+            'invite_code' => 'BOB-REAL',
+            'status' => 'connected',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11');
+        $response->assertStatus(200)
+            ->assertJsonPath('check_ins.0.habit_id', 'walk')
+            ->assertJsonPath('check_ins.0.points', 4)
+            ->assertJsonMissingPath('check_ins.0.user_id')
+            ->assertJsonMissingPath('check_ins.0.source');
+
+        $alice->getJson('/api/habits/check-ins?user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(403);
+    }
+
+    public function test_accept_invite_pairs_the_caller_without_adopting_the_host_row(): void
+    {
+        DB::table('partner_connections')->insert([
+            'id' => 'host-invite',
+            'user_id' => 'usr_bob',
+            'partner_user_id' => null,
+            'invite_code' => 'HAB-JOIN',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_bob'))
+            ->postJson('/api/partner-connections/accept', ['invite_code' => 'HAB-JOIN'])
+            ->assertStatus(422);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'))
+            ->postJson('/api/partner-connections/accept', [
+                'invite_code' => 'hab-join',
+                'alias' => 'Bob',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('connection.partner_user_id', 'usr_bob')
+            ->assertJsonPath('connection.user_id', 'usr_alice');
+
+        $this->assertSame('usr_bob', DB::table('partner_connections')->where('id', 'host-invite')->value('user_id'));
+        $this->assertSame('usr_alice', DB::table('partner_connections')->where('id', 'host-invite')->value('partner_user_id'));
+        $this->assertSame('connected', DB::table('partner_connections')->where('id', 'host-invite')->value('status'));
+        $this->assertSame(1, DB::table('partner_connections')->where('user_id', 'usr_alice')->where('partner_user_id', 'usr_bob')->count());
     }
 }

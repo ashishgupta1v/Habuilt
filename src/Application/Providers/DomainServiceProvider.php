@@ -61,6 +61,7 @@ final class DomainServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom([
             base_path('src/Domains/Tracking/Infrastructure/Persistence/Migrations'),
             base_path('src/Domains/Economy/Infrastructure/Persistence/Migrations'),
+            base_path('src/Application/Infrastructure/Persistence/Migrations'),
         ]);
 
         $this->registerDomainListeners();

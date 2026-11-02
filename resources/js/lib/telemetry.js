@@ -3,8 +3,8 @@
  * Continuous Sentry Protocol Ingestion & Local Ring Buffer Fallback
  * 
  * Supports:
- * 1. Sentry DSN ingestion (via local override, VITE_SENTRY_DSN or window.__HABUILT_SENTRY_DSN__)
- * 2. First-party Sentry Tunnel (/api/telemetry/tunnel) for ad-blocker resilience
+ * 1. Same-origin Sentry tunnel (/api/telemetry/tunnel). The DSN secret stays on the server.
+ * 2. Optional operator-pasted DSN in local settings, never a server-injected secret
  * 3. Offline persistent spooling in localStorage with auto-drain on reconnect
  * 4. Sliding-window rate limiter (10 dispatches/minute)
  * 5. In-memory & localStorage ring buffer for last 50 events
@@ -75,12 +75,6 @@ class TelemetryEngine {
     if (custom && custom.trim() !== '') {
       return custom.trim();
     }
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SENTRY_DSN) {
-      return import.meta.env.VITE_SENTRY_DSN;
-    }
-    if (typeof window !== 'undefined' && window.__HABUILT_SENTRY_DSN__) {
-      return window.__HABUILT_SENTRY_DSN__;
-    }
     return null;
   }
 
@@ -124,7 +118,7 @@ class TelemetryEngine {
 
     window.__HABUILT_TELEMETRY__ = this;
 
-    // Detect Sentry DSN from local override, VITE_SENTRY_DSN or server-injected config
+    // A DSN is optional. The tunnel uses the server configuration.
     this.sentryDsn = this.resolveDsn();
 
     // Load cached user context if available
@@ -391,19 +385,6 @@ class TelemetryEngine {
       synthetic: true,
       timestamp: new Date().toISOString(),
     });
-
-    // Also register on backend diagnostic log
-    try {
-      await fetch('/api/telemetry/test-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          test_id: entry.id,
-          user_id: this.userContext?.id || 'anonymous',
-          source,
-        }),
-      });
-    } catch {}
 
     return entry;
   }

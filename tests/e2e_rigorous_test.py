@@ -25,10 +25,10 @@ def run_tests():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         
-        ashish_user = {
-            "id": "ashish",
-            "email": "ashishgupta1v@gmail.com",
-            "user_metadata": {"full_name": "Ashish Gupta"}
+        founder_user = {
+            "id": "founder",
+            "email": "founder@habuilt.test",
+            "user_metadata": {"full_name": "Test Founder"}
         }
 
         # ──────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ def run_tests():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
 
         page.goto(BASE_URL, wait_until="domcontentloaded")
@@ -63,7 +63,7 @@ def run_tests():
         record_result("TopCommandBar Exists", hero_bar.count() > 0)
 
         track_pill = page.locator(".hero-track-pill")
-        record_result("User Track Pill", "Ashish" in track_pill.inner_text())
+        record_result("User Track Pill", "Test Founder" in track_pill.inner_text())
 
         # 1.3 Verify Consolidated Quick Tools Menu [•••]
         tools_trigger = page.locator(".hero-tools-trigger")
@@ -315,7 +315,7 @@ def run_tests():
 
         page_tab.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
         page_tab.goto(BASE_URL, wait_until="domcontentloaded")
         page_tab.wait_for_selector(".dashboard-flow", timeout=10000)
@@ -342,7 +342,7 @@ def run_tests():
         page_mob.on("pageerror", lambda err: page_errors.append(f"[Mobile] {str(err)}"))
         page_mob.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
         page_mob.goto(BASE_URL, wait_until="domcontentloaded")
         page_mob.wait_for_selector(".dashboard-flow", timeout=10000)
@@ -465,7 +465,7 @@ def run_tests():
         page_theme.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_theme', 'dark');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
         page_theme.goto(BASE_URL, wait_until="domcontentloaded")
         page_theme.wait_for_selector(".dashboard-flow", timeout=10000)
@@ -498,34 +498,28 @@ def run_tests():
         landing_el = page_auth.locator(".lp")
         record_result("Landing Page Renders For New Visitor", landing_el.is_visible())
 
-        ashish_launch_btn = page_auth.locator(".lp__hero-guest-btn:has-text('Ashish Track')")
-        jyoti_launch_btn = page_auth.locator(".lp__hero-guest-btn:has-text('Jyoti Track')")
-        record_result("One-Tap Track Preview Buttons Exist", ashish_launch_btn.is_visible() and jyoti_launch_btn.is_visible())
+        guest_btn = page_auth.locator(".lp__hero-guest-btn:has-text('Instant Guest Workspace')")
+        longevity_btn = page_auth.locator(".lp__hero-guest-btn:has-text('Longevity Protocol')")
+        athlete_btn = page_auth.locator(".lp__hero-guest-btn:has-text('Athlete Protocol')")
+        record_result("Public Guest And Archetype Buttons Exist", guest_btn.is_visible() and longevity_btn.is_visible() and athlete_btn.is_visible())
+        guest_labels = [text.strip() for text in page_auth.locator(".lp__hero-guest-btn").all_text_contents()]
+        public_labels = ("Longevity", "Postpartum", "Athlete", "Guest")
+        record_result(
+            "Guest Buttons Are Public Archetypes Only",
+            len(guest_labels) >= 4 and all(any(label in text for label in public_labels) for text in guest_labels),
+        )
 
         page_auth.screenshot(path="tests/screenshots/landing_page_1440.png")
 
-        # Launch Ashish Track
-        ashish_launch_btn.click()
+        guest_btn.click()
         page_auth.wait_for_selector(".dashboard-flow", timeout=10000)
         page_auth.wait_for_timeout(500)
-        record_result("Guest Ashish Track Launches Into Dashboard", page_auth.locator(".dashboard-flow").is_visible())
+        record_result("Guest Workspace Launches Into Dashboard", page_auth.locator(".dashboard-flow").is_visible())
 
-        # Test Track Switching via User Badge
         user_badge = page_auth.locator(".user-badge")
         record_result("Top Nav User Badge Visible in Guest Session", user_badge.is_visible())
-
-        user_badge.click()
-        try:
-            page_auth.wait_for_function(
-                "() => document.querySelector('.hero-track-pill')?.innerText.includes('Jyoti')",
-                timeout=4000
-            )
-        except Exception:
-            page_auth.wait_for_timeout(1000)
         hero_track = page_auth.locator(".hero-track-pill")
-        record_result("Track Switcher Changes to Jyoti System", "Jyoti" in hero_track.inner_text())
-
-        page_auth.screenshot(path="tests/screenshots/jyoti_track_1440.png")
+        record_result("Guest Session Uses Public Workspace", "Champion" in hero_track.inner_text() or "Guest" in (user_badge.inner_text() or ""))
         context_auth.close()
 
         browser.close()

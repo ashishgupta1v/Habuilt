@@ -61,19 +61,18 @@ final class TelemetryTunnelAndHealthTest extends TestCase
             ->assertJson(['error' => 'Empty envelope payload']);
     }
 
-    public function test_sentry_tunnel_accepts_and_logs_valid_sentry_envelope_in_sovereign_mode(): void
+    public function test_sentry_tunnel_does_not_forward_when_dsn_is_not_configured(): void
     {
-        $eventId = '9ec6b95b45c24e6ca6f4b68ef5c1114b';
-        $header = json_encode(['event_id' => $eventId, 'sent_at' => now()->toIso8601String()]);
-        $itemHeader = json_encode(['type' => 'event', 'content_type' => 'application/json']);
-        $payload = json_encode([
-            'event_id' => $eventId,
-            'message' => 'PHPUnit Test Telemetry Interception',
-            'level' => 'error',
-            'platform' => 'javascript',
-        ]);
+        Config::set('services.sentry.dsn', '');
+        Http::fake();
 
-        $envelopeContent = "{$header}\n{$itemHeader}\n{$payload}";
+        $eventId = '9ec6b95b45c24e6ca6f4b68ef5c1114b';
+        $header = json_encode([
+            'event_id' => $eventId,
+            'dsn' => 'https://foreignkey@o222222.ingest.sentry.io/999',
+        ]);
+        $itemHeader = json_encode(['type' => 'event']);
+        $payload = json_encode(['event_id' => $eventId, 'level' => 'error']);
 
         $response = $this->call(
             'POST',
@@ -82,18 +81,45 @@ final class TelemetryTunnelAndHealthTest extends TestCase
             [],
             [],
             ['CONTENT_TYPE' => 'text/plain'],
-            $envelopeContent
+            "{$header}\n{$itemHeader}\n{$payload}"
         );
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'event_id' => $eventId,
-            ]);
+        $response->assertStatus(503)
+            ->assertJson(['error' => 'Telemetry relay is not configured']);
+        Http::assertNothingSent();
     }
 
-    public function test_sentry_tunnel_relays_upstream_when_target_host_is_sentry(): void
+    public function test_sentry_tunnel_rejects_foreign_sentry_host(): void
     {
+        Config::set('services.sentry.dsn', 'https://configuredkey@o111111.ingest.sentry.io/100');
+        Http::fake();
+
+        $eventId = '8ab7c65d45c24e6ca6f4b68ef5c2225c';
+        $header = json_encode([
+            'event_id' => $eventId,
+            'dsn' => 'https://otherkey@o222222.ingest.sentry.io/200',
+        ]);
+        $itemHeader = json_encode(['type' => 'event']);
+        $payload = json_encode(['event_id' => $eventId, 'level' => 'error']);
+
+        $response = $this->call(
+            'POST',
+            '/api/telemetry/tunnel',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'text/plain'],
+            "{$header}\n{$itemHeader}\n{$payload}"
+        );
+
+        $response->assertStatus(403)
+            ->assertJson(['error' => 'Envelope target does not match the configured Sentry project']);
+        Http::assertNothingSent();
+    }
+
+    public function test_sentry_tunnel_relays_only_the_configured_project(): void
+    {
+        Config::set('services.sentry.dsn', 'https://configuredkey@o111111.ingest.sentry.io/100');
         Http::fake([
             '*ingest.sentry.io*' => Http::response(['id' => 'sentry_upstream_ok'], 200),
         ]);
@@ -102,12 +128,10 @@ final class TelemetryTunnelAndHealthTest extends TestCase
         $header = json_encode([
             'event_id' => $eventId,
             'sent_at' => now()->toIso8601String(),
-            'dsn' => 'https://testkey123@o999999.ingest.sentry.io/4508900',
+            'dsn' => 'https://clientshouldbeignored@o111111.ingest.sentry.io/100',
         ]);
         $itemHeader = json_encode(['type' => 'event', 'content_type' => 'application/json']);
         $payload = json_encode(['event_id' => $eventId, 'level' => 'error']);
-
-        $envelopeContent = "{$header}\n{$itemHeader}\n{$payload}";
 
         $response = $this->call(
             'POST',
@@ -116,21 +140,53 @@ final class TelemetryTunnelAndHealthTest extends TestCase
             [],
             [],
             ['CONTENT_TYPE' => 'text/plain'],
-            $envelopeContent
+            "{$header}\n{$itemHeader}\n{$payload}"
         );
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'relayed' => true,
-                'upstream_host' => 'o999999.ingest.sentry.io',
+                'upstream_host' => 'o111111.ingest.sentry.io',
                 'upstream_status' => 200,
             ]);
 
         Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'o999999.ingest.sentry.io/api/4508900/envelope')
-                && str_contains($request->url(), 'sentry_key=testkey123');
+            return str_contains($request->url(), 'o111111.ingest.sentry.io/api/100/envelope')
+                && str_contains($request->url(), 'sentry_key=configuredkey')
+                && !str_contains($request->url(), 'clientshouldbeignored');
         });
+    }
+
+    public function test_sentry_tunnel_relays_envelope_that_omits_dsn_to_configured_project(): void
+    {
+        Config::set('services.sentry.dsn', 'https://configuredkey@o111111.ingest.sentry.io/100');
+        Http::fake([
+            '*ingest.sentry.io*' => Http::response(['id' => 'ok'], 200),
+        ]);
+
+        $eventId = '9ec6b95b45c24e6ca6f4b68ef5c1114b';
+        $header = json_encode(['event_id' => $eventId, 'sent_at' => now()->toIso8601String()]);
+        $itemHeader = json_encode(['type' => 'event']);
+        $payload = json_encode(['event_id' => $eventId, 'message' => 'tunnel without client dsn']);
+
+        $response = $this->call(
+            'POST',
+            '/api/telemetry/tunnel',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'text/plain'],
+            "{$header}\n{$itemHeader}\n{$payload}"
+        );
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'relayed' => true,
+                'event_id' => $eventId,
+                'upstream_host' => 'o111111.ingest.sentry.io',
+            ]);
     }
 
     public function test_sentry_backend_relay_service_dispatches_envelope(): void
@@ -170,23 +226,12 @@ final class TelemetryTunnelAndHealthTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_telemetry_test_event_registers_synthetic_anomaly(): void
+    public function test_anonymous_telemetry_test_event_route_is_removed(): void
     {
         $response = $this->postJson('/api/telemetry/test-event', [
-            'user_id' => 'ashish_probe',
             'source' => 'phpunit_verification',
         ]);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'verified' => true,
-            ])
-            ->assertJsonStructure([
-                'success',
-                'verified',
-                'test_id',
-                'message',
-            ]);
+        $response->assertStatus(404);
     }
 }

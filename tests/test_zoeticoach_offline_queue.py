@@ -20,10 +20,10 @@ def run_offline_queue_test():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        ashish_user = {
-            "id": "ashish",
-            "email": "ashishgupta1v@gmail.com",
-            "user_metadata": {"full_name": "Ashish Gupta"}
+        founder_user = {
+            "id": "founder",
+            "email": "founder@habuilt.test",
+            "user_metadata": {"full_name": "Test Founder"}
         }
 
         print("\n=== RUNNING ZOETICOACH OFFLINE QUEUE & AUTO-RECONCILIATION TEST ===")
@@ -32,7 +32,7 @@ def run_offline_queue_test():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
             // Clear existing queue to test clean slate
             localStorage.removeItem('habuilt_zoeticoach_offline_queue');
         """)
@@ -47,12 +47,12 @@ def run_offline_queue_test():
                 const event1 = {
                     id: 'queue_test_1',
                     payload: {
-                        external_participant_id: 'ashish',
+                        external_participant_id: 'founder',
                         event_type: 'habit_completed',
                         event_value: '05:00 Waking Core Protocol (Hydration + Pink Salt)',
                         unit: 'session',
                         occurred_at: new Date().toISOString(),
-                        payload: { habit_id: 'ashish_core_waking', points: 3, source: 'offline_e2e_test' }
+                        payload: { habit_id: 'founder_core_waking', points: 3, source: 'offline_e2e_test' }
                     },
                     queuedAt: new Date().toISOString(),
                     attempts: 0
@@ -60,12 +60,12 @@ def run_offline_queue_test():
                 const event2 = {
                     id: 'queue_test_2',
                     payload: {
-                        external_participant_id: 'ashish',
+                        external_participant_id: 'founder',
                         event_type: 'habit_completed',
                         event_value: '08:30 Deep Focus Work Block',
                         unit: 'session',
                         occurred_at: new Date().toISOString(),
-                        payload: { habit_id: 'ashish_deep_work_1', points: 3, source: 'offline_e2e_test' }
+                        payload: { habit_id: 'founder_deep_work_1', points: 3, source: 'offline_e2e_test' }
                     },
                     queuedAt: new Date().toISOString(),
                     attempts: 0

@@ -57,7 +57,7 @@ npm run build
 
 # 5. Database Migrations (if DB configured)
 echo "--> Running database migrations..."
-php artisan migrate --force || echo "Warning: Migration skipped or failed (check DB credentials in .env)"
+php artisan migrate --force
 
 # 6. Optimize Caches
 echo "--> Caching configuration, routes, and views..."

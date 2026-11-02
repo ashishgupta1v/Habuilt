@@ -20,6 +20,7 @@ class HabuiltWidgetPlugin : Plugin() {
             }
 
             val userId = call.getString("userId", "guest") ?: "guest"
+            val accessToken = call.getString("accessToken", "") ?: ""
             val habitsJson = call.getString("habitsJson", "[]") ?: "[]"
             val scheduleJson = call.getString("scheduleJson", "{}") ?: "{}"
             val streak = call.getInt("streak", 0) ?: 0
@@ -27,11 +28,9 @@ class HabuiltWidgetPlugin : Plugin() {
             val adherenceRate = call.getInt("adherenceRate", 0) ?: 0
             val complianceStatus = call.getString("complianceStatus", "Active Protocol") ?: "Active Protocol"
             val clinicalDirective = call.getString("clinicalDirective", "") ?: ""
-            val zoetiUrl = call.getString("zoeticoachUrl", "https://zoeticoach.com") ?: "https://zoeticoach.com"
-            val zoetiToken = call.getString("zoeticoachToken", "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe") ?: "1|kgJJYPqqpt5XXolV1vJ2enUgrAPDgrpNbOVTu8W011c87abe"
 
             val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
-            prefs.edit()
+            val editor = prefs.edit()
                 .putString("user_id", userId)
                 .putString("habits_json", habitsJson)
                 .putString("schedule_json", scheduleJson)
@@ -40,9 +39,14 @@ class HabuiltWidgetPlugin : Plugin() {
                 .putInt("adherence_rate", adherenceRate)
                 .putString("compliance_status", complianceStatus)
                 .putString("clinical_directive", clinicalDirective)
-                .putString("zoeticoach_api_url", zoetiUrl)
-                .putString("zoeticoach_token", zoetiToken)
-                .apply()
+                .remove("zoeticoach_api_url")
+                .remove("zoeticoach_token")
+            if (userId == "guest" || userId.isEmpty() || accessToken.isBlank()) {
+                editor.remove("supabase_access_token")
+            } else {
+                editor.putString("supabase_access_token", accessToken)
+            }
+            editor.apply()
 
             // Refresh all widgets on the home screen immediately
             HabuiltDueNowWidget.updateAllWidgets(context)
@@ -84,11 +88,14 @@ class HabuiltWidgetPlugin : Plugin() {
                 return
             }
             val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
-            val rawQueue = prefs.getString("zoeticoach_native_offline_queue", "[]") ?: "[]"
-            prefs.edit().putString("zoeticoach_native_offline_queue", "[]").apply()
+            prefs.edit()
+                .remove("zoeticoach_token")
+                .remove("zoeticoach_api_url")
+                .putString("zoeticoach_native_offline_queue", "[]")
+                .apply()
 
             val ret = JSObject()
-            ret.put("eventsJson", rawQueue)
+            ret.put("eventsJson", "[]")
             call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to drain native ZoetiCoach queue: ${e.message}", e)

@@ -21,7 +21,7 @@ final class SentryRelayService
      */
     public static function captureException(Throwable $e, array $context = [], ?string $overrideDsn = null): ?string
     {
-        $dsn = (string) ($overrideDsn ?: config('services.sentry.dsn') ?: env('SENTRY_LARAVEL_DSN') ?: env('VITE_SENTRY_DSN', ''));
+        $dsn = (string) ($overrideDsn ?: config('services.sentry.dsn', ''));
         if ($dsn === '' || str_contains($dsn, 'placeholder')) {
             return null;
         }
@@ -110,11 +110,14 @@ final class SentryRelayService
                 return $eventId;
             }
 
-            Log::channel('single')->warning('[SentryRelayService] Relay response non-2xx: ' . $response->status());
+            Log::channel('single')->warning('[SentryRelayService] Relay response non-2xx: '.$response->status());
+
             return null;
-        } catch (Throwable $dispatchError) {
-            Log::channel('single')->warning('[SentryRelayService] Relay dispatch failed: ' . $dispatchError->getMessage());
+        } catch (Throwable) {
+            Log::channel('single')->warning('[SentryRelayService] Relay dispatch failed');
+
             return null;
         }
     }
 }
+

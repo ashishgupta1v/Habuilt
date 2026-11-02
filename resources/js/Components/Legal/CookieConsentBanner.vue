@@ -61,7 +61,7 @@ const acceptEssential = () => {
             </button>
           </div>
           <p class="banner-desc">
-            Habuilt respects your digital sovereignty. We use minimal local telemetry and essential cookies to keep your habit ledger encrypted and synced.
+            Habuilt keeps habit check-ins in plain browser storage on this device until you sign in and sync. Essential cookies are used for the session. We do not sell your data.
             Read our
             <a href="/privacy" class="banner-link">Privacy Policy</a>
             and

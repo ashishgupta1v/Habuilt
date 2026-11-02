@@ -33,10 +33,19 @@ final readonly class DashboardController
     public function __invoke(Request $request): Response
     {
         $userId = $this->userResolver->resolve($request);
+        $today = new DateTimeImmutable('now');
+
+        if ($userId === null) {
+            return $this->renderShell($request, $today, null);
+        }
 
         $this->ensureDefaultHabits($userId);
 
-        $today = new DateTimeImmutable('now');
+        return $this->renderShell($request, $today, $userId);
+    }
+
+    private function renderShell(Request $request, DateTimeImmutable $today, ?UserId $userId): Response
+    {
         $currentMonthStart = new DateTimeImmutable($today->format('Y-m-01 00:00:00'));
         $minMonthStart = $currentMonthStart->modify(sprintf('-%d months', self::PAST_MONTH_LIMIT));
         $maxMonthStart = $currentMonthStart->modify(sprintf('+%d months', self::FUTURE_MONTH_LIMIT));
@@ -61,10 +70,12 @@ final readonly class DashboardController
             ? (int) $today->format('j')
             : ($isFutureMonth ? 1 : $monthDays);
 
-        $habitCards = array_map(
-            fn (Habit $habit): array => $this->mapHabitForDashboard($habit, $selectedMonthStart, $selectedMonthEnd, $currentDay),
-            $this->habits->findActiveByUser($userId),
-        );
+        $habitCards = $userId === null
+            ? []
+            : array_map(
+                fn (Habit $habit): array => $this->mapHabitForDashboard($habit, $selectedMonthStart, $selectedMonthEnd, $currentDay),
+                $this->habits->findActiveByUser($userId),
+            );
 
         $previousMonth = $selectedMonthStart->modify('-1 month');
         $nextMonth = $selectedMonthStart->modify('+1 month');
@@ -88,8 +99,8 @@ final readonly class DashboardController
                 'month' => (int) $nextMonth->format('m'),
                 'year' => (int) $nextMonth->format('Y'),
             ],
-            'userId' => $userId->value(),
-            'wallet' => $this->walletCarryForwardToMonth($userId, $selectedMonthEnd),
+            'userId' => $userId?->value() ?? '',
+            'wallet' => $userId === null ? 0 : $this->walletCarryForwardToMonth($userId, $selectedMonthEnd),
             'habits' => $habitCards,
         ]);
     }

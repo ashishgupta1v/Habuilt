@@ -23,10 +23,10 @@ def run_advanced_tests():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        ashish_user = {
-            "id": "ashish",
-            "email": "ashishgupta1v@gmail.com",
-            "user_metadata": {"full_name": "Ashish Gupta"}
+        founder_user = {
+            "id": "founder",
+            "email": "founder@habuilt.test",
+            "user_metadata": {"full_name": "Test Founder"}
         }
 
         print("\n=== RUNNING ADVANCED INTEGRATIONS & MODALS SUITE ===")
@@ -41,7 +41,7 @@ def run_advanced_tests():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
 
         page.goto(BASE_URL, wait_until="domcontentloaded")
@@ -299,7 +299,7 @@ def run_advanced_tests():
 
         page_mob.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
         page_mob.goto(BASE_URL, wait_until="domcontentloaded")
         page_mob.wait_for_selector(".mobile-compact-bar", timeout=10000)

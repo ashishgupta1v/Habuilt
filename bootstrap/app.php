@@ -20,6 +20,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/*',
+            'habits/*/check-ins',
+            'habits/check-ins',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

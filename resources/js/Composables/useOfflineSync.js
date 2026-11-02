@@ -7,19 +7,24 @@
  */
 
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from '@/lib/syncEngine';
+import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 
 export function useOfflineSync() {
-  const isOnline = ref(syncEngine.isOnline);
-  const syncState = ref(syncEngine.syncState);
-  const pendingCount = ref(syncEngine.getQueue().length);
-  const lastSyncedAt = ref(syncEngine.lastSyncedAt);
+  const initial = syncEngine.getState();
+  const isOnline = ref(initial.isOnline);
+  const syncState = ref(initial.syncState);
+  const pendingCount = ref(initial.pendingCount);
+  const deadLetterCount = ref(initial.deadLetterCount || 0);
+  const deadLetterMessage = ref(initial.deadLetterMessage || '');
+  const lastSyncedAt = ref(initial.lastSyncedAt);
 
   const updateState = (e) => {
     const detail = e?.detail || syncEngine.getState();
     isOnline.value = detail.isOnline;
     syncState.value = detail.syncState;
     pendingCount.value = detail.pendingCount;
+    deadLetterCount.value = detail.deadLetterCount || 0;
+    deadLetterMessage.value = detail.deadLetterMessage || '';
     lastSyncedAt.value = detail.lastSyncedAt;
   };
 
@@ -39,10 +44,14 @@ export function useOfflineSync() {
 
   const statusLabel = computed(() => {
     if (!isOnline.value) {
+      if (deadLetterCount.value > 0) return `Sync stopped (${deadLetterCount.value})`;
       return pendingCount.value > 0 ? `Offline • ${pendingCount.value}` : 'Offline';
     }
     if (syncState.value === 'syncing') {
       return 'Syncing...';
+    }
+    if (deadLetterCount.value > 0) {
+      return `Sync stopped (${deadLetterCount.value})`;
     }
     if (syncState.value === 'error') {
       return pendingCount.value > 0 ? `Retry (${pendingCount.value})` : 'Sync Failed';
@@ -59,6 +68,11 @@ export function useOfflineSync() {
     if (syncState.value === 'syncing') {
       return 'Synchronizing local changes with Supabase cloud...';
     }
+    if (deadLetterCount.value > 0) {
+      return deadLetterMessage.value
+        ? `${deadLetterMessage.value} Click to retry.`
+        : `${deadLetterCount.value} change(s) stopped retrying. Click to retry.`;
+    }
     if (syncState.value === 'error') {
       return `${pendingCount.value} changes could not be saved to cloud. Click to retry.`;
     }
@@ -68,6 +82,9 @@ export function useOfflineSync() {
   });
 
   const triggerFlush = async () => {
+    if ((syncEngine.getState().deadLetterCount || 0) > 0) {
+      return await retryDeadLetterMutations();
+    }
     return await flushOfflineMutationQueue();
   };
 
@@ -76,15 +93,23 @@ export function useOfflineSync() {
     updateState();
   };
 
+  const discardStopped = () => {
+    discardDeadLetterMutations();
+    updateState();
+  };
+
   return {
     isOnline,
     syncState,
     pendingCount,
+    deadLetterCount,
+    deadLetterMessage,
     lastSyncedAt,
     statusLabel,
     statusTooltip,
     flushQueue: triggerFlush,
     clearQueue: clearPending,
+    discardDeadLetters: discardStopped,
     enqueue: enqueueOfflineMutation,
   };
 }

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { ArrowLeft, ShieldAlert, Award, FileText, CheckCircle2, AlertOctagon, Scale, RefreshCw, Zap } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
-const lastUpdated = 'October 28, 2026';
+const lastUpdated = 'November 2, 2026';
 const activeSection = ref('acceptance');
 
 const scrollToSection = (id) => {
@@ -53,7 +53,7 @@ const scrollToSection = (id) => {
         <div class="legal-meta">
           <span>Last Revised: {{ lastUpdated }}</span>
           <span>•</span>
-          <span>Global Commercial Edition</span>
+          <span>Personal habit tracker</span>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ const scrollToSection = (id) => {
                 { id: 'acceptance', label: '1. Acceptance of Terms' },
                 { id: 'medical-disclaimer', label: '2. Medical & Wellness Disclaimer' },
                 { id: 'account-security', label: '3. Accounts & Security' },
-                { id: 'subscriptions-billing', label: '4. Subscriptions & Billing' },
+                { id: 'subscriptions-billing', label: '4. Price' },
                 { id: 'gamification-points', label: '5. Virtual Points & XP' },
                 { id: 'intellectual-property', label: '6. Intellectual Property & EULA' },
                 { id: 'limitation-liability', label: '7. Limitation of Liability' },
@@ -132,14 +132,11 @@ const scrollToSection = (id) => {
           <section id="subscriptions-billing" class="legal-card">
             <h2 class="card-heading">
               <Award class="icon-18 indigo-icon" />
-              <span>4. Commercial Subscriptions &amp; Billing</span>
+              <span>4. Price</span>
             </h2>
-            <p>Habuilt offers both free tiers and paid Pro / Duo subscription plans:</p>
-            <ul class="styled-list">
-              <li><strong>Billing Cycles:</strong> Paid subscriptions are billed on a recurring monthly or annual basis unless cancelled prior to renewal.</li>
-              <li><strong>Payment Processors:</strong> Web transactions are processed via Stripe; mobile in-app purchases are billed through Apple StoreKit or Google Play Billing in accordance with store terms.</li>
-              <li><strong>Refunds:</strong> In-app purchases on iOS and Android are managed directly by Apple and Google and are subject to their respective refund policies. Web subscriptions may be cancelled anytime with access continuing through the end of the paid billing period.</li>
-            </ul>
+            <p>
+              Habuilt does not currently charge for use. There is no Stripe checkout, App Store subscription, or Play billing in this app, and there are no Pro or Duo plans. If a paid plan is added later, these terms will be updated before any charge.
+            </p>
           </section>
 
           <!-- Section 5 -->
@@ -185,7 +182,7 @@ const scrollToSection = (id) => {
               <span>8. Termination &amp; Self-Service Account Purge</span>
             </h2>
             <p>
-              You may terminate your account at any time via <em>Protocol Settings &gt; Security &gt; Delete Account</em>. Upon termination, all personal data, habit logs, and credentials are permanently purged in accordance with our Privacy Policy.
+              You may delete your app data from Protocol Settings. That removes your rows in both ledgers and partner rows where you are a party. Points are not cash and are not paid out. The Supabase Auth user is deleted only when the server has the service-role key. When it does not, the account data is removed and the login identity may remain until the operator completes Auth deletion.
             </p>
           </section>
 

@@ -120,16 +120,16 @@ def run_live_production_verification():
         # Authenticate session
         page.evaluate("""() => {
             localStorage.setItem('habuilt_cached_user', JSON.stringify({
-                id: 'ashish',
-                email: 'ashishgupta1v@gmail.com',
+                id: 'founder',
+                email: 'founder@habuilt.test',
                 user_metadata: {
-                    full_name: 'Ashish Gupta',
-                    preferred_archetype: 'archetype-ashish',
+                    full_name: 'Test Founder',
+                    preferred_archetype: 'archetype-founder',
                     onboarding_completed: true
                 }
             }));
             localStorage.setItem('habuilt_guest_mode', 'false');
-            localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+            localStorage.setItem('habuilt_active_protocol_id_founder', 'archetype-founder');
         }""")
 
         page.goto("https://habuilt.com/", wait_until="networkidle", timeout=30000)

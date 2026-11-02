@@ -4,10 +4,10 @@ from playwright.sync_api import sync_playwright
 
 def verify_live_domain():
     print("Testing live Habuilt production domain: https://habuilt.com/ ...")
-    ashish_user = {
-        "id": "ashish",
-        "email": "ashishgupta1v@gmail.com",
-        "user_metadata": {"full_name": "Ashish Gupta"}
+    founder_user = {
+        "id": "founder",
+        "email": "founder@habuilt.test",
+        "user_metadata": {"full_name": "Test Founder"}
     }
 
     with sync_playwright() as p:
@@ -17,10 +17,10 @@ def verify_live_domain():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
-            localStorage.setItem('habuilt_active_protocol_id_01JQ7M2X4V8K3P6R9T1W5Y7ZAB', 'archetype-ashish');
-            localStorage.setItem('habuilt_active_protocol_id_ashish', 'archetype-ashish');
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
+            localStorage.setItem('habuilt_active_protocol_id_01JQ7M2X4V8K3P6R9T1W5Y7ZAB', 'archetype-founder');
+            localStorage.setItem('habuilt_active_protocol_id_founder', 'archetype-founder');
         """)
 
         response = page.goto("https://habuilt.com/", wait_until="domcontentloaded", timeout=25000)
@@ -39,10 +39,8 @@ def verify_live_domain():
         print(f"Top 3 habits: {[n.strip() for n in names[:3]]}")
 
         content = page.content()
-        assert "Fennel" in content, "Fennel seed water missing from DOM"
-        assert "Surya Namaskar" in content, "Surya Namaskar missing from DOM"
-        assert "Downward Dog" in content, "Downward Dog missing from DOM"
-        print("PASS: Verified 3-Week Clinical Protocol on https://habuilt.com/!")
+        assert "Deep Architecture Sprint" in content or "Wake Up" in content, "Public founder protocol missing from DOM"
+        print("PASS: Public protocol rendered on https://habuilt.com/")
 
         page.screenshot(path="tests/screenshots/habuilt_live_ssl.png", full_page=False)
         print("Screenshot saved to tests/screenshots/habuilt_live_ssl.png")

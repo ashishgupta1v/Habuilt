@@ -4,9 +4,9 @@ import asyncio
 from playwright.async_api import async_playwright
 
 test_user = {
-    "id": "ashish",
-    "email": "ashishgupta1v@gmail.com",
-    "user_metadata": {"full_name": "Ashish Gupta"}
+    "id": "founder",
+    "email": "founder@habuilt.test",
+    "user_metadata": {"full_name": "Test Founder"}
 }
 
 SCREENSHOT_DIR = r"C:\Users\ashis\.gemini\antigravity-ide\brain\36eaa7a1-e32b-421a-94d0-3e5580d6e994"
@@ -21,7 +21,7 @@ async def measure_step6():
         await page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(test_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         await page.goto("http://localhost:4173/", wait_until="networkidle")
         await page.wait_for_selector(".dashboard-flow", timeout=10000)
@@ -113,7 +113,7 @@ async def measure_step6():
         await m_page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
             localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(test_user)}));
-            localStorage.setItem('habuilt_onboarding_completed_ashish', 'true');
+            localStorage.setItem('habuilt_onboarding_completed_founder', 'true');
         """)
         await m_page.goto("http://localhost:4173/", wait_until="networkidle")
         await m_page.wait_for_selector(".dashboard-flow", timeout=10000)

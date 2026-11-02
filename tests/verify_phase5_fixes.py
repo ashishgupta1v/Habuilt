@@ -39,9 +39,9 @@ def run_phase5_verification():
         page = ctx.new_page()
 
         test_user = {
-            "id": "ashish-test-uuid",
-            "name": "Ashish",
-            "email": "ashish@habuilt.test",
+            "id": "founder-test-uuid",
+            "name": "Founder",
+            "email": "founder@habuilt.test",
             "tier": "sovereign",
         }
         page.add_init_script(f"""

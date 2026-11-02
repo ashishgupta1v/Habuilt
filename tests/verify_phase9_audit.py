@@ -15,9 +15,9 @@ async def run_audit():
         results.append({"name": name, "passed": passed, "details": details})
 
     test_user = {
-        "id": "ashish-test-uuid",
-        "name": "Ashish",
-        "email": "ashish@habuilt.test",
+        "id": "founder-test-uuid",
+        "name": "Founder",
+        "email": "founder@habuilt.test",
         "tier": "sovereign",
     }
     init_script = f"""

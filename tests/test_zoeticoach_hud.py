@@ -23,10 +23,10 @@ def run_zoeticoach_hud_test():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        ashish_user = {
-            "id": "ashish",
-            "email": "ashishgupta1v@gmail.com",
-            "user_metadata": {"full_name": "Ashish Gupta"}
+        founder_user = {
+            "id": "founder",
+            "email": "founder@habuilt.test",
+            "user_metadata": {"full_name": "Test Founder"}
         }
 
         print("\n=== RUNNING ZOETICOACH LIVE ADHERENCE HUD TEST ===")
@@ -41,7 +41,7 @@ def run_zoeticoach_hud_test():
 
         page.add_init_script(f"""
             localStorage.setItem('habuilt_guest_mode', 'true');
-            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(ashish_user)}));
+            localStorage.setItem('habuilt_cached_user', JSON.stringify({json.dumps(founder_user)}));
         """)
 
         page.goto(BASE_URL, wait_until="domcontentloaded", timeout=15000)
@@ -58,7 +58,7 @@ def run_zoeticoach_hud_test():
 
         participant = page.locator(".hud-participant")
         participant_text = participant.text_content() if participant.count() > 0 else ""
-        record_result("Participant Name Present", "Ashish" in participant_text, f"(got: {participant_text})")
+        record_result("Participant Name Present", "Founder" in participant_text or "Member" in participant_text, f"(got: {participant_text})")
 
         # 3. Check Sync Live button
         sync_btn = page.locator(".hud-btn--sync")

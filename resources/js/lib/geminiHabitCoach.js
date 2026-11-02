@@ -161,8 +161,6 @@ export function generateHeuristicBriefing(ctx, personaKey = 'executive') {
   let partnerSynergy = '';
   if (ctx.partnerName && ctx.partnerName !== 'Partner') {
     partnerSynergy = `Accountability link with ${ctx.partnerName} is synchronized. Sync on today's shared anchors and send a live cheer when you hit targets.`;
-  } else if (ctx.isAshish || ctx.isJyoti) {
-    partnerSynergy = `Shared couple anchors today: sync on the midday meal, evening walk, and night gratitude window.`;
   } else {
     partnerSynergy = `Daily alignment active. Stay focused on your primary commitments and protect your recovery window.`;
   }
