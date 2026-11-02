@@ -3,7 +3,8 @@
 return [
     'default' => env('DB_CONNECTION', 'pgsql'),
 
-    // Read by habuilt:secure-ledger only. The app connection stays on DB_URL / DB_HOST.
+    // Supabase ledger only. Web requests keep using DB_URL / DB_HOST.
+    // Read by habuilt:secure-ledger and by account deletion for the caller's rows.
     'habuilt_ledger_url' => env('HABUILT_LEDGER_DATABASE_URL', ''),
 
     'connections' => [

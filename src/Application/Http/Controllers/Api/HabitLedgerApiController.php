@@ -544,8 +544,9 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Delete the caller's rows in the SPA ledger and the domain ledger.
-     * Supabase Auth deletion runs only when a server service-role key is configured.
+     * Delete the caller's rows in the app database and, when configured,
+     * the same caller's SPA rows on the Supabase ledger. Auth deletion runs
+     * only when a server service-role key is configured.
      */
     public function deleteUserAccount(Request $request): JsonResponse
     {
@@ -558,6 +559,8 @@ final class HabitLedgerApiController
             $this->deleteSpaRows($userId);
             $this->deleteDomainRows($userId);
         });
+
+        $this->deleteLedgerRows($userId);
 
         $auth = $this->deleteSupabaseAuthUser($userId);
 
@@ -574,22 +577,60 @@ final class HabitLedgerApiController
         ]);
     }
 
-    private function deleteSpaRows(string $userId): void
+    /**
+     * Remove one user's SPA rows. Partner rows are included only when this user is a party.
+     */
+    private function deleteSpaRows(string $userId, ?string $connection = null): void
     {
+        $connectionName = $connection ?? (string) config('database.default');
+        $schema = Schema::connection($connectionName);
+        $db = DB::connection($connectionName);
+
         foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers'] as $table) {
-            if (Schema::hasTable($table)) {
-                DB::table($table)->where('user_id', $userId)->delete();
+            if ($schema->hasTable($table)) {
+                $db->table($table)->where('user_id', $userId)->delete();
             }
         }
 
-        if (Schema::hasTable('partner_connections')) {
-            DB::table('partner_connections')
+        if ($schema->hasTable('partner_connections')) {
+            $db->table('partner_connections')
                 ->where(function ($query) use ($userId): void {
                     $query->where('user_id', $userId)
                         ->orWhere('partner_user_id', $userId);
                 })
                 ->delete();
         }
+    }
+
+    /**
+     * Delete the caller's SPA rows on the Supabase ledger without changing
+     * the application database connection.
+     */
+    private function deleteLedgerRows(string $userId): void
+    {
+        $url = trim((string) config('database.habuilt_ledger_url', ''));
+        if ($url === '') {
+            return;
+        }
+
+        if (!is_array(config('database.connections.supabase_ledger'))) {
+            $base = config('database.connections.pgsql');
+            if (!is_array($base)) {
+                $base = ['driver' => 'pgsql'];
+            }
+
+            config([
+                'database.connections.supabase_ledger' => array_merge($base, [
+                    'driver' => 'pgsql',
+                    'url' => $url,
+                ]),
+            ]);
+            DB::purge('supabase_ledger');
+        }
+
+        DB::connection('supabase_ledger')->transaction(function () use ($userId): void {
+            $this->deleteSpaRows($userId, 'supabase_ledger');
+        });
     }
 
     private function deleteDomainRows(string $userId): void

@@ -14,6 +14,9 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
     {
         parent::setUp();
 
+        // Keep the suite off the real Supabase ledger. The ledger test sets its own connection.
+        config(['database.habuilt_ledger_url' => '']);
+
         // Ensure sqlite in-memory tables exist for testing
         DB::statement('CREATE TABLE IF NOT EXISTS habit_check_ins (
             id TEXT PRIMARY KEY,
@@ -168,6 +171,149 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         // Verify all records purged
         $this->assertEquals(0, DB::table('habit_check_ins')->where('user_id', $carolId)->count());
         $this->assertEquals(0, DB::table('user_settings')->where('user_id', $carolId)->count());
+    }
+
+    public function test_account_deletion_clears_caller_rows_on_app_and_ledger_connections(): void
+    {
+        config([
+            'database.habuilt_ledger_url' => 'sqlite://ledger-test',
+            'database.connections.supabase_ledger' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+                'foreign_key_constraints' => true,
+            ],
+        ]);
+        DB::purge('supabase_ledger');
+
+        foreach ([
+            'CREATE TABLE habit_check_ins (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                habit_id TEXT NOT NULL,
+                habit_name TEXT,
+                month_key TEXT NOT NULL,
+                day INTEGER NOT NULL,
+                completed_on DATE NOT NULL,
+                points INTEGER NOT NULL DEFAULT 1,
+                canonical_key TEXT,
+                source TEXT DEFAULT "web",
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )',
+            'CREATE TABLE user_settings (
+                user_id TEXT PRIMARY KEY,
+                day_type TEXT,
+                dark_mode BOOLEAN,
+                updated_at TIMESTAMP
+            )',
+            'CREATE TABLE user_protocols (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )',
+            'CREATE TABLE user_biomarkers (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                log_date DATE NOT NULL,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )',
+            'CREATE TABLE partner_connections (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                partner_user_id TEXT,
+                invite_code TEXT UNIQUE,
+                status TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )',
+        ] as $sql) {
+            DB::connection('supabase_ledger')->statement($sql);
+        }
+
+        $callerId = 'usr_caller_'.uniqid();
+        $otherId = 'usr_other_'.uniqid();
+        $now = now();
+
+        $seed = function (?string $connection) use ($callerId, $otherId, $now): void {
+            $db = DB::connection($connection);
+            $suffix = $connection ?? 'app';
+            foreach ([$callerId => 'water', $otherId => 'read'] as $userId => $habitId) {
+                $db->table('habit_check_ins')->insert([
+                    'id' => $suffix.'-'.$habitId,
+                    'user_id' => $userId,
+                    'habit_id' => $habitId,
+                    'month_key' => '2026-11',
+                    'day' => 2,
+                    'completed_on' => '2026-11-02',
+                    'points' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                $db->table('user_settings')->insert([
+                    'user_id' => $userId,
+                    'day_type' => 'home',
+                    'updated_at' => $now,
+                ]);
+                $db->table('user_protocols')->insert([
+                    'id' => $suffix.'-protocol-'.$habitId,
+                    'user_id' => $userId,
+                    'name' => 'Protocol',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                $db->table('user_biomarkers')->insert([
+                    'id' => $suffix.'-bio-'.$habitId,
+                    'user_id' => $userId,
+                    'log_date' => '2026-11-02',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+            $db->table('partner_connections')->insert([
+                'id' => $suffix.'-caller-partner',
+                'user_id' => $callerId,
+                'partner_user_id' => null,
+                'invite_code' => $suffix.'-caller',
+                'status' => 'pending',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $db->table('partner_connections')->insert([
+                'id' => $suffix.'-other-partner',
+                'user_id' => $otherId,
+                'partner_user_id' => 'usr_someone_else',
+                'invite_code' => $suffix.'-other',
+                'status' => 'pending',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        };
+
+        $seed(null);
+        $seed('supabase_ledger');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($callerId))
+            ->deleteJson('/api/user-account')
+            ->assertStatus(200)
+            ->assertJsonPath('app_data_deleted', true);
+
+        foreach ([null, 'supabase_ledger'] as $connection) {
+            $db = DB::connection($connection);
+            $this->assertSame(0, $db->table('habit_check_ins')->where('user_id', $callerId)->count());
+            $this->assertSame(0, $db->table('user_settings')->where('user_id', $callerId)->count());
+            $this->assertSame(0, $db->table('user_protocols')->where('user_id', $callerId)->count());
+            $this->assertSame(0, $db->table('user_biomarkers')->where('user_id', $callerId)->count());
+            $this->assertSame(0, $db->table('partner_connections')->where('user_id', $callerId)->count());
+            $this->assertSame(1, $db->table('habit_check_ins')->where('user_id', $otherId)->count());
+            $this->assertSame(1, $db->table('user_settings')->where('user_id', $otherId)->count());
+            $this->assertSame(1, $db->table('user_protocols')->where('user_id', $otherId)->count());
+            $this->assertSame(1, $db->table('user_biomarkers')->where('user_id', $otherId)->count());
+            $this->assertSame(1, $db->table('partner_connections')->where('user_id', $otherId)->count());
+        }
     }
 
     public function test_forged_signature_is_rejected_when_jwt_secret_is_configured(): void
