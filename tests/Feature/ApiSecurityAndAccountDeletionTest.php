@@ -637,7 +637,91 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         $this->assertSame(3, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
     }
 
-    public function test_partner_metrics_are_a_scoped_projection_and_reject_unlinked_users(): void
+    public function test_legacy_one_row_accepted_connection_can_read_the_partner_projection(): void
+    {
+        DB::table('habit_check_ins')->insert([
+            'id' => 'bob-checkin',
+            'user_id' => 'usr_bob',
+            'habit_id' => 'walk',
+            'habit_name' => 'Walk',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 4,
+            'canonical_key' => 'walk',
+            'source' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('habit_check_ins')->insert([
+            'id' => 'alice-checkin',
+            'user_id' => 'usr_alice',
+            'habit_id' => 'read',
+            'habit_name' => 'Read',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 2,
+            'canonical_key' => 'read',
+            'source' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('habit_check_ins')->insert([
+            'id' => 'dave-checkin',
+            'user_id' => 'usr_dave',
+            'habit_id' => 'secret',
+            'habit_name' => 'Secret',
+            'month_key' => '2026-11',
+            'day' => 2,
+            'completed_on' => '2026-11-02',
+            'points' => 9,
+            'canonical_key' => 'secret',
+            'source' => 'web',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('partner_connections')->insert([
+            'id' => 'legacy-one-row',
+            'user_id' => 'usr_alice',
+            'partner_user_id' => 'usr_bob',
+            'invite_code' => 'LEGACY-PAIR',
+            'status' => 'accepted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(401);
+
+        $alice = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'));
+        $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(200)
+            ->assertJsonPath('partner_user_id', 'usr_bob')
+            ->assertJsonPath('check_ins.0.habit_id', 'walk')
+            ->assertJsonPath('check_ins.0.points', 4)
+            ->assertJsonMissingPath('check_ins.0.user_id')
+            ->assertJsonMissingPath('check_ins.0.source');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_bob'))
+            ->getJson('/api/partner-metrics?partner_user_id=usr_alice&month_key=2026-11')
+            ->assertStatus(200)
+            ->assertJsonPath('check_ins.0.habit_id', 'read')
+            ->assertJsonMissingPath('check_ins.0.user_id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_carol'))
+            ->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(403);
+
+        $alice->getJson('/api/partner-metrics?partner_user_id=usr_dave&month_key=2026-11')
+            ->assertStatus(403);
+        $alice->getJson('/api/habits/check-ins?user_id=usr_bob&month_key=2026-11')
+            ->assertStatus(403);
+        $alice->getJson('/api/habits/check-ins?user_id=usr_dave&month_key=2026-11')
+            ->assertStatus(403);
+    }
+
+    public function test_pending_or_self_minted_connection_does_not_grant_partner_metrics(): void
     {
         DB::table('habit_check_ins')->insert([
             'id' => 'bob-checkin',
@@ -654,41 +738,32 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             'updated_at' => now(),
         ]);
         DB::table('partner_connections')->insert([
-            'id' => 'forged-by-alice',
+            'id' => 'pending-both',
             'user_id' => 'usr_alice',
             'partner_user_id' => 'usr_bob',
-            'invite_code' => 'FORGED-ALICE',
-            'status' => 'connected',
+            'invite_code' => 'STILL-PENDING',
+            'status' => 'pending',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
-            ->assertStatus(401);
-
         $alice = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'));
-
         $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
             ->assertStatus(403);
 
-        DB::table('partner_connections')->insert([
-            'id' => 'bob-owns-link',
-            'user_id' => 'usr_bob',
-            'partner_user_id' => 'usr_alice',
-            'invite_code' => 'BOB-REAL',
-            'status' => 'connected',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $alice->postJson('/api/partner-connections', [
+            'invite_code' => 'MINT-ALICE',
+            'status' => 'accepted',
+            'partner_user_id' => 'usr_bob',
+        ])->assertStatus(200);
 
-        $response = $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11');
-        $response->assertStatus(200)
-            ->assertJsonPath('check_ins.0.habit_id', 'walk')
-            ->assertJsonPath('check_ins.0.points', 4)
-            ->assertJsonMissingPath('check_ins.0.user_id')
-            ->assertJsonMissingPath('check_ins.0.source');
+        $minted = DB::table('partner_connections')->where('invite_code', 'MINT-ALICE')->first();
+        $this->assertNotNull($minted);
+        $this->assertSame('usr_alice', $minted->user_id);
+        $this->assertNull($minted->partner_user_id);
+        $this->assertSame('pending', $minted->status);
 
-        $alice->getJson('/api/habits/check-ins?user_id=usr_bob&month_key=2026-11')
+        $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
             ->assertStatus(403);
     }
 

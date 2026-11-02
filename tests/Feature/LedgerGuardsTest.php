@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Services\Ledger\CheckInDuplicateCollapser;
+use App\Services\Ledger\LedgerDatabaseTarget;
 use App\Services\Ledger\SpaLedgerGuard;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -68,6 +69,29 @@ final class LedgerGuardsTest extends TestCase
         $this->assertSame(2, DB::table('habit_check_ins')->where('user_id', 'user-a')->count());
         $indexes = DB::select("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", [SpaLedgerGuard::UNIQUE_INDEX]);
         $this->assertSame([], $indexes);
+    }
+
+    public function test_secure_ledger_can_target_a_separate_database_url(): void
+    {
+        $originalConnection = DB::getDefaultConnection();
+        $originalAppUrl = config('database.connections.pgsql.url');
+
+        try {
+            $this->assertSame('default', (new LedgerDatabaseTarget())->useUrl(''));
+            $this->assertSame($originalConnection, DB::getDefaultConnection());
+
+            $target = (new LedgerDatabaseTarget())->useUrl('postgresql://ledger:example@db.example.test:5432/postgres');
+            $this->assertSame('supabase', $target);
+            $this->assertSame('supabase_ledger', DB::getDefaultConnection());
+            $this->assertSame(
+                'postgresql://ledger:example@db.example.test:5432/postgres',
+                config('database.connections.supabase_ledger.url')
+            );
+            $this->assertSame($originalAppUrl, config('database.connections.pgsql.url'));
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('supabase_ledger');
+        }
     }
 
     public function test_guard_creates_the_unique_index_the_api_upsert_uses(): void

@@ -371,9 +371,9 @@ final class HabitLedgerApiController
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
+        // Callers may refresh their own invite. They cannot attach another person
+        // or mark the row accepted; acceptPartnerInvite is the only consent path.
         $fields = [
-            'partner_user_id' => $request->input('partner_user_id'),
-            'status' => (string) $request->input('status', 'pending'),
             'alias' => $request->input('alias'),
             'permissions' => json_encode($request->input('permissions', (object) [])),
             'updated_at' => now(),
@@ -389,6 +389,8 @@ final class HabitLedgerApiController
             'id' => (string) Str::uuid(),
             'user_id' => $userId,
             'invite_code' => $inviteCode,
+            'partner_user_id' => null,
+            'status' => 'pending',
             'created_at' => now(),
             ...$fields,
         ]);
@@ -397,7 +399,8 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Limited partner progress. The caller must be named on a row the partner owns.
+     * Limited partner progress for an accepted pairing.
+     * One accepted row is enough, in either direction. Pending invites are not.
      * This does not return the partner's full ledger and is the only cross-user read.
      */
     public function getPartnerMetrics(Request $request): JsonResponse
@@ -670,9 +673,20 @@ final class HabitLedgerApiController
             return false;
         }
 
+        if (CurrentUserResolver::isGuestSubject($partnerUserId) || CurrentUserResolver::isGuestSubject($userId)) {
+            return false;
+        }
+
         return DB::table('partner_connections')
-            ->where('user_id', $partnerUserId)
-            ->where('partner_user_id', $userId)
+            ->where(function ($query) use ($partnerUserId, $userId): void {
+                $query->where(function ($forward) use ($partnerUserId, $userId): void {
+                    $forward->where('user_id', $partnerUserId)
+                        ->where('partner_user_id', $userId);
+                })->orWhere(function ($legacy) use ($partnerUserId, $userId): void {
+                    $legacy->where('user_id', $userId)
+                        ->where('partner_user_id', $partnerUserId);
+                });
+            })
             ->whereRaw('lower(status) in (?, ?)', ['connected', 'accepted'])
             ->exists();
     }

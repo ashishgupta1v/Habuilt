@@ -61,12 +61,27 @@ Artisan::command('sentry:configure {dsn}', function (string $dsn): void {
     $this->call('config:clear');
 })->purpose('Configure SENTRY_LARAVEL_DSN in .env and refresh config cache.');
 
-Artisan::command('habuilt:secure-ledger', function (): int {
+Artisan::command('habuilt:secure-ledger {--database-url=}', function (): int {
+    $passed = trim((string) $this->option('database-url'));
+    $configured = trim((string) config('database.habuilt_ledger_url', ''));
+    $target = (new \App\Services\Ledger\LedgerDatabaseTarget())->useUrl($passed !== '' ? $passed : $configured);
+    $this->info('target='.$target);
+
     try {
         $result = (new \App\Services\Ledger\SpaLedgerGuard())->ensure();
     } catch (\App\Services\Ledger\CheckInConstraintConflict $exception) {
         $this->error($exception->getMessage());
         $this->error('conflicting_groups='.$exception->conflictingGroups);
+        $this->error('unique_index=not_created');
+        $this->error('rls=not_applied');
+
+        return 1;
+    } catch (\Throwable $exception) {
+        if ($target !== 'supabase') {
+            throw $exception;
+        }
+
+        $this->error('ledger_error='.$exception::class);
         $this->error('unique_index=not_created');
         $this->error('rls=not_applied');
 

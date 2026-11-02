@@ -3,6 +3,9 @@
 return [
     'default' => env('DB_CONNECTION', 'pgsql'),
 
+    // Read by habuilt:secure-ledger only. The app connection stays on DB_URL / DB_HOST.
+    'habuilt_ledger_url' => env('HABUILT_LEDGER_DATABASE_URL', ''),
+
     'connections' => [
         'sqlite' => [
             'driver' => 'sqlite',
