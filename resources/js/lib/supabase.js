@@ -273,42 +273,7 @@ export const recordHabitCheckIn = async ({
     }
   }
 
-  // Fallback only when this browser already has a signed-in session.
-  const insertToken = await sessionAccessToken();
-  if (insertToken && isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase
-        .from('habit_check_ins')
-        .upsert(
-          {
-            user_id: userId,
-            habit_id: String(habitId),
-            habit_name: habitName,
-            month_key: monthKey,
-            day: Number(day),
-            completed_on: dateStr,
-            points: Number(points) || 1,
-            canonical_key: canonicalKey || null,
-            source: source,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,habit_id,month_key,day' }
-        );
-      if (!error) {
-        dispatchZoetiCoachEvent({
-          externalParticipantId: userId,
-          eventType: 'habit_completed',
-          eventValue: habitName,
-          habitId: habitId,
-          points: points,
-          occurredAt: dateStr,
-          source: source,
-        }).catch(() => {});
-        return true;
-      }
-    } catch {}
-  }
-
+  // The Laravel API is the only writer. A failure stays in the offline queue.
   if (!skipQueue) {
     enqueueOfflineMutation('INSERT', {
       userId,
@@ -368,31 +333,6 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, ski
 
       return true;
     }
-  }
-
-  const deleteToken = await sessionAccessToken();
-  if (deleteToken && isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase
-        .from('habit_check_ins')
-        .delete()
-        .eq('user_id', userId)
-        .eq('habit_id', String(habitId))
-        .eq('month_key', monthKey)
-        .eq('day', Number(day));
-      if (!error) {
-        dispatchZoetiCoachEvent({
-          externalParticipantId: userId,
-          eventType: 'habit_unmarked',
-          eventValue: String(habitId),
-          habitId: habitId,
-          points: 0,
-          occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
-          source: 'web',
-        }).catch(() => {});
-        return true;
-      }
-    } catch {}
   }
 
   if (!skipQueue) {
@@ -481,26 +421,6 @@ export const saveUserSettings = async (userId, settingsPayload) => {
       dark_mode: false,
     });
     if (localRes && localRes.success) return true;
-  }
-
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: userId,
-          progressive_settings: settingsPayload.progressiveSettings || {},
-          custom_habits: settingsPayload.customHabits || [],
-          rewards: settingsPayload.rewards || [],
-          reward_ledger: settingsPayload.rewardLedger || [],
-          weekly_reviews: settingsPayload.weeklyReviews || {},
-          enhanced_state: settingsPayload.enhancedState || {},
-          day_type: settingsPayload.dayType || 'home',
-          dark_mode: false,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-      if (!error) return true;
-    } catch {}
   }
 
   return false;
@@ -743,16 +663,6 @@ export const saveUserBiomarker = async ({
   if (USE_LOCAL_API) {
     const localRes = await callLocalApi('/api/user-biomarkers', 'POST', payload);
     if (localRes && localRes.success) return true;
-  }
-
-  if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from('user_biomarkers').upsert({
-        ...payload,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,log_date' });
-      if (!error) return true;
-    } catch {}
   }
 
   return false;

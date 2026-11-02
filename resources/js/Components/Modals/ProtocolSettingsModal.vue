@@ -54,7 +54,8 @@ import {
   AlertTriangle,
   Bug,
 } from 'lucide-vue-next';
-import { purgeUserAccount, supabase } from '@/lib/supabase';
+import { callLocalApi, purgeUserAccount, supabase } from '@/lib/supabase';
+import { clearNativeWidgetSession } from '@/Composables/useNativeWidget';
 import {
   telemetry,
   exportDiagnostics,
@@ -776,17 +777,18 @@ const isDeleteConfirmOpen = ref(false);
 const deleteConfirmText = ref('');
 const isDeletingAccount = ref(false);
 
-const handleExportAllUserData = () => {
+const handleExportAllUserData = async () => {
   try {
-    const exportData = {
-      exportDate: new Date().toISOString(),
-      userId: props.userId,
-      displayName: props.displayName,
-      activeProtocolId: props.activeProtocolId,
-      progressiveSettings: props.progressiveSettings,
-      habits: props.habits,
-      allProtocols: props.allProtocols,
-    };
+    const guest = typeof localStorage !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
+    if (guest || props.userId === 'guest') {
+      emit('toast', 'Guest data stays on this device. Sign in to export an account.');
+      return;
+    }
+    const exportData = await callLocalApi('/api/account-export', 'GET', null, { returnError: true });
+    if (!exportData || exportData.success === false || exportData.error || exportData.user_id !== props.userId) {
+      emit('toast', 'Export failed. Sign in and try again.');
+      return;
+    }
     const jsonStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -817,6 +819,9 @@ const handleConfirmAccountDeletion = async () => {
         : 'Account data was not deleted.');
       return;
     }
+    try {
+      await clearNativeWidgetSession({ wipeDisplay: true });
+    } catch {}
     try {
       await supabase.auth.signOut();
     } catch {}
@@ -2067,7 +2072,7 @@ const handlePurgeTelemetryBuffer = () => {
                   <span>Export Personal Data</span>
                 </div>
                 <p class="text-[11px] text-gray-400 mt-1 leading-snug">
-                  Download an offline JSON archive containing your habit ledger, custom protocols, settings, and biomarkers.
+                  Download a JSON file of your check-ins, settings, protocols, biomarkers, and monthly state from this account.
                 </p>
                 <button
                   type="button"
@@ -2087,7 +2092,7 @@ const handlePurgeTelemetryBuffer = () => {
                   <span>Delete Account &amp; Purge Data</span>
                 </div>
                 <p class="text-[11px] text-gray-400 mt-1 leading-snug">
-                  Removes your rows in both ledgers and partner rows where you are a party. Your login is deleted only when the server has the service-role key. Otherwise the login identity may remain until the operator completes Auth deletion.
+                  Removes your check-ins, settings, protocols, biomarkers, and monthly state on both databases, plus partner rows where you are a party. Your login is deleted when the server has the service-role key. Browser storage and the phone widget snapshot are not encrypted.
                 </p>
                 <button
                   type="button"
@@ -2108,7 +2113,7 @@ const handlePurgeTelemetryBuffer = () => {
                 <span>Confirm Irreversible Account Deletion</span>
               </div>
               <p class="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                Type <strong class="text-white font-mono bg-white/10 px-1 py-0.5 rounded">DELETE</strong> to remove your app rows in both ledgers and partner rows where you are a party. Points are not cash. If the server has no service-role key, the login identity may remain until the operator completes Auth deletion.
+                Type <strong class="text-white font-mono bg-white/10 px-1 py-0.5 rounded">DELETE</strong> to remove your check-ins, settings, protocols, biomarkers, and monthly state, plus partner rows where you are a party. Points are not cash. The login is deleted when the server has the service-role key.
               </p>
               <div class="flex items-center gap-2 mt-2.5">
                 <input

@@ -91,7 +91,7 @@ jobs:
             ### ✨ Features in this build:
             - **⚡ Live Due Now Widget**: 4x2 / 4x1 home screen widget displaying active routine task, time slot, and streak.
             - **✓ 1-Tap [Mark Done]**: Complete tasks directly from your home screen with haptic feedback without opening the app.
-            - **🔄 Supabase Cloud Sync**: Instant background persistence of completed habits.
+            - **🔄 Laravel check-in**: Mark Done posts to the signed-in account API and stays queued on the phone if that request cannot be reached.
             - **🛡️ Universal Compatibility**: Compiled for Android API 34 with dual v1 (JAR) & v2 (APK) cryptographic signatures for 100% parse & install compatibility across Android 7 through Android 15.
             - **🚀 Fast Local Cache**: 0ms latency widget updates.
 

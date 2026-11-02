@@ -109,19 +109,6 @@ async function deleteCredentialFromDb(id) {
   }
 }
 
-// Simple SHA-256 equivalent for local PIN storage
-async function hashPin(pin) {
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin + 'habuilt-salt-2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-  return btoa(pin);
-}
-
 export function useBiometricVault() {
   const checkSupport = async () => {
     if (typeof window !== 'undefined' && window.PublicKeyCredential) {
@@ -156,8 +143,10 @@ export function useBiometricVault() {
         isVaultLocked.value = false;
       }
 
-      const savedPin = localStorage.getItem('habuilt_vault_pin');
-      if (savedPin) pinHash.value = savedPin;
+      try {
+        localStorage.removeItem('habuilt_vault_pin');
+      } catch (_) {}
+      pinHash.value = '';
 
       const savedSections = localStorage.getItem('habuilt_vault_sections');
       if (savedSections) {
@@ -391,25 +380,9 @@ export function useBiometricVault() {
   /**
    * PIN fallback unlock
    */
-  const authenticateWithPin = async (enteredPin) => {
-    authError.value = '';
-    if (!enteredPin || enteredPin.length < 4) {
-      authError.value = 'Please enter a 4-digit PIN.';
-      return false;
-    }
-
-    const hashed = await hashPin(enteredPin);
-    const defaultHash = await hashPin('0000');
-    const valid = pinHash.value ? (hashed === pinHash.value) : (hashed === defaultHash);
-
-    if (valid) {
-      isVaultLocked.value = false;
-      lastUnlockedAt.value = Date.now();
-      return true;
-    } else {
-      authError.value = 'Incorrect PIN. Try again (Default: 0000).';
-      return false;
-    }
+  const authenticateWithPin = async () => {
+    authError.value = 'This device does not keep a PIN. Use the device vault.';
+    return false;
   };
 
   const lockVault = () => {
@@ -422,27 +395,18 @@ export function useBiometricVault() {
     lastUnlockedAt.value = Date.now();
   };
 
-  const configureVault = async (enable, pin = '0000') => {
+  const configureVault = async (enable) => {
     isVaultConfigured.value = Boolean(enable);
     localStorage.setItem('habuilt_vault_configured', enable ? 'true' : 'false');
-    if (enable) {
-      isVaultLocked.value = true;
-      const hashed = await hashPin(pin);
-      pinHash.value = hashed;
-      localStorage.setItem('habuilt_vault_pin', hashed);
-    } else {
-      isVaultLocked.value = false;
-    }
+    pinHash.value = '';
+    try {
+      localStorage.removeItem('habuilt_vault_pin');
+    } catch (_) {}
+    isVaultLocked.value = Boolean(enable);
   };
 
-  const updatePin = async (newPin) => {
-    if (!newPin || newPin.length < 4) {
-      throw new Error('PIN must be at least 4 digits');
-    }
-    const hashed = await hashPin(newPin);
-    pinHash.value = hashed;
-    localStorage.setItem('habuilt_vault_pin', hashed);
-    return true;
+  const updatePin = async () => {
+    throw new Error('A PIN is not stored on this device. Use the device vault.');
   };
 
   const toggleSectionProtection = (section) => {

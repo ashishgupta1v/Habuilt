@@ -1,6 +1,19 @@
 import { Capacitor } from '@capacitor/core';
 import { enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
 
+export async function clearNativeWidgetSession({ wipeDisplay = false } = {}) {
+  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
+  try {
+    const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);
+    const HabuiltWidget = plugins?.HabuiltWidget;
+    if (HabuiltWidget && typeof HabuiltWidget.clearWidgetSession === 'function') {
+      await HabuiltWidget.clearWidgetSession({ wipeDisplay });
+    }
+  } catch (err) {
+    console.warn('Native widget session clear warning:', err);
+  }
+}
+
 export function useNativeWidget() {
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
 
@@ -99,5 +112,6 @@ export function useNativeWidget() {
     syncNativeWidget,
     getNativeWidgetData,
     drainNativeZoetiQueue,
+    clearWidgetSession: clearNativeWidgetSession,
   };
 }

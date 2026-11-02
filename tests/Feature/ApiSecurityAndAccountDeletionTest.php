@@ -185,6 +185,12 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             ],
         ]);
         DB::purge('supabase_ledger');
+        DB::statement('CREATE TABLE IF NOT EXISTS user_monthly_states (
+            user_id TEXT NOT NULL,
+            month_key TEXT NOT NULL,
+            state_data TEXT,
+            updated_at TIMESTAMP
+        )');
 
         foreach ([
             'CREATE TABLE habit_check_ins (
@@ -230,6 +236,12 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
                 created_at TIMESTAMP,
                 updated_at TIMESTAMP
             )',
+            'CREATE TABLE user_monthly_states (
+                user_id TEXT NOT NULL,
+                month_key TEXT NOT NULL,
+                state_data TEXT,
+                updated_at TIMESTAMP
+            )',
         ] as $sql) {
             DB::connection('supabase_ledger')->statement($sql);
         }
@@ -272,6 +284,12 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
+                $db->table('user_monthly_states')->insert([
+                    'user_id' => $userId,
+                    'month_key' => '2026-11',
+                    'state_data' => '{}',
+                    'updated_at' => $now,
+                ]);
             }
             $db->table('partner_connections')->insert([
                 'id' => $suffix.'-caller-partner',
@@ -307,12 +325,104 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             $this->assertSame(0, $db->table('user_settings')->where('user_id', $callerId)->count());
             $this->assertSame(0, $db->table('user_protocols')->where('user_id', $callerId)->count());
             $this->assertSame(0, $db->table('user_biomarkers')->where('user_id', $callerId)->count());
+            $this->assertSame(0, $db->table('user_monthly_states')->where('user_id', $callerId)->count());
             $this->assertSame(0, $db->table('partner_connections')->where('user_id', $callerId)->count());
             $this->assertSame(1, $db->table('habit_check_ins')->where('user_id', $otherId)->count());
             $this->assertSame(1, $db->table('user_settings')->where('user_id', $otherId)->count());
             $this->assertSame(1, $db->table('user_protocols')->where('user_id', $otherId)->count());
             $this->assertSame(1, $db->table('user_biomarkers')->where('user_id', $otherId)->count());
+            $this->assertSame(1, $db->table('user_monthly_states')->where('user_id', $otherId)->count());
             $this->assertSame(1, $db->table('partner_connections')->where('user_id', $otherId)->count());
+        }
+    }
+
+    public function test_account_export_returns_only_the_caller_rows_from_both_connections(): void
+    {
+        config([
+            'database.habuilt_ledger_url' => 'sqlite://ledger-export',
+            'database.connections.supabase_ledger' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+                'foreign_key_constraints' => true,
+            ],
+        ]);
+        DB::purge('supabase_ledger');
+        DB::statement('CREATE TABLE IF NOT EXISTS user_monthly_states (
+            user_id TEXT NOT NULL,
+            month_key TEXT NOT NULL,
+            state_data TEXT,
+            updated_at TIMESTAMP
+        )');
+        DB::connection('supabase_ledger')->statement('CREATE TABLE habit_check_ins (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            habit_id TEXT NOT NULL,
+            month_key TEXT NOT NULL,
+            day INTEGER NOT NULL,
+            completed_on DATE NOT NULL,
+            points INTEGER NOT NULL DEFAULT 1
+        )');
+        DB::connection('supabase_ledger')->statement('CREATE TABLE user_settings (user_id TEXT PRIMARY KEY, day_type TEXT)');
+        DB::connection('supabase_ledger')->statement('CREATE TABLE user_protocols (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT)');
+        DB::connection('supabase_ledger')->statement('CREATE TABLE user_biomarkers (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, log_date DATE NOT NULL)');
+        DB::connection('supabase_ledger')->statement('CREATE TABLE user_monthly_states (user_id TEXT NOT NULL, month_key TEXT NOT NULL, state_data TEXT)');
+
+        $callerId = 'usr_export_'.uniqid();
+        $otherId = 'usr_hidden_'.uniqid();
+        foreach ([null, 'supabase_ledger'] as $connection) {
+            $db = DB::connection($connection);
+            $suffix = $connection ?? 'app';
+            $db->table('habit_check_ins')->insert([
+                'id' => $suffix.'-caller',
+                'user_id' => $callerId,
+                'habit_id' => 'water',
+                'month_key' => '2026-11',
+                'day' => 2,
+                'completed_on' => '2026-11-02',
+                'points' => 1,
+            ]);
+            $db->table('habit_check_ins')->insert([
+                'id' => $suffix.'-other',
+                'user_id' => $otherId,
+                'habit_id' => 'read',
+                'month_key' => '2026-11',
+                'day' => 2,
+                'completed_on' => '2026-11-02',
+                'points' => 1,
+            ]);
+            $db->table('user_settings')->insert(['user_id' => $callerId, 'day_type' => 'home']);
+            $db->table('user_settings')->insert(['user_id' => $otherId, 'day_type' => 'office']);
+            $db->table('user_monthly_states')->insert([
+                'user_id' => $callerId,
+                'month_key' => '2026-11',
+                'state_data' => '{"owner":"caller"}',
+            ]);
+            $db->table('user_monthly_states')->insert([
+                'user_id' => $otherId,
+                'month_key' => '2026-11',
+                'state_data' => '{"owner":"other"}',
+            ]);
+        }
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($callerId))
+            ->getJson('/api/account-export?user_id='.$otherId)
+            ->assertStatus(403);
+
+        $export = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($callerId))
+            ->getJson('/api/account-export')
+            ->assertStatus(200)
+            ->assertJsonPath('user_id', $callerId);
+
+        $body = $export->json();
+        foreach (['app', 'ledger'] as $store) {
+            $checkIns = $body[$store]['habit_check_ins'];
+            $this->assertCount(1, $checkIns);
+            $this->assertSame($callerId, $checkIns[0]['user_id']);
+            $this->assertSame($callerId, $body[$store]['user_settings']['user_id']);
+            $this->assertCount(1, $body[$store]['user_monthly_states']);
+            $this->assertSame($callerId, $body[$store]['user_monthly_states'][0]['user_id']);
+            $this->assertStringNotContainsString($otherId, json_encode($body[$store]));
         }
     }
 

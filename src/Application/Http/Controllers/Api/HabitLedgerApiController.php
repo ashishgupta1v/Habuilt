@@ -586,7 +586,7 @@ final class HabitLedgerApiController
         $schema = Schema::connection($connectionName);
         $db = DB::connection($connectionName);
 
-        foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers'] as $table) {
+        foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers', 'user_monthly_states'] as $table) {
             if ($schema->hasTable($table)) {
                 $db->table($table)->where('user_id', $userId)->delete();
             }
@@ -608,9 +608,74 @@ final class HabitLedgerApiController
      */
     private function deleteLedgerRows(string $userId): void
     {
+        if (!$this->openLedgerConnection()) {
+            return;
+        }
+
+        DB::connection('supabase_ledger')->transaction(function () use ($userId): void {
+            $this->deleteSpaRows($userId, 'supabase_ledger');
+        });
+    }
+
+    /**
+     * Download the signed-in user's SPA rows from the app database and, when configured, the ledger.
+     */
+    public function exportAccount(Request $request): JsonResponse
+    {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        return response()->json([
+            'user_id' => $userId,
+            'exported_at' => now()->toIso8601String(),
+            'app' => $this->exportOwnedRows($userId),
+            'ledger' => $this->openLedgerConnection()
+                ? $this->exportOwnedRows($userId, 'supabase_ledger')
+                : null,
+        ]);
+    }
+
+    /**
+     * @return array{habit_check_ins: array<int, mixed>, user_settings: mixed, user_protocols: array<int, mixed>, user_biomarkers: array<int, mixed>, user_monthly_states: array<int, mixed>}
+     */
+    private function exportOwnedRows(string $userId, ?string $connection = null): array
+    {
+        $connectionName = $connection ?? (string) config('database.default');
+        $schema = Schema::connection($connectionName);
+        $db = DB::connection($connectionName);
+        $rows = static function (string $table) use ($schema, $db, $userId): array {
+            if (!$schema->hasTable($table)) {
+                return [];
+            }
+
+            return array_map(
+                static fn (object $row): array => (array) $row,
+                $db->table($table)->where('user_id', $userId)->get()->all(),
+            );
+        };
+
+        $settings = null;
+        if ($schema->hasTable('user_settings')) {
+            $record = $db->table('user_settings')->where('user_id', $userId)->first();
+            $settings = $record === null ? null : (array) $record;
+        }
+
+        return [
+            'habit_check_ins' => $rows('habit_check_ins'),
+            'user_settings' => $settings,
+            'user_protocols' => $rows('user_protocols'),
+            'user_biomarkers' => $rows('user_biomarkers'),
+            'user_monthly_states' => $rows('user_monthly_states'),
+        ];
+    }
+
+    private function openLedgerConnection(): bool
+    {
         $url = trim((string) config('database.habuilt_ledger_url', ''));
         if ($url === '') {
-            return;
+            return false;
         }
 
         if (!is_array(config('database.connections.supabase_ledger'))) {
@@ -628,9 +693,7 @@ final class HabitLedgerApiController
             DB::purge('supabase_ledger');
         }
 
-        DB::connection('supabase_ledger')->transaction(function () use ($userId): void {
-            $this->deleteSpaRows($userId, 'supabase_ledger');
-        });
+        return true;
     }
 
     private function deleteDomainRows(string $userId): void

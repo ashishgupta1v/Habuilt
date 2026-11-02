@@ -41,6 +41,7 @@ Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
     Route::get('/partner-metrics', [HabitLedgerApiController::class, 'getPartnerMetrics']);
 
     // Account & Data Management (Apple Guideline 5.1.1(v) & GDPR Right to Erasure)
+    Route::get('/account-export', [HabitLedgerApiController::class, 'exportAccount']);
     Route::delete('/user-account', [HabitLedgerApiController::class, 'deleteUserAccount']);
 
     // ZoetiCoach. The server attaches its own credential. Clients never send that bearer token.

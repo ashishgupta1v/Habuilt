@@ -316,7 +316,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     activeProtocolId.value = protocolId;
     localStorage.setItem(`${LOCAL_STORAGE_ACTIVE_PROTOCOL}${userId}`, protocolId);
 
-    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
+    // Persist through the Laravel API. Guest changes stay on this device.
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
@@ -329,24 +329,6 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
         console.warn('[useDynamicProtocols] Error updating active protocol in local API:', e);
       }
 
-      if (isSupabaseConfigured()) {
-        try {
-          // Set all to inactive first
-          await supabase
-            .from('user_protocols')
-            .update({ is_active: false })
-            .eq('user_id', userId);
-
-          // Set matching to active
-          await supabase
-            .from('user_protocols')
-            .update({ is_active: true })
-            .eq('user_id', userId)
-            .eq('id', protocolId);
-        } catch (e) {
-          console.warn('[useDynamicProtocols] Error updating active protocol in Supabase:', e);
-        }
-      }
     }
   };
 
@@ -378,7 +360,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     localStorage.setItem(`${LOCAL_STORAGE_CUSTOM_PROTOCOLS}${userId}`, JSON.stringify(customProtocols.value));
     await switchProtocol(id);
 
-    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
+    // Persist through the Laravel API. Guest changes stay on this device.
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
@@ -399,26 +381,6 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
         console.warn('[useDynamicProtocols] Error persisting to local API:', e);
       }
 
-      if (isSupabaseConfigured()) {
-        try {
-          await supabase.from('user_protocols').upsert({
-            id: id.startsWith('custom-') ? undefined : id,
-            user_id: userId,
-            name: newProtocol.name,
-            archetype: newProtocol.key,
-            description: newProtocol.description,
-            wake_time: newProtocol.wakeTime,
-            sleep_time: newProtocol.sleepTime,
-            work_start: newProtocol.workStart,
-            work_end: newProtocol.workEnd,
-            is_active: true,
-            habits: newProtocol.habits,
-            updated_at: new Date().toISOString()
-          });
-        } catch (e) {
-          console.warn('[useDynamicProtocols] Error persisting to Supabase:', e);
-        }
-      }
     }
 
     return newProtocol;
@@ -437,7 +399,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
       await switchProtocol(PROTOCOL_ARCHETYPES.founder.id);
     }
 
-    // Sync to Hostinger KVM 2 Local API (Primary) and Supabase (Fallback)
+    // Persist through the Laravel API. Guest changes stay on this device.
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
@@ -446,17 +408,6 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
         console.warn('[useDynamicProtocols] Error deleting via local API:', e);
       }
 
-      if (isSupabaseConfigured()) {
-        try {
-          await supabase
-            .from('user_protocols')
-            .delete()
-            .eq('user_id', userId)
-            .eq('id', protocolId);
-        } catch (e) {
-          console.warn('[useDynamicProtocols] Error deleting from Supabase:', e);
-        }
-      }
     }
     return true;
   };

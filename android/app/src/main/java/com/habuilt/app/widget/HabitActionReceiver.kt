@@ -88,9 +88,9 @@ class HabitActionReceiver : BroadcastReceiver() {
             // 3. Immediately refresh all Home Screen Widgets (0ms UI lag!)
             HabuiltDueNowWidget.updateAllWidgets(context)
 
-            // 4. Background sync to Supabase without opening app (using goAsync so OS doesn't kill broadcast receiver process)
+            // 4. Send the completion to Laravel. If the API is unreachable, it stays queued on device.
             val pendingResult = goAsync()
-            SupabaseSyncClient.syncCompletionToSupabase(context, habitId, day) {
+            LaravelCheckInClient.syncCompletion(context, habitId, habitName, day, points) {
                 try {
                     pendingResult.finish()
                 } catch (e: Exception) {

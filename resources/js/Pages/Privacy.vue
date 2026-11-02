@@ -168,7 +168,7 @@ const scrollToSection = (id) => {
             <p>Depending on your location, you have statutory rights regarding your personal information:</p>
             <ul class="styled-list">
               <li><strong>Right to Access:</strong> Request a complete copy of your habit check-ins, custom protocols, and account metadata.</li>
-              <li><strong>Right to Portability:</strong> Export all your personal data in standard machine-readable JSON format anytime via <em>Settings &gt; Security &gt; Export My Data</em>.</li>
+              <li><strong>Right to Portability:</strong> Download a JSON file of your check-ins, settings, protocols, biomarkers, and monthly state from Protocol Settings. The file contains the signed-in account only.</li>
               <li><strong>Right to Rectification:</strong> Edit or correct any inaccurate habit details directly in the interface.</li>
               <li><strong>Right to Erasure:</strong> Delete the app rows tied to your login. The login identity itself is removed only when the server is configured to delete it.</li>
             </ul>
@@ -181,7 +181,7 @@ const scrollToSection = (id) => {
               <span>6. Self-Service Account Deletion (Apple 5.1.1(v) Compliant)</span>
             </h2>
             <p>
-              Signed-in people can delete their own app data from Protocol Settings. Deletion removes the caller's rows in both ledgers: habit check-ins, settings, protocols, biomarkers, domain habits, domain check-ins, and point transactions. It also removes partner rows where that person is a party. Points are not cash.
+              Signed-in people can delete their own app data from Protocol Settings. Deletion removes that person's habit check-ins, settings, protocols, biomarkers, and monthly state on the Hostinger database and, when the ledger is configured, on the Supabase ledger. It also removes partner rows where that person is a party. The Supabase Auth user is deleted when the server service-role key is set. Older domain tables use 26-character ids and are not the record for a Supabase login, so deletion does not claim to wipe them for that login. Browser storage and the phone widget snapshot are not encrypted. Points are not cash.
             </p>
             <div class="callout-box rose-box">
               <div class="callout-title">How to delete your app data:</div>
@@ -192,7 +192,7 @@ const scrollToSection = (id) => {
                 <li>Confirm by typing <code>DELETE</code>.</li>
               </ol>
               <p style="margin-top: 10px; font-size: 11.5px; opacity: 0.9;">
-                The Supabase Auth user is deleted only when the server has the service-role key. When it does not, the account data is removed and the login identity may remain until the operator completes Auth deletion. Deletion is not always total.
+                The login identity is removed when the server service-role key is set. Browser storage and widget preferences are cleared in the app after a successful delete, and they are not an encrypted copy of the account.
               </p>
             </div>
           </section>

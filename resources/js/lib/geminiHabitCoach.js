@@ -5,6 +5,17 @@
 
 const LOCAL_AI_KEY_STORAGE = 'habuilt_gemini_api_key';
 const LOCAL_BRIEFING_CACHE_PREFIX = 'habuilt_daily_briefing_';
+let sessionGeminiKey = '';
+
+const forgetPersistedGeminiKey = () => {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCAL_AI_KEY_STORAGE);
+  } catch {
+    // The key must not remain on disk.
+  }
+};
+
+forgetPersistedGeminiKey();
 
 /**
  * Voice persona configurations for Web Speech API
@@ -43,21 +54,13 @@ export const VOICE_PERSONAS = {
  * Get configured Gemini API Key (from env or user storage)
  */
 export function getGeminiApiKey() {
-  if (typeof localStorage !== 'undefined') {
-    const userKey = localStorage.getItem(LOCAL_AI_KEY_STORAGE);
-    if (userKey && userKey.trim()) return userKey.trim();
-  }
+  if (sessionGeminiKey.trim()) return sessionGeminiKey.trim();
   return import.meta.env.VITE_GEMINI_API_KEY || '';
 }
 
 export function setGeminiApiKey(key) {
-  if (typeof localStorage !== 'undefined') {
-    if (key && key.trim()) {
-      localStorage.setItem(LOCAL_AI_KEY_STORAGE, key.trim());
-    } else {
-      localStorage.removeItem(LOCAL_AI_KEY_STORAGE);
-    }
-  }
+  sessionGeminiKey = key && String(key).trim() ? String(key).trim() : '';
+  forgetPersistedGeminiKey();
 }
 
 /**

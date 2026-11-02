@@ -1,5 +1,4 @@
 import { ref, computed, unref, watch } from 'vue';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export const DEFAULT_CATEGORIES = [
   { id: 'fitness', label: 'Fitness & Mobility', accentColor: '#10b981', icon: 'Dumbbell', defaultPoints: 2, isCustom: false },
@@ -82,20 +81,6 @@ export function useCategoryTaxonomy(protocolId = 'default', userId = 'guest') {
       localStorage.setItem(getCatStorageKey(), JSON.stringify(categories.value));
     }
 
-    const effUser = getUserId();
-    if (isSupabaseConfigured() && effUser !== 'guest' && effUser !== 'ashish' && effUser !== 'jyoti') {
-      try {
-        await supabase.from('user_settings').upsert({
-          user_id: effUser,
-          enhanced_state: {
-            customCategories: categories.value,
-          },
-          updated_at: new Date().toISOString()
-        });
-      } catch (e) {
-        console.debug('[useCategoryTaxonomy] Cloud sync fallback:', e);
-      }
-    }
   };
 
   const saveCategory = (catData) => {

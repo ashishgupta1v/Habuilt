@@ -7,6 +7,7 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.habuilt.app.widget.HabuiltDueNowWidget
+import com.habuilt.app.widget.LaravelCheckInClient
 
 @CapacitorPlugin(name = "HabuiltWidget")
 class HabuiltWidgetPlugin : Plugin() {
@@ -41,14 +42,16 @@ class HabuiltWidgetPlugin : Plugin() {
                 .putString("clinical_directive", clinicalDirective)
                 .remove("zoeticoach_api_url")
                 .remove("zoeticoach_token")
+            editor.remove("supabase_access_token")
             if (userId == "guest" || userId.isEmpty() || accessToken.isBlank()) {
-                editor.remove("supabase_access_token")
+                editor.remove(LaravelCheckInClient.TOKEN_KEY)
             } else {
-                editor.putString("supabase_access_token", accessToken)
+                editor.putString(LaravelCheckInClient.TOKEN_KEY, accessToken)
             }
             editor.apply()
 
-            // Refresh all widgets on the home screen immediately
+            // The habits snapshot is only for the home-screen display. Completions go to Laravel.
+            Thread { LaravelCheckInClient.flush(context) }.start()
             HabuiltDueNowWidget.updateAllWidgets(context)
 
             call.resolve()
@@ -77,6 +80,20 @@ class HabuiltWidgetPlugin : Plugin() {
             call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to get widget data: ${e.message}", e)
+        }
+    }
+
+    @PluginMethod
+    fun clearWidgetSession(call: PluginCall) {
+        try {
+            val context = context ?: run {
+                call.reject("Context is null")
+                return
+            }
+            LaravelCheckInClient.clearSession(context, call.getBoolean("wipeDisplay", false) ?: false)
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to clear widget session: ${e.message}", e)
         }
     }
 

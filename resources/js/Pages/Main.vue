@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { clearNativeWidgetSession } from '@/Composables/useNativeWidget';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
 import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
@@ -196,15 +197,6 @@ const handleOnboardingComplete = async (payload) => {
               focus_goal: payload.goal
             }
           });
-          await supabase.from('user_settings').upsert({
-            user_id: activeUser.value.id,
-            enhanced_state: {
-              onboarding_completed: true,
-              focus_goal: payload.goal,
-              circadian: payload.circadian
-            },
-            updated_at: new Date().toISOString()
-          });
         }
       } catch (e) {
         console.debug('[Onboarding] Supabase sync fallback:', e);
@@ -316,6 +308,9 @@ const handleSignOut = async () => {
   isGuestActive.value = false;
   activeUser.value = null;
   showExitDialog.value = false;
+  try {
+    await clearNativeWidgetSession({ wipeDisplay: false });
+  } catch {}
   try {
     await supabase.auth.signOut();
   } catch {}
