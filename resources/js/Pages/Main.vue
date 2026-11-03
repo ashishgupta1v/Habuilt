@@ -1,7 +1,16 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, updateAuthUser } from '@/lib/supabase';
 import { clearNativeWidgetSession } from '@/Composables/useNativeWidget';
+import { telemetry } from '@/lib/telemetry';
+import {
+  clearBrowserSession,
+  clearMemorySession,
+  getMemoryUser,
+  handoffRefreshToken,
+  isGuestMode,
+  restoreBrowserSession,
+} from '@/lib/browserSession';
 import Dashboard from './Dashboard.vue';
 import Auth from './Auth.vue';
 import FirstRunOnboarding from '@/Components/Onboarding/FirstRunOnboarding.vue';
@@ -33,9 +42,9 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
-const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
-const isGuestPreCheck = typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true';
-const authLoading = ref(!cachedUserJson && !isGuestPreCheck);
+const guestProfile = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+const isGuestPreCheck = typeof window !== 'undefined' && isGuestMode();
+const authLoading = ref(!isGuestPreCheck);
 
 // Client-side routing for public legal views (Privacy, Terms, Disclaimer)
 const currentPath = ref(typeof window !== 'undefined' ? window.location.pathname : '/');
@@ -102,19 +111,8 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
-const isGuestActive = ref(typeof window !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
-
-let initialUser = null;
-try {
-  const cachedUserJson = typeof window !== 'undefined' ? localStorage.getItem('habuilt_cached_user') : null;
-  initialUser = cachedUserJson ? JSON.parse(cachedUserJson) : null;
-} catch {
-  initialUser = null;
-}
-if (!initialUser && isGuestActive.value) {
-  initialUser = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
-}
-const activeUser = ref(initialUser);
+const isGuestActive = ref(isGuestPreCheck);
+const activeUser = ref(isGuestPreCheck ? guestProfile : null);
 
 const userDisplayName = computed(() => {
   return activeUser.value?.user_metadata?.full_name ||
@@ -177,31 +175,19 @@ const handleOnboardingComplete = async (payload) => {
       }
     };
     activeUser.value = updated;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('habuilt_cached_user', JSON.stringify(updated));
-    }
   }
 
   isOnboardingComplete.value = true;
 
   if (isSupabaseConfigured() && activeUser.value?.id && activeUser.value.id !== 'guest') {
-    (async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData?.session) {
-          await supabase.auth.updateUser({
-            data: {
-              full_name: payload.displayName,
-              onboarding_completed: true,
-              preferred_archetype: payload.archetypeId,
-              focus_goal: payload.goal
-            }
-          });
-        }
-      } catch (e) {
-        console.debug('[Onboarding] Supabase sync fallback:', e);
-      }
-    })();
+    updateAuthUser({
+      data: {
+        full_name: payload.displayName,
+        onboarding_completed: true,
+        preferred_archetype: payload.archetypeId,
+        focus_goal: payload.goal,
+      },
+    }).catch(() => {});
   }
 };
 
@@ -285,11 +271,12 @@ const enterUserSession = (user) => {
   if (isGuest) {
     isGuestActive.value = true;
     localStorage.setItem('habuilt_guest_mode', 'true');
+    localStorage.removeItem('habuilt_cached_user');
   }
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
   activeUser.value = user;
   isOnboardingComplete.value = checkIsOnboardingComplete(user);
-  pushAppHistoryEntry(); // ← sentinel so back-button is intercepted
+  telemetry.setUserContext(isGuest ? null : { id: user.id, email: user.email });
+  pushAppHistoryEntry();
 };
 
 const enterGuestMode = (guestUser) => {
@@ -302,17 +289,37 @@ const handleLoginSuccess = (user) => {
   enterUserSession(user);
 };
 
+const adoptSupabaseSession = async (session) => {
+  try { localStorage.removeItem('habuilt_guest_mode'); } catch { /* guest flag is optional */ }
+  isGuestActive.value = false;
+  const refresh = session?.refresh_token;
+  const user = await handoffRefreshToken(refresh);
+  try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* cookie holds the refresh token */ }
+  if (!user) return null;
+  enterUserSession(user);
+  return user;
+};
+
 const handleSignOut = async () => {
+  const wasGuest = isGuestMode() || activeUser.value?.id === 'guest';
   localStorage.removeItem('habuilt_guest_mode');
   localStorage.removeItem('habuilt_cached_user');
   isGuestActive.value = false;
   activeUser.value = null;
   showExitDialog.value = false;
+  telemetry.setUserContext(null);
+  if (!wasGuest) {
+    try {
+      await clearBrowserSession();
+    } catch {}
+  } else {
+    clearMemorySession();
+  }
   try {
     await clearNativeWidgetSession({ wipeDisplay: false });
   } catch {}
   try {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
   } catch {}
   // Reset history state to clean landing page
   try {
@@ -354,16 +361,9 @@ onMounted(async () => {
 
       if (accessToken && refreshToken) {
         try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          if (error) throw error;
-          if (data?.user) {
-            enterUserSession(data.user);
-            window.history.replaceState({}, document.title, '/');
-            return true;
-          }
+          const user = await adoptSupabaseSession({ refresh_token: refreshToken });
+          window.history.replaceState({}, document.title, '/');
+          if (user) return true;
         } catch (err) {
           console.warn('[MainAuth] Error setting session from hash:', err);
         }
@@ -385,8 +385,8 @@ onMounted(async () => {
         try {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
-          if (data?.user) {
-            enterUserSession(data.user);
+          const user = await adoptSupabaseSession(data?.session);
+          if (user) {
             window.history.replaceState({}, document.title, '/');
             return true;
           }
@@ -418,39 +418,28 @@ onMounted(async () => {
     }
   }
 
-  // 2. Session check from Supabase or cached user
+  // 2. Restore the httpOnly session. Guest mode never calls the API.
   try {
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: {} }), 2500));
-    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-    if (session?.user) {
-      enterUserSession(session.user);
-    } else if (activeUser.value) {
-      enterUserSession(activeUser.value);
-    } else if (isGuestActive.value) {
+    if (isGuestMode()) {
       enterGuestMode();
     } else {
-      activeUser.value = null;
+      const user = await restoreBrowserSession();
+      if (user) {
+        enterUserSession(user);
+      } else if (!activeUser.value) {
+        activeUser.value = null;
+      }
     }
   } catch (err) {
-    console.debug('[MainAuth] Session check fallback:', err);
+    console.debug('[MainAuth] Session check note:', err);
   } finally {
     authLoading.value = false;
   }
 
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
-      enterUserSession(session.user);
-    } else if (event === 'SIGNED_OUT') {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT' && !getMemoryUser()) {
       activeUser.value = null;
       isGuestActive.value = false;
-      localStorage.removeItem('habuilt_cached_user');
-      localStorage.removeItem('habuilt_guest_mode');
-    } else if (activeUser.value) {
-      // Retain active cached user (offline or fast resume)
-      isOnboardingComplete.value = checkIsOnboardingComplete(activeUser.value);
-    } else if (localStorage.getItem('habuilt_guest_mode') === 'true') {
-      enterGuestMode();
     }
   });
 
@@ -490,11 +479,7 @@ onMounted(async () => {
 
       if (accessToken && refreshToken) {
         try {
-          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-          if (error) throw error;
-          if (data?.user) {
-            enterUserSession(data.user);
-          }
+          await adoptSupabaseSession({ refresh_token: refreshToken });
         } catch (e) {
           console.warn('[MainDeepLink] Error setting session:', e);
         }
@@ -502,9 +487,7 @@ onMounted(async () => {
         try {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
-          if (data?.user) {
-            enterUserSession(data.user);
-          }
+          await adoptSupabaseSession(data?.session);
         } catch (e) {
           console.warn('[MainDeepLink] Error exchanging code:', e);
         }

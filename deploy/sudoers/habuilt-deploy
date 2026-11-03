@@ -1,0 +1,20 @@
+# habuilt-deploy may reload only the services this app already restarts.
+# Root SSH is unchanged. This file grants no shell and no password login.
+habuilt-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart php8.3-fpm, \
+    /usr/sbin/nginx -t, \
+    /usr/bin/systemctl reload nginx, \
+    /usr/bin/systemctl daemon-reload, \
+    /usr/bin/systemctl enable habuilt-queue.service, \
+    /usr/bin/systemctl restart habuilt-queue.service, \
+    /usr/bin/systemctl enable --now habuilt-schedule.timer, \
+    /usr/bin/cp /var/www/Habuilt/deploy/php/habuilt.conf /etc/php/8.3/fpm/pool.d/habuilt.conf, \
+    /usr/bin/mkdir -p /etc/nginx/snippets, \
+    /usr/bin/cp /var/www/Habuilt/deploy/nginx/security-headers.conf /etc/nginx/snippets/habuilt-security-headers.conf, \
+    /usr/bin/cp /var/www/Habuilt/deploy/nginx/habuilt.conf /etc/nginx/sites-available/habuilt, \
+    /usr/bin/ln -sfn /etc/nginx/sites-available/habuilt /etc/nginx/sites-enabled/habuilt, \
+    /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-queue.service /etc/systemd/system/habuilt-queue.service, \
+    /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-schedule.service /etc/systemd/system/habuilt-schedule.service, \
+    /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-schedule.timer /etc/systemd/system/habuilt-schedule.timer, \
+    /usr/bin/chown -R www-data /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build, \
+    /usr/bin/chgrp -R www-data /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build, \
+    /usr/bin/chmod -R 775 /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build

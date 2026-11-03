@@ -54,6 +54,7 @@ import {
   Bug,
 } from 'lucide-vue-next';
 import { callLocalApi, purgeUserAccount, supabase } from '@/lib/supabase';
+import { clearBrowserSession } from '@/lib/browserSession';
 import { clearNativeWidgetSession } from '@/Composables/useNativeWidget';
 import {
   telemetry,
@@ -747,10 +748,13 @@ const handleConfirmAccountDeletion = async () => {
       return;
     }
     try {
+      await clearBrowserSession();
+    } catch {}
+    try {
       await clearNativeWidgetSession({ wipeDisplay: true });
     } catch {}
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
     } catch {}
     if (typeof localStorage !== 'undefined') {
       const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('habuilt_'));

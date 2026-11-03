@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { supabase } from '@/lib/supabase';
+import { supabase, updateAuthUser } from '@/lib/supabase';
+import { handoffRefreshToken } from '@/lib/browserSession';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import {
@@ -490,6 +491,20 @@ onUnmounted(() => {
   }
 });
 
+const finishSignIn = async (session) => {
+  try { localStorage.removeItem('habuilt_guest_mode'); } catch { /* guest flag is optional */ }
+  const refresh = session?.refresh_token;
+  if (typeof refresh !== 'string' || refresh.trim() === '') {
+    throw new Error('Sign-in did not return a session.');
+  }
+  const user = await handoffRefreshToken(refresh);
+  try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* refresh material is already in the cookie */ }
+  if (!user) {
+    throw new Error('Could not start a secure session. Try again.');
+  }
+  emit('login-success', user);
+};
+
 const handleAuth = async () => {
   loading.value = true;
   error.value = '';
@@ -504,7 +519,7 @@ const handleAuth = async () => {
       });
       if (e) throw e;
       if (data?.session?.user) {
-        emit('login-success', data.session.user);
+        await finishSignIn(data.session);
       } else {
         successMessage.value = 'Account created! Please check your email to confirm, then sign in.';
         mode.value = 'login';
@@ -527,7 +542,7 @@ const handleAuth = async () => {
       if (e) throw e;
       successMessage.value = `Instant sign-in link sent to ${cleanEmail}. Check your inbox!`;
     } else if (mode.value === 'reset') {
-      const { data, error: e } = await supabase.auth.updateUser({ password: newPassword.value });
+      const { error: e } = await updateAuthUser({ password: newPassword.value });
       if (e) throw e;
       successMessage.value = 'Password updated successfully. You can now sign in.';
       mode.value = 'login';
@@ -537,8 +552,8 @@ const handleAuth = async () => {
         password: cleanPassword
       });
       if (e) throw e;
-      if (data?.user) {
-        emit('login-success', data.user);
+      if (data?.session) {
+        await finishSignIn(data.session);
       }
     }
   } catch (e) {
@@ -612,7 +627,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
     user_metadata: { full_name: 'Habuilt Champion', preferred_archetype: preferredArchetype },
   };
   localStorage.setItem('habuilt_guest_mode', 'true');
-  localStorage.setItem('habuilt_cached_user', JSON.stringify(user));
+  localStorage.removeItem('habuilt_cached_user');
   if (preferredArchetype) {
     localStorage.setItem('habuilt_active_protocol_id_guest', preferredArchetype);
   }
@@ -731,7 +746,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
             Your Discipline, <span class="fitflow-gradient-pink">Your Flow.</span>
           </h2>
           <p class="fitflow-section-desc">
-            At Habuilt by ZoetiCoach, we believe habit consistency is more than just checklists — it's an executive operating system tailored to your energy, calendar, and mindset. Whether you're optimizing deep work, dialing in sleep, or building athletic endurance, our adaptive protocols guide every step.
+            At Habuilt, habit consistency is more than checklists. It is an executive operating system tailored to your energy, calendar, and mindset. Whether you are optimizing deep work, dialing in sleep, or building athletic endurance, the protocols guide every step.
           </p>
         </div>
 

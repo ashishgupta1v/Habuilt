@@ -24,6 +24,7 @@ import {
   flushOfflineQueue,
   callLocalApi,
 } from '@/lib/supabase';
+import { getMemoryUser } from '@/lib/browserSession';
 import { summarizeSundayReview, checkInsFromHabits } from '@/lib/sundayReview';
 import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
@@ -204,22 +205,14 @@ const authUser = computed(() => page?.props?.auth?.user ?? null);
 const resolvedEmail = computed(() => {
   if (props.userEmail) return props.userEmail.toLowerCase().trim();
   if (authUser.value?.email) return authUser.value.email.toLowerCase().trim();
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-      if (cached?.email) return cached.email.toLowerCase().trim();
-    } catch {}
-  }
+  const cached = getMemoryUser();
+  if (cached?.email) return String(cached.email).toLowerCase().trim();
   return '';
 });
 const effectiveUserId = computed(() => {
   if (authUser.value?.id) return authUser.value.id;
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-      if (cached?.id) return cached.id;
-    } catch {}
-  }
+  const cached = getMemoryUser();
+  if (cached?.id) return cached.id;
   if (props.userId && props.userId !== '01JQ7M2X4V8K3P6R9T1W5Y7ZAB') return props.userId;
   return resolvedEmail.value || props.userId || 'guest';
 });
@@ -279,13 +272,9 @@ const displayName = computed(() => {
   const metaName = authUser.value?.user_metadata?.full_name || authUser.value?.user_metadata?.name;
   if (metaName && metaName.trim()) return metaName.trim();
 
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-      const cachedName = cached?.user_metadata?.full_name || cached?.user_metadata?.name;
-      if (cachedName && cachedName.trim()) return cachedName.trim();
-    } catch {}
-  }
+  const cached = getMemoryUser();
+  const cachedName = cached?.user_metadata?.full_name || cached?.user_metadata?.name;
+  if (cachedName && String(cachedName).trim()) return String(cachedName).trim();
 
   const storedName = typeof localStorage !== 'undefined' ? localStorage.getItem(`habuilt_user_name_${effectiveUserId.value}`) : null;
   if (storedName && storedName.trim()) return storedName.trim();

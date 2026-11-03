@@ -25,6 +25,7 @@ abstract class TestCase extends BaseTestCase
             'services.zoeticoach.api_url' => '',
             'services.supabase.service_role_key' => '',
             'services.supabase.url' => '',
+            'services.supabase.anon_key' => '',
         ]);
     }
 

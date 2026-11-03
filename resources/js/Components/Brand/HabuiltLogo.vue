@@ -104,10 +104,8 @@ const uid = Math.random().toString(36).substring(2, 9);
       </svg>
     </div>
 
-    <!-- Brand Wordmark & 'by ZoetiCoach' Attribution -->
     <div v-if="withText" class="habuilt-logo-brand__info">
       <span class="habuilt-logo-brand__text">Habuilt</span>
-      <span class="zc-badge-coach">by ZoetiCoach</span>
       <span v-if="showBadge" class="habuilt-logo-brand__tag">{{ badgeText }}</span>
     </div>
   </component>

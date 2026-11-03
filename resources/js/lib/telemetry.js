@@ -88,15 +88,6 @@ class TelemetryEngine {
     // A DSN is optional. The tunnel uses the server configuration.
     this.sentryDsn = this.resolveDsn();
 
-    // Load cached user context if available
-    try {
-      const cached = localStorage.getItem('habuilt_cached_user');
-      if (cached) {
-        const u = JSON.parse(cached);
-        this.setUserContext({ id: u.id, email: u.email });
-      }
-    } catch {}
-
     // Global Uncaught Window Error
     window.addEventListener('error', (event) => {
       this.captureException(event.error || new Error(event.message || 'Script Error'), {

@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
+import { getMemoryAccessToken } from '@/lib/browserSession';
 
 export async function clearNativeWidgetSession({ wipeDisplay = false } = {}) {
   if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
@@ -29,21 +30,7 @@ export function useNativeWidget() {
   }) => {
     if (!isNative) return;
 
-    let accessToken = '';
-    if (userId && userId !== 'guest') {
-      try {
-        const { supabase } = await import('@/lib/supabase');
-        const sessionRes = await supabase.auth.getSession();
-        const token = sessionRes?.data?.session?.access_token;
-        if (typeof token === 'string' && token.trim() !== '') accessToken = token.trim();
-      } catch {}
-      if (!accessToken) {
-        try {
-          const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-          if (typeof cached?.access_token === 'string') accessToken = cached.access_token.trim();
-        } catch {}
-      }
-    }
+    const accessToken = userId && userId !== 'guest' ? getMemoryAccessToken() : '';
 
     try {
       const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);

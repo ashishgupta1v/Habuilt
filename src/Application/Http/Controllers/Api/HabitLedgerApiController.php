@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Services\Ledger\SpaCheckInLedger;
+use App\Support\BrowserRefreshCookie;
 use App\Support\CurrentUserResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -562,7 +563,7 @@ final class HabitLedgerApiController
 
         $auth = $this->deleteSupabaseAuthUser($userId);
 
-        return response()->json([
+        return BrowserRefreshCookie::forget(response()->json([
             'success' => true,
             'user_id' => $userId,
             'app_data_deleted' => true,
@@ -572,7 +573,7 @@ final class HabitLedgerApiController
             'message' => $auth['auth_user_deleted']
                 ? 'App data and the Supabase Auth user were deleted.'
                 : 'App data was deleted. '.$auth['auth_user_deletion_reason'],
-        ]);
+        ]));
     }
 
     /**

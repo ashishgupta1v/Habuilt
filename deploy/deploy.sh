@@ -10,6 +10,14 @@ APP_DIR="/var/www/Habuilt"
 BRANCH="${1:-HB-AG-01}"
 SENTRY_ARG="${2:-}"
 
+as_root() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  else
+    sudo -n "$@"
+  fi
+}
+
 echo "=========================================================="
 echo " Starting Habuilt Zero-Downtime Deployment: [${BRANCH}]"
 echo " Time: $(date)"
@@ -45,6 +53,9 @@ fi
 if grep -q "^VITE_SENTRY_DSN=" .env; then
     sed -i "s|^VITE_SENTRY_DSN=.*|VITE_SENTRY_DSN=|" .env
 fi
+
+# Fill a missing public Supabase URL or anon key without printing either value.
+php "${APP_DIR}/scripts/ensure-public-supabase-env.php" "${APP_DIR}/.env" "${APP_DIR}/resources/js/lib/supabase.js"
 
 # 3. Backend Dependencies
 echo "--> Installing PHP composer dependencies..."
@@ -92,40 +103,39 @@ unset ledger_line ledger_value
 
 # 7. File Ownership & Permissions
 echo "--> Setting permissions for storage and bootstrap/cache..."
-chown -R www-data:www-data storage bootstrap/cache public/build
-chmod -R 775 storage bootstrap/cache
+as_root /usr/bin/chown -R www-data /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build
+as_root /usr/bin/chgrp -R www-data /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build
+as_root /usr/bin/chmod -R 775 /var/www/Habuilt/storage /var/www/Habuilt/bootstrap/cache /var/www/Habuilt/public/build
 
 # 8. Configure PHP-FPM Pool
 echo "--> Verifying PHP-FPM 8.3 pool configuration..."
 if [ -f "${APP_DIR}/deploy/php/habuilt.conf" ]; then
-    cp "${APP_DIR}/deploy/php/habuilt.conf" /etc/php/8.3/fpm/pool.d/habuilt.conf
-    systemctl restart php8.3-fpm
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/php/habuilt.conf /etc/php/8.3/fpm/pool.d/habuilt.conf
+    as_root /usr/bin/systemctl restart php8.3-fpm
 fi
 
 # 9. Configure Nginx Virtual Host
 echo "--> Verifying Nginx configuration..."
 if [ -f "${APP_DIR}/deploy/nginx/habuilt.conf" ]; then
-    mkdir -p /etc/nginx/snippets
-    cp "${APP_DIR}/deploy/nginx/security-headers.conf" /etc/nginx/snippets/habuilt-security-headers.conf
-    cp "${APP_DIR}/deploy/nginx/habuilt.conf" /etc/nginx/sites-available/habuilt
-    if [ ! -f /etc/nginx/sites-enabled/habuilt ]; then
-        ln -s /etc/nginx/sites-available/habuilt /etc/nginx/sites-enabled/habuilt
-    fi
-    nginx -t
-    systemctl reload nginx
+    as_root /usr/bin/mkdir -p /etc/nginx/snippets
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/nginx/security-headers.conf /etc/nginx/snippets/habuilt-security-headers.conf
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/nginx/habuilt.conf /etc/nginx/sites-available/habuilt
+    as_root /usr/bin/ln -sfn /etc/nginx/sites-available/habuilt /etc/nginx/sites-enabled/habuilt
+    as_root /usr/sbin/nginx -t
+    as_root /usr/bin/systemctl reload nginx
 fi
 
 # 10. Configure and Restart Systemd Workers
 echo "--> Registering systemd queue worker and scheduler timer..."
 if [ -f "${APP_DIR}/deploy/systemd/habuilt-queue.service" ]; then
-    cp "${APP_DIR}/deploy/systemd/habuilt-queue.service" /etc/systemd/system/habuilt-queue.service
-    cp "${APP_DIR}/deploy/systemd/habuilt-schedule.service" /etc/systemd/system/habuilt-schedule.service
-    cp "${APP_DIR}/deploy/systemd/habuilt-schedule.timer" /etc/systemd/system/habuilt-schedule.timer
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-queue.service /etc/systemd/system/habuilt-queue.service
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-schedule.service /etc/systemd/system/habuilt-schedule.service
+    as_root /usr/bin/cp /var/www/Habuilt/deploy/systemd/habuilt-schedule.timer /etc/systemd/system/habuilt-schedule.timer
 
-    systemctl daemon-reload
-    systemctl enable habuilt-queue.service
-    systemctl restart habuilt-queue.service
-    systemctl enable --now habuilt-schedule.timer
+    as_root /usr/bin/systemctl daemon-reload
+    as_root /usr/bin/systemctl enable habuilt-queue.service
+    as_root /usr/bin/systemctl restart habuilt-queue.service
+    as_root /usr/bin/systemctl enable --now habuilt-schedule.timer
 fi
 
 # 11. Smoke check. A missing token must not download an account.

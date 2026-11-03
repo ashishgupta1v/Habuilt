@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\AccountProductController;
+use App\Http\Controllers\Api\BrowserSessionController;
 use App\Http\Controllers\Api\HabitLedgerApiController;
 use App\Http\Controllers\Api\TelemetryApiController;
 use App\Http\Controllers\Api\ZoetiCoachProxyController;
@@ -13,6 +14,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', fn () => response()->json(['status' => 'healthy', 'server' => 'Hostinger KVM 2', 'db' => 'pgsql', 'time' => now()]));
 Route::get('/telemetry/health', [TelemetryApiController::class, 'health']);
 Route::post('/telemetry/tunnel', [TelemetryApiController::class, 'tunnel']);
+
+// Refresh material is an httpOnly cookie. The body user id is ignored.
+Route::post('/auth/session', [BrowserSessionController::class, 'store']);
+Route::get('/auth/session', [BrowserSessionController::class, 'show']);
+Route::delete('/auth/session', [BrowserSessionController::class, 'destroy']);
 
 // Multi-tenant Protected API Endpoints (Requires Bearer Token & User Ownership)
 Route::middleware([VerifyApiAuthorization::class])->group(function (): void {

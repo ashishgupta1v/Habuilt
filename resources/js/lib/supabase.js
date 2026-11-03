@@ -2,6 +2,61 @@ import { createClient } from '@supabase/supabase-js';
 import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
 import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from './syncEngine.js';
 import { isRetryableAccountId } from './syncQueuePolicy.js';
+import { getMemoryAccessToken, purgeLegacyAuthStorage, restoreBrowserSession } from './browserSession.js';
+
+purgeLegacyAuthStorage();
+
+const memoryStore = new Map();
+
+const isVerifierKey = (key) => typeof key === 'string' && key.endsWith('-code-verifier');
+
+const verifierStore = {
+  get(key) {
+    try {
+      if (typeof sessionStorage === 'undefined') return null;
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      sessionStorage.setItem(key, value);
+    } catch {
+      // The OAuth round trip cannot keep a verifier. Sign-in reports that failure.
+    }
+  },
+  remove(key) {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      sessionStorage.removeItem(key);
+    } catch {
+      // Ignore.
+    }
+  },
+};
+
+const tabAuthStorage = {
+  getItem(key) {
+    if (isVerifierKey(key)) return verifierStore.get(key);
+    return memoryStore.has(key) ? memoryStore.get(key) : null;
+  },
+  setItem(key, value) {
+    if (isVerifierKey(key)) {
+      verifierStore.set(key, String(value));
+      return;
+    }
+    memoryStore.set(key, String(value));
+  },
+  removeItem(key) {
+    if (isVerifierKey(key)) {
+      verifierStore.remove(key);
+      return;
+    }
+    memoryStore.delete(key);
+  },
+};
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -51,29 +106,22 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null, option
       },
     };
 
-    // Attach Bearer token from Supabase session if available
-    try {
-      if (typeof supabase !== 'undefined' && supabase.auth) {
-        const sessionRes = await supabase.auth.getSession();
-        const token = sessionRes?.data?.session?.access_token;
-        if (token) {
-          opts.headers['Authorization'] = `Bearer ${token}`;
-        }
-      }
-    } catch {
-      // Fallback: check cached session
-      try {
-        const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-        if (cached?.access_token) {
-          opts.headers['Authorization'] = `Bearer ${cached.access_token}`;
-        }
-      } catch {}
+    const token = getMemoryAccessToken();
+    if (token) {
+      opts.headers.Authorization = `Bearer ${token}`;
     }
+    opts.credentials = 'same-origin';
 
     if (body) {
       opts.body = JSON.stringify(body);
     }
     const res = await fetch(endpoint, opts);
+    if (res.status === 401 && !(options && options.retried)) {
+      const restored = await restoreBrowserSession();
+      if (restored && getMemoryAccessToken()) {
+        return callLocalApi(endpoint, method, body, { ...(options || {}), retried: true });
+      }
+    }
     if (!res.ok) {
       if (returnError) {
         try {
@@ -116,50 +164,6 @@ export const purgeUserAccount = async (userId) => {
 
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
-const readStoredAccessToken = () => {
-  try {
-    if (typeof localStorage === 'undefined') return '';
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
-      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (typeof token === 'string' && token.trim() !== '' && token.trim() !== supabaseAnonKey) {
-        return token.trim();
-      }
-    }
-    const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-    if (typeof cached?.access_token === 'string' && cached.access_token.trim() !== '' && cached.access_token.trim() !== supabaseAnonKey) {
-      return cached.access_token.trim();
-    }
-  } catch {
-    return '';
-  }
-  return '';
-};
-
-let readingSession = false;
-let clientReady = false;
-
-const sessionAccessToken = async () => {
-  const stored = readStoredAccessToken();
-  if (stored) return stored;
-  if (!clientReady || readingSession || !supabase?.auth) return '';
-  readingSession = true;
-  try {
-    const sessionRes = await supabase.auth.getSession();
-    const token = sessionRes?.data?.session?.access_token;
-    if (typeof token === 'string' && token.trim() !== '' && token.trim() !== supabaseAnonKey) {
-      return token.trim();
-    }
-  } catch {
-    return '';
-  } finally {
-    readingSession = false;
-  }
-  return '';
-};
-
 const requestUrl = (input) => {
   if (typeof input === 'string') return input;
   if (typeof URL !== 'undefined' && input instanceof URL) return input.toString();
@@ -183,6 +187,12 @@ export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
   {
+    auth: {
+      storage: tabAuthStorage,
+      persistSession: true,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
     global: {
       fetch: guardedSupabaseFetch,
     },
@@ -193,7 +203,48 @@ export const supabase = createClient(
     },
   }
 );
-clientReady = true;
+
+export const updateAuthUser = async (body) => {
+  let token = getMemoryAccessToken();
+  if (!token) {
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const sessionToken = sessionRes?.data?.session?.access_token;
+      if (typeof sessionToken === 'string') token = sessionToken;
+    } catch {
+      token = '';
+    }
+  }
+  if (!token) {
+    return { data: null, error: { message: 'Sign in before updating the account.' } };
+  }
+
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body || {}),
+    });
+    if (!res.ok) {
+      let message = 'Could not update the account.';
+      try {
+        const parsed = await res.json();
+        message = parsed?.msg || parsed?.error_description || parsed?.message || message;
+      } catch {
+        // Keep the generic message.
+      }
+      return { data: null, error: { message } };
+    }
+    return { data: await res.json(), error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message || 'Could not update the account.' } };
+  }
+};
 
 // Cross-tab broadcast channel for instant zero-latency UI synchronization
 const tabSyncChannel = typeof window !== 'undefined' && window.BroadcastChannel

@@ -22,7 +22,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_KVM_IP || '187.127.166.15' }}
-          username: ${{ secrets.HOSTINGER_KVM_USER || 'root' }}
+          username: habuilt-deploy
           key: ${{ secrets.HOSTINGER_KVM_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_KVM_PORT || 22 }}
           script: |

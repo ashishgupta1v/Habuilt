@@ -20,23 +20,14 @@ export const isZoetiCoachConnected = () => {
 
 const sessionAuthorization = async () => {
   try {
-    const { supabase } = await import('./supabase.js');
-    const sessionRes = await supabase.auth.getSession();
-    const token = sessionRes?.data?.session?.access_token;
+    const { getMemoryAccessToken, isGuestMode } = await import('./browserSession.js');
+    if (isGuestMode()) return '';
+    const token = getMemoryAccessToken();
     if (typeof token === 'string' && token.trim() !== '') {
       return `Bearer ${token.trim()}`;
     }
   } catch {
     // Session lookup is best-effort. Guest mode has no server session.
-  }
-
-  try {
-    const cached = JSON.parse(localStorage.getItem('habuilt_cached_user') || 'null');
-    if (cached?.access_token && cached.id && cached.id !== 'guest') {
-      return `Bearer ${cached.access_token}`;
-    }
-  } catch {
-    // Ignore unreadable cache.
   }
 
   return '';
