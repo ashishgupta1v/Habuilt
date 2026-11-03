@@ -368,6 +368,8 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         DB::connection('supabase_ledger')->statement('CREATE TABLE user_biomarkers (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, log_date DATE NOT NULL)');
         DB::connection('supabase_ledger')->statement('CREATE TABLE user_monthly_states (user_id TEXT NOT NULL, month_key TEXT NOT NULL, state_data TEXT)');
 
+        $this->getJson('/api/account-export')->assertStatus(401);
+
         $callerId = 'usr_export_'.uniqid();
         $otherId = 'usr_hidden_'.uniqid();
         foreach ([null, 'supabase_ledger'] as $connection) {
@@ -403,6 +405,26 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
                 'month_key' => '2026-11',
                 'state_data' => '{"owner":"other"}',
             ]);
+            $db->table('user_protocols')->insert([
+                'id' => $suffix.'-protocol-caller',
+                'user_id' => $callerId,
+                'name' => 'Caller protocol',
+            ]);
+            $db->table('user_protocols')->insert([
+                'id' => $suffix.'-protocol-other',
+                'user_id' => $otherId,
+                'name' => 'Hidden protocol',
+            ]);
+            $db->table('user_biomarkers')->insert([
+                'id' => $suffix.'-bio-caller',
+                'user_id' => $callerId,
+                'log_date' => '2026-11-02',
+            ]);
+            $db->table('user_biomarkers')->insert([
+                'id' => $suffix.'-bio-other',
+                'user_id' => $otherId,
+                'log_date' => '2026-11-02',
+            ]);
         }
 
         $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($callerId))
@@ -422,7 +444,13 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             $this->assertSame($callerId, $body[$store]['user_settings']['user_id']);
             $this->assertCount(1, $body[$store]['user_monthly_states']);
             $this->assertSame($callerId, $body[$store]['user_monthly_states'][0]['user_id']);
+            $this->assertCount(1, $body[$store]['user_protocols']);
+            $this->assertSame($callerId, $body[$store]['user_protocols'][0]['user_id']);
+            $this->assertSame('Caller protocol', $body[$store]['user_protocols'][0]['name']);
+            $this->assertCount(1, $body[$store]['user_biomarkers']);
+            $this->assertSame($callerId, $body[$store]['user_biomarkers'][0]['user_id']);
             $this->assertStringNotContainsString($otherId, json_encode($body[$store]));
+            $this->assertStringNotContainsString('Hidden protocol', json_encode($body[$store]));
         }
     }
 
@@ -951,19 +979,27 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             ->assertStatus(401);
 
         $alice = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'));
-        $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')
-            ->assertStatus(200)
-            ->assertJsonPath('partner_user_id', 'usr_bob')
-            ->assertJsonPath('check_ins.0.habit_id', 'walk')
-            ->assertJsonPath('check_ins.0.points', 4)
-            ->assertJsonMissingPath('check_ins.0.user_id')
-            ->assertJsonMissingPath('check_ins.0.source');
+        $kept = $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11&date=2026-11-02');
+        $kept->assertStatus(200)
+            ->assertJsonPath('date', '2026-11-02')
+            ->assertJsonPath('status', 'kept')
+            ->assertJsonMissingPath('check_ins');
+        $keptBody = $kept->getContent();
+        $this->assertStringNotContainsString('Walk', $keptBody);
+        $this->assertStringNotContainsString('habit_id', $keptBody);
+        $this->assertStringNotContainsString('walk', $keptBody);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_bob'))
-            ->getJson('/api/partner-metrics?partner_user_id=usr_alice&month_key=2026-11')
+        $alice->getJson('/api/partner-metrics?partner_user_id=usr_bob&date=2026-11-03')
             ->assertStatus(200)
-            ->assertJsonPath('check_ins.0.habit_id', 'read')
-            ->assertJsonMissingPath('check_ins.0.user_id');
+            ->assertJsonPath('status', 'not_yet');
+
+        $bobView = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_bob'))
+            ->getJson('/api/partner-metrics?partner_user_id=usr_alice&month_key=2026-11&date=2026-11-02');
+        $bobView->assertStatus(200)
+            ->assertJsonPath('status', 'kept')
+            ->assertJsonMissingPath('check_ins');
+        $this->assertStringNotContainsString('Read', $bobView->getContent());
+        $this->assertStringNotContainsString('read', $bobView->getContent());
 
         $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_carol'))
             ->getJson('/api/partner-metrics?partner_user_id=usr_bob&month_key=2026-11')

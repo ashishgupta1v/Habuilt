@@ -149,6 +149,36 @@ final class HouseholdSundayRewardTest extends TestCase
                 'anchors' => ['evening-check'],
             ])->assertOk();
 
+        DB::statement('CREATE TABLE IF NOT EXISTS user_biomarkers (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            log_date DATE,
+            notes TEXT
+        )');
+        DB::statement('CREATE TABLE IF NOT EXISTS user_monthly_states (
+            user_id TEXT NOT NULL,
+            month_key TEXT NOT NULL,
+            state_data TEXT
+        )');
+        DB::table('user_protocols')->insert([
+            'id' => 'secret-protocol',
+            'user_id' => 'usr_bob',
+            'name' => 'SECRET_PROTOCOL',
+            'created_at' => $this->today,
+            'updated_at' => $this->today,
+        ]);
+        DB::table('user_biomarkers')->insert([
+            'id' => 'secret-marker',
+            'user_id' => 'usr_bob',
+            'log_date' => $this->today,
+            'notes' => 'SECRET_BIOMARKER',
+        ]);
+        DB::table('user_monthly_states')->insert([
+            'user_id' => 'usr_bob',
+            'month_key' => '2026-11',
+            'state_data' => 'SECRET_MONTHLY_STATE',
+        ]);
+
         $response = $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'))
             ->getJson('/api/household-day?date='.$this->today);
         $response->assertOk()
@@ -158,13 +188,22 @@ final class HouseholdSundayRewardTest extends TestCase
             ->assertJsonPath('partner.status', 'not_yet')
             ->assertJsonPath('partner.day_type', 'office')
             ->assertJsonPath('shared_anchors.0.key', 'evening-check')
-            ->assertJsonPath('shared_anchors.0.label', 'Evening check');
+            ->assertJsonPath('shared_anchors.0.label', 'Evening check')
+            ->assertJsonMissingPath('check_ins')
+            ->assertJsonMissingPath('habit_check_ins')
+            ->assertJsonMissingPath('user_biomarkers')
+            ->assertJsonMissingPath('user_protocols')
+            ->assertJsonMissingPath('user_monthly_states');
 
         $body = $response->getContent();
         $this->assertStringNotContainsString('PRIVATE_HABIT_NAME', $body);
         $this->assertStringNotContainsString('private-habit', $body);
         $this->assertStringNotContainsString('habit_check_ins', $body);
+        $this->assertStringNotContainsString('SECRET_PROTOCOL', $body);
+        $this->assertStringNotContainsString('SECRET_BIOMARKER', $body);
+        $this->assertStringNotContainsString('SECRET_MONTHLY_STATE', $body);
         $this->assertStringNotContainsString('"points"', $body);
+        $this->assertStringNotContainsString('habit_id', $body);
         $this->assertCount(1, $response->json('shared_anchors'));
     }
 

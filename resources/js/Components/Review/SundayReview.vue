@@ -161,7 +161,7 @@ const copyWhatsAppDebrief = async () => {
               {{ weeklyReview.reviewDate }}
             </span>
           </div>
-          <p class="sunday-review-sub">Weekly accountability ritual &amp; system optimization</p>
+          <p class="sunday-review-sub">Completed {{ completedSlots }} · Missed {{ missedSlots }} · Streak {{ streakDays }} days</p>
         </div>
       </div>
 

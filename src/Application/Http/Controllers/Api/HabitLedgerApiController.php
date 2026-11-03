@@ -399,9 +399,8 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Limited partner progress for an accepted pairing.
-     * One accepted row is enough, in either direction. Pending invites are not.
-     * This does not return the partner's full ledger and is the only cross-user read.
+     * Today's kept / not-yet status for an accepted pairing.
+     * Pending invites and strangers are refused. Habit rows are not returned.
      */
     public function getPartnerMetrics(Request $request): JsonResponse
     {
@@ -411,10 +410,8 @@ final class HabitLedgerApiController
         }
 
         $partnerUserId = trim((string) $request->query('partner_user_id', ''));
-        $monthKey = trim((string) $request->query('month_key', ''));
         if (
             $partnerUserId === ''
-            || $monthKey === ''
             || $partnerUserId === $userId
             || CurrentUserResolver::isGuestSubject($partnerUserId)
         ) {
@@ -425,16 +422,22 @@ final class HabitLedgerApiController
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $rows = DB::table('habit_check_ins')
-            ->where('user_id', $partnerUserId)
-            ->where('month_key', $monthKey)
-            ->orderBy('day')
-            ->get(['habit_id', 'habit_name', 'points', 'day', 'completed_on', 'canonical_key']);
+        $date = trim((string) $request->query('date', ''));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $date = now()->toDateString();
+        }
+
+        $kept = false;
+        if (Schema::hasTable('habit_check_ins')) {
+            $kept = DB::table('habit_check_ins')
+                ->where('user_id', $partnerUserId)
+                ->whereRaw('substr(cast(completed_on as text), 1, 10) = ?', [$date])
+                ->exists();
+        }
 
         return response()->json([
-            'partner_user_id' => $partnerUserId,
-            'month_key' => $monthKey,
-            'check_ins' => $rows,
+            'date' => $date,
+            'status' => $kept ? 'kept' : 'not_yet',
         ]);
     }
 

@@ -227,10 +227,14 @@ export const recordHabitCheckIn = async ({
 
   const dateStr = completedOn || `${monthKey}-${String(day).padStart(2, '0')}`;
 
+  // Guest check-ins stay on this device. The server uses the bearer subject, not a client user id.
+  if (!isRetryableAccountId(String(userId))) {
+    return true;
+  }
+
   // 1. Primary: Save directly to Hostinger KVM 2 PostgreSQL via local API
   if (USE_LOCAL_API) {
     const localRes = await callLocalApi('/api/habits/check-ins', 'POST', {
-      user_id: userId,
       habit_id: String(habitId),
       habit_name: habitName,
       month_key: monthKey,
@@ -296,10 +300,13 @@ export const recordHabitCheckIn = async ({
 export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, skipQueue = false) => {
   if (!userId || !habitId || !monthKey || !day) return false;
 
+  if (!isRetryableAccountId(String(userId))) {
+    return true;
+  }
+
   // 1. Primary: Hostinger KVM 2 local API
   if (USE_LOCAL_API) {
     const localRes = await callLocalApi('/api/habits/check-ins', 'DELETE', {
-      user_id: userId,
       habit_id: String(habitId),
       month_key: monthKey,
       day: Number(day),
@@ -353,23 +360,13 @@ export const loadMonthCheckIns = async (userId, monthKey) => {
   if (!userId || !monthKey) return [];
 
   // 1. Primary: Local Hostinger KVM 2 PostgreSQL API (< 2ms)
+  if (!isRetryableAccountId(String(userId))) return [];
+
   if (USE_LOCAL_API) {
-    const localData = await callLocalApi(`/api/habits/check-ins?user_id=${encodeURIComponent(userId)}&month_key=${encodeURIComponent(monthKey)}`);
+    const localData = await callLocalApi(`/api/habits/check-ins?month_key=${encodeURIComponent(monthKey)}`);
     if (Array.isArray(localData)) {
       return localData;
     }
-  }
-
-  // Fallback: Supabase
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('habit_check_ins')
-        .select('id, habit_id, habit_name, day, completed_on, points, canonical_key, source, created_at')
-        .eq('user_id', userId)
-        .eq('month_key', monthKey);
-      if (!error && Array.isArray(data)) return data;
-    } catch {}
   }
 
   return [];
@@ -381,21 +378,13 @@ export const loadMonthCheckIns = async (userId, monthKey) => {
 export const loadAllCheckIns = async (userId) => {
   if (!userId) return [];
 
+  if (!isRetryableAccountId(String(userId))) return [];
+
   if (USE_LOCAL_API) {
-    const localData = await callLocalApi(`/api/habits/check-ins?user_id=${encodeURIComponent(userId)}`);
+    const localData = await callLocalApi('/api/habits/check-ins');
     if (Array.isArray(localData)) {
       return localData;
     }
-  }
-
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('habit_check_ins')
-        .select('habit_id, month_key, day, completed_on, points, canonical_key')
-        .eq('user_id', userId);
-      if (!error && Array.isArray(data)) return data;
-    } catch {}
   }
 
   return [];

@@ -51,15 +51,15 @@ export const VOICE_PERSONAS = {
 };
 
 /**
- * Get configured Gemini API Key (from env or user storage)
+ * Session opt-in only. The key is never written to localStorage or sent to this server.
  */
 export function getGeminiApiKey() {
-  return '';
+  return sessionGeminiKey;
 }
 
-export function setGeminiApiKey() {
-  sessionGeminiKey = '';
+export function setGeminiApiKey(key = '') {
   forgetPersistedGeminiKey();
+  sessionGeminiKey = typeof key === 'string' ? key.trim() : '';
 }
 
 /**

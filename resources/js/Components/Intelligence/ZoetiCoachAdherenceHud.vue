@@ -11,7 +11,6 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  Droplets,
   Heart,
   Clock,
   Sparkles,
@@ -23,7 +22,6 @@ import {
   AlertCircle,
   Brain,
   Compass,
-  Moon,
   MessageSquare,
 } from 'lucide-vue-next';
 import {
@@ -75,12 +73,7 @@ const participantName = computed(() => {
 // ── Live Telemetry Metrics ──
 const isLiveConnected = computed(() => Boolean(rawTelemetry.value && !rawTelemetry.value.isFallback));
 
-const adherenceRate = computed(() => {
-  if (rawTelemetry.value?.adherence_rate_pct != null) {
-    return Math.round(Number(rawTelemetry.value.adherence_rate_pct));
-  }
-  return Math.round(Number(props.consistencyScore) || 0);
-});
+const adherenceRate = computed(() => Math.round(Number(props.consistencyScore) || 0));
 
 const adherenceStatusGrade = computed(() => {
   const rate = adherenceRate.value;
@@ -91,38 +84,18 @@ const adherenceStatusGrade = computed(() => {
   return { label: 'Building Momentum', color: 'slate', class: 'grade-slate' };
 });
 
-const currentStreak = computed(() => {
-  if (rawTelemetry.value?.current_streak != null) {
-    return Number(rawTelemetry.value.current_streak);
-  }
-  return Number(props.systemStreak?.current || 0);
-});
+const currentStreak = computed(() => Number(props.systemStreak?.current || 0));
 
-const bestStreak = computed(() => {
-  if (rawTelemetry.value?.best_streak != null) {
-    return Number(rawTelemetry.value.best_streak);
-  }
-  return Number(props.systemStreak?.longest || props.systemStreak?.current || 0);
-});
+const bestStreak = computed(() => Number(props.systemStreak?.longest || props.systemStreak?.current || 0));
 
-const totalEventsInWindow = computed(() => {
-  if (rawTelemetry.value?.total_events_in_window != null) {
-    return Number(rawTelemetry.value.total_events_in_window);
-  }
-  return Number(props.todayCompletedCount || 0);
-});
+const totalEventsInWindow = computed(() => Number(props.todayCompletedCount || 0));
 
 const eventBreakdown = computed(() => {
-  const breakdown = rawTelemetry.value?.breakdown_by_event;
-  if (breakdown && typeof breakdown === 'object') {
-    return {
-      completed: breakdown.habit_completed || 0,
-      unmarked: breakdown.habit_unmarked || 0,
-    };
-  }
+  const completed = Number(props.todayCompletedCount) || 0;
+  const scheduled = Number(props.todayScheduledCount) || 0;
   return {
-    completed: props.todayCompletedCount || 0,
-    unmarked: 0,
+    completed,
+    unmarked: Math.max(0, scheduled - completed),
   };
 });
 
@@ -133,12 +106,7 @@ const activeChannel = computed(() => {
   return 'HABUILT CLOUD';
 });
 
-const regulatoryNotice = computed(() => {
-  return (
-    rawTelemetry.value?.regulatory_notice ||
-    'Clinical habit accountability metrics. Does not constitute medical diagnosis or therapy.'
-  );
-});
+const regulatoryNotice = computed(() => 'Counted from your check-ins.');
 
 // ── Milestone Badges ──
 const milestones = computed(() => {
@@ -151,7 +119,7 @@ const milestones = computed(() => {
     list.push({
       id: 'high_adherence_80',
       title: 'High Adherence Club (80%+)',
-      desc: 'Achieved ≥80% clinical compliance within the evaluation window',
+      desc: 'Kept at least 80% of the days in this check-in window',
       icon: Award,
       unlocked: true,
       color: 'gold',
@@ -160,7 +128,7 @@ const milestones = computed(() => {
     list.push({
       id: 'high_adherence_80',
       title: 'High Adherence Club (80%+)',
-      desc: `Target 80% compliance. Currently at ${adherenceRate.value}%`,
+      desc: `Currently ${adherenceRate.value}% of check-ins kept`,
       icon: Award,
       unlocked: false,
       color: 'slate',
@@ -199,34 +167,17 @@ const milestones = computed(() => {
   return list;
 });
 
-// ── Dynamic Clinical Insights & AI Directives ──
-const clinicalPillars = computed(() => {
-  return [
-    {
-      id: 'hydration',
-      label: 'Daily Hydration',
-      status: 'Active',
-      badgeColor: 'gold',
-      directive: 'Drink water steadily through the day, especially around training and deep work blocks.',
-      icon: Droplets,
-    },
-    {
-      id: 'movement',
-      label: 'Movement & Posture',
-      status: 'Active Protocol',
-      badgeColor: 'emerald',
-      directive: 'Stand up during long work blocks and keep a short mobility or walk session on the schedule.',
-      icon: Activity,
-    },
-    {
-      id: 'sleep',
-      label: 'Sleep Wind-down',
-      status: 'Night Directive',
-      badgeColor: 'teal',
-      directive: 'Dim screens before bed and protect a consistent lights-out time.',
-      icon: Moon,
-    },
-  ];
+const checkInRows = computed(() => {
+  const day = Number(props.currentDay) || 0;
+  return (props.todayHabits || []).map((habit) => {
+    const days = Array.isArray(habit?.completed_days) ? habit.completed_days.map(Number) : [];
+    const name = String(habit?.name || 'Habit').replace(/^\d{1,2}:\d{2}\s*/, '').trim() || 'Habit';
+    return {
+      id: String(habit?.id || name),
+      name,
+      kept: day > 0 && days.includes(day),
+    };
+  });
 });
 
 // Real-time AI Nudge based on current hour
@@ -312,7 +263,7 @@ const syncAdherence = async (notify = false) => {
         total_events_in_window: props.todayCompletedCount,
         breakdown_by_event: { habit_completed: props.todayCompletedCount, habit_unmarked: 0 },
         achieved_milestones: props.consistencyScore >= 80 ? ['high_adherence_club_80'] : [],
-        regulatory_notice: 'Clinical habit accountability telemetry synced via Habuilt local engine.',
+        regulatory_notice: 'Counted from your check-ins on this device.',
         isFallback: true,
       };
       lastSyncedAt.value = new Date();
@@ -533,7 +484,7 @@ onUnmounted(() => {
           @click="activeTab = 'clinical'"
         >
           <Brain class="w-3.5 h-3.5 text-violet-400" />
-          <span>AI Clinical Directives</span>
+          <span>Your check-ins</span>
           <span class="hud-tab-badge">Active</span>
         </button>
 
@@ -575,7 +526,7 @@ onUnmounted(() => {
                 ></div>
               </div>
               <div class="metric-footer">
-                <span>Clinical Target: ≥80% Compliance</span>
+                <span>Kept {{ todayCompletedCount }} of {{ todayScheduledCount }} today</span>
                 <span class="metric-benchmark mono-num">{{ adherenceRate >= 80 ? 'Target Met ✓' : `${80 - adherenceRate}% to Goal` }}</span>
               </div>
             </div>
@@ -625,7 +576,7 @@ onUnmounted(() => {
                 </span>
               </div>
               <p class="metric-subtext">
-                Evaluated across the 30-day clinical verification cycle.
+                From your check-ins today.
               </p>
             </div>
           </div>
@@ -679,35 +630,32 @@ onUnmounted(() => {
         </aside>
       </div>
 
-      <!-- ── TAB 2: AI Clinical Directives ── -->
+      <!-- ── TAB 2: Today's check-ins ── -->
       <div v-else-if="activeTab === 'clinical'" class="hud-pane hud-pane--clinical">
         <div class="clinical-intro">
           <div class="clinical-intro-title">
-            <Brain class="w-4 h-4 text-violet-400" />
-            <span>Master Clinical Assessment & Protocol Directives</span>
+            <CheckCircle2 class="w-4 h-4 text-emerald-400" />
+            <span>Today's check-ins</span>
           </div>
           <p class="clinical-intro-desc">
-            Algorithmic directives calibrated to your individualized biomarkers, daily routine windows, and recovery thresholds.
+            Kept or not yet, from the habits on today's list.
           </p>
         </div>
 
-        <div class="clinical-cards-grid">
+        <p v-if="checkInRows.length === 0" class="clinical-intro-desc">No habits are scheduled for today.</p>
+        <div v-else class="clinical-cards-grid">
           <article
-            v-for="pillar in clinicalPillars"
-            :key="pillar.id"
+            v-for="row in checkInRows"
+            :key="row.id"
             class="clinical-card"
-            :class="`clinical-card--${pillar.badgeColor}`"
+            :class="row.kept ? 'clinical-card--emerald' : 'clinical-card--violet'"
           >
             <div class="clinical-card-header">
-              <div class="clinical-card-icon">
-                <component :is="pillar.icon" class="w-4 h-4" />
-              </div>
               <div class="clinical-card-meta">
-                <h4 class="clinical-card-title">{{ pillar.label }}</h4>
-                <span class="clinical-status-pill mono-num">{{ pillar.status }}</span>
+                <h4 class="clinical-card-title">{{ row.name }}</h4>
+                <span class="clinical-status-pill mono-num">{{ row.kept ? 'Kept' : 'Not yet' }}</span>
               </div>
             </div>
-            <p class="clinical-card-directive">{{ pillar.directive }}</p>
           </article>
         </div>
       </div>

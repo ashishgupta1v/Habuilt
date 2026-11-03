@@ -230,99 +230,30 @@ export function subscribeToPartnerConnection(userId, onPartnerChange) {
 }
 
 /**
- * Loads partner's live progress metrics from habit_check_ins, with offline fallback cache.
+ * Today's kept / not-yet status for an accepted partner.
+ * The response has no habit rows, and this client does not cache or rebuild them.
  */
-export async function loadPartnerLiveMetrics(partnerUserId, monthKey, targetDay = null) {
-  if (!partnerUserId) return null;
+export async function loadPartnerLiveMetrics(partnerUserId) {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const empty = { date, status: 'not_yet' };
+  if (!partnerUserId || isGuestUser(partnerUserId)) return empty;
 
-  const todayNum = targetDay !== null ? Number(targetDay) : new Date().getDate();
-  const cacheKey = `habuilt_partner_metrics_${partnerUserId}_${monthKey}`;
-
-  // Helper to process raw check-in rows
-  const processCheckIns = (checkIns, isCached = false) => {
-    const list = Array.isArray(checkIns) ? checkIns : [];
-    const todayCheckIns = list.filter(d => Number(d.day) === todayNum);
-    const todayPoints = todayCheckIns.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
-    const todayCompletedHabitIds = todayCheckIns.map(d => String(d.habit_id || d.habitId));
-    const uniqueDays = new Set(list.map(d => Number(d.day)));
-    const totalMonthPoints = list.reduce((acc, cur) => acc + (Number(cur.points) || 1), 0);
-
-    return {
-      todayPoints,
-      todayCompletedCount: todayCheckIns.length,
-      todayCompletedHabitIds,
-      todayCheckIns,
-      totalMonthPoints,
-      completedDaysCount: uniqueDays.size,
-      checkInsCount: list.length,
-      isTodayActive: todayCheckIns.length > 0,
-      isOfflineCache: isCached,
-      lastUpdated: new Date().toISOString(),
-    };
-  };
-
-  // Partner progress comes from the signed-in API projection, never from another person's table.
-  if (!isGuestUser(partnerUserId)) {
-    try {
-      const data = await callLocalApi(
-        `/api/partner-metrics?partner_user_id=${encodeURIComponent(partnerUserId)}&month_key=${encodeURIComponent(monthKey)}`
-      );
-      if (data && Array.isArray(data.check_ins)) {
-        const metrics = processCheckIns(data.check_ins, false);
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(metrics));
-        } catch (_) {}
-        return metrics;
-      }
-    } catch (e) {
-      console.warn('[PartnerPairing] loadPartnerLiveMetrics online fetch warning:', e);
+  try {
+    const data = await callLocalApi(
+      `/api/partner-metrics?partner_user_id=${encodeURIComponent(partnerUserId)}&date=${encodeURIComponent(date)}`,
+      'GET',
+      null,
+      { returnError: true },
+    );
+    if (data && (data.status === 'kept' || data.status === 'not_yet')) {
+      return { date: data.date || date, status: data.status };
     }
+  } catch (e) {
+    console.warn('[PartnerPairing] loadPartnerLiveMetrics online fetch warning:', e);
   }
 
-  // Fallback: Read from local cache if online fetch failed or offline
-  try {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      return { ...parsed, isOfflineCache: true };
-    }
-  } catch (_) {}
-
-  // Local pair simulation when both workspaces exist on this device.
-  try {
-    const partnerStateKey = `habuilt_state_${partnerUserId}_${monthKey}`;
-    const rawLocal = localStorage.getItem(partnerStateKey);
-    if (rawLocal) {
-      const parsed = JSON.parse(rawLocal);
-      const habits = parsed.habits || [];
-      const syntheticCheckIns = [];
-      habits.forEach(h => {
-        const cds = Array.isArray(h.completed_days) ? h.completed_days.map(Number) : [];
-        cds.forEach(day => {
-          syntheticCheckIns.push({
-            habit_id: h.id,
-            habit_name: h.name,
-            points: h.points || 1,
-            day,
-          });
-        });
-      });
-      return processCheckIns(syntheticCheckIns, true);
-    }
-  } catch (_) {}
-
-  return {
-    todayPoints: 0,
-    todayCompletedCount: 0,
-    todayCompletedHabitIds: [],
-    todayCheckIns: [],
-    totalMonthPoints: 0,
-    completedDaysCount: 0,
-    checkInsCount: 0,
-    isTodayActive: false,
-    isOfflineCache: false,
-    lastUpdated: new Date().toISOString(),
-  };
+  return empty;
 }
 
 /**

@@ -23,6 +23,7 @@ const props = defineProps({
   isJyoti: { type: Boolean, default: false },
   displayName: { type: String, default: 'Warrior' },
   partnerName: { type: String, default: 'Partner' },
+  partnerStatus: { type: String, default: 'not_yet' },
   partnerCompletedCount: { type: Number, default: 0 },
   partnerTotalCount: { type: Number, default: 0 },
   partnerPoints: { type: Number, default: 0 },
@@ -262,18 +263,14 @@ const handleSendCustomNudge = () => {
               </span>
             </div>
             <span class="partner-banner-sub">
-              Real-time peer visibility &amp; reciprocal habit celebrations
+              Today: {{ partnerStatus === 'kept' ? 'Kept' : 'Not yet' }}
             </span>
           </div>
 
           <div class="partner-banner-stats flex items-center gap-2">
             <div class="stat-pill mono-num">
-              <span class="stat-pill__val">{{ partnerPoints }}</span>
-              <span class="stat-pill__lbl">Pts Today</span>
-            </div>
-            <div class="stat-pill mono-num">
-              <span class="stat-pill__val">{{ partnerCompletedCount }}/{{ partnerTotalCount || '—' }}</span>
-              <span class="stat-pill__lbl">Habits Done</span>
+              <span class="stat-pill__val">{{ partnerStatus === 'kept' ? 'Kept' : 'Not yet' }}</span>
+              <span class="stat-pill__lbl">Today</span>
             </div>
             <div class="stat-pill mono-num">
               <span class="stat-pill__val text-amber-800">{{ calculatedAlignment }}%</span>

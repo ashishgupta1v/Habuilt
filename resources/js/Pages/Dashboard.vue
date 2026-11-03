@@ -76,7 +76,6 @@ import {
   pairWithInviteCode,
   subscribeToPartnerConnection,
   loadPartnerLiveMetrics,
-  computeSharedAnchorsStatus,
 } from '@/lib/partnerPairing';
 import { useDeepWorkTimer } from '@/Composables/useDeepWorkTimer';
 import { useConfetti } from '@/Composables/useConfetti';
@@ -91,7 +90,6 @@ import {
   getTimeSlotForHabit,
   getHabitCategory,
   getCurrentTimeBlock,
-  getSharedHabitInfo,
 } from '@/Composables/useHabitsState';
 import {
   getDayType,
@@ -325,6 +323,7 @@ const pairChannelId = computed(() => {
 });
 
 const partnerLiveMetrics = ref(null);
+const partnerKeptToday = ref(false);
 const partnerPointsToday = ref(0);
 const partnerCompletedCountToday = ref(0);
 const partnerTotalHabitsCount = ref(0);
@@ -362,35 +361,27 @@ const handleSendPartnerNudge = (nudge) => {
 const refreshPartnerLiveMetrics = async () => {
   const pId = partnerUserId.value;
   if (!pId) {
+    partnerKeptToday.value = false;
     partnerPointsToday.value = 0;
     partnerCompletedCountToday.value = 0;
     partnerTotalHabitsCount.value = 0;
     dynamicSharedAnchors.value = [];
     partnerAlignmentScore.value = 0;
+    partnerLiveMetrics.value = null;
     return;
   }
 
   try {
-    const metrics = await loadPartnerLiveMetrics(pId, monthScope.value, props.currentDay);
-    if (metrics) {
-      partnerLiveMetrics.value = metrics;
-      partnerPointsToday.value = metrics.todayPoints || 0;
-      partnerCompletedCountToday.value = metrics.todayCompletedCount || 0;
-      partnerLiveOffline.value = !!metrics.isOfflineCache;
-
-      partnerTotalHabitsCount.value = Math.max(metrics.todayCompletedCount, (localHabits.value || []).length);
-
-      const anchorCalc = computeSharedAnchorsStatus(
-        localHabits.value,
-        metrics,
-        isAshish.value,
-        isJyoti.value,
-        props.currentDay
-      );
-
-      dynamicSharedAnchors.value = anchorCalc.anchors || [];
-      partnerAlignmentScore.value = anchorCalc.alignmentPercentage || 0;
-    }
+    const metrics = await loadPartnerLiveMetrics(pId);
+    const kept = metrics?.status === 'kept';
+    partnerKeptToday.value = kept;
+    partnerLiveMetrics.value = { status: kept ? 'kept' : 'not_yet', date: metrics?.date || '' };
+    partnerPointsToday.value = 0;
+    partnerCompletedCountToday.value = 0;
+    partnerTotalHabitsCount.value = 0;
+    partnerLiveOffline.value = false;
+    dynamicSharedAnchors.value = [];
+    partnerAlignmentScore.value = 0;
   } catch (err) {
     console.warn('[Dashboard] refreshPartnerLiveMetrics error:', err);
   }
@@ -1793,7 +1784,7 @@ const monthlyTotalEarned = computed(() => {
 });
 
 const rewardBalanceFromServer = ref(null);
-const serverSundayShare = ref('');
+const serverSundaySummary = ref(null);
 
 const localDateKey = () => {
   const now = new Date();
@@ -1806,7 +1797,9 @@ const localSundaySummary = computed(() => summarizeSundayReview({
   checkIns: checkInsFromHabits(localHabits.value || [], props.year, props.month),
 }));
 
-const sundayShareText = computed(() => serverSundayShare.value || localSundaySummary.value.share_text);
+const sundaySummary = computed(() => serverSundaySummary.value || localSundaySummary.value);
+
+const sundayShareText = computed(() => sundaySummary.value.share_text);
 
 const applyRewardPayload = (data) => {
   if (!data || data.balance === undefined) return;
@@ -1859,7 +1852,14 @@ const refreshRewardAccount = async () => {
 const refreshSundayReview = async () => {
   if (isGuestActive.value) return;
   const data = await callLocalApi(`/api/sunday-review?date=${localDateKey()}`, 'GET', null, { returnError: true });
-  if (data?.share_text) serverSundayShare.value = data.share_text;
+  if (data && Number.isFinite(Number(data.completed_slots))) {
+    serverSundaySummary.value = {
+      completed_slots: Number(data.completed_slots) || 0,
+      missed_slots: Number(data.missed_slots) || 0,
+      streak: Number(data.streak) || 0,
+      share_text: data.share_text || '',
+    };
+  }
 };
 
 const availableWallet = computed(() => {
@@ -2114,16 +2114,11 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
         source: 'web',
       });
 
-      const sharedInfo = getSharedHabitInfo(habit.id);
-      if (sharedInfo || isPartnerPaired.value) {
+      if (isPartnerPaired.value) {
         broadcastPartnerEvent({
-          type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
+          type: 'kept_today',
           partner: displayName.value,
           userId: effectiveUserId.value,
-          habitId: habit.id,
-          habitName: habit.name,
-          points: habit.points || 1,
-          day: numDay,
         }, pairChannelId.value);
       }
     } else {
@@ -2137,15 +2132,10 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
   } else {
     // Guest or offline/local pairing mode: broadcast to local tab channel if paired
     if (nextDone && isPartnerPaired.value) {
-      const sharedInfo = getSharedHabitInfo(habit.id);
       broadcastPartnerEvent({
-        type: sharedInfo ? 'shared_habit_done' : 'habit_completed',
+        type: 'kept_today',
         partner: displayName.value,
         userId: effectiveUserId.value,
-        habitId: habit.id,
-        habitName: habit.name,
-        points: habit.points || 1,
-        day: numDay,
       }, pairChannelId.value);
     }
   }
@@ -3625,17 +3615,17 @@ onMounted(() => {
       const isOwn = (msg.userId === effectiveUserId.value) ||
                     (sender && sender.toLowerCase() === displayName.value.toLowerCase());
 
-      if (msg && (msg.type === 'shared_habit_done' || msg.type === 'habit_completed')) {
+      if (msg && (msg.type === 'kept_today' || msg.type === 'shared_habit_done' || msg.type === 'habit_completed')) {
         if (!isOwn) {
-          showToast(`🌸 ${sender} completed "${msg.habitName}"! (+${msg.points} pts) ✨`, 4500);
+          showToast(`${sender} kept today.`, 4500);
           firePartnerCelebration();
           playSharedAnchorSync();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([25, 50, 25]);
           }
           dispatchPartnerNotification({
-            title: `🌸 ${sender} crushed "${msg.habitName}"! (+${msg.points || 1} pts)`,
-            body: 'Keep your warrior momentum synced! Tap to open your protocol.',
+            title: `${sender} kept today`,
+            body: 'They kept today.',
           });
           refreshPartnerLiveMetrics();
         }
@@ -4400,9 +4390,9 @@ onBeforeUnmount(() => {
           :shared-anchors="dynamicSharedAnchors"
           :alignment-score="partnerAlignmentScore || 0"
           :share-text="sundayShareText"
-          :completed-slots="localSundaySummary.completed_slots"
-          :missed-slots="localSundaySummary.missed_slots"
-          :streak-days="localSundaySummary.streak"
+          :completed-slots="sundaySummary.completed_slots"
+          :missed-slots="sundaySummary.missed_slots"
+          :streak-days="sundaySummary.streak"
           @toggle-expand="weeklyReviewExpanded = !weeklyReviewExpanded"
           @fill-metrics="fillSundayMetrics"
           @save-review="saveState"
@@ -4638,6 +4628,7 @@ onBeforeUnmount(() => {
         :is-jyoti="isJyoti"
         :display-name="displayName"
         :partner-name="partnerDisplayName"
+        :partner-status="partnerKeptToday ? 'kept' : 'not_yet'"
         :partner-completed-count="partnerCompletedCountToday"
         :partner-total-count="partnerTotalHabitsCount"
         :partner-points="partnerPointsToday"
