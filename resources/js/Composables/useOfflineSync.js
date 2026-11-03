@@ -17,6 +17,21 @@ export function useOfflineSync() {
   const deadLetterCount = ref(initial.deadLetterCount || 0);
   const deadLetterMessage = ref(initial.deadLetterMessage || '');
   const lastSyncedAt = ref(initial.lastSyncedAt);
+  const widgetDeadLetterCount = ref(0);
+  const widgetLastSuccessAt = ref('');
+
+  const readWidgetSync = () => {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const parsed = JSON.parse(localStorage.getItem('habuilt_widget_sync_status') || 'null');
+      widgetDeadLetterCount.value = Number(parsed?.deadLetterCount) || 0;
+      widgetLastSuccessAt.value = parsed?.lastSuccessAt || '';
+    } catch {
+      widgetDeadLetterCount.value = 0;
+      widgetLastSuccessAt.value = '';
+    }
+  };
+  readWidgetSync();
 
   const updateState = (e) => {
     const detail = e?.detail || syncEngine.getState();
@@ -31,6 +46,7 @@ export function useOfflineSync() {
   onMounted(() => {
     if (typeof window !== 'undefined') {
       window.addEventListener('habuilt:sync-status', updateState);
+      window.addEventListener('habuilt:widget-sync-status', readWidgetSync);
       // Fetch latest on mount
       updateState();
     }
@@ -39,46 +55,36 @@ export function useOfflineSync() {
   onUnmounted(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('habuilt:sync-status', updateState);
+      window.removeEventListener('habuilt:widget-sync-status', readWidgetSync);
     }
   });
 
+  const totalDeadLetters = computed(() => deadLetterCount.value + widgetDeadLetterCount.value);
+  const latestSuccessAt = computed(() => {
+    const stamps = [lastSyncedAt.value, widgetLastSuccessAt.value].filter(Boolean).sort();
+    return stamps.length > 0 ? stamps[stamps.length - 1] : '';
+  });
+
   const statusLabel = computed(() => {
+    if (totalDeadLetters.value > 0) return `Sync stopped (${totalDeadLetters.value})`;
     if (!isOnline.value) {
-      if (deadLetterCount.value > 0) return `Sync stopped (${deadLetterCount.value})`;
       return pendingCount.value > 0 ? `Offline • ${pendingCount.value}` : 'Offline';
     }
     if (syncState.value === 'syncing') {
       return 'Syncing...';
     }
-    if (deadLetterCount.value > 0) {
-      return `Sync stopped (${deadLetterCount.value})`;
-    }
     if (syncState.value === 'error') {
       return pendingCount.value > 0 ? `Retry (${pendingCount.value})` : 'Sync Failed';
     }
-    return pendingCount.value > 0 ? `Syncing (${pendingCount.value})` : 'Cloud Synced';
+    return pendingCount.value > 0 ? `Syncing (${pendingCount.value})` : 'Synced';
   });
 
   const statusTooltip = computed(() => {
-    if (!isOnline.value) {
-      return pendingCount.value > 0
-        ? `${pendingCount.value} pending mutation(s) stored locally. Will auto-sync once back online.`
-        : 'Working in sovereign offline mode. All actions are cached locally.';
-    }
-    if (syncState.value === 'syncing') {
-      return 'Synchronizing local changes with Supabase cloud...';
-    }
-    if (deadLetterCount.value > 0) {
-      return deadLetterMessage.value
-        ? `${deadLetterMessage.value} Click to retry.`
-        : `${deadLetterCount.value} change(s) stopped retrying. Click to retry.`;
-    }
-    if (syncState.value === 'error') {
-      return `${pendingCount.value} changes could not be saved to cloud. Click to retry.`;
-    }
-    return lastSyncedAt.value
-      ? `All habits safely persisted in cloud. Last synced: ${new Date(lastSyncedAt.value).toLocaleTimeString()}`
-      : 'All habits safely persisted in cloud.';
+    const success = latestSuccessAt.value
+      ? `Last success ${new Date(latestSuccessAt.value).toLocaleString()}.`
+      : 'No successful sync yet.';
+    const dead = `${deadLetterCount.value} web dead letter(s), ${widgetDeadLetterCount.value} phone dead letter(s).`;
+    return `${success} ${dead}`;
   });
 
   const triggerFlush = async () => {

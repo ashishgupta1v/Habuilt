@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   Brain,
   Sparkles,
@@ -27,17 +27,10 @@ import {
   Volume2,
   VolumeX,
   RefreshCw,
-  Sliders,
   ShieldAlert,
 } from 'lucide-vue-next';
-import {
-  VOICE_PERSONAS,
-  generateAIBriefing,
-  speechController,
-  buildBriefingContext,
-  getGeminiApiKey,
-  setGeminiApiKey,
-} from '@/lib/geminiHabitCoach';
+import { VOICE_PERSONAS, speechController } from '@/lib/geminiHabitCoach';
+import { buildLedgerBriefing } from '@/lib/ledgerBriefing';
 
 const props = defineProps({
   isAshish: { type: Boolean, default: false },
@@ -60,6 +53,8 @@ const props = defineProps({
   tierThresholds: { type: Object, default: () => ({ floor: 4, half: 8, full: 15, target: 15 }) },
   consistencyScore: { type: Number, default: 0 },
   adherenceRate: { type: Number, default: 0 },
+  month: { type: Number, default: 1 },
+  year: { type: Number, default: 2026 },
 });
 
 const emit = defineEmits([
@@ -87,21 +82,6 @@ const isGeneratingBriefing = ref(false);
 const isAudioPlaying = ref(false);
 const isAudioPaused = ref(false);
 const currentBriefing = ref(null);
-const showApiKeyInput = ref(false);
-const customApiKeyInput = ref(getGeminiApiKey());
-const hasCustomApiKey = computed(() => Boolean(getGeminiApiKey()));
-
-const saveApiKey = () => {
-  setGeminiApiKey(customApiKeyInput.value);
-  showApiKeyInput.value = false;
-  refreshAIBriefing();
-  emit('toast', {
-    message: customApiKeyInput.value
-      ? 'Gemini API key configured! Regenerating briefing...'
-      : 'API key cleared. Using offline Smart Neural synthesis.',
-    type: 'success'
-  });
-};
 
 // Circadian Window Calculation
 const now = ref(new Date());
@@ -119,38 +99,44 @@ onUnmounted(() => {
   speechController.stop();
 });
 
-const refreshAIBriefing = async () => {
-  isGeneratingBriefing.value = true;
-  try {
-    const directiveStr = 'Maintain peak protocol consistency.';
-
-    const context = buildBriefingContext({
-      displayName: props.displayName,
-      isAshish: props.isAshish,
-      isJyoti: props.isJyoti,
-      dayTypeLabel: props.dayTypeLabel,
-      circadianPhase: circadianWindow.value.title,
-      todayPoints: props.todayPoints,
-      targetPoints: 15,
-      completedCount: props.todayCompletedCount,
-      scheduledCount: props.todayScheduledCount,
-      systemStreak: props.systemStreak?.current || 0,
-      stiffnessMinutes: localStiffness.value,
-      hydrationMl: localHydration.value,
-      partnerName: props.partnerName || 'Partner',
-      activeHabitName: props.todayHabits.find(h => !props.hasCompletedDay(h, props.currentDay))?.name || '',
-      adherenceRate: props.adherenceRate || props.consistencyScore || 0,
-      clinicalDirective: directiveStr,
-    });
-
-    const result = await generateAIBriefing(context, selectedPersonaKey.value);
-    currentBriefing.value = result;
-  } catch (err) {
-    console.warn('[Cockpit] Error generating briefing:', err);
-  } finally {
-    isGeneratingBriefing.value = false;
+const weekCompletedCount = computed(() => {
+  const today = new Date(props.year, props.month - 1, props.currentDay);
+  let count = 0;
+  for (let offset = 0; offset < 7; offset += 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - offset);
+    if (date.getFullYear() !== props.year || date.getMonth() !== props.month - 1) continue;
+    const dayNumber = date.getDate();
+    for (const habit of props.allHabits || []) {
+      const days = Array.isArray(habit.completed_days) ? habit.completed_days.map(Number) : [];
+      if (days.includes(dayNumber)) count += 1;
+    }
   }
+  return count;
+});
+
+const refreshAIBriefing = () => {
+  const scheduleFor = (habit) => {
+    if (!habit) return null;
+    if (habit.startTime) return { start: habit.startTime, end: habit.endTime || '' };
+    const match = String(habit.name || '').match(/(\d{1,2}:\d{2})/);
+    return match ? { start: match[1] } : null;
+  };
+  currentBriefing.value = buildLedgerBriefing({
+    habits: props.todayHabits || [],
+    isCompleted: (habit, day) => props.hasCompletedDay(habit, day),
+    scheduleFor,
+    currentDay: props.currentDay,
+    now: now.value,
+    weekCompletedCount: weekCompletedCount.value,
+  });
 };
+
+watch(
+  () => [props.todayHabits, props.allHabits, props.currentDay, now.value],
+  () => refreshAIBriefing(),
+  { deep: true },
+);
 
 const toggleAudioBriefing = () => {
   if (isAudioPlaying.value && !isAudioPaused.value) {
@@ -164,7 +150,7 @@ const toggleAudioBriefing = () => {
     return;
   }
 
-  const textToSpeak = currentBriefing.value?.fullSpeechText || tacticalBriefing.value?.directive || 'Warrior protocol is active.';
+  const textToSpeak = currentBriefing.value?.fullSpeechText || tacticalBriefing.value?.directive || 'This week: 0 completed.';
   speechController.speak(textToSpeak, {
     personaKey: selectedPersonaKey.value,
     speed: playbackSpeed.value,
@@ -212,7 +198,7 @@ const circadianWindow = computed(() => {
       title: 'Morning Sadhana & Circadian Anchor',
       time: '04:45 – 08:30',
       icon: Sun,
-      advice: 'Hydrate, spinal mobility & natural sunlight before screen exposure.',
+      advice: 'Start the first habit on today\'s list.',
       mode: 'morning',
     };
   } else if (timeNum >= 510 && timeNum < 780) { // 08:30 - 13:00
@@ -227,10 +213,10 @@ const circadianWindow = computed(() => {
   } else if (timeNum >= 780 && timeNum < 870) { // 13:00 - 14:30
     return {
       id: 'midday_recharge',
-      title: 'Midday Metabolic Recharge',
+      title: 'Midday pause',
       time: '13:00 – 14:30',
       icon: Coffee,
-      advice: 'Nourishing warm meal, shared partner check-in & brief stroll.',
+      advice: 'Take the midday pause, then the next habit.',
       mode: 'midday',
     };
   } else if (timeNum >= 870 && timeNum < 1110) { // 14:30 - 18:30
@@ -245,141 +231,54 @@ const circadianWindow = computed(() => {
   } else if (timeNum >= 1110 && timeNum < 1290) { // 18:30 - 21:30
     return {
       id: 'evening_family',
-      title: 'Evening Transition & Family Sadhana',
+      title: 'Evening',
       time: '18:30 – 21:30',
       icon: Heart,
-      advice: 'Stroller walk, evening diya, digital sunset & nervous system downshift.',
+      advice: 'Finish the habits still open today.',
       mode: 'evening',
     };
   } else {
     return {
       id: 'night_restoration',
-      title: 'Deep Neuro-Endocrine Restoration',
+      title: 'Rest',
       time: '21:30 – 04:45',
       icon: Moon,
-      advice: 'Dark room, cool temperature & deep REM/SWS sleep window.',
+      advice: 'Rest until the next habit.',
       mode: 'evening',
     };
   }
 });
 
-// Dynamic AI Insights & Battle Plan
+// Briefing from this person's loaded check-ins.
 const tacticalBriefing = computed(() => {
-  const pts = props.todayPoints;
-  const isMorning = circadianWindow.value.mode === 'morning';
-  const isMidday = circadianWindow.value.mode === 'midday';
-  const completedHabits = (props.todayHabits || []).filter(h => props.hasCompletedDay(h, props.currentDay));
+  const briefing = currentBriefing.value || {
+    headline: 'Today is clear',
+    directive: `This week: ${weekCompletedCount.value} completed.`,
+    focusName: '',
+    focusKind: '',
+  };
   const pendingHabits = (props.todayHabits || []).filter(h => !props.hasCompletedDay(h, props.currentDay));
 
-  let headline = '';
-  let directive = '';
-  let keystoneAnchors = [];
-
-  const tFloor = props.tierThresholds?.floor ?? 4;
-  const tHalf = props.tierThresholds?.half ?? 8;
-  const tFull = props.tierThresholds?.full ?? 15;
-
-  if (isMorning) {
-    headline = props.dayType === 'office'
-      ? 'Office Commute Day: Guard Morning Sadhana Before Transit'
-      : props.dayType === 'half-day'
-      ? 'Half-Day Schedule: Front-load Priority Blocks Early'
-      : 'Home Base Flow: Maximize Uninterrupted Morning Sadhana';
-
-    directive = pts >= tFloor
-      ? `🛡️ Floor Protocol already locked! Push for Half Protocol (${tHalf} pts) before 13:00.`
-      : `Complete ${Math.max(0, tFloor - pts)} more pts to secure today\'s Baseline Floor and protect your ${props.systemStreak.current}-day streak.`;
-
-    keystoneAnchors = pendingHabits.slice(0, 3).map(h => ({
-      name: h.name,
-      points: h.points || 1,
-      reason: (h.name.toLowerCase().includes('mobility') || h.name.toLowerCase().includes('stretch'))
-        ? 'Spinal decompression unlocks physical endurance'
-        : (h.name.toLowerCase().includes('focus') || h.name.toLowerCase().includes('deep'))
-        ? 'High-leverage cognitive focus sprint'
-        : 'Daily grounding foundational habit',
-    }));
-  } else if (isMidday) {
-    headline = pts >= tHalf
-      ? '⚡ Half Protocol Secured: Excellent Midday Momentum'
-      : `🎯 Midday Cadence Check: Push to Lock ${tHalf} Points`;
-
-    directive = pts >= tFull
-      ? '👑 Elite Full Protocol achieved! Ease into evening family transitions.'
-      : pts >= tHalf
-      ? `You have ${tHalf}+ pts. Target ${Math.max(0, tFull - pts)} more points during afternoon block for Full Protocol victory.`
-      : `Current: ${pts}/${tFull} pts. Prioritize the next deep work sprint to cross ${tHalf} pts.`;
-
-    keystoneAnchors = pendingHabits.slice(0, 3).map(h => ({
-      name: h.name,
-      points: h.points || 1,
-      reason: 'Essential execution item for today\'s protocol',
-    }));
-  } else {
-    // Evening / Night Debrief
-    headline = pts >= tFull
-      ? `👑 Day Mastered: ${pts}/${tFull} Elite Full Protocol Completed!`
-      : pts >= tHalf
-      ? '⚡ Solid Execution: Half Protocol Secured'
-      : pts >= tFloor
-      ? '🛡️ Floor Protocol Held: Baseline Preserved'
-      : '⚠️ Recovery Needed: Review friction points tomorrow morning';
-
-    directive = `Completed ${completedHabits.length} of ${props.todayScheduledCount} habits (${pts} pts earned). Auto-extracted ${Math.min(3, completedHabits.length)} wins.`;
-
-    keystoneAnchors = completedHabits.slice(0, 3).map(h => ({
-      name: h.name,
-      points: h.points || 1,
-      reason: 'Key win achieved today',
-    }));
-  }
+  const focus = briefing.focusName
+    ? [{
+        name: briefing.focusName,
+        points: pendingHabits[0]?.points || 1,
+        reason: briefing.focusKind === 'missed' ? 'Missed today' : 'Next up',
+      }]
+    : [];
 
   return {
-    headline,
-    directive,
-    keystoneAnchors,
-    pts,
-    completedCount: completedHabits.length,
+    headline: briefing.headline,
+    directive: briefing.directive,
+    keystoneAnchors: focus,
+    pts: props.todayPoints,
+    completedCount: weekCompletedCount.value,
     pendingCount: pendingHabits.length,
   };
 });
 
 // Auto-Discovered Correlation Insights
-const correlationInsights = computed(() => {
-  const habits = props.allHabits || [];
-  if (habits.length === 0) return [];
-
-  const mobilityHabit = habits.find(h => h.name.toLowerCase().includes('mobility') || h.name.toLowerCase().includes('spinal'));
-  const focusHabit = habits.find(h => h.name.toLowerCase().includes('deep work') || h.name.toLowerCase().includes('focus'));
-  const walkHabit = habits.find(h => h.name.toLowerCase().includes('walk') || h.name.toLowerCase().includes('stroller'));
-
-  const insights = [];
-  if (mobilityHabit) {
-    insights.push({
-      metric: 'Spinal Mobility Anchor',
-      correlation: '+42% Focus Completion',
-      desc: 'Days starting with spinal mobility have significantly fewer mid-afternoon energy crashes.',
-      icon: Activity,
-    });
-  }
-  if (walkHabit) {
-    insights.push({
-      metric: 'Evening Stroller Walk',
-      correlation: 'Nervous System Recovery',
-      desc: 'Family walking acts as a biological breaker between work mode and restful sleep.',
-      icon: Heart,
-    });
-  }
-  if (focusHabit) {
-    insights.push({
-      metric: 'Deep Work Sprint',
-      correlation: '+150% XP Velocity',
-      desc: 'Executing structured 50m timers generates 3x higher habit consistency.',
-      icon: Zap,
-    });
-  }
-  return insights;
-});
+const correlationInsights = computed(() => []);
 
 // Partner Status Context
 const partnerContext = computed(() => {
@@ -542,17 +441,16 @@ defineExpose({
               </div>
               <div>
                 <div class="warrior-audio-title-row">
-                  <span id="warrior-audio-title" class="warrior-audio-title">Daily Tactical Audio Briefing</span>
+                  <span id="warrior-audio-title" class="warrior-audio-title">Today's briefing</span>
                   <span
                     id="warrior-audio-engine-badge"
-                    class="warrior-audio-engine-badge"
-                    :class="currentBriefing?.source === 'gemini-1.5-flash' ? 'badge-gemini' : 'badge-neural'"
+                    class="warrior-audio-engine-badge badge-neural"
                   >
-                    {{ currentBriefing?.source === 'gemini-1.5-flash' ? '✨ Gemini AI' : '⚡ Smart Neural' }}
+                    Your check-ins
                   </span>
                 </div>
                 <p id="warrior-audio-subtitle" class="warrior-audio-subtitle">
-                  Circadian & keystone intelligence voiced dynamically for your day
+                  From the habits you have already checked in
                 </p>
               </div>
             </div>
@@ -590,52 +488,7 @@ defineExpose({
                 <RefreshCw class="icon-xs" :class="{ 'spin-anim': isGeneratingBriefing }" />
               </button>
 
-              <!-- Gemini API Key configuration button -->
-              <button
-                id="warrior-audio-config-btn"
-                type="button"
-                class="warrior-audio-icon-btn"
-                :class="{ 'is-active': hasCustomApiKey }"
-                :title="hasCustomApiKey ? 'Gemini 1.5 Flash API Key Configured' : 'Configure Custom Gemini API Key'"
-                aria-label="Configure Custom Gemini API Key"
-                @click="showApiKeyInput = !showApiKeyInput"
-              >
-                <Sliders class="icon-xs" />
-              </button>
             </div>
-          </div>
-
-          <!-- Inline API Key configuration drawer -->
-          <div v-if="showApiKeyInput" id="warrior-audio-key-drawer" class="warrior-audio-key-drawer">
-            <div class="warrior-audio-key-form">
-              <input
-                id="warrior-audio-api-key-input"
-                v-model="customApiKeyInput"
-                type="password"
-                class="warrior-audio-key-input"
-                placeholder="Paste Gemini API Key (AIzaSy...)"
-                autocomplete="off"
-              />
-              <button
-                id="warrior-audio-key-save-btn"
-                type="button"
-                class="warrior-audio-key-save-btn"
-                @click="saveApiKey"
-              >
-                Save Key
-              </button>
-              <button
-                id="warrior-audio-key-cancel-btn"
-                type="button"
-                class="warrior-audio-key-cancel-btn"
-                @click="showApiKeyInput = false"
-              >
-                Close
-              </button>
-            </div>
-            <p class="warrior-audio-key-hint">
-              Optional: Leave empty to use Habuilt's built-in intelligent heuristic engine (100% offline & instant).
-            </p>
           </div>
 
           <!-- Player Controls & Waveform Strip -->
@@ -715,12 +568,9 @@ defineExpose({
             <p id="warrior-transcript-text" class="warrior-audio-transcript-text">
               {{ currentBriefing?.directive || tacticalBriefing.directive }}
             </p>
-            <div v-if="currentBriefing?.keystoneFocus || currentBriefing?.stiffnessAdvisory" class="warrior-audio-transcript-meta">
-              <span v-if="currentBriefing?.keystoneFocus" class="warrior-meta-chip">
-                🎯 Keystone: {{ currentBriefing.keystoneFocus }}
-              </span>
-              <span v-if="currentBriefing?.stiffnessAdvisory" class="warrior-meta-chip warrior-meta-chip--alert">
-                🛡️ Mobility: {{ currentBriefing.stiffnessAdvisory }}
+            <div v-if="currentBriefing?.focusName" class="warrior-audio-transcript-meta">
+              <span class="warrior-meta-chip">
+                {{ currentBriefing.focusKind === 'missed' ? 'Missed' : 'Next' }}: {{ currentBriefing.focusName }}
               </span>
             </div>
           </div>

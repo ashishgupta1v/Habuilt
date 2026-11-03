@@ -18,6 +18,7 @@ import {
 export const SYNC_QUEUE_KEY = 'habuilt_offline_mutation_queue';
 export const LEGACY_QUEUE_KEY = 'habuilt_offline_queue';
 export const DEAD_LETTER_KEY = 'habuilt_sync_dead_letters';
+export const LAST_SUCCESS_KEY = 'habuilt_sync_last_success';
 export const SYNC_HEARTBEAT_MS = 25000;
 
 class SyncEngine {
@@ -25,7 +26,7 @@ class SyncEngine {
     this.isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
     this.syncState = this.isOnline ? 'synced' : 'offline';
     this.isFlushing = false;
-    this.lastSyncedAt = null;
+    this.lastSyncedAt = this.readLastSuccess();
     this.deadLetterMessage = '';
     this.retryTimer = null;
     this.mutationExecutors = {};
@@ -274,7 +275,12 @@ class SyncEngine {
     }
 
     this.isFlushing = false;
-    this.lastSyncedAt = new Date().toISOString();
+    if (flushedCount > 0) {
+      this.lastSyncedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(LAST_SUCCESS_KEY, this.lastSyncedAt);
+      } catch { /* storage unavailable */ }
+    }
 
     if (deadLetters.length > 0) {
       this.deadLetterMessage = publicSyncError(deadLetters[deadLetters.length - 1]?.lastError);
@@ -356,6 +362,15 @@ class SyncEngine {
       lastSyncedAt: this.lastSyncedAt,
     };
     window.dispatchEvent(new CustomEvent('habuilt:sync-status', { detail }));
+  }
+
+  readLastSuccess() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      return localStorage.getItem(LAST_SUCCESS_KEY) || null;
+    } catch {
+      return null;
+    }
   }
 
   getState() {

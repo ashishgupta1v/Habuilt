@@ -22,7 +22,9 @@ import {
   saveUserBiomarker,
   loadLatestBiomarker,
   flushOfflineQueue,
+  callLocalApi,
 } from '@/lib/supabase';
+import { summarizeSundayReview, checkInsFromHabits } from '@/lib/sundayReview';
 import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
 import {
@@ -47,6 +49,7 @@ import MonthGrid from '@/Components/Grid/MonthGrid.vue';
 import PerformanceAnalytics from '@/Components/Analytics/PerformanceAnalytics.vue';
 import RewardShop from '@/Components/Rewards/RewardShop.vue';
 import SundayReview from '@/Components/Review/SundayReview.vue';
+import HouseholdDayCard from '@/Components/Household/HouseholdDayCard.vue';
 import HabitEditorModal from '@/Components/Modals/HabitEditorModal.vue';
 import HabitFormModal from '@/Components/Modals/HabitFormModal.vue';
 import ShareScorecardModal from '@/Components/Modals/ShareScorecardModal.vue';
@@ -750,6 +753,7 @@ const handleQuickSwitchProtocol = async (protoId) => {
       });
 
       await saveState();
+      armSavedSchedule({ prompt: true });
       showToast(`⚡ Protocol "${targetProto.name}" Activated!`);
     }
   } catch (err) {
@@ -765,6 +769,7 @@ const handleSaveProtocolSettings = async (newSettings) => {
     ...newSettings,
   };
   await saveState();
+  armSavedSchedule({ prompt: true });
   showToast('⚡ Protocol settings & scoring tiers saved!');
 };
 
@@ -772,6 +777,7 @@ const handleUpdateProtocolHabits = async (updatedHabits) => {
   if (Array.isArray(updatedHabits) && updatedHabits.length > 0) {
     localHabits.value = updatedHabits;
     await saveState();
+    armSavedSchedule({ prompt: true });
   }
 };
 
@@ -1204,6 +1210,9 @@ const isManualSyncing = ref(false);
 const initialSyncState = syncEngine.getState();
 const deadLetterCount = ref(initialSyncState.deadLetterCount || 0);
 const deadLetterMessage = ref(initialSyncState.deadLetterMessage || '');
+const lastSyncSuccessAt = ref(initialSyncState.lastSyncedAt || '');
+const widgetDeadLetterCount = ref(0);
+const visibleDeadLetterCount = computed(() => deadLetterCount.value + widgetDeadLetterCount.value);
 
 const updateOfflineQueueCount = () => {
   if (typeof window === 'undefined') return;
@@ -1259,7 +1268,25 @@ const handleSyncStatus = (event) => {
   }
   deadLetterCount.value = nextCount;
   deadLetterMessage.value = detail.deadLetterMessage || '';
+  if (detail.lastSyncedAt) lastSyncSuccessAt.value = detail.lastSyncedAt;
   updateOfflineQueueCount();
+};
+
+const rememberWidgetSync = (nativeData) => {
+  if (!nativeData) return;
+  widgetDeadLetterCount.value = Number(nativeData.deadLetterCount) || 0;
+  const widgetSuccess = nativeData.lastSyncSuccessAt || '';
+  if (widgetSuccess && (!lastSyncSuccessAt.value || String(widgetSuccess) > String(lastSyncSuccessAt.value))) {
+    lastSyncSuccessAt.value = widgetSuccess;
+  }
+  try {
+    localStorage.setItem('habuilt_widget_sync_status', JSON.stringify({
+      deadLetterCount: widgetDeadLetterCount.value,
+      lastSuccessAt: widgetSuccess,
+      pendingSyncCount: Number(nativeData.pendingSyncCount) || 0,
+    }));
+    window.dispatchEvent(new CustomEvent('habuilt:widget-sync-status'));
+  } catch { /* storage unavailable */ }
 };
 
 const retryStoppedSync = async () => {
@@ -1765,7 +1792,80 @@ const monthlyTotalEarned = computed(() => {
   return total;
 });
 
+const rewardBalanceFromServer = ref(null);
+const serverSundayShare = ref('');
+
+const localDateKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
+const localSundaySummary = computed(() => summarizeSundayReview({
+  today: localDateKey(),
+  habitIds: (localHabits.value || []).map((habit) => String(habit.id)),
+  checkIns: checkInsFromHabits(localHabits.value || [], props.year, props.month),
+}));
+
+const sundayShareText = computed(() => serverSundayShare.value || localSundaySummary.value.share_text);
+
+const applyRewardPayload = (data) => {
+  if (!data || data.balance === undefined) return;
+  rewardBalanceFromServer.value = Number(data.balance) || 0;
+  if (Array.isArray(data.rewards)) {
+    rewards.value = data.rewards.map((reward) => ({
+      id: reward.id,
+      item: reward.name,
+      cost: Number(reward.cost_points) || 0,
+      type: 'Weekly',
+    }));
+  }
+  if (Array.isArray(data.redemptions)) {
+    rewardLedger.value = data.redemptions.map((entry) => ({
+      id: entry.id,
+      reward_id: entry.reward_id,
+      cost: Number(entry.cost_points) || 0,
+      claimed_at: entry.redeemed_at,
+    }));
+  }
+};
+
+const saveRewardCatalogToServer = async (catalog) => {
+  const rewardsPayload = (catalog || [])
+    .filter((reward) => reward?.item && String(reward.item).trim())
+    .map((reward) => ({
+      id: reward.id,
+      name: String(reward.item).trim(),
+      cost: Math.max(1, Number(reward.cost) || 1),
+    }));
+  const data = await callLocalApi('/api/rewards', 'POST', { rewards: rewardsPayload }, { returnError: true });
+  if (data && data.balance !== undefined && !data.error) {
+    applyRewardPayload(data);
+    return data;
+  }
+  return null;
+};
+
+const refreshRewardAccount = async () => {
+  if (isGuestActive.value) return;
+  const data = await callLocalApi('/api/rewards', 'GET', null, { returnError: true });
+  if (!data || data.error || data.balance === undefined) return;
+  if (Array.isArray(data.rewards) && data.rewards.length === 0 && (rewards.value || []).some((reward) => reward?.item)) {
+    await saveRewardCatalogToServer(rewards.value);
+    return;
+  }
+  applyRewardPayload(data);
+};
+
+const refreshSundayReview = async () => {
+  if (isGuestActive.value) return;
+  const data = await callLocalApi(`/api/sunday-review?date=${localDateKey()}`, 'GET', null, { returnError: true });
+  if (data?.share_text) serverSundayShare.value = data.share_text;
+};
+
 const availableWallet = computed(() => {
+  if (!isGuestActive.value && rewardBalanceFromServer.value !== null) {
+    return rewardBalanceFromServer.value;
+  }
   const totalEarned = earnedBeforeCurrentMonth.value + monthlyTotalEarned.value;
   const currentMonthRedeemed = (rewardLedger.value || []).reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
   const totalRedeemed = redeemedBeforeCurrentMonth.value + currentMonthRedeemed;
@@ -2306,6 +2406,7 @@ const {
   permissionState: notificationPermission,
   notificationsEnabled: dueNowNotificationsEnabled,
   requestPermission: requestDueNowNotifications,
+  armSavedSchedule,
   toggleNotifications: toggleDueNowNotifications,
   sendTestNotification,
   syncDueNowNotification,
@@ -2426,6 +2527,7 @@ const reconcileNativeWidget = async () => {
 
     // 2. Read widget SharedPreferences to synchronize any habits marked done from widget
     const nativeData = await getNativeWidgetData();
+    rememberWidgetSync(nativeData);
     if (nativeData?.habitsJson) {
       const widgetHabits = JSON.parse(nativeData.habitsJson);
       if (Array.isArray(widgetHabits)) {
@@ -2857,6 +2959,7 @@ const loadLocalState = () => {
         parsed.dayType = getDayType(new Date());
       }
       applyLoadedState(parsed, false);
+      armSavedSchedule();
       if (lastVersion !== PRESET_VERSION) {
         localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
         saveState();
@@ -2945,7 +3048,10 @@ const syncCloudState = async (force = false) => {
       if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
       if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
       if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
+      armSavedSchedule();
     }
+    await refreshRewardAccount();
+    await refreshSundayReview();
 
     // 3. Load latest daily biomarker from user_biomarkers
     const todayDate = new Date();
@@ -3109,7 +3215,7 @@ const cancelEditingRewards = () => {
   coupleSynergyRewardsDraft.value = [];
 };
 
-const saveRewardsCatalog = () => {
+const saveRewardsCatalog = async () => {
   const sanitized = (rewardsDraft.value || [])
     .filter(r => r.item && r.item.trim().length > 0)
     .map(r => ({
@@ -3121,6 +3227,9 @@ const saveRewardsCatalog = () => {
 
   if (sanitized.length > 0) {
     rewards.value = sanitized;
+    if (!isGuestActive.value) {
+      await saveRewardCatalogToServer(sanitized);
+    }
   }
 
   const sanitizedCouple = (coupleSynergyRewardsDraft.value || [])
@@ -3220,8 +3329,33 @@ const isRewardClaimedThisMonth = (rewardId) => {
   return (rewardLedger.value || []).some(entry => entry.reward_id === rewardId || (targetReward && entry.item === targetReward.item));
 };
 
-const handleRedeemReward = (r) => {
+const handleRedeemReward = async (r) => {
   if (!r) return;
+  if (!isGuestActive.value) {
+    const catalog = (rewards.value || []).some((reward) => reward.id === r.id)
+      ? rewards.value
+      : [...(rewards.value || []), r];
+    const saved = await saveRewardCatalogToServer(catalog);
+    const match = (saved?.rewards || []).find((reward) => reward.id === r.id)
+      || (saved?.rewards || []).find((reward) => reward.name === String(r.item || '').trim());
+    if (!match) {
+      showToast('That reward could not be saved.');
+      return;
+    }
+    const result = await callLocalApi(`/api/rewards/${encodeURIComponent(match.id)}/redeem`, 'POST', {}, { returnError: true });
+    if (result?.status === 422) {
+      if (result.balance !== undefined) rewardBalanceFromServer.value = Number(result.balance) || 0;
+      showToast('Not enough points to redeem that reward.');
+      return;
+    }
+    if (!result || result.error) {
+      showToast('That reward could not be redeemed.');
+      return;
+    }
+    applyRewardPayload(result);
+    showToast(`Claimed: ${r.item}`);
+    return;
+  }
   if (availableWallet.value < r.cost) {
     showToast('❌ Not enough points in wallet to redeem this reward.');
     return;
@@ -3970,11 +4104,18 @@ onBeforeUnmount(() => {
         :hydration-ml="hydrationMlState"
         :tier-thresholds="tierThresholds"
         :consistency-score="consistencyScore"
+        :month="props.month"
+        :year="props.year"
         @send-high-five="sendWarriorHighFive"
         @update-biomarkers="handleUpdateBiomarkers"
         @update-hydration="handleUpdateHydration"
         @open-data-backup="isDataBackupModalOpen = true"
         @toast="msg => showToast(msg)"
+      />
+
+      <HouseholdDayCard
+        v-if="isPartnerPaired && (activeMobileTab === 'today' || activeMobileTab === 'stats')"
+        :suggested-day-type="dayType"
       />
 
       <!-- ── SECTION: DEDICATED DEEP WORK FOCUS STATION (Focus Tab on Mobile) ── -->
@@ -4258,6 +4399,10 @@ onBeforeUnmount(() => {
           :partner-points="partnerPointsToday || 0"
           :shared-anchors="dynamicSharedAnchors"
           :alignment-score="partnerAlignmentScore || 0"
+          :share-text="sundayShareText"
+          :completed-slots="localSundaySummary.completed_slots"
+          :missed-slots="localSundaySummary.missed_slots"
+          :streak-days="localSundaySummary.streak"
           @toggle-expand="weeklyReviewExpanded = !weeklyReviewExpanded"
           @fill-metrics="fillSundayMetrics"
           @save-review="saveState"
@@ -4270,10 +4415,10 @@ onBeforeUnmount(() => {
       <!-- Offline State & Background Sync Indicator Pill -->
       <transition name="offline-pill-fade">
         <div
-          v-if="isOffline || deadLetterCount > 0"
+          v-if="isOffline || visibleDeadLetterCount > 0 || lastSyncSuccessAt"
           id="offline-status-pill"
           class="offline-pill"
-          :class="{ 'offline-pill--attention': deadLetterCount > 0 }"
+          :class="{ 'offline-pill--attention': visibleDeadLetterCount > 0 }"
           role="status"
           aria-live="polite"
         >
@@ -4282,19 +4427,24 @@ onBeforeUnmount(() => {
               <WifiOff class="icon-xs" />
             </span>
             <div class="offline-pill__text">
-              <span class="offline-pill__title">{{ deadLetterCount > 0 ? 'Sync stopped' : 'Offline Mode' }}</span>
+              <span class="offline-pill__title">{{ visibleDeadLetterCount > 0 ? 'Sync stopped' : (isOffline ? 'Offline Mode' : 'Sync') }}</span>
               <span class="offline-pill__sub">
-                <template v-if="deadLetterCount > 0">
-                  {{ deadLetterCount }} change{{ deadLetterCount > 1 ? 's' : '' }} stopped retrying. {{ deadLetterMessage }}
+                <template v-if="visibleDeadLetterCount > 0">
+                  {{ visibleDeadLetterCount }} change{{ visibleDeadLetterCount > 1 ? 's' : '' }} stopped retrying.
+                  <template v-if="widgetDeadLetterCount > 0"> {{ widgetDeadLetterCount }} from the phone.</template>
+                  {{ deadLetterMessage }}
                 </template>
-                <template v-else>
+                <template v-else-if="isOffline">
                   {{ offlineQueuedCount > 0 ? `${offlineQueuedCount} action${offlineQueuedCount > 1 ? 's' : ''} queued locally` : 'Changes saved locally' }}
+                </template>
+                <template v-if="lastSyncSuccessAt">
+                  Last success {{ new Date(lastSyncSuccessAt).toLocaleString() }}.
                 </template>
               </span>
             </div>
           </div>
           <div class="offline-pill__actions">
-            <template v-if="deadLetterCount > 0">
+            <template v-if="visibleDeadLetterCount > 0">
               <button
                 id="btn-retry-dead-letters"
                 type="button"

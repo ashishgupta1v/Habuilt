@@ -33,6 +33,10 @@ const props = defineProps({
   partnerPoints: { type: Number, default: 0 },
   sharedAnchors: { type: Array, default: () => [] },
   alignmentScore: { type: Number, default: 0 },
+  shareText: { type: String, default: '' },
+  completedSlots: { type: Number, default: 0 },
+  missedSlots: { type: Number, default: 0 },
+  streakDays: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -104,33 +108,12 @@ const combinedWeeklyEstimate = computed(() => {
   return userWk + partnerEst;
 });
 
-const generateWhatsAppDebriefText = () => {
-  const dateStr = props.weeklyReview.reviewDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const wins = coupleReflections.value.wins?.trim() || 'Consistent execution and shared rhythm maintained across morning and evening anchors.';
-  const friction = coupleReflections.value.friction?.trim() || 'Schedule compression during afternoon work blocks; addressed via earlier wind-down.';
-  const commitments = coupleReflections.value.commitments?.trim() || 'Locking in morning sunlight walk, 13:30 shared lunch stop, and phone-free evening wind-down.';
-  const synergyTier = props.alignmentScore >= 80 ? 'Peak Harmony 🌟' : props.alignmentScore >= 50 ? 'Solid Sync ⚔️' : 'Building Sync 🛡️';
-
-  return `🛡️ *HABUILT COUPLE SYNDICATE DEBRIEF*
-🗓️ *Week of ${dateStr}* • Partner: ${props.partnerDisplayName}
-
-⚡ *Synchronization Metrics:*
-• Combined Energy: ${combinedWeeklyEstimate.value} pts
-• Sync Rate Today: ${props.alignmentScore}%
-• Shared Anchors: ${syncedAnchorsCount.value}/${totalAnchorsCount.value} Synced
-• Synergy Status: ${synergyTier}
-
-✨ *Mutual Breakthroughs & Flow:*
-${wins}
-
-⚠️ *Friction & Routine Adjustments:*
-${friction}
-
-🎯 *Next Week's Non-Negotiables:*
-${commitments}
-
-🔗 Built with Discipline • Habuilt Syndicate: https://habuilt.com`;
+const reviewSummaryText = () => {
+  if (props.shareText && props.shareText.trim()) return props.shareText.trim();
+  return `Sunday review\nCompleted: ${props.completedSlots}\nMissed: ${props.missedSlots}\nStreak: ${props.streakDays} days`;
 };
+
+const generateWhatsAppDebriefText = () => reviewSummaryText();
 
 const shareDebriefToWhatsApp = () => {
   const text = generateWhatsAppDebriefText();
@@ -138,7 +121,7 @@ const shareDebriefToWhatsApp = () => {
   if (typeof window !== 'undefined') {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
-  emit('toast', 'Opening WhatsApp with Couple Debrief...');
+  emit('toast', 'Opening WhatsApp with your week summary...');
 };
 
 const copyWhatsAppDebrief = async () => {
@@ -156,7 +139,7 @@ const copyWhatsAppDebrief = async () => {
     }
     copiedDebrief.value = true;
     setTimeout(() => { copiedDebrief.value = false; }, 2500);
-    emit('toast', '📋 Couple Debrief copied to clipboard!');
+    emit('toast', 'Week summary copied.');
   } catch (err) {
     emit('toast', 'Failed to copy to clipboard.');
   }
@@ -522,12 +505,10 @@ const copyWhatsAppDebrief = async () => {
             <div class="sunday-export-panel__info">
               <div class="sunday-export-panel__badge">
                 <Share2 class="icon-xs text-amber-400" />
-                <span>EXECUTIVE DEBRIEF DISPATCH</span>
+                <span>WEEK SUMMARY</span>
               </div>
-              <h5 class="sunday-export-panel__title">Send Joint Synchronization Debrief</h5>
-              <p class="sunday-export-panel__desc">
-                Dispatch your formatted couple synergy audit, non-negotiables, and wins directly to {{ partnerDisplayName }} via WhatsApp.
-              </p>
+              <h5 class="sunday-export-panel__title">Share this week's check-ins</h5>
+              <p class="sunday-export-panel__desc" style="white-space: pre-line;">{{ reviewSummaryText() }}</p>
             </div>
             <div class="sunday-export-panel__actions">
               <button
@@ -538,7 +519,7 @@ const copyWhatsAppDebrief = async () => {
                 title="Send directly to WhatsApp"
               >
                 <MessageSquare class="icon-xs" />
-                <span>Send via WhatsApp</span>
+                <span>Share summary</span>
               </button>
               <button
                 type="button"
@@ -549,7 +530,7 @@ const copyWhatsAppDebrief = async () => {
               >
                 <Check v-if="copiedDebrief" class="icon-xs text-emerald-400" />
                 <Copy v-else class="icon-xs" />
-                <span>{{ copiedDebrief ? 'Copied to Clipboard!' : 'Copy Debrief Text' }}</span>
+                <span>{{ copiedDebrief ? 'Copied' : 'Copy summary' }}</span>
               </button>
             </div>
           </div>

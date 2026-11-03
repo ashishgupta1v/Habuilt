@@ -2,10 +2,12 @@ package com.habuilt.app.plugin
 
 import android.content.Context
 import com.getcapacitor.JSObject
+import org.json.JSONArray
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.habuilt.app.widget.HabitReminderScheduler
 import com.habuilt.app.widget.HabuiltDueNowWidget
 import com.habuilt.app.widget.LaravelCheckInClient
 
@@ -48,11 +50,12 @@ class HabuiltWidgetPlugin : Plugin() {
             } else {
                 editor.putString(LaravelCheckInClient.TOKEN_KEY, accessToken)
             }
-            editor.apply()
+            editor.commit()
 
             // The habits snapshot is only for the home-screen display. Completions go to Laravel.
             Thread { LaravelCheckInClient.flush(context) }.start()
             HabuiltDueNowWidget.updateAllWidgets(context)
+            HabitReminderScheduler.scheduleNext(context)
 
             call.resolve()
         } catch (e: Exception) {
@@ -77,6 +80,11 @@ class HabuiltWidgetPlugin : Plugin() {
             ret.put("adherenceRate", prefs.getInt("adherence_rate", 0))
             ret.put("complianceStatus", prefs.getString("compliance_status", "Active Protocol"))
             ret.put("clinicalDirective", prefs.getString("clinical_directive", ""))
+            val deadCount = jsonLength(prefs.getString(LaravelCheckInClient.DEAD_LETTER_KEY, "[]"))
+            ret.put("lastSyncSuccessAt", prefs.getString(LaravelCheckInClient.LAST_SUCCESS_KEY, "") ?: "")
+            ret.put("deadLetterCount", deadCount)
+            ret.put("pendingSyncCount", jsonLength(prefs.getString(LaravelCheckInClient.QUEUE_KEY, "[]")))
+            ret.put("syncFailed", deadCount > 0)
             call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to get widget data: ${e.message}", e)
@@ -116,6 +124,14 @@ class HabuiltWidgetPlugin : Plugin() {
             call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to drain native ZoetiCoach queue: ${e.message}", e)
+        }
+    }
+
+    private fun jsonLength(raw: String?): Int {
+        return try {
+            JSONArray(raw ?: "[]").length()
+        } catch (_: Exception) {
+            0
         }
     }
 }

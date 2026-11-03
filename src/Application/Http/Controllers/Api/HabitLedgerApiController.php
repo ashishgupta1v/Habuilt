@@ -586,7 +586,7 @@ final class HabitLedgerApiController
         $schema = Schema::connection($connectionName);
         $db = DB::connection($connectionName);
 
-        foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers', 'user_monthly_states'] as $table) {
+        foreach (['habit_check_ins', 'user_settings', 'user_protocols', 'user_biomarkers', 'user_monthly_states', 'household_days', 'user_reward_items', 'user_reward_redemptions'] as $table) {
             if ($schema->hasTable($table)) {
                 $db->table($table)->where('user_id', $userId)->delete();
             }

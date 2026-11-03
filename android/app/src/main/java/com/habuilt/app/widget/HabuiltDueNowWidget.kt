@@ -36,6 +36,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
             Intent.ACTION_TIMEZONE_CHANGED,
             AppWidgetManager.ACTION_APPWIDGET_UPDATE -> {
                 updateAllWidgets(context)
+                HabitReminderScheduler.scheduleNext(context)
             }
         }
     }
@@ -367,10 +368,24 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.btn_widget_open_app, openPending)
                 views.setOnClickPendingIntent(R.id.widget_root, openPending)
 
+                try {
+                    val deadLetters = org.json.JSONArray(prefs.getString(LaravelCheckInClient.DEAD_LETTER_KEY, "[]") ?: "[]")
+                    if (deadLetters.length() > 0) {
+                        views.setTextViewText(R.id.tv_widget_status_pill, "SYNC FAILED")
+                        views.setTextViewText(
+                            R.id.tv_widget_guidance,
+                            "A check-in stopped retrying. Open Habuilt to review it."
+                        )
+                    }
+                } catch (_: Exception) {
+                    // A bad local queue must not blank the widget.
+                }
+
                 appWidgetManager.updateAppWidget(appWidgetId, views)
 
                 // Schedule next alarm to flip widget on next habit transition
                 scheduleNextAlarm(context, nextTransitionMinutes)
+                HabitReminderScheduler.scheduleNext(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Critical error updating widget $appWidgetId: ${e.message}", e)
             }

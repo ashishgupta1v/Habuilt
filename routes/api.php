@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\AccountProductController;
 use App\Http\Controllers\Api\HabitLedgerApiController;
 use App\Http\Controllers\Api\TelemetryApiController;
 use App\Http\Controllers\Api\ZoetiCoachProxyController;
@@ -39,6 +40,14 @@ Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
     Route::post('/partner-connections/accept', [HabitLedgerApiController::class, 'acceptPartnerInvite']);
     Route::post('/partner-connections/revoke', [HabitLedgerApiController::class, 'revokePartnerConnections']);
     Route::get('/partner-metrics', [HabitLedgerApiController::class, 'getPartnerMetrics']);
+
+    // Shared household day, Sunday review, and the reward shop. JWT subject only.
+    Route::get('/household-day', [AccountProductController::class, 'showHouseholdDay']);
+    Route::post('/household-day', [AccountProductController::class, 'saveHouseholdDay']);
+    Route::get('/sunday-review', [AccountProductController::class, 'sundayReview']);
+    Route::get('/rewards', [AccountProductController::class, 'rewards']);
+    Route::post('/rewards', [AccountProductController::class, 'saveRewards']);
+    Route::post('/rewards/{id}/redeem', [AccountProductController::class, 'redeemReward']);
 
     // Account & Data Management (Apple Guideline 5.1.1(v) & GDPR Right to Erasure)
     Route::get('/account-export', [HabitLedgerApiController::class, 'exportAccount']);

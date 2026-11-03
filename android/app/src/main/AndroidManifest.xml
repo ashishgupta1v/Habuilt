@@ -78,6 +78,15 @@
                 android:resource="@xml/habuilt_due_now_widget_info" />
         </receiver>
 
+        <!-- ── Habit start reminder. Tap opens the app. ── -->
+        <receiver
+            android:name="com.habuilt.app.widget.HabitReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.habuilt.app.ACTION_HABIT_REMINDER" />
+            </intent-filter>
+        </receiver>
+
         <!-- ── 1-Tap [Mark Done] Background Action Receiver ── -->
         <receiver
             android:name="com.habuilt.app.widget.HabitActionReceiver"

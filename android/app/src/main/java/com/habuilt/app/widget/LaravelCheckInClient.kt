@@ -22,7 +22,10 @@ object LaravelCheckInClient {
     const val APP_ORIGIN = "https://habuilt.com"
     const val PREFS = "habuilt_widget_prefs"
     const val TOKEN_KEY = "session_access_token"
-    private const val QUEUE_KEY = "pending_laravel_check_ins"
+    const val QUEUE_KEY = "pending_laravel_check_ins"
+    const val DEAD_LETTER_KEY = "laravel_check_in_dead_letters"
+    const val LAST_SUCCESS_KEY = "laravel_check_in_last_success"
+    const val MAX_ATTEMPTS = 5
 
     fun syncCompletion(
         context: Context,
@@ -57,6 +60,13 @@ object LaravelCheckInClient {
 
     fun flush(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val userId = prefs.getString("user_id", "") ?: ""
+        if (!isRetryableAccountId(userId)) {
+            prefs.edit().putString(QUEUE_KEY, "[]").apply()
+            refreshWidgets(context)
+            return
+        }
+
         val token = prefs.getString(TOKEN_KEY, "") ?: ""
         val queue = readQueue(prefs)
         if (token.isBlank() || queue.length() == 0) {
@@ -64,13 +74,44 @@ object LaravelCheckInClient {
         }
 
         val remaining = JSONArray()
+        val deadLetters = readArray(prefs, DEAD_LETTER_KEY)
+        var succeeded = false
         for (index in 0 until queue.length()) {
             val row = queue.optJSONObject(index) ?: continue
-            if (!postCheckIn(token, row)) {
+            if (postCheckIn(token, row)) {
+                succeeded = true
+                continue
+            }
+            val attempts = row.optInt("attempts", 0) + 1
+            row.put("attempts", attempts)
+            if (attempts >= MAX_ATTEMPTS) {
+                row.put("dead_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date()))
+                deadLetters.put(row)
+            } else {
                 remaining.put(row)
             }
         }
-        prefs.edit().putString(QUEUE_KEY, remaining.toString()).apply()
+        val editor = prefs.edit()
+            .putString(QUEUE_KEY, remaining.toString())
+            .putString(DEAD_LETTER_KEY, deadLetters.toString())
+        if (succeeded) {
+            editor.putString(LAST_SUCCESS_KEY, SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date()))
+        }
+        editor.apply()
+        refreshWidgets(context)
+    }
+
+    private fun refreshWidgets(context: Context) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            HabuiltDueNowWidget.updateAllWidgets(context)
+        }
+    }
+
+    fun isRetryableAccountId(userId: String): Boolean {
+        val value = userId.trim().lowercase(Locale.US)
+        if (value.isEmpty() || value == "guest" || value.startsWith("guest")) return false
+        if (value == "anonymous" || value == "null" || value == "undefined") return false
+        return true
     }
 
     fun clearSession(context: Context, wipeDisplay: Boolean) {
@@ -83,6 +124,8 @@ object LaravelCheckInClient {
                 .remove("habits_json")
                 .remove("schedule_json")
                 .remove(QUEUE_KEY)
+                .remove(DEAD_LETTER_KEY)
+                .remove(LAST_SUCCESS_KEY)
                 .putInt("today_points", 0)
                 .putInt("streak", 0)
         }
@@ -104,12 +147,15 @@ object LaravelCheckInClient {
                 return
             }
         }
+        if (!item.has("attempts")) item.put("attempts", 0)
         queue.put(item)
         prefs.edit().putString(QUEUE_KEY, queue.toString()).apply()
     }
 
-    private fun readQueue(prefs: SharedPreferences): JSONArray {
-        val raw = prefs.getString(QUEUE_KEY, "[]") ?: "[]"
+    private fun readQueue(prefs: SharedPreferences): JSONArray = readArray(prefs, QUEUE_KEY)
+
+    private fun readArray(prefs: SharedPreferences, key: String): JSONArray {
+        val raw = prefs.getString(key, "[]") ?: "[]"
         return try {
             JSONArray(raw)
         } catch (_: Exception) {

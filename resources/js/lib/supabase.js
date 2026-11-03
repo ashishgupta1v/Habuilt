@@ -77,10 +77,10 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null, option
     if (!res.ok) {
       if (returnError) {
         try {
-          return await res.json();
-        } catch {
-          return { success: false, error: `HTTP ${res.status}` };
-        }
+          const parsed = await res.json();
+          if (parsed && typeof parsed === 'object') return { ...parsed, status: res.status };
+        } catch { /* the status is still useful */ }
+        return { success: false, error: `HTTP ${res.status}`, status: res.status };
       }
       throw new Error(`HTTP ${res.status}`);
     }

@@ -29,6 +29,7 @@ self.addEventListener('activate', (event) => {
         names.filter((n) => n !== CACHE_NAME && n !== 'habuilt-action-queue').map((n) => caches.delete(n))
       );
       await self.clients.claim();
+      await armStoredReminders();
     })()
   );
 });
@@ -100,6 +101,153 @@ self.addEventListener('fetch', (event) => {
 
 let activeExpiryTimer = null;
 const scheduledAlarms = new Map();
+const REMINDER_DB = 'habuilt-reminders';
+const REMINDER_STORE = 'alarms';
+
+function openReminderDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(REMINDER_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(REMINDER_STORE)) db.createObjectStore(REMINDER_STORE);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveReminderList(list) {
+  const db = await openReminderDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(REMINDER_STORE, 'readwrite');
+    tx.objectStore(REMINDER_STORE).put(list, 'next');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function loadReminderList() {
+  try {
+    const db = await openReminderDb();
+    const list = await new Promise((resolve, reject) => {
+      const tx = db.transaction(REMINDER_STORE, 'readonly');
+      const request = tx.objectStore(REMINDER_STORE).get('next');
+      request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+function reminderTitle(item) {
+  if (item?.title) return item.title;
+  const name = item?.habitName || 'Habit';
+  const time = item?.time || '';
+  return time ? `${name} · ${time}` : name;
+}
+
+async function showHabitReminder(item) {
+  const title = reminderTitle(item);
+  const options = {
+    body: 'Starts now.',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-monochrome-96.png',
+    tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
+    renotify: true,
+    data: {
+      habitId: item.habitId,
+      habitName: item.habitName || title,
+      day: item.day,
+      url: '/',
+    },
+    actions: [
+      { action: 'mark-done', title: 'Mark done' },
+      { action: 'open-dashboard', title: 'Open' },
+    ],
+  };
+  await self.registration.showNotification(title, options);
+}
+
+function armTimeout(item, delay) {
+  if (scheduledAlarms.has(item.habitId)) {
+    clearTimeout(scheduledAlarms.get(item.habitId));
+  }
+  const timer = setTimeout(async () => {
+    try {
+      await showHabitReminder(item);
+      const list = await loadReminderList();
+      await saveReminderList(list.map((row) => (
+        row.habitId === item.habitId && row.triggerTimestamp === item.triggerTimestamp
+          ? { ...row, fired: true }
+          : row
+      )));
+      await armStoredReminders();
+    } catch (err) {
+      console.warn('[SW] Error showing scheduled notification:', err);
+    } finally {
+      scheduledAlarms.delete(item.habitId);
+    }
+  }, delay);
+  scheduledAlarms.set(item.habitId, timer);
+}
+
+async function armStoredReminders() {
+  const list = await loadReminderList();
+  const now = Date.now();
+  const sorted = [...list].sort((a, b) => (a.triggerTimestamp || 0) - (b.triggerTimestamp || 0));
+  const pending = [];
+  let armed = false;
+  for (const item of sorted) {
+    if (!item || !item.habitId || !item.triggerTimestamp) continue;
+    if (item.fired) {
+      pending.push(item);
+      continue;
+    }
+    if (item.triggerTimestamp <= now) {
+      if (!item.handedOff) {
+        try { await showHabitReminder(item); } catch { /* show on the next wake */ }
+      }
+      pending.push({ ...item, fired: true });
+      continue;
+    }
+    if (item.handedOff) {
+      pending.push(item);
+      armed = true;
+      continue;
+    }
+    pending.push(item);
+    if (!armed) {
+      armed = true;
+      const delay = item.triggerTimestamp - now;
+      let triggered = false;
+      if (typeof TimestampTrigger === 'function') {
+        try {
+          await self.registration.showNotification(reminderTitle(item), {
+            body: 'Starts now.',
+            tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
+            showTrigger: new TimestampTrigger(item.triggerTimestamp),
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/badge-monochrome-96.png',
+            data: {
+              habitId: item.habitId,
+              habitName: item.habitName,
+              day: item.day,
+              url: '/',
+            },
+          });
+          item.handedOff = true;
+          triggered = true;
+        } catch { /* fall back to a timer while this worker is alive */ }
+      }
+      if (!triggered && delay < 172800000) armTimeout(item, delay);
+    }
+  }
+  await saveReminderList(pending);
+}
 
 const dismissDueNowNotifications = async (targetHabitId = null) => {
   try {
@@ -152,9 +300,9 @@ self.addEventListener('message', (event) => {
     if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
 
     const habitTag = `habuilt-habit-${p.habitId}-${p.day || ''}`;
-    const title = `⚡ Due Now: ${p.habitName}`;
+    const title = p.title || (p.timeLabel ? `${p.habitName} · ${p.timeLabel}` : (p.habitName || 'Habit'));
     const options = {
-      body: p.customBody || `⏰ ${p.timeLabel || 'Current Routine'} • +${p.points} pts\nTap [Mark Done] to complete without opening app.`,
+      body: p.customBody || 'Starts now.',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/badge-monochrome-96.png',
       tag: habitTag,
@@ -200,63 +348,26 @@ self.addEventListener('message', (event) => {
     dismissDueNowNotifications(data.payload?.habitId);
   }
 
-  // Ahead-of-time scheduled habit alarms engine
+  // Ahead-of-time scheduled habit alarms. Stored so they can fire after the page closes.
   if (data.type === 'SCHEDULE_HABIT_ALERTS') {
     const list = Array.isArray(data.payload) ? data.payload : [];
-    for (const item of list) {
-      if (!item || !item.habitId || !item.triggerTimestamp) continue;
-      const now = Date.now();
-      const delay = item.triggerTimestamp - now;
-
-      if (scheduledAlarms.has(item.habitId)) {
-        clearTimeout(scheduledAlarms.get(item.habitId));
-        scheduledAlarms.delete(item.habitId);
-      }
-
-      if (delay > 0 && delay < 86400000) {
-        const timer = setTimeout(async () => {
-          try {
-            const title = item.title || `⚡ Due Now: ${item.habitName}`;
-            const options = {
-              body: item.body || `⏰ Scheduled habit • +${item.points || 1} pts\nTap [Mark Done] to complete.`,
-              icon: '/icons/icon-192x192.png',
-              badge: '/icons/badge-monochrome-96.png',
-              tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
-              renotify: true,
-              requireInteraction: true,
-              vibrate: [100, 50, 100],
-              data: {
-                habitId: item.habitId,
-                habitName: item.habitName,
-                points: item.points || 1,
-                day: item.day,
-                expiryTimestamp: item.expiryTimestamp,
-                url: '/',
-              },
-              actions: [
-                { action: 'mark-done', title: '✅ Mark Done' },
-                { action: 'open-dashboard', title: '🚀 Open Dashboard' },
-              ],
-            };
-
-            await self.registration.showNotification(title, options);
-
-            if (item.expiryTimestamp && item.expiryTimestamp > Date.now()) {
-              const expDelay = item.expiryTimestamp - Date.now();
-              setTimeout(() => {
-                checkAndPurgeExpiredNotifications();
-              }, expDelay + 500);
-            }
-          } catch (err) {
-            console.warn('[SW] Error showing scheduled notification:', err);
-          } finally {
-            scheduledAlarms.delete(item.habitId);
-          }
-        }, delay);
-
-        scheduledAlarms.set(item.habitId, timer);
-      }
-    }
+    event.waitUntil((async () => {
+      for (const timer of scheduledAlarms.values()) clearTimeout(timer);
+      scheduledAlarms.clear();
+      const normalized = list
+        .filter((item) => item && item.habitId && item.triggerTimestamp)
+        .map((item) => ({
+          habitId: item.habitId,
+          habitName: item.habitName || 'Habit',
+          title: item.title || '',
+          time: item.time || '',
+          day: item.day,
+          triggerTimestamp: item.triggerTimestamp,
+          fired: false,
+        }));
+      await saveReminderList(normalized);
+      await armStoredReminders();
+    })());
   }
 
   if (data.type === 'CANCEL_SCHEDULED_ALERT') {
@@ -370,8 +481,8 @@ self.addEventListener('notificationclick', (event) => {
         } catch { /* cache fallback */ }
 
         // 3. Show instant celebratory confirmation toast on Android
-        await self.registration.showNotification('🎉 Habit Completed!', {
-          body: `"${data.habitName || 'Habit'}" (+${data.points || 1} pts) marked done!`,
+        await self.registration.showNotification('Habit marked done', {
+          body: `${data.habitName || 'Habit'} is marked done.`,
           icon: '/icons/icon-192x192.png',
           badge: '/icons/badge-monochrome-96.png',
           tag: 'habuilt-completion-toast',
@@ -421,7 +532,7 @@ self.addEventListener('sync', (event) => {
 
 // ── Periodic Background Sync Event (Partner Presence & Habit Checklists) ──
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'habuilt-periodic-sync') {
+  if (event.tag === 'habuilt-habit-reminder' || event.tag === 'habuilt-periodic-sync') {
     event.waitUntil(
       (async () => {
         console.debug('[SW] Periodic background sync running:', event.tag);
@@ -435,6 +546,8 @@ self.addEventListener('periodicsync', (event) => {
             tag: event.tag,
           });
         }
+
+        try { await armStoredReminders(); } catch { /* reminder store may be empty */ }
 
         // 2. Offline Action Queue Drain & Check-In Reconciliation
         try {

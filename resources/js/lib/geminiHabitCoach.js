@@ -54,12 +54,11 @@ export const VOICE_PERSONAS = {
  * Get configured Gemini API Key (from env or user storage)
  */
 export function getGeminiApiKey() {
-  if (sessionGeminiKey.trim()) return sessionGeminiKey.trim();
-  return import.meta.env.VITE_GEMINI_API_KEY || '';
+  return '';
 }
 
-export function setGeminiApiKey(key) {
-  sessionGeminiKey = key && String(key).trim() ? String(key).trim() : '';
+export function setGeminiApiKey() {
+  sessionGeminiKey = '';
   forgetPersistedGeminiKey();
 }
 

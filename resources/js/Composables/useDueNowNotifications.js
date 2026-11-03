@@ -48,25 +48,29 @@ export function useDueNowNotifications({
     }
   };
 
-  // Notification Copy with exact task instruction and ZoetiCoach telemetry
-  const getNotificationCopy = (habit, sched, timeLabel) => {
-    const name = habit.name || 'Habit';
-    const pts = habit.points || 1;
-    const instruction = habit.hint || '';
-    const currentAdherence = typeof adherenceRate?.value !== 'undefined' ? adherenceRate.value : (Number(adherenceRate) || 0);
-    const rawStreak = typeof streak?.value !== 'undefined' ? (streak.value?.current ?? streak.value ?? 0) : (streak || 0);
-    const currentStreakVal = Number(rawStreak) || 0;
+  const scheduleWasSaved = () => (
+    typeof localStorage !== 'undefined' && localStorage.getItem('habuilt.schedule.saved') === '1'
+  );
 
-    const telemetryTag = currentAdherence > 0
-      ? ` [🎯 ${currentAdherence}% • 🔥 ${currentStreakVal}d]`
-      : (currentStreakVal > 0 ? ` [🔥 ${currentStreakVal}d]` : '');
+  const cleanHabitName = (habit) => {
+    const name = String(habit?.name || 'Habit').replace(/^\d{1,2}:\d{2}\s*/, '').trim();
+    return name || 'Habit';
+  };
 
+  const clockLabel = (value) => {
+    const match = String(value || '').match(/(\d{1,2}:\d{2})/);
+    return match ? match[1] : '';
+  };
+
+  // Title is the habit name and its start time. No clinical or household copy.
+  const getNotificationCopy = (habit, sched) => {
+    const name = cleanHabitName(habit);
+    const time = clockLabel(sched?.start);
     return {
-      title: `⚡ ${name} (+${pts} pts)${telemetryTag}`,
-      body: instruction
-        ? `${instruction} • (${timeLabel || 'Scheduled'})`
-        : `Scheduled: ${timeLabel || 'Now'} • Tap to mark done and protect your ${currentStreakVal}d streak.`,
-      actionTitle: '✓ Mark Done',
+      title: time ? `${name} · ${time}` : name,
+      body: 'Starts now.',
+      time,
+      actionTitle: 'Open',
     };
   };
 
@@ -98,22 +102,14 @@ export function useDueNowNotifications({
     }
   };
 
-  // Check initial permission
+  // Read the current permission. The prompt itself waits until a schedule is saved.
   const checkInitialPermission = async () => {
     if (isNative) {
       try {
-        let res = await LocalNotifications.checkPermissions();
-        if (res.display !== 'granted') {
-          res = await LocalNotifications.requestPermissions();
-        }
+        const res = await LocalNotifications.checkPermissions();
         permissionState.value = res.display;
-        if (res.display === 'granted') {
-          notificationsEnabled.value = true;
-          localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
-        }
       } catch (err) {
         console.warn('Native permission check note:', err);
-        permissionState.value = 'granted';
       }
     } else if (isWebSupported) {
       permissionState.value = Notification.permission;
@@ -232,6 +228,7 @@ export function useDueNowNotifications({
 
   // Schedule upcoming habit alerts for the entire day (Runs once per day/schedule load)
   const scheduleDailyHabitAlerts = async (force = false) => {
+    if (!scheduleWasSaved()) return;
     if (!notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) return;
 
@@ -244,78 +241,56 @@ export function useDueNowNotifications({
       return;
     }
 
+    // Android alarms are armed from the saved widget snapshot, including after reboot.
+    if (isNative) return;
+
     try {
       const now = new Date();
       const habitList = habits?.value || [];
-      const notifsToSchedule = [];
       const webAlerts = [];
 
-      for (const h of habitList) {
-        // Skip if already done today
-        if (hasCompletedDay && hasCompletedDay(h, day)) continue;
+      for (const dayOffset of [0, 1]) {
+        const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
+        const alertDay = when.getDate();
+        for (const h of habitList) {
+          if (dayOffset === 0 && hasCompletedDay && hasCompletedDay(h, alertDay)) continue;
+          if (dayOffset === 0 && isHabitNotifiedToday(h.id, alertDay)) continue;
 
-        // Skip if already notified today
-        if (isHabitNotifiedToday(h.id, day)) continue;
+          const sched = habitTimeSchedule?.[h.id];
+          if (!sched || !sched.start) continue;
 
-        const sched = habitTimeSchedule?.[h.id];
-        if (!sched || !sched.start) continue;
+          const [sh, sm] = sched.start.split(':').map(Number);
+          const [eh, em] = (sched.end || '23:59').split(':').map(Number);
+          const startTime = new Date(when.getFullYear(), when.getMonth(), when.getDate(), sh, sm, 0);
+          const endTime = new Date(when.getFullYear(), when.getMonth(), when.getDate(), eh, em, 0);
 
-        const [sh, sm] = sched.start.split(':').map(Number);
-        const [eh, em] = (sched.end || '23:59').split(':').map(Number);
-        const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0);
-        const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em, 0);
-
-        // If start time is in the future today (at least 15 seconds from now)
-        if (startTime.getTime() > now.getTime() + 15000) {
-          const copy = getNotificationCopy(h, sched, `${sched.start} – ${sched.end}`);
-
-          if (isNative) {
-            notifsToSchedule.push({
-              id: hashHabitId(h.id),
-              title: copy.title,
-              body: copy.body,
-              channelId: 'habuilt_reminders',
-              actionTypeId: 'HABUILT_HABIT_ACTION',
-              extra: {
-                habitId: h.id,
-                day: day,
-              },
-              schedule: { at: startTime },
-              sound: 'default',
-              smallIcon: 'ic_launcher_round',
-              iconColor: '#10B981',
-            });
-          } else {
-            webAlerts.push({
-              habitId: h.id,
-              habitName: h.name || 'Habit',
-              title: copy.title,
-              body: copy.body,
-              triggerTimestamp: startTime.getTime(),
-              expiryTimestamp: endTime.getTime(),
-              points: h.points || 1,
-              day: day,
-            });
-          }
+          if (startTime.getTime() <= now.getTime() + 15000) continue;
+          const copy = getNotificationCopy(h, sched);
+          webAlerts.push({
+            habitId: h.id,
+            habitName: cleanHabitName(h),
+            title: copy.title,
+            body: copy.body,
+            time: copy.time,
+            triggerTimestamp: startTime.getTime(),
+            expiryTimestamp: endTime.getTime(),
+            day: alertDay,
+          });
         }
       }
 
-      if (isNative && notifsToSchedule.length > 0) {
-        const idsToCancel = notifsToSchedule.map(n => ({ id: n.id }));
+      if (webAlerts.length > 0) {
         try {
-          await LocalNotifications.cancel({ notifications: idsToCancel });
-        } catch { /* ignore */ }
-
-        await LocalNotifications.schedule({
-          notifications: notifsToSchedule,
-        });
-      } else if (!isNative && webAlerts.length > 0) {
-        if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
+          const registration = await navigator.serviceWorker.ready;
+          const target = navigator.serviceWorker.controller || registration.active;
+          target?.postMessage({
             type: 'SCHEDULE_HABIT_ALERTS',
             payload: webAlerts,
           });
-        }
+          if (registration.periodicSync) {
+            await registration.periodicSync.register('habuilt-habit-reminder', { minInterval: 60 * 60 * 1000 });
+          }
+        } catch { /* the service worker arms whatever it already stored */ }
       }
 
       if (typeof localStorage !== 'undefined') {
@@ -328,6 +303,7 @@ export function useDueNowNotifications({
 
   // Sync Immediate Due Now Notification (when user has app open or task transitions to due)
   const syncDueNowNotification = async () => {
+    if (!scheduleWasSaved()) return;
     if (!isSupported || !notificationsEnabled.value || permissionState.value !== 'granted') return;
     if (!isCurrentMonth?.value) {
       dismissDueNowNotification();
@@ -359,7 +335,7 @@ export function useDueNowNotifications({
 
     const notifId = hashHabitId(habit.id);
     const sched = habitTimeSchedule?.[habit.id];
-    const copy = getNotificationCopy(habit, sched, info.timeLabel);
+    const copy = getNotificationCopy(habit, sched);
 
     // 1. Native Android Local Notification
     if (isNative) {
@@ -395,9 +371,10 @@ export function useDueNowNotifications({
         type: 'SHOW_DUE_NOW_NOTIFICATION',
         payload: {
           habitId: habit.id,
-          habitName: copy.title,
-          points: habit.points,
-          timeLabel: info.timeLabel || '',
+          habitName: cleanHabitName(habit),
+          title: copy.title,
+          time: copy.time,
+          timeLabel: copy.time,
           day: day,
           customBody: copy.body,
         },
@@ -605,11 +582,37 @@ export function useDueNowNotifications({
     return false;
   };
 
-  return {
+  const armSavedSchedule = async ({ prompt = false } = {}) => {
+    const habitList = habits?.value || [];
+    const hasTime = habitList.some((habit) => habitTimeSchedule?.[habit.id]?.start);
+    if (!hasTime) return false;
+    const alreadySaved = scheduleWasSaved();
+    try {
+      localStorage.setItem('habuilt.schedule.saved', '1');
+    } catch { /* storage unavailable */ }
+    if (permissionState.value !== 'granted') {
+      const shouldAsk = prompt || !alreadySaved;
+      const alreadyAsked = localStorage.getItem('habuilt.notifications.asked') === '1';
+      if (!shouldAsk || (alreadyAsked && permissionState.value === 'denied')) return false;
+      try { localStorage.setItem('habuilt.notifications.asked', '1'); } catch { /* storage unavailable */ }
+      const granted = await requestPermission();
+      if (!granted) return false;
+    } else {
+      notificationsEnabled.value = true;
+      try {
+        localStorage.setItem('habuilt.dueNowNotifications.enabled', 'true');
+      } catch { /* storage unavailable */ }
+    }
+    await scheduleDailyHabitAlerts(true);
+    return true;
+  };
+
+    return {
     isSupported,
     permissionState,
     notificationsEnabled,
     requestPermission,
+    armSavedSchedule,
     toggleNotifications,
     sendTestNotification,
     syncDueNowNotification,
