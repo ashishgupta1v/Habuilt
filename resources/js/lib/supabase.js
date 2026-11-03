@@ -87,6 +87,9 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null, option
     return await res.json();
   } catch (err) {
     console.warn(`[Local KVM API] ${method} ${endpoint} note:`, err.message);
+    if (returnError) {
+      return { success: false, error: 'offline', offline: true };
+    }
     return null;
   }
 };
@@ -166,22 +169,14 @@ const requestUrl = (input) => {
 
 const guardedSupabaseFetch = async (input, init = {}) => {
   const url = requestUrl(input);
-  if (!url.includes('/rest/v1/')) {
-    return fetch(input, init);
-  }
-
-  const token = await sessionAccessToken();
-  if (!token) {
-    return new Response(JSON.stringify({ message: 'Signed-in session required', code: '401' }), {
-      status: 401,
+  if (url.includes('/rest/v1/') || url.includes('/realtime/v1/')) {
+    return new Response(JSON.stringify({ message: 'Habuilt data is served by the app API', code: '403' }), {
+      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const headers = new Headers(init?.headers || (typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined));
-  headers.set('Authorization', `Bearer ${token}`);
-  headers.set('apikey', supabaseAnonKey);
-  return fetch(input, { ...init, headers });
+  return fetch(input, init);
 };
 
 export const supabase = createClient(
@@ -418,25 +413,14 @@ export const saveUserSettings = async (userId, settingsPayload) => {
 export const loadUserSettings = async (userId) => {
   if (!userId) return null;
 
-  if (USE_LOCAL_API) {
-    const localData = await callLocalApi(`/api/user-settings?user_id=${encodeURIComponent(userId)}`);
-    if (localData && typeof localData === 'object') {
-      return localData;
-    }
-  }
+  if (!USE_LOCAL_API) return { error: true, offline: true };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (!error && data) return data;
-    } catch {}
+  const localData = await callLocalApi(`/api/user-settings?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
+  if (!localData) return null;
+  if (localData.offline || localData.error || (localData.status && localData.status >= 400)) {
+    return { error: true, offline: true };
   }
-
-  return null;
+  return localData;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -444,11 +428,11 @@ export const loadUserSettings = async (userId) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const subscribeToHabitCheckIns = (userId, onCheckInChange) => {
-  if (!userId) return null;
+  if (!userId) return { unsubscribe() {} };
 
-  // Local Tab Broadcast listener for instant reactive UI updates
+  let listener = null;
   if (tabSyncChannel) {
-    const listener = (event) => {
+    listener = (event) => {
       if (event.data?.type === 'CHECKIN_MUTATION' && event.data?.userId === userId) {
         if (typeof onCheckInChange === 'function') {
           onCheckInChange({
@@ -462,24 +446,11 @@ export const subscribeToHabitCheckIns = (userId, onCheckInChange) => {
     tabSyncChannel.addEventListener('message', listener);
   }
 
-  if (isSupabaseConfigured()) {
-    try {
-      return supabase
-        .channel(`habuilt-user-checkins-${userId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_check_ins', filter: `user_id=eq.${userId}` }, (payload) => {
-          if (typeof onCheckInChange === 'function') {
-            onCheckInChange({
-              eventType: payload.eventType,
-              new: payload.new,
-              old: payload.old,
-            });
-          }
-        })
-        .subscribe();
-    } catch {}
-  }
-
-  return { unsubscribe: () => {} };
+  return {
+    unsubscribe() {
+      if (listener && tabSyncChannel) tabSyncChannel.removeEventListener('message', listener);
+    },
+  };
 };
 
 export const getPairChannelId = (userA, userB) => {
@@ -525,28 +496,10 @@ export const initCoupleBroadcastChannel = (arg1, arg2) => {
     } catch (_) {}
   }
 
-  // 2. Hook into Supabase Realtime channel if configured
-  let supabaseChannel = null;
-  if (channelName && isSupabaseConfigured()) {
-    try {
-      supabaseChannel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
-      supabaseChannel.on('broadcast', { event: 'partner_action' }, (event) => {
-        if (typeof onPartnerEvent === 'function') {
-          onPartnerEvent(event.payload);
-        }
-      });
-      supabaseChannel.subscribe();
-    } catch (_) {}
-  }
-
   return {
-    supabaseChannel,
+    supabaseChannel: null,
     send: (payload) => broadcastPartnerEvent(payload, channelName),
-    unsubscribe: () => {
-      try {
-        if (supabaseChannel) supabaseChannel.unsubscribe();
-      } catch (_) {}
-    }
+    unsubscribe() {},
   };
 };
 
@@ -660,45 +613,27 @@ export const saveUserBiomarker = async ({
 export const loadUserBiomarkers = async (userId, limit = 30) => {
   if (!userId) return [];
 
-  if (USE_LOCAL_API) {
-    const localData = await callLocalApi(`/api/user-biomarkers?user_id=${encodeURIComponent(userId)}`);
-    if (Array.isArray(localData)) return localData;
-  }
+  if (!USE_LOCAL_API) return { error: true, offline: true };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('user_biomarkers')
-        .select('*')
-        .eq('user_id', userId)
-        .order('log_date', { ascending: false })
-        .limit(limit);
-      if (!error && Array.isArray(data)) return data;
-    } catch {}
-  }
-
-  return [];
+  const localData = await callLocalApi(`/api/user-biomarkers?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
+  if (Array.isArray(localData)) return localData;
+  return { error: true, offline: true };
 };
 
 export const loadLatestBiomarker = async (userId, logDate) => {
   if (!userId || !logDate) return null;
 
-  if (USE_LOCAL_API) {
-    const localData = await callLocalApi(`/api/user-biomarkers?user_id=${encodeURIComponent(userId)}&latest=true`);
-    if (localData && typeof localData === 'object') return localData;
-  }
+  if (!USE_LOCAL_API) return { error: true, offline: true };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('user_biomarkers')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('log_date', logDate)
-        .maybeSingle();
-      if (!error && data) return data;
-    } catch {}
+  const localData = await callLocalApi(
+    `/api/user-biomarkers?user_id=${encodeURIComponent(userId)}&latest=true`,
+    'GET',
+    null,
+    { returnError: true },
+  );
+  if (!localData) return null;
+  if (localData.offline || localData.error || (localData.status && localData.status >= 400)) {
+    return { error: true, offline: true };
   }
-
-  return null;
+  return localData;
 };

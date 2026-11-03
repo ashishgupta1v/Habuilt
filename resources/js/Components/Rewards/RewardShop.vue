@@ -16,11 +16,7 @@ import {
   History,
   Heart,
   Users,
-  Lock,
-  Unlock,
 } from 'lucide-vue-next';
-import { useBiometricVault } from '@/Composables/useBiometricVault';
-import BiometricVaultShield from '@/Components/Modals/BiometricVaultShield.vue';
 
 const props = defineProps({
   availableWallet: { type: Number, default: 0 },
@@ -112,27 +108,6 @@ const nextMilestoneReward = computed(() => {
   return 'All Unlocked! 👑';
 });
 
-const {
-  isSectionLocked,
-  lockVault,
-  unlockVault,
-  isVaultConfigured,
-  configureVault,
-} = useBiometricVault();
-
-const toggleRewardsVault = () => {
-  if (!isVaultConfigured.value) {
-    configureVault(true);
-    emit('toast', '🔒 Biometric Privacy Vault enabled for Reward Reserves!');
-  } else if (isSectionLocked('rewards')) {
-    unlockVault();
-    emit('toast', '🔓 Reward Vault unsealed');
-  } else {
-    lockVault();
-    emit('toast', '🔒 Reward Vault sealed');
-  }
-};
-
 import { onMounted, onUnmounted } from 'vue';
 import { gsap } from 'gsap';
 
@@ -179,15 +154,6 @@ onUnmounted(() => {
             <Award class="icon-xs icon-vault-gold" />
             <span>Habuilt Reward Wallet</span>
           </div>
-          <button
-            type="button"
-            class="btn btn--secondary btn--xs reward-vault-lock-btn flex items-center gap-1"
-            :title="isVaultConfigured ? (isSectionLocked('rewards') ? 'Vault Sealed (Click to unseal)' : 'Vault Active (Click to lock)') : 'Enable Biometric Privacy Vault'"
-            @click="toggleRewardsVault"
-          >
-            <component :is="isSectionLocked('rewards') ? Lock : Unlock" class="icon-2xs" />
-            <span>{{ isSectionLocked('rewards') ? 'Sealed' : (isVaultConfigured ? 'Lock Vault' : 'Vault Off') }}</span>
-          </button>
         </div>
 
         <div class="reward-vault-balance-row">
@@ -390,16 +356,6 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Biometric Vault Shield for Rewards -->
-    <BiometricVaultShield
-      v-else-if="isSectionLocked('rewards')"
-      section-title="Reward Vault & Milestone Reserves"
-      section-description="Your milestone redemption catalog, partner synergy rewards, and reward points ledger are protected by hardware biometrics."
-      @unlocked="emit('toast', '✓ Reward Vault Unsealed')"
-      @toast="(msg) => emit('toast', msg)"
-    />
-
-    <!-- Active Rewards Catalog & Couple Synergy Section -->
     <div v-else class="rewards-catalog-section">
       <!-- Couple Synergy Milestone Rewards Strip (when paired) -->
       <div v-if="isPartnerPaired" class="couple-synergy-rewards-panel">

@@ -367,6 +367,28 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         DB::connection('supabase_ledger')->statement('CREATE TABLE user_protocols (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT)');
         DB::connection('supabase_ledger')->statement('CREATE TABLE user_biomarkers (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, log_date DATE NOT NULL)');
         DB::connection('supabase_ledger')->statement('CREATE TABLE user_monthly_states (user_id TEXT NOT NULL, month_key TEXT NOT NULL, state_data TEXT)');
+        foreach ([null, 'supabase_ledger'] as $connection) {
+            $db = DB::connection($connection);
+            $db->statement('CREATE TABLE IF NOT EXISTS household_days (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                day_key TEXT NOT NULL,
+                day_type TEXT,
+                anchors TEXT
+            )');
+            $db->statement('CREATE TABLE IF NOT EXISTS user_reward_items (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT,
+                cost_points INTEGER NOT NULL
+            )');
+            $db->statement('CREATE TABLE IF NOT EXISTS user_reward_redemptions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                reward_id TEXT NOT NULL,
+                cost_points INTEGER NOT NULL
+            )');
+        }
 
         $this->getJson('/api/account-export')->assertStatus(401);
 
@@ -425,6 +447,44 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
                 'user_id' => $otherId,
                 'log_date' => '2026-11-02',
             ]);
+            $db->table('household_days')->insert([
+                'id' => $suffix.'-day-caller',
+                'user_id' => $callerId,
+                'day_key' => '2026-11-02',
+                'day_type' => 'home',
+                'anchors' => '[]',
+            ]);
+            $db->table('household_days')->insert([
+                'id' => $suffix.'-day-other',
+                'user_id' => $otherId,
+                'day_key' => '2026-11-02',
+                'day_type' => 'office',
+                'anchors' => '[]',
+            ]);
+            $db->table('user_reward_items')->insert([
+                'id' => $suffix.'-reward-caller',
+                'user_id' => $callerId,
+                'name' => 'Caller reward',
+                'cost_points' => 2,
+            ]);
+            $db->table('user_reward_items')->insert([
+                'id' => $suffix.'-reward-other',
+                'user_id' => $otherId,
+                'name' => 'Hidden reward',
+                'cost_points' => 9,
+            ]);
+            $db->table('user_reward_redemptions')->insert([
+                'id' => $suffix.'-redeem-caller',
+                'user_id' => $callerId,
+                'reward_id' => $suffix.'-reward-caller',
+                'cost_points' => 2,
+            ]);
+            $db->table('user_reward_redemptions')->insert([
+                'id' => $suffix.'-redeem-other',
+                'user_id' => $otherId,
+                'reward_id' => $suffix.'-reward-other',
+                'cost_points' => 9,
+            ]);
         }
 
         $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($callerId))
@@ -449,8 +509,18 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             $this->assertSame('Caller protocol', $body[$store]['user_protocols'][0]['name']);
             $this->assertCount(1, $body[$store]['user_biomarkers']);
             $this->assertSame($callerId, $body[$store]['user_biomarkers'][0]['user_id']);
+            $this->assertArrayHasKey('household_days', $body[$store]);
+            $this->assertArrayHasKey('user_reward_items', $body[$store]);
+            $this->assertArrayHasKey('user_reward_redemptions', $body[$store]);
+            $this->assertCount(1, $body[$store]['household_days']);
+            $this->assertSame($callerId, $body[$store]['household_days'][0]['user_id']);
+            $this->assertCount(1, $body[$store]['user_reward_items']);
+            $this->assertSame('Caller reward', $body[$store]['user_reward_items'][0]['name']);
+            $this->assertCount(1, $body[$store]['user_reward_redemptions']);
+            $this->assertSame($callerId, $body[$store]['user_reward_redemptions'][0]['user_id']);
             $this->assertStringNotContainsString($otherId, json_encode($body[$store]));
             $this->assertStringNotContainsString('Hidden protocol', json_encode($body[$store]));
+            $this->assertStringNotContainsString('Hidden reward', json_encode($body[$store]));
         }
     }
 
@@ -805,7 +875,7 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         $row = DB::table('habit_check_ins')->where('habit_id', 'morning-water')->first();
         $this->assertNotNull($row);
         $this->assertSame($uuid, $row->user_id);
-        $this->assertSame(100, (int) $row->points);
+        $this->assertSame(1, (int) $row->points);
     }
 
     public function test_zoeticoach_proxy_skips_when_server_credential_is_empty(): void
@@ -914,11 +984,56 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
                 'month_key' => '2026-11',
                 'day' => 2,
                 'completed_on' => '2026-11-02',
-                'points' => 80,
+                'points' => 100,
             ])
             ->assertStatus(200);
 
         $this->assertSame(3, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+    }
+
+    public function test_client_points_cannot_raise_a_saved_habit_price(): void
+    {
+        $userId = 'usr_price_'.uniqid();
+        DB::table('user_settings')->insert([
+            'user_id' => $userId,
+            'custom_habits' => json_encode([
+                ['id' => 'stretch', 'name' => 'Stretch', 'points' => 2],
+            ]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($userId))
+            ->postJson('/api/habits/check-ins', [
+                'habit_id' => 'stretch',
+                'month_key' => '2026-11',
+                'day' => 3,
+                'completed_on' => '2026-11-03',
+                'points' => 100,
+            ])
+            ->assertStatus(200);
+
+        $this->assertSame(2, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+    }
+
+    public function test_alg_none_token_is_rejected_even_with_a_matching_hmac(): void
+    {
+        $header = $this->base64UrlEncode((string) json_encode(['alg' => 'none', 'typ' => 'JWT']));
+        $payload = $this->base64UrlEncode((string) json_encode([
+            'sub' => 'usr_alice',
+            'exp' => time() + 3600,
+        ]));
+        $signature = $this->base64UrlEncode(hash_hmac(
+            'sha256',
+            $header.'.'.$payload,
+            (string) config('services.supabase.jwt_secret'),
+            true,
+        ));
+
+        $this->withHeader('Authorization', 'Bearer '.$header.'.'.$payload.'.'.$signature)
+            ->getJson('/api/user-settings')
+            ->assertStatus(401)
+            ->assertJsonPath('error', 'Unauthenticated: Unsupported token algorithm');
     }
 
     public function test_legacy_one_row_accepted_connection_can_read_the_partner_projection(): void

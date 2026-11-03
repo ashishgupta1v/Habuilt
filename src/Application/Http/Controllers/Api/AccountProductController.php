@@ -197,17 +197,37 @@ final class AccountProductController
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $cost = (int) $reward->cost_points;
         $created = false;
-        DB::transaction(function () use ($userId, $reward, $cost, &$created): void {
-            $balance = $this->balanceFor($userId);
-            if ($cost > $balance) {
+        DB::transaction(function () use ($userId, $id, &$created): void {
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                DB::statement(
+                    'SELECT pg_advisory_xact_lock(hashtext(?), hashtext(?))',
+                    ['habuilt-redeem', $userId],
+                );
+            }
+
+            $this->lockCallerRows('habit_check_ins', $userId, 'points', $driver);
+            $this->lockCallerRows('user_reward_redemptions', $userId, 'cost_points', $driver);
+
+            $rewardQuery = DB::table('user_reward_items')->where('id', $id);
+            if ($driver !== 'sqlite') {
+                $rewardQuery->lockForUpdate();
+            }
+            $locked = $rewardQuery->first();
+            if ($locked === null || (string) $locked->user_id !== $userId) {
                 return;
             }
+
+            $cost = (int) $locked->cost_points;
+            if ($cost > $this->balanceFor($userId)) {
+                return;
+            }
+
             DB::table('user_reward_redemptions')->insert([
                 'id' => (string) Str::uuid(),
                 'user_id' => $userId,
-                'reward_id' => (string) $reward->id,
+                'reward_id' => (string) $locked->id,
                 'cost_points' => $cost,
                 'redeemed_at' => now(),
                 'created_at' => now(),
@@ -451,6 +471,19 @@ final class AccountProductController
             'rewards' => $rewards,
             'redemptions' => $redemptions,
         ];
+    }
+
+    private function lockCallerRows(string $table, string $userId, string $column, string $driver): void
+    {
+        if (!Schema::hasTable($table)) {
+            return;
+        }
+
+        $query = DB::table($table)->where('user_id', $userId)->select($column);
+        if ($driver !== 'sqlite') {
+            $query->lockForUpdate();
+        }
+        $query->get();
     }
 
     private function balanceFor(string $userId): int

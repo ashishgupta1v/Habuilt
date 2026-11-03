@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, callLocalApi } from '@/lib/supabase';
+import { callLocalApi } from '@/lib/supabase';
 
 const LOCAL_PAIR_PREFIX = 'habuilt_partner_connection_';
 const LOCAL_INVITE_PREFIX = 'habuilt_my_invite_code_';
@@ -119,8 +119,12 @@ export async function getPartnerConnection(userId) {
   // Local Hostinger KVM 2 API check (Primary)
   if (!isGuestUser(userId)) {
     try {
-      const records = await callLocalApi(`/api/partner-connections?user_id=${encodeURIComponent(userId)}`);
-      if (Array.isArray(records) && records.length > 0) {
+      const records = await callLocalApi(`/api/partner-connections?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
+      if (records && (records.offline || records.error)) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
+        }
+      } else if (Array.isArray(records) && records.length > 0) {
         const connected = records.find(r => r.status === 'connected');
         if (connected) {
           const isHost = connected.user_id === userId;
@@ -137,35 +141,6 @@ export async function getPartnerConnection(userId) {
         }
       }
     } catch (_) {}
-  }
-
-  if (isSupabaseConfigured() && !isGuestUser(userId)) {
-    try {
-      const { data, error } = await supabase
-        .from('partner_connections')
-        .select('*')
-        .or(`user_id.eq.${userId},partner_user_id.eq.${userId}`)
-        .eq('status', 'connected')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!error && data) {
-        const isHost = data.user_id === userId;
-        const connection = {
-          user_id: userId,
-          partner_user_id: isHost ? data.partner_user_id : data.user_id,
-          invite_code: data.invite_code,
-          status: 'connected',
-          alias: data.alias || 'Partner',
-          updated_at: data.updated_at
-        };
-        localStorage.setItem(`${LOCAL_PAIR_PREFIX}${userId}`, JSON.stringify(connection));
-        return connection;
-      }
-    } catch (e) {
-      console.warn('[PartnerPairing] getPartnerConnection error:', e);
-    }
   }
 
   return localConnection;
@@ -191,42 +166,8 @@ export async function disconnectPartner(userId) {
 /**
  * Subscribes to realtime updates on partner_connections.
  */
-export function subscribeToPartnerConnection(userId, onPartnerChange) {
-  if (!isSupabaseConfigured() || !userId || isGuestUser(userId)) return null;
-
-  const channel = supabase
-    .channel(`habuilt-partner-sync-${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'partner_connections',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => {
-        if (typeof onPartnerChange === 'function') {
-          onPartnerChange(payload);
-        }
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'partner_connections',
-        filter: `partner_user_id=eq.${userId}`,
-      },
-      (payload) => {
-        if (typeof onPartnerChange === 'function') {
-          onPartnerChange(payload);
-        }
-      }
-    )
-    .subscribe();
-
-  return channel;
+export function subscribeToPartnerConnection() {
+  return { unsubscribe() {} };
 }
 
 /**

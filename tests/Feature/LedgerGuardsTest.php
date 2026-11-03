@@ -23,6 +23,9 @@ final class LedgerGuardsTest extends TestCase
         $this->assertStringContainsString("'user_protocols'", $owner);
         $this->assertStringContainsString("'user_biomarkers'", $owner);
         $this->assertStringContainsString("'user_monthly_states'", $owner);
+        $this->assertStringContainsString("'household_days'", $owner);
+        $this->assertStringContainsString("'user_reward_items'", $owner);
+        $this->assertStringContainsString("'user_reward_redemptions'", $owner);
         $this->assertStringContainsString('ENABLE ROW LEVEL SECURITY', $owner);
         $this->assertStringContainsString('auth.uid()::text = user_id::text', $owner);
         $this->assertStringContainsString('REVOKE ALL ON TABLE public.%I FROM anon', $owner);

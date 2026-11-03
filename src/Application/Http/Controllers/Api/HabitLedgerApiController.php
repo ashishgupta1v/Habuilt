@@ -60,12 +60,7 @@ final class HabitLedgerApiController
         }
 
         $completedOn = (string) ($request->input('completed_on') ?: sprintf('%s-%02d', $monthKey, $day));
-        $points = $this->checkIns->resolvePoints(
-            $userId,
-            $habitId,
-            $request->input('points'),
-            $request->exists('points'),
-        );
+        $points = $this->checkIns->resolvePoints($userId, $habitId);
         $habitName = (string) $request->input('habit_name', '');
         $canonicalKey = $request->input('canonical_key');
         $source = (string) $request->input('source', 'web');
@@ -641,7 +636,7 @@ final class HabitLedgerApiController
     }
 
     /**
-     * @return array{habit_check_ins: array<int, mixed>, user_settings: mixed, user_protocols: array<int, mixed>, user_biomarkers: array<int, mixed>, user_monthly_states: array<int, mixed>}
+     * @return array{habit_check_ins: array<int, mixed>, user_settings: mixed, user_protocols: array<int, mixed>, user_biomarkers: array<int, mixed>, user_monthly_states: array<int, mixed>, household_days: array<int, mixed>, user_reward_items: array<int, mixed>, user_reward_redemptions: array<int, mixed>}
      */
     private function exportOwnedRows(string $userId, ?string $connection = null): array
     {
@@ -671,6 +666,9 @@ final class HabitLedgerApiController
             'user_protocols' => $rows('user_protocols'),
             'user_biomarkers' => $rows('user_biomarkers'),
             'user_monthly_states' => $rows('user_monthly_states'),
+            'household_days' => $rows('household_days'),
+            'user_reward_items' => $rows('user_reward_items'),
+            'user_reward_redemptions' => $rows('user_reward_redemptions'),
         ];
     }
 

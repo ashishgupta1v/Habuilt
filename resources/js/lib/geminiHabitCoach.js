@@ -204,7 +204,7 @@ Context:
 - Circadian Phase: ${ctx.circadianPhase}
 - Points Today: ${ctx.todayPoints} / ${ctx.targetPoints} (Streak: ${ctx.systemStreak} days)
 - 30-Day ZoetiCoach Adherence Rate: ${ctx.adherenceRate || 0}%
-- Clinical Directive: ${ctx.clinicalDirective || 'Maintain protocol integrity'}
+- Notes: use only the check-ins and saved numbers in this context.
 - Completed Habits: ${ctx.completedCount} of ${ctx.scheduledCount}
 - Morning Stiffness Log: ${ctx.stiffnessMinutes} minutes
 - Hydration Rail: ${ctx.hydrationMl} ml / 3000 ml

@@ -4,7 +4,7 @@
  * 
  * Supports:
  * 1. Same-origin Sentry tunnel (/api/telemetry/tunnel). The DSN secret stays on the server.
- * 2. Optional operator-pasted DSN in local settings, never a server-injected secret
+ * 2. The tunnel is the only ingest path. A DSN is never pasted in the app or baked into this bundle.
  * 3. Offline persistent spooling in localStorage with auto-drain on reconnect
  * 4. Sliding-window rate limiter (10 dispatches/minute)
  * 5. In-memory & localStorage ring buffer for last 50 events
@@ -13,7 +13,6 @@
 
 const STORAGE_BUFFER_KEY = 'habuilt_telemetry_ring_buffer';
 const STORAGE_SPOOL_KEY = 'habuilt_offline_telemetry_queue';
-const STORAGE_CUSTOM_DSN_KEY = 'habuilt_custom_sentry_dsn';
 const MAX_BUFFER_SIZE = 50;
 const MAX_SPOOL_SIZE = 20;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -70,44 +69,12 @@ class TelemetryEngine {
   }
 
   resolveDsn() {
-    if (typeof window === 'undefined') return null;
-    const custom = localStorage.getItem(STORAGE_CUSTOM_DSN_KEY);
-    if (custom && custom.trim() !== '') {
-      return custom.trim();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('habuilt_custom_sentry_dsn');
+      } catch {}
     }
     return null;
-  }
-
-  setCustomSentryDsn(dsn) {
-    if (typeof window === 'undefined') return;
-    if (dsn && dsn.trim() !== '') {
-      const trimmed = dsn.trim();
-      localStorage.setItem(STORAGE_CUSTOM_DSN_KEY, trimmed);
-      this.sentryDsn = trimmed;
-      this.recordBreadcrumb({
-        category: 'telemetry',
-        message: 'Configured custom Sentry DSN override',
-        level: 'info',
-      });
-    } else {
-      this.clearCustomSentryDsn();
-    }
-  }
-
-  clearCustomSentryDsn() {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(STORAGE_CUSTOM_DSN_KEY);
-    this.sentryDsn = this.resolveDsn();
-    this.recordBreadcrumb({
-      category: 'telemetry',
-      message: 'Restored default Sentry DSN configuration',
-      level: 'info',
-    });
-  }
-
-  getCustomSentryDsn() {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem(STORAGE_CUSTOM_DSN_KEY) || '';
   }
 
   init(app = null) {
@@ -266,7 +233,6 @@ class TelemetryEngine {
     const header = {
       event_id: eventId,
       sent_at: sentAt,
-      dsn: this.sentryDsn || undefined,
     };
 
     const itemHeader = {
@@ -320,30 +286,10 @@ class TelemetryEngine {
         body: envelopeBody,
       });
 
-      if (tunnelRes.ok) {
-        return true;
-      }
-    } catch {}
-
-    // 2. Direct Sentry Ingest Fallback (if tunnel route was unreachable)
-    if (this.sentryDsn) {
-      try {
-        const match = this.sentryDsn.match(/^https:\/\/([^@]+)@([^/]+)\/(\d+)$/);
-        if (match) {
-          const [, key, host, projectId] = match;
-          const directUrl = `https://${host}/api/${projectId}/envelope/?sentry_version=7&sentry_key=${key}`;
-          await fetch(directUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-sentry-envelope' },
-            body: envelopeBody,
-            mode: 'cors',
-          }).catch(() => {});
-          return true;
-        }
-      } catch {}
+      return tunnelRes.ok;
+    } catch {
+      return false;
     }
-
-    return true;
   }
 
   async drainOfflineSpool() {
@@ -392,10 +338,10 @@ class TelemetryEngine {
   getTelemetryStatus() {
     return {
       initialized: this.initialized,
-      sentryDsnConfigured: Boolean(this.sentryDsn),
-      sentryHost: this.sentryDsn ? (this.sentryDsn.match(/@([^/]+)/)?.[1] || 'sentry.io') : null,
-      maskedDsn: this.sentryDsn ? this.sentryDsn.replace(/:\/\/([^@]+)@/, '://***@') : null,
-      isCustomDsn: Boolean(typeof window !== 'undefined' && localStorage.getItem(STORAGE_CUSTOM_DSN_KEY)),
+      sentryDsnConfigured: false,
+      sentryHost: null,
+      maskedDsn: null,
+      isCustomDsn: false,
       ringBufferCount: this.buffer.length,
       spoolCount: this.spool.length,
       isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -459,6 +405,6 @@ export const recordBreadcrumb = (crumb) => telemetry.recordBreadcrumb(crumb);
 export const exportDiagnostics = () => telemetry.exportDiagnostics();
 export const sendTestException = (source) => telemetry.sendTestException(source);
 export const getTelemetryStatus = () => telemetry.getTelemetryStatus();
-export const setCustomSentryDsn = (dsn) => telemetry.setCustomSentryDsn(dsn);
-export const clearCustomSentryDsn = () => telemetry.clearCustomSentryDsn();
-export const getCustomSentryDsn = () => telemetry.getCustomSentryDsn();
+export const setCustomSentryDsn = () => {};
+export const clearCustomSentryDsn = () => {};
+export const getCustomSentryDsn = () => '';

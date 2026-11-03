@@ -22,7 +22,7 @@ const props = defineProps({
   tierTitle: { type: String, default: '🏆 Full Target' },
   completedCount: { type: Number, default: 0 },
   totalHabits: { type: Number, default: 0 },
-  performanceGrade: { type: Object, default: () => ({ grade: 'A+', text: 'Unstoppable Momentum' }) },
+  performanceGrade: { type: Object, default: () => ({ grade: '', text: 'Your check-ins' }) },
   completedHabitsList: { type: Array, default: () => [] },
   dateLabel: { type: String, default: '' },
   // Couple Alignment Props
@@ -241,7 +241,7 @@ const generateScorecardCanvas = async () => {
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.font = '600 17px "Inter", sans-serif';
-  ctx.fillText(props.performanceGrade?.text || 'Elite Status', width - 120, 388);
+  ctx.fillText(props.performanceGrade?.text || 'Your check-ins', width - 120, 388);
 
   // 7. HERO SECTION: Massive Points & Protocol Hit Card
   const heroGrad = ctx.createLinearGradient(85, 460, width - 85, 800);

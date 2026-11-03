@@ -4,36 +4,29 @@ declare(strict_types=1);
 
 namespace App\Services\Ledger;
 
-use Habuilt\Shared\Support\Ulid;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
  * Authenticated write path for browser and API habit completions.
- * Points come from the caller's stored habit row when one exists.
- * Otherwise a client-supplied value is clamped to a small range.
+ * The point value is the one saved on the caller's habit or protocol.
+ * A missing price is 1. Client-supplied points are ignored.
  */
 final class SpaCheckInLedger
 {
-    public const MAX_CLIENT_POINTS = 100;
+    public const DEFAULT_POINTS = 1;
 
-    public function resolvePoints(string $userId, string $habitId, mixed $clientPoints, bool $pointsProvided): int
+    public const MAX_STORED_POINTS = 100;
+
+    public function resolvePoints(string $userId, string $habitId): int
     {
         $stored = $this->storedHabitPoints($userId, $habitId);
-        if ($stored !== null) {
-            return max(0, min(self::MAX_CLIENT_POINTS, $stored));
+        if ($stored === null) {
+            return self::DEFAULT_POINTS;
         }
 
-        $points = ($pointsProvided && is_numeric($clientPoints)) ? (int) $clientPoints : 1;
-        if ($points < 0) {
-            $points = 0;
-        }
-        if ($points > self::MAX_CLIENT_POINTS) {
-            $points = self::MAX_CLIENT_POINTS;
-        }
-
-        return $points;
+        return max(self::DEFAULT_POINTS, min(self::MAX_STORED_POINTS, $stored));
     }
 
     public function record(
@@ -85,19 +78,72 @@ final class SpaCheckInLedger
 
     private function storedHabitPoints(string $userId, string $habitId): ?int
     {
-        if (!Ulid::isValid($userId) || !Ulid::isValid($habitId) || !Schema::hasTable('habits')) {
+        if ($userId === '' || $habitId === '') {
             return null;
         }
 
-        $row = DB::table('habits')
-            ->where('id', strtoupper($habitId))
-            ->where('user_id', strtoupper($userId))
-            ->first();
+        if (Schema::hasTable('habits')) {
+            $row = DB::table('habits')
+                ->where('user_id', $userId)
+                ->get(['id', 'points_per_check_in'])
+                ->first(fn (object $habit): bool => $this->sameId((string) $habit->id, $habitId));
+            if ($row !== null && isset($row->points_per_check_in)) {
+                return (int) $row->points_per_check_in;
+            }
+        }
 
-        if ($row === null || !isset($row->points_per_check_in)) {
+        if (Schema::hasTable('user_settings')) {
+            $settings = DB::table('user_settings')->where('user_id', $userId)->first();
+            $fromSettings = $this->pointsFromList($settings->custom_habits ?? null, $habitId);
+            if ($fromSettings !== null) {
+                return $fromSettings;
+            }
+        }
+
+        if (Schema::hasTable('user_protocols')) {
+            $protocols = DB::table('user_protocols')->where('user_id', $userId)->get(['habits', 'slots']);
+            foreach ($protocols as $protocol) {
+                $fromHabits = $this->pointsFromList($protocol->habits ?? null, $habitId);
+                if ($fromHabits !== null) {
+                    return $fromHabits;
+                }
+                $fromSlots = $this->pointsFromList($protocol->slots ?? null, $habitId);
+                if ($fromSlots !== null) {
+                    return $fromSlots;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function pointsFromList(mixed $value, string $habitId): ?int
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (!is_array($decoded)) {
             return null;
         }
 
-        return (int) $row->points_per_check_in;
+        foreach ($decoded as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $id = (string) ($item['id'] ?? $item['habit_id'] ?? '');
+            if (!$this->sameId($id, $habitId)) {
+                continue;
+            }
+            if (!array_key_exists('points', $item) && !array_key_exists('points_per_check_in', $item)) {
+                return self::DEFAULT_POINTS;
+            }
+
+            return (int) ($item['points'] ?? $item['points_per_check_in']);
+        }
+
+        return null;
+    }
+
+    private function sameId(string $left, string $right): bool
+    {
+        return $left !== '' && strtolower($left) === strtolower($right);
     }
 }

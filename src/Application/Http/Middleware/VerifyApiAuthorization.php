@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\SupabaseAccessToken;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class VerifyApiAuthorization
 {
+    public function __construct(
+        private readonly SupabaseAccessToken $tokens,
+    ) {
+    }
+
     /**
      * Handle an incoming API request.
      * Enforces token validation, expiration checks, and prevents IDOR user mismatch.
@@ -36,50 +42,14 @@ final class VerifyApiAuthorization
             ], 401);
         }
 
-        $token = trim($matches[1]);
-        $parts = explode('.', $token);
-        if (count($parts) !== 3) {
+        $verified = $this->tokens->verify(trim($matches[1]));
+        if (!$verified['ok']) {
             return new JsonResponse([
-                'error' => 'Unauthenticated: Malformed token structure',
+                'error' => $verified['error'],
             ], 401);
         }
 
-        [$headerB64, $payloadB64, $sigB64] = $parts;
-
-        $payloadJson = $this->base64UrlDecode($payloadB64);
-        $payload = json_decode($payloadJson, true);
-
-        if (!is_array($payload) || !isset($payload['sub'])) {
-            return new JsonResponse([
-                'error' => 'Unauthenticated: Invalid token payload',
-            ], 401);
-        }
-
-        // 3. Expiration check
-        if (isset($payload['exp']) && is_numeric($payload['exp']) && (int) $payload['exp'] < time()) {
-            return new JsonResponse([
-                'error' => 'Unauthenticated: Token has expired',
-            ], 401);
-        }
-
-        // 4. Cryptographic signature check. Fail closed when the project secret is missing.
-        $jwtSecret = (string) config('services.supabase.jwt_secret', '');
-        if ($jwtSecret === '') {
-            return new JsonResponse([
-                'error' => 'Unauthenticated: JWT verification is not configured',
-            ], 401);
-        }
-
-        $expectedSignature = hash_hmac('sha256', "{$headerB64}.{$payloadB64}", $jwtSecret, true);
-        $actualSignature = $this->base64UrlDecode($sigB64);
-
-        if (!hash_equals($expectedSignature, $actualSignature)) {
-            return new JsonResponse([
-                'error' => 'Unauthenticated: Invalid cryptographic signature',
-            ], 401);
-        }
-
-        $authenticatedUserId = (string) $payload['sub'];
+        $authenticatedUserId = $verified['sub'];
         $request->attributes->set('auth_user_id', $authenticatedUserId);
 
         // 5. Prevent Insecure Direct Object Reference (IDOR)
@@ -96,19 +66,5 @@ final class VerifyApiAuthorization
         }
 
         return $next($request);
-    }
-
-    /**
-     * Decode standard Base64URL string.
-     */
-    private function base64UrlDecode(string $input): string
-    {
-        $remainder = strlen($input) % 4;
-        if ($remainder) {
-            $padLen = 4 - $remainder;
-            $input .= str_repeat('=', $padLen);
-        }
-        $decoded = base64_decode(strtr($input, '-_', '+/'), true);
-        return $decoded !== false ? $decoded : '';
     }
 }

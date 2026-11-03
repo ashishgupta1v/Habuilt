@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   X,
   Sliders,
@@ -22,7 +22,6 @@ import {
   VolumeX,
   Play,
   Bell,
-  Fingerprint,
   MapPin,
   Compass,
   Sun,
@@ -61,9 +60,6 @@ import {
   exportDiagnostics,
   sendTestException,
   getTelemetryStatus,
-  setCustomSentryDsn,
-  clearCustomSentryDsn,
-  getCustomSentryDsn,
 } from '@/lib/telemetry';
 import { PROTOCOL_ARCHETYPES, useDynamicProtocols } from '@/Composables/useDynamicProtocols';
 import {
@@ -81,7 +77,6 @@ import {
   setSoundProfile,
   testSoundEffect,
 } from '@/lib/soundEffects';
-import { useBiometricVault, isVaultConfigured } from '@/Composables/useBiometricVault';
 import { useCircadianAtmosphere, SOLAR_CITY_PRESETS } from '@/Composables/useCircadianAtmosphere';
 
 const props = defineProps({
@@ -135,20 +130,6 @@ const fixedFull = ref(15);
 // ── CUSTOM TIME SLOTS STATE ──
 const localSlots = ref({});
 
-// ── VAULT & SOLAR EPHEMERIS COMPOSABLES & STATE ──
-const {
-  isSupported: isWebAuthnSupported,
-  isPlatformAvailable: isBiometricHardwareAvailable,
-  registeredCredentials,
-  protectedSections,
-  configureVault,
-  updatePin,
-  registerBiometricDevice,
-  deleteCredential,
-  toggleSectionProtection,
-  refreshRegisteredCredentials,
-} = useBiometricVault();
-
 const {
   solarCalculationMode,
   userCoordinates,
@@ -162,11 +143,7 @@ const {
 const localLat = ref(userCoordinates.value?.lat || 30.7333);
 const localLon = ref(userCoordinates.value?.lon || 76.7794);
 const localCity = ref(userCoordinates.value?.city || 'Chandigarh / Punjab');
-const newDeviceName = ref('');
-const newPinInput = ref('');
 const isGpsLocating = ref(false);
-const isEnrollingDevice = ref(false);
-const passkeyStatusMsg = ref('');
 
 // ── TAXONOMY & REORDERING ENGINE ──
 const taxonomySubTab = ref('categories'); // 'categories' | 'order'
@@ -540,14 +517,11 @@ watch(
       soundVolume.value = Math.round(getSoundVolume() * 100);
       soundProfile.value = getSoundProfile();
 
-      // Sync local solar coordinates & hardware passkey states
       if (userCoordinates.value) {
         localLat.value = userCoordinates.value.lat || 30.7333;
         localLon.value = userCoordinates.value.lon || 76.7794;
         localCity.value = userCoordinates.value.city || 'Chandigarh / Punjab';
       }
-      refreshRegisteredCredentials();
-      passkeyStatusMsg.value = '';
     }
   },
   { immediate: true }
@@ -725,53 +699,6 @@ const handleToggleSolarMode = (mode) => {
   emit('toast', mode === 'astronomical' ? '☀️ NOAA Solar Ephemeris Active' : '⏰ Fixed Schedule Active');
 };
 
-const handleToggleMasterVault = async () => {
-  const next = !isVaultConfigured.value;
-  await configureVault(next, newPinInput.value || '1234');
-  emit('toast', next ? '🔒 Biometric Privacy Vault Enabled' : '🔓 Vault Disabled');
-};
-
-const handleSaveMasterPin = async () => {
-  if (!newPinInput.value || newPinInput.value.length < 4) {
-    emit('toast', '⚠️ Master PIN must be at least 4 digits');
-    return;
-  }
-  try {
-    await updatePin(newPinInput.value);
-    emit('toast', '🔑 Master Sovereign PIN updated!');
-    newPinInput.value = '';
-  } catch (err) {
-    emit('toast', `⚠️ PIN Error: ${err.message}`);
-  }
-};
-
-const handleEnrollPasskey = async () => {
-  isEnrollingDevice.value = true;
-  passkeyStatusMsg.value = '';
-  try {
-    const defaultLabel = `${props.displayName}'s Hardware Key`;
-    const dName = newDeviceName.value.trim() || defaultLabel;
-    const cred = await registerBiometricDevice({
-      deviceName: dName,
-      userHandle: `user_${(props.displayName || 'member').toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-      userName: props.displayName || 'Habuilt Member',
-    });
-    passkeyStatusMsg.value = `Enrolled: ${cred.deviceName}`;
-    newDeviceName.value = '';
-    emit('toast', '✅ Hardware Passkey Registered to IndexedDB!');
-  } catch (err) {
-    passkeyStatusMsg.value = `Error: ${err.message || 'Canceled'}`;
-    emit('toast', '⚠️ Passkey registration canceled or unsupported');
-  } finally {
-    isEnrollingDevice.value = false;
-  }
-};
-
-const handleDeletePasskey = async (id, name) => {
-  await deleteCredential(id);
-  emit('toast', `🗑️ Device key removed: ${name}`);
-};
-
 // ── ACCOUNT & DATA MANAGEMENT (Apple 5.1.1(v) & GDPR) ──
 const isDeleteConfirmOpen = ref(false);
 const deleteConfirmText = ref('');
@@ -846,12 +773,20 @@ const handleConfirmAccountDeletion = async () => {
 const telemetryStatus = ref(getTelemetryStatus());
 const isSendingTestTelemetry = ref(false);
 const testTelemetryMessage = ref('');
-const isSentryConfigOpen = ref(false);
-const customSentryDsnInput = ref(getCustomSentryDsn());
+const serverSentryConfigured = ref(false);
+
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/telemetry/health', { headers: { Accept: 'application/json' } });
+    const body = await response.json();
+    serverSentryConfigured.value = Boolean(body && body.sentry_configured);
+  } catch {
+    serverSentryConfigured.value = false;
+  }
+});
 
 const refreshTelemetryStatus = () => {
   telemetryStatus.value = getTelemetryStatus();
-  customSentryDsnInput.value = getCustomSentryDsn();
 };
 
 const handleSendTestTelemetry = async () => {
@@ -868,22 +803,6 @@ const handleSendTestTelemetry = async () => {
   } finally {
     isSendingTestTelemetry.value = false;
   }
-};
-
-const handleSaveCustomSentryDsn = () => {
-  if (customSentryDsnInput.value && !customSentryDsnInput.value.includes('sentry.io')) {
-    emit('toast', '⚠️ Invalid Sentry DSN (expected https://<key>@<host>/<id>)');
-    return;
-  }
-  setCustomSentryDsn(customSentryDsnInput.value);
-  refreshTelemetryStatus();
-  emit('toast', customSentryDsnInput.value ? '✅ Custom Sentry DSN connected!' : '🔄 Reverted to server default.');
-};
-
-const handleResetCustomSentryDsn = () => {
-  clearCustomSentryDsn();
-  refreshTelemetryStatus();
-  emit('toast', '🔄 Custom Sentry DSN reset.');
 };
 
 const handleExportDiagnosticsArchive = () => {
@@ -1768,8 +1687,8 @@ const handlePurgeTelemetryBuffer = () => {
           <div class="proto-info-banner">
             <Shield class="icon-sm text-amber-400" />
             <p>
-              <strong>Sovereign Privacy Vault &amp; Astronomical Solar Calculations.</strong>
-              Calculate authentic solar dawn/dusk offline using NOAA astronomical equations, and secure private telemetry with platform hardware passkeys.
+              <strong>Solar timing on this device.</strong>
+              Calculate solar dawn and dusk on this device. Your account stays behind the Habuilt sign-in, and the phone lock covers the device.
             </p>
           </div>
 
@@ -1912,147 +1831,17 @@ const handlePurgeTelemetryBuffer = () => {
             </div>
           </div>
 
-          <!-- SECTION 2: WEBAUTHN HARDWARE BIOMETRIC VAULT -->
           <div class="proto-card mt-3">
             <div class="proto-card__header">
               <div class="proto-card__title">
-                <Fingerprint class="icon-xs text-emerald-400" />
-                <span>WebAuthn Hardware Biometric Vault</span>
-              </div>
-              <div class="proto-badge-status" :class="isVaultConfigured ? 'proto-badge--active' : 'proto-badge--muted'">
-                {{ isVaultConfigured ? '🔒 Vault Active' : '🔓 Vault Inactive' }}
+                <Shield class="icon-xs text-emerald-400" />
+                <span>Account session</span>
               </div>
             </div>
-
-            <!-- Master Toggle Switch -->
-            <div class="proto-toggle-row">
-              <div class="proto-toggle-info">
-                <strong>Biometric Protection Switch</strong>
-                <p>Require Touch ID, Face ID, or Windows Hello to access shielded data.</p>
-              </div>
-              <button
-                type="button"
-                class="proto-switch-btn"
-                :class="{ 'proto-switch-btn--on': isVaultConfigured }"
-                @click="handleToggleMasterVault"
-                id="proto-vault-master-toggle"
-              >
-                <span class="proto-switch-thumb"></span>
-              </button>
-            </div>
-
-            <!-- Shielded Sections Toggles -->
-            <div v-if="isVaultConfigured" class="proto-subsections mt-2">
-              <label class="proto-label">Protected App Sections</label>
-              <div class="proto-shield-options">
-                <label class="proto-checkbox-label">
-                  <input
-                    type="checkbox"
-                    :checked="protectedSections.clinical"
-                    @change="toggleSectionProtection('clinical')"
-                  />
-                  <span>Clinical Telemetry (Biomarkers &amp; Sleep)</span>
-                </label>
-                <label class="proto-checkbox-label">
-                  <input
-                    type="checkbox"
-                    :checked="protectedSections.rewards"
-                    @change="toggleSectionProtection('rewards')"
-                  />
-                  <span>Sovereign Reward Vault &amp; Streak Ledger</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Multi-Device Registered Passkeys (IndexedDB) -->
-            <div class="proto-passkeys-list-section mt-3">
-              <div class="proto-passkeys-head">
-                <label class="proto-label">Enrolled Family &amp; Device Passkeys (IndexedDB)</label>
-                <span class="proto-chip-counter mono-num">{{ registeredCredentials.length }} Key(s)</span>
-              </div>
-
-              <div v-if="registeredCredentials.length === 0" class="proto-empty-keys">
-                <p>No hardware passkeys enrolled yet. Enroll your device below to use Touch ID / Windows Hello.</p>
-              </div>
-
-              <div v-else class="proto-keys-table">
-                <div
-                  v-for="cred in registeredCredentials"
-                  :key="cred.id"
-                  class="proto-key-row"
-                >
-                  <div class="proto-key-info">
-                    <div class="proto-key-name">
-                      <Smartphone class="icon-xs text-amber-400" />
-                      <strong>{{ cred.deviceName }}</strong>
-                      <span class="proto-user-tag mono-num">{{ cred.userName || cred.userHandle }}</span>
-                    </div>
-                    <span class="proto-key-date">
-                      Enrolled: {{ new Date(cred.createdAt).toLocaleDateString() }}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn-icon btn-icon--danger"
-                    title="Remove passkey"
-                    @click="handleDeletePasskey(cred.id, cred.deviceName)"
-                  >
-                    <Trash2 class="icon-xs" />
-                  </button>
-                </div>
-              </div>
-
-              <!-- Enroll Current Device Form -->
-              <div class="proto-enroll-form mt-2">
-                <div class="proto-enroll-input-row">
-                  <input
-                    type="text"
-                    v-model="newDeviceName"
-                    class="proto-text-input"
-                    :placeholder="`${props.displayName} Device (e.g. Pixel / iPhone)`"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn--primary-action btn--sm"
-                    :disabled="isEnrollingDevice"
-                    @click="handleEnrollPasskey"
-                    id="proto-enroll-passkey-btn"
-                  >
-                    <Fingerprint class="icon-xs" />
-                    <span>{{ isEnrollingDevice ? 'Authorizing...' : 'Enroll Passkey' }}</span>
-                  </button>
-                </div>
-                <p v-if="passkeyStatusMsg" class="proto-enroll-msg mt-1 mono-num">
-                  {{ passkeyStatusMsg }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Master PIN Override Field -->
-            <div class="proto-pin-form mt-3">
-              <label class="proto-label">Sovereign Master PIN (Emergency Fallback)</label>
-              <div class="proto-pin-input-row">
-                <input
-                  type="password"
-                  maxlength="8"
-                  v-model="newPinInput"
-                  class="proto-text-input mono-num"
-                  placeholder="Set 4 to 8 digit PIN"
-                />
-                <button
-                  type="button"
-                  class="btn btn--secondary btn--sm"
-                  @click="handleSaveMasterPin"
-                >
-                  <KeyRound class="icon-xs text-amber-400" />
-                  <span>Update PIN</span>
-                </button>
-              </div>
-              <small class="proto-subtext">Used if biometric hardware is unavailable or in non-secure browser contexts.</small>
-            </div>
+            <p class="text-[12px] text-gray-400 mt-2 leading-relaxed">Habuilt keeps this account behind your sign-in. The device lock covers the phone. This screen does not keep a separate vault.</p>
           </div>
 
-          <!-- SECTION 3: ACCOUNT & DATA MANAGEMENT (Apple Guideline 5.1.1(v) & GDPR Compliance) -->
+                    <!-- SECTION 3: ACCOUNT & DATA MANAGEMENT (Apple Guideline 5.1.1(v) & GDPR Compliance) -->
           <div class="proto-card proto-card--danger mt-3" id="proto-account-management-card">
             <div class="proto-card__header">
               <div class="proto-card__title">
@@ -2144,14 +1933,14 @@ const handlePurgeTelemetryBuffer = () => {
           </div>
 
           <!-- SECTION 4: PRODUCTION SENTRY ERROR MONITORING & TELEMETRY -->
-          <div class="proto-card proto-card--telemetry mt-3" id="proto-telemetry-monitoring-card">
+          <div v-if="serverSentryConfigured" class="proto-card proto-card--telemetry mt-3" id="proto-telemetry-monitoring-card">
             <div class="proto-card__header">
               <div class="proto-card__title">
                 <Bug class="icon-xs text-sky-400" />
                 <span>Production Error Monitoring &amp; Sentry Telemetry</span>
               </div>
-              <div class="proto-badge-status" :class="telemetryStatus.sentryDsnConfigured ? 'proto-badge--active' : 'proto-badge--muted'">
-                {{ telemetryStatus.sentryDsnConfigured ? '⚡ Sentry Active' : '🛡️ Sovereign Local Buffer' }}
+              <div class="proto-badge-status proto-badge--active">
+                Server tunnel
               </div>
             </div>
 
@@ -2192,72 +1981,6 @@ const handlePurgeTelemetryBuffer = () => {
                 <span>{{ isSendingTestTelemetry ? 'Routing Anomaly...' : 'Send Test Anomaly' }}</span>
               </button>
 
-              <button
-                type="button"
-                class="btn btn--secondary btn--sm flex items-center gap-1.5"
-                @click="isSentryConfigOpen = !isSentryConfigOpen"
-                id="btn-toggle-sentry-dsn"
-              >
-                <Shield class="icon-xs text-sky-400" />
-                <span>{{ isSentryConfigOpen ? 'Close Sentry DSN' : 'Configure Sentry DSN' }}</span>
-              </button>
-
-              <button
-                type="button"
-                class="btn btn--secondary btn--sm flex items-center gap-1.5"
-                @click="handleExportDiagnosticsArchive"
-                id="btn-export-diagnostics-archive"
-              >
-                <Download class="icon-xs" />
-                <span>Export Diagnostics (JSON)</span>
-              </button>
-
-              <button
-                type="button"
-                class="btn btn--secondary btn--sm flex items-center gap-1.5 text-gray-400 hover:text-white"
-                @click="handlePurgeTelemetryBuffer"
-                id="btn-purge-diagnostics"
-              >
-                <Trash2 class="icon-xs text-rose-400" />
-                <span>Clear Buffer</span>
-              </button>
-            </div>
-
-            <!-- Expandable Sentry DSN Config Box -->
-            <div v-if="isSentryConfigOpen" class="mt-3 p-3 rounded-xl bg-white/[0.03] border border-sky-500/30 animate-fadeIn" id="sentry-dsn-config-drawer">
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="text-[11px] font-bold uppercase tracking-wider text-sky-400">Sentry DSN Ingestion Target</label>
-                <span v-if="telemetryStatus.maskedDsn" class="text-[10px] mono-num text-gray-400 truncate max-w-[200px]">{{ telemetryStatus.maskedDsn }}</span>
-              </div>
-              <p class="text-[11px] text-gray-400 mb-2 leading-relaxed">
-                Connect your live Sentry Project DSN. All events will route through the first-party server tunnel (/api/telemetry/tunnel) to prevent client ad-blocker dropoff.
-              </p>
-              <div class="flex items-center gap-2">
-                <input
-                  type="text"
-                  v-model="customSentryDsnInput"
-                  placeholder="https://publicKey@o123456.ingest.sentry.io/7890123"
-                  id="input-custom-sentry-dsn"
-                  class="proto-text-input mono-num text-xs flex-1"
-                />
-                <button
-                  type="button"
-                  class="btn btn--primary-action btn--sm shrink-0"
-                  @click="handleSaveCustomSentryDsn"
-                  id="btn-save-custom-sentry-dsn"
-                >
-                  <span>Connect DSN</span>
-                </button>
-                <button
-                  v-if="telemetryStatus.isCustomDsn"
-                  type="button"
-                  class="btn btn--secondary btn--sm shrink-0 text-rose-400 hover:text-rose-300"
-                  @click="handleResetCustomSentryDsn"
-                  id="btn-reset-custom-sentry-dsn"
-                >
-                  <span>Reset</span>
-                </button>
-              </div>
             </div>
 
             <div v-if="testTelemetryMessage" class="mt-2 text-xs mono-num" :class="testTelemetryMessage.startsWith('✅') ? 'text-emerald-400' : 'text-rose-400'">

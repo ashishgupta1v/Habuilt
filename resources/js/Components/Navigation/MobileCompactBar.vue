@@ -91,7 +91,7 @@ const autoProtocolBadge = computed(() => {
       <div class="mcb-identity" @click="isExpanded = !isExpanded">
         <HabuiltLogo size="xs" :with-text="false" class="mcb-brand-icon" />
         <span class="mcb-user-name">{{ displayName || timeGreeting?.name || 'User' }}</span>
-        <span class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+        <span v-if="performanceGrade.grade" class="grade-badge mcb-grade" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
       </div>
 
       <!-- Center: Combined Streak & Protocol Progress Pill -->

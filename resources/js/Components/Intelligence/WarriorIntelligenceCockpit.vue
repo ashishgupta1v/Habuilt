@@ -320,7 +320,7 @@ const copyAIPrompt = () => {
 - Day Type: ${props.dayTypeLabel}
 - Daily Points: ${props.todayPoints}/${tFull} pts (Tier: ${props.todayPoints >= tFull ? 'Full Target' : props.todayPoints >= tHalf ? 'Half Protocol' : props.todayPoints >= tFloor ? 'Floor Baseline' : 'Incomplete'})
 - Streak: ${props.systemStreak.current} days (Best: ${props.systemStreak.best})
-- Consistency Grade: ${props.performanceGrade.grade}
+- Kept rate: ${props.performanceGrade.grade || 'your check-ins'}
 - Circadian Window: ${circadianWindow.value.title} (${circadianWindow.value.time})
 - Biomarkers: Morning Stiffness ${localStiffness.value}m, Energy ${localEnergy.value}/10, Hydration ${localHydration.value}ml
 - Completed Habits: ${props.todayHabits.filter(h => props.hasCompletedDay(h, props.currentDay)).map(h => h.name).join(', ') || 'None yet'}

@@ -47,6 +47,7 @@ const emit = defineEmits(['toast']);
 
 // ── State ──
 const rawTelemetry = ref(null);
+const coachConnected = ref(false);
 const isLoading = ref(false);
 const isRefreshing = ref(false);
 const isExpanded = ref(true);
@@ -71,18 +72,15 @@ const participantName = computed(() => {
 });
 
 // ── Live Telemetry Metrics ──
-const isLiveConnected = computed(() => Boolean(rawTelemetry.value && !rawTelemetry.value.isFallback));
+const isLiveConnected = computed(() => coachConnected.value);
 
 const adherenceRate = computed(() => Math.round(Number(props.consistencyScore) || 0));
 
-const adherenceStatusGrade = computed(() => {
-  const rate = adherenceRate.value;
-  if (rate >= 90) return { label: 'Elite Compliance', color: 'emerald', class: 'grade-emerald' };
-  if (rate >= 80) return { label: 'High Adherence Club', color: 'gold', class: 'grade-gold' };
-  if (rate >= 65) return { label: 'Solid Protocol Adherence', color: 'teal', class: 'grade-teal' };
-  if (rate >= 50) return { label: 'Moderate Adherence', color: 'amber', class: 'grade-amber' };
-  return { label: 'Building Momentum', color: 'slate', class: 'grade-slate' };
-});
+const adherenceStatusGrade = computed(() => ({
+  label: 'Your check-ins',
+  color: 'teal',
+  class: 'grade-teal',
+}));
 
 const currentStreak = computed(() => Number(props.systemStreak?.current || 0));
 
@@ -139,7 +137,7 @@ const milestones = computed(() => {
     list.push({
       id: 'streak_7',
       title: '7-Day Streak Keeper',
-      desc: 'Maintained consecutive protocol compliance for 7+ days',
+      desc: 'Kept a habit 7 days in a row',
       icon: Flame,
       unlocked: true,
       color: 'emerald',
@@ -157,8 +155,8 @@ const milestones = computed(() => {
 
   list.push({
     id: 'habit_cloud_verified',
-    title: 'ZoetiCoach Cloud Verified',
-    desc: 'Live telemetry bridge verified via ZoetiCoach WS18 API',
+    title: 'Coach forwarder',
+    desc: 'Shown when the optional ZoetiCoach forwarder accepts a check-in',
     icon: ShieldCheck,
     unlocked: isLiveConnected.value,
     color: isLiveConnected.value ? 'teal' : 'slate',
@@ -241,17 +239,18 @@ const syncAdherence = async (notify = false) => {
 
   try {
     const data = await fetchZoetiCoachAdherence(participantId.value, 30);
-    if (data) {
+    if (data && data.skipped !== true) {
+      coachConnected.value = true;
       rawTelemetry.value = data;
       lastSyncedAt.value = new Date();
       if (notify) {
         emit('toast', {
-          message: `⚡ ZoetiCoach Telemetry Live: ${data.adherence_rate_pct}% 30-Day Adherence!`,
+          message: 'Coach forwarder connected.',
           type: 'success',
         });
       }
     } else {
-      // Graceful fallback to local Habuilt metrics
+      coachConnected.value = false;
       rawTelemetry.value = {
         name: participantName.value,
         external_participant_id: participantId.value,
@@ -269,7 +268,7 @@ const syncAdherence = async (notify = false) => {
       lastSyncedAt.value = new Date();
       if (notify) {
         emit('toast', {
-          message: `📊 Local telemetry active (${props.consistencyScore}% consistency). Ready to sync with Habit Cloud.`,
+          message: `Counted from your check-ins (${props.consistencyScore}%).`,
           type: 'info',
         });
       }
@@ -314,13 +313,18 @@ const triggerManualFlush = async () => {
     pendingQueueCount.value = result?.pending ?? getZoetiCoachQueueCount();
     if (result.flushed > 0) {
       emit('toast', {
-        message: `⚡ Flushed ${result.flushed} offline event${result.flushed > 1 ? 's' : ''} to ZoetiCoach Habit Cloud!`,
+        message: `Sent ${result.flushed} queued check-in${result.flushed > 1 ? 's' : ''} to the coach forwarder.`,
         type: 'success',
       });
       syncAdherence(false);
+    } else if ((result.pending || 0) > 0) {
+      emit('toast', {
+        message: 'Coach forwarder is off. Queued check-ins stay on this device.',
+        type: 'info',
+      });
     } else {
       emit('toast', {
-        message: 'All offline events synchronized with ZoetiCoach.',
+        message: 'No queued check-ins.',
         type: 'info',
       });
     }
@@ -374,7 +378,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="zoeticoach-hud" aria-label="ZoetiCoach Live Adherence & AI Insights HUD">
+  <section class="zoeticoach-hud" aria-label="Your check-ins">
     <!-- ── HUD Header Bar ── -->
     <header class="hud-header">
       <div class="hud-brand-group">
@@ -384,10 +388,10 @@ onUnmounted(() => {
         </div>
         <div class="hud-title-col">
           <div class="hud-headline-row">
-            <h2 class="hud-title">ZoetiCoach Live Telemetry</h2>
+            <h2 class="hud-title">Your check-ins</h2>
             <span class="hud-badge hud-badge--channel" :title="`Channel: ${activeChannel}`">
               <Radio class="w-3 h-3 text-emerald-400" />
-              <span>{{ isLiveConnected ? 'Habit Cloud WS18' : 'Local Standby' }}</span>
+              <span>{{ isLiveConnected ? 'Forwarder on' : 'Forwarder off' }}</span>
             </span>
           </div>
           <div class="hud-submeta">
@@ -405,7 +409,7 @@ onUnmounted(() => {
           class="hud-btn hud-btn--queue"
           :class="{ 'hud-btn--loading': isFlushing }"
           :disabled="isFlushing"
-          title="Flush offline queue to ZoetiCoach Habit Cloud"
+          title="Send queued check-ins"
           @click="triggerManualFlush"
         >
           <span class="queue-pulse-dot" :class="{ 'animate-spin': isFlushing }"></span>
@@ -417,7 +421,7 @@ onUnmounted(() => {
           class="hud-btn hud-btn--sync"
           :class="{ 'hud-btn--loading': isRefreshing }"
           :disabled="isRefreshing"
-          title="Refresh live adherence telemetry from ZoetiCoach Habit Cloud"
+          title="Refresh coach forwarder status"
           @click="syncAdherence(true)"
         >
           <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': isRefreshing }" />
@@ -471,7 +475,7 @@ onUnmounted(() => {
           @click="activeTab = 'overview'"
         >
           <Activity class="w-3.5 h-3.5" />
-          <span>Compliance Telemetry</span>
+          <span>Today</span>
           <span class="hud-tab-pill mono-num">{{ adherenceRate }}%</span>
         </button>
 
@@ -502,7 +506,7 @@ onUnmounted(() => {
         </button>
       </nav>
 
-      <!-- ── TAB 1: Compliance Telemetry Deck ── -->
+      <!-- ── TAB 1: Today ── -->
       <div v-if="activeTab === 'overview'" class="hud-pane hud-pane--overview">
         <div class="hud-metric-grid">
           <!-- Card 1: 30-Day Adherence Rate -->
@@ -591,7 +595,7 @@ onUnmounted(() => {
             <div class="metric-body">
               <div class="sync-status-row">
                 <span class="status-indicator" :class="{ 'status-indicator--live': isLiveConnected }"></span>
-                <span class="status-text mono-num">{{ isLiveConnected ? 'ZoetiCoach Cloud Active' : 'Standby Local Mode' }}</span>
+                <span class="status-text mono-num">{{ isLiveConnected ? 'Coach forwarder connected' : 'Coach forwarder off' }}</span>
               </div>
               <div class="sync-details">
                 <div class="sync-row">
@@ -608,7 +612,7 @@ onUnmounted(() => {
                 </div>
               </div>
               <p class="metric-subtext mt-1">
-                {{ isLiveConnected ? 'Events bi-directionally verified with ZoetiCoach WS18 API.' : 'Habits logged locally; auto-syncing to ZoetiCoach on check-in.' }}
+                ZoetiCoach is an optional coach forwarder. A connected state appears only when that forwarder is not skipped.
               </p>
             </div>
           </div>

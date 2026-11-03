@@ -94,7 +94,7 @@ onUnmounted(() => {
         <div class="hero-greeting-title">
           <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
           <span class="hero-greeting-wave">👋</span>
-          <span class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
+          <span v-if="performanceGrade.grade" class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
 
           <!-- Live Routine Phase Window Pill -->
           <div class="hero-routine-pill" :title="`Active Routine Window: ${currentRoutineWindow.name} (${currentRoutineWindow.time})`">

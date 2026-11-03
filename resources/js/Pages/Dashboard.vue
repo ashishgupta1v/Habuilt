@@ -1251,6 +1251,10 @@ const handleOffline = () => {
   showToast('⚡ Offline Mode: Changes saved locally and queued for auto-sync', 3500);
 };
 
+const handleReadFailed = () => {
+  isOffline.value = true;
+};
+
 const handleSyncStatus = (event) => {
   const detail = event?.detail || syncEngine.getState();
   const nextCount = Number(detail.deadLetterCount) || 0;
@@ -1911,14 +1915,12 @@ const consistencyScore = computed(() => {
   return Math.min(100, Math.round(totalScore / daysEvaluated));
 });
 
-const consistencyGrade = computed(() => {
-  const score = consistencyScore.value;
-  if (score >= 90) return { grade: 'A+', letter: 'A+', class: 'grade--a-plus', text: 'Unstoppable Momentum' };
-  if (score >= 80) return { grade: 'A', letter: 'A', class: 'grade--a', text: 'Elite Consistency' };
-  if (score >= 70) return { grade: 'B', letter: 'B', class: 'grade--b', text: 'Solid Progress' };
-  if (score >= 55) return { grade: 'C', letter: 'C', class: 'grade--c', text: 'Building Foundation' };
-  return { grade: 'D', letter: 'D', class: 'grade--d', text: 'Needs Attention' };
-});
+const consistencyGrade = computed(() => ({
+  grade: '',
+  letter: '',
+  class: '',
+  text: 'Your check-ins',
+}));
 
 const performanceGrade = computed(() => consistencyGrade.value);
 
@@ -2485,9 +2487,7 @@ const pushToNativeWidget = () => {
       };
     });
 
-    const adherenceVal = Number(consistencyScore.value) || 0;
     const streakVal = Number(systemStreak.value?.currentStreak || systemStreak.value?.current || 0);
-    const directiveStr = 'Maintain peak protocol consistency.';
 
     syncNativeWidget({
       userId: effectiveUserId.value,
@@ -2495,9 +2495,9 @@ const pushToNativeWidget = () => {
       schedule: scheduleMap,
       streak: streakVal,
       todayPoints: todayPoints.value ?? 0,
-      adherenceRate: adherenceVal,
-      complianceStatus: performanceGrade.value?.grade ? `${performanceGrade.value.grade} Grade (${adherenceVal}%)` : 'Active Protocol',
-      clinicalDirective: directiveStr,
+      adherenceRate: 0,
+      complianceStatus: '',
+      clinicalDirective: '',
     });
   } catch (e) {
     console.warn('Widget sync error:', e);
@@ -3025,7 +3025,9 @@ const syncCloudState = async (force = false) => {
 
     // 2. Load user settings & reviews
     const settingsData = await loadUserSettings(effectiveUserId.value);
-    if (settingsData) {
+    if (settingsData?.error || settingsData?.offline) {
+      isOffline.value = true;
+    } else if (settingsData) {
       if (settingsData.day_type) dayType.value = settingsData.day_type;
       darkMode.value = false;
       if (typeof localStorage !== 'undefined') {
@@ -3047,7 +3049,9 @@ const syncCloudState = async (force = false) => {
     const todayDate = new Date();
     const todayIso = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
     const latestBio = await loadLatestBiomarker(effectiveUserId.value, todayIso);
-    if (latestBio) {
+    if (latestBio?.error || latestBio?.offline) {
+      isOffline.value = true;
+    } else if (latestBio) {
       if (latestBio.stiffness_minutes !== undefined) biomarkersState.value.stiffnessMin = Number(latestBio.stiffness_minutes);
       if (latestBio.hydration_ml !== undefined) hydrationMlState.value = Number(latestBio.hydration_ml);
       if (latestBio.energy_level !== undefined) biomarkersState.value.energyRating = Number(latestBio.energy_level);
@@ -3528,6 +3532,7 @@ onMounted(() => {
   window.addEventListener('pageshow', handleAppResume);
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
+  window.addEventListener('habuilt:read-failed', handleReadFailed);
   window.addEventListener('habuilt:sync-status', handleSyncStatus);
   window.addEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
   window.addEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
@@ -3832,6 +3837,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('pageshow', handleAppResume);
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
+  window.removeEventListener('habuilt:read-failed', handleReadFailed);
   window.removeEventListener('habuilt:sync-status', handleSyncStatus);
   window.removeEventListener('zoeticoach:event-queued', updateOfflineQueueCount);
   window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);

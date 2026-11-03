@@ -30,13 +30,13 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
       <div class="hero-intro">
         <div class="pill-badge rose-pill">
           <ShieldAlert class="icon-14" />
-          <span>Clinical &amp; Health Notice</span>
+          <span>Wellness notice</span>
         </div>
 
         <h1 class="legal-title">Medical &amp; Wellness Disclaimer</h1>
 
         <p class="legal-desc">
-          Habuilt and ZoetiCoach are lifestyle, productivity, and behavioral accountability platforms. Please read this statement regarding our scope of practice.
+          Habuilt is a habit tracker. ZoetiCoach is an optional coach forwarder, not an in-app clinical system. Please read this statement before you use either one.
         </p>
       </div>
 

@@ -17,6 +17,7 @@ return [
 
     'supabase' => [
         'jwt_secret' => env('SUPABASE_JWT_SECRET', ''),
+        'jwks_url' => env('SUPABASE_JWKS_URL', ''),
         'url' => env('SUPABASE_URL', ''),
         'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY', ''),
     ],

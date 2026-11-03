@@ -39,11 +39,11 @@ if [ -n "$SENTRY_ARG" ]; then
     else
         echo "SENTRY_LARAVEL_DSN=${SENTRY_ARG}" >> .env
     fi
-    if grep -q "^VITE_SENTRY_DSN=" .env; then
-        sed -i "s|^VITE_SENTRY_DSN=.*|VITE_SENTRY_DSN=${SENTRY_ARG}|" .env
-    else
-        echo "VITE_SENTRY_DSN=${SENTRY_ARG}" >> .env
-    fi
+fi
+
+# The browser bundle must not receive a DSN. The tunnel reads the server value.
+if grep -q "^VITE_SENTRY_DSN=" .env; then
+    sed -i "s|^VITE_SENTRY_DSN=.*|VITE_SENTRY_DSN=|" .env
 fi
 
 # 3. Backend Dependencies
@@ -55,7 +55,11 @@ echo "--> Building frontend assets with Vite..."
 npm ci --prefer-offline --no-audit
 npm run build
 
-# 5. Database Migrations (if DB configured)
+# 5. Confirm the application database, then migrate.
+# The probe prints set/empty and whether it changed an override. It does not print a URL.
+echo "--> Confirming the application database host..."
+php scripts/confirm-app-database.php
+
 echo "--> Running database migrations..."
 php artisan migrate --force
 
@@ -67,6 +71,24 @@ php artisan view:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+
+# Apply ledger owner policies only when a separate ledger URL is configured.
+# Keep the command output to status tokens so a URL cannot land in the deploy log.
+ledger_line="$(grep -E '^HABUILT_LEDGER_DATABASE_URL=' .env | head -n 1 || true)"
+ledger_value="${ledger_line#HABUILT_LEDGER_DATABASE_URL=}"
+ledger_value="${ledger_value#\"}"
+ledger_value="${ledger_value%\"}"
+ledger_value="${ledger_value#\'}"
+ledger_value="${ledger_value%\'}"
+if [ -n "${ledger_value}" ]; then
+    echo "ledger_url=set"
+    php artisan habuilt:secure-ledger > /tmp/habuilt-ledger.out 2>&1 || true
+    grep -E 'target=|collapsed_groups=|conflicting_groups=|unique_index=|rls=|ledger_error=' /tmp/habuilt-ledger.out || echo "ledger_error=unreadable"
+    rm -f /tmp/habuilt-ledger.out
+else
+    echo "ledger_url=empty"
+fi
+unset ledger_line ledger_value
 
 # 7. File Ownership & Permissions
 echo "--> Setting permissions for storage and bootstrap/cache..."
@@ -83,6 +105,8 @@ fi
 # 9. Configure Nginx Virtual Host
 echo "--> Verifying Nginx configuration..."
 if [ -f "${APP_DIR}/deploy/nginx/habuilt.conf" ]; then
+    mkdir -p /etc/nginx/snippets
+    cp "${APP_DIR}/deploy/nginx/security-headers.conf" /etc/nginx/snippets/habuilt-security-headers.conf
     cp "${APP_DIR}/deploy/nginx/habuilt.conf" /etc/nginx/sites-available/habuilt
     if [ ! -f /etc/nginx/sites-enabled/habuilt ]; then
         ln -s /etc/nginx/sites-available/habuilt /etc/nginx/sites-enabled/habuilt
@@ -104,16 +128,25 @@ if [ -f "${APP_DIR}/deploy/systemd/habuilt-queue.service" ]; then
     systemctl enable --now habuilt-schedule.timer
 fi
 
-# 11. Health Check
-echo "--> Running local HTTP health check on port 8005..."
+# 11. Smoke check. A missing token must not download an account.
+echo "--> Running local smoke checks on port 8005..."
 sleep 2
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8005/ || echo "000")
+LANDING_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8005/ || echo "000")
+EXPORT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8005/api/account-export || echo "000")
+MISSING_FILE=$(mktemp)
+MISSING_STATUS=$(curl -s -o "${MISSING_FILE}" -w "%{http_code}" http://127.0.0.1:8005/missing-habuilt-page || echo "000")
+if grep -q "Stack trace" "${MISSING_FILE}"; then
+    rm -f "${MISSING_FILE}"
+    echo "Missing page leaked a stack trace"
+    exit 1
+fi
+rm -f "${MISSING_FILE}"
 
 echo "=========================================================="
-if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ]; then
-    echo " DEPLOYMENT SUCCESSFUL! HTTP Status: ${HTTP_STATUS}"
-    echo " Live at: http://187.127.166.15:8005/"
-else
-    echo " Deployment completed. HTTP Status: ${HTTP_STATUS}"
+echo " smoke landing=${LANDING_STATUS} export=${EXPORT_STATUS} missing=${MISSING_STATUS}"
+if [ "$LANDING_STATUS" != "200" ] || [ "$EXPORT_STATUS" != "401" ]; then
+    echo " Smoke check failed"
+    exit 1
 fi
+echo " DEPLOYMENT SUCCESSFUL"
 echo "=========================================================="

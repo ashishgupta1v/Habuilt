@@ -184,9 +184,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 val rawSchedule = prefs.getString("schedule_json", null)
                 val streak = prefs.getInt("streak", 0)
                 val todayPoints = prefs.getInt("today_points", 0)
-                val adherenceRate = prefs.getInt("adherence_rate", 0)
-                val complianceStatus = prefs.getString("compliance_status", "Active Protocol") ?: "Active Protocol"
-                val clinicalDirective = prefs.getString("clinical_directive", "") ?: ""
+                views.setTextViewText(R.id.tv_widget_brand, "Habuilt")
 
                 // Current day & time
                 val cal = Calendar.getInstance()
@@ -195,13 +193,7 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
 
                 views.setTextViewText(R.id.tv_widget_streak, "🔥 ${streak}d")
                 views.setTextViewText(R.id.tv_widget_today_pts, "⭐ ${todayPoints} pts")
-
-                if (adherenceRate > 0) {
-                    views.setViewVisibility(R.id.tv_widget_adherence, View.VISIBLE)
-                    views.setTextViewText(R.id.tv_widget_adherence, "🎯 ${adherenceRate}%")
-                } else {
-                    views.setViewVisibility(R.id.tv_widget_adherence, View.GONE)
-                }
+                views.setViewVisibility(R.id.tv_widget_adherence, View.GONE)
 
                 // Default fallback if no habits synced yet
                 var targetHabitId = "focus_block"
@@ -209,7 +201,6 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 var targetTimeLabel = "⏰ 08:30 – 10:00"
                 var targetPoints = 3
                 var targetInstruction = "Feet on the floor by 05:00 sharp. No snooze button. Sit up → stand → drink water → start moving immediately."
-                var isDueNow = true
                 var allDone = false
                 var nextTransitionMinutes = 15
 
@@ -279,6 +270,9 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
 
                         if (uncompletedCount == 0) {
                             allDone = true
+                            if (habitsArr.length() > 0) {
+                                targetHabitName = habitsArr.getJSONObject(0).optString("name", "Habit")
+                            }
                         } else {
                             val chosen = foundDue ?: foundUpcoming ?: earliestUncompleted
                             val chosenSchedule = foundDueSchedule ?: foundUpcomingSchedule ?: earliestUncompletedSchedule
@@ -287,7 +281,6 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                                 targetHabitId = chosen.optString("id", "habit_1")
                                 targetHabitName = chosen.optString("name", "Habit")
                                 targetPoints = chosen.optInt("points", 1)
-                                isDueNow = (foundDue != null)
 
                                 val explicitHint = chosen.optString("hint", "")
                                 targetInstruction = if (explicitHint.isNotBlank()) {
@@ -316,21 +309,16 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 }
 
                 if (allDone) {
-                    views.setTextViewText(R.id.tv_widget_status_pill, "COMPLETED")
-                    views.setTextViewText(R.id.tv_widget_habit_name, "🎉 All Habits Crushed Today!")
-                    views.setTextViewText(R.id.tv_widget_schedule, "🌟 ${todayPoints} pts secured • ${complianceStatus}")
-                    val doneGuidance = if (clinicalDirective.isNotBlank()) {
-                        "Target Protocol Achieved! Next directive: $clinicalDirective"
-                    } else {
-                        "Target Protocol achieved! Outstanding daily consistency."
-                    }
-                    views.setTextViewText(R.id.tv_widget_guidance, doneGuidance)
+                    views.setTextViewText(R.id.tv_widget_status_pill, "Kept")
+                    views.setTextViewText(R.id.tv_widget_habit_name, targetHabitName)
+                    views.setTextViewText(R.id.tv_widget_schedule, targetTimeLabel)
+                    views.setTextViewText(R.id.tv_widget_guidance, "Kept")
                     views.setViewVisibility(R.id.tv_widget_points, View.GONE)
                     views.setViewVisibility(R.id.btn_widget_mark_done, View.GONE)
                 } else {
                     views.setViewVisibility(R.id.tv_widget_points, View.VISIBLE)
                     views.setViewVisibility(R.id.btn_widget_mark_done, View.VISIBLE)
-                    views.setTextViewText(R.id.tv_widget_status_pill, if (isDueNow) "DUE NOW" else "UP NEXT")
+                    views.setTextViewText(R.id.tv_widget_status_pill, "Not yet")
                     views.setTextViewText(R.id.tv_widget_habit_name, targetHabitName)
                     views.setTextViewText(R.id.tv_widget_schedule, targetTimeLabel)
                     views.setTextViewText(R.id.tv_widget_points, "+$targetPoints pts")
@@ -371,7 +359,6 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                 try {
                     val deadLetters = org.json.JSONArray(prefs.getString(LaravelCheckInClient.DEAD_LETTER_KEY, "[]") ?: "[]")
                     if (deadLetters.length() > 0) {
-                        views.setTextViewText(R.id.tv_widget_status_pill, "SYNC FAILED")
                         views.setTextViewText(
                             R.id.tv_widget_guidance,
                             "A check-in stopped retrying. Open Habuilt to review it."

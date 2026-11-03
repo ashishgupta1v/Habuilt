@@ -18,7 +18,7 @@
             android:id="@+id/tv_widget_brand"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚡ ZOETIHABIT"
+            android:text="Habuilt"
             android:textColor="#F1F6FB"
             android:textSize="11sp"
             android:textStyle="bold" />

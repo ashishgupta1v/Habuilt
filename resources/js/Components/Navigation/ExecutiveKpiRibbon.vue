@@ -116,7 +116,7 @@ onUnmounted(() => {
     <!-- Card 3: Monthly Stickiness -->
     <div
       class="hero-kpi-card hero-kpi-card--consistency cursor-pointer"
-      :title="`Monthly Stickiness: ${consistencyScore}% (Grade: ${performanceGrade?.grade || 'D'}) • Click for Analytics`"
+      :title="`Monthly check-ins: ${consistencyScore}%`"
       @click="emit('navigate-tab', 'stats')"
     >
       <div class="hero-kpi-card__icon-wrap">
@@ -126,7 +126,7 @@ onUnmounted(() => {
         <span class="hero-kpi-card__label">Monthly Consistency</span>
         <div class="hero-kpi-card__value-row">
           <span class="hero-kpi-card__value mono-num">{{ displayConsistency }}%</span>
-          <span class="hero-kpi-card__badge mono-num" :class="performanceGrade?.class">{{ performanceGrade?.grade }}</span>
+          <span v-if="performanceGrade?.grade" class="hero-kpi-card__badge mono-num" :class="performanceGrade?.class">{{ performanceGrade.grade }}</span>
         </div>
         <span class="hero-kpi-card__subtext">{{ performanceGrade?.text || 'Target: 85%+ Consistency' }}</span>
       </div>

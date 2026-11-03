@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { supabase, isSupabaseConfigured, callLocalApi } from '@/lib/supabase';
+import { callLocalApi } from '@/lib/supabase';
 
 const PUBLIC_PROTOCOL_KEYS = ['founder', 'longevity', 'postpartum', 'athlete'];
 
@@ -253,29 +253,22 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
         } catch (_) {}
       }
 
-      // 3. Load from Hostinger KVM 2 Local API (Primary) or Supabase (Fallback)
       const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
       if (userId && userId !== 'guest' && !isGuestMode) {
         let remoteData = null;
         try {
-          const res = await callLocalApi(`/api/user-protocols?user_id=${encodeURIComponent(userId)}`);
-          if (Array.isArray(res) && res.length > 0) {
+          const res = await callLocalApi(`/api/user-protocols?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
+          if (Array.isArray(res)) {
             remoteData = res;
-          }
-        } catch (_) {}
-
-        if (!remoteData && isSupabaseConfigured()) {
-          try {
-            const { data, error } = await supabase
-              .from('user_protocols')
-              .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
-
-            if (!error && Array.isArray(data) && data.length > 0) {
-              remoteData = data;
+          } else if (!res || res.offline || res.error) {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
             }
-          } catch (_) {}
+          }
+        } catch (_) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
+          }
         }
 
         if (Array.isArray(remoteData) && remoteData.length > 0) {

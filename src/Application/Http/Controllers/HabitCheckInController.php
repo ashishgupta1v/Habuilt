@@ -51,7 +51,7 @@ final readonly class HabitCheckInController
         $day = (int) date('j', $timestamp);
         $monthKey = date('Y-m', $timestamp);
         $completedOn = date('Y-m-d', $timestamp);
-        $points = $this->checkIns->resolvePoints($userId, $habitId, $request->input('points'), $request->exists('points'));
+        $points = $this->checkIns->resolvePoints($userId, $habitId);
 
         $this->checkIns->record(
             $userId,

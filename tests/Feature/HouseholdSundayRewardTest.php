@@ -289,6 +289,33 @@ final class HouseholdSundayRewardTest extends TestCase
         $this->assertSame(3, (int) DB::table('habit_check_ins')->where('user_id', 'usr_alice')->sum('points'));
     }
 
+    public function test_a_second_redeem_cannot_pass_once_the_balance_is_spent(): void
+    {
+        $this->givePoints('usr_alice', 10);
+        $token = 'Bearer '.$this->createMockJwt('usr_alice');
+        $this->withHeader('Authorization', $token)
+            ->postJson('/api/rewards', [
+                'rewards' => [
+                    ['id' => 'walk', 'name' => 'Walk', 'cost' => 10],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('balance', 10);
+
+        $this->withHeader('Authorization', $token)
+            ->postJson('/api/rewards/walk/redeem')
+            ->assertOk()
+            ->assertJsonPath('balance', 0)
+            ->assertJsonPath('spent', 10);
+
+        $this->withHeader('Authorization', $token)
+            ->postJson('/api/rewards/walk/redeem')
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Not enough points');
+
+        $this->assertSame(1, DB::table('user_reward_redemptions')->where('user_id', 'usr_alice')->count());
+    }
+
     public function test_user_cannot_redeem_against_another_users_balance(): void
     {
         $this->givePoints('usr_alice', 50);

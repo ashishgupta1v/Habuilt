@@ -28,10 +28,6 @@ class HabuiltWidgetPlugin : Plugin() {
             val scheduleJson = call.getString("scheduleJson", "{}") ?: "{}"
             val streak = call.getInt("streak", 0) ?: 0
             val todayPoints = call.getInt("todayPoints", 0) ?: 0
-            val adherenceRate = call.getInt("adherenceRate", 0) ?: 0
-            val complianceStatus = call.getString("complianceStatus", "Active Protocol") ?: "Active Protocol"
-            val clinicalDirective = call.getString("clinicalDirective", "") ?: ""
-
             val prefs = context.getSharedPreferences("habuilt_widget_prefs", Context.MODE_PRIVATE)
             val editor = prefs.edit()
                 .putString("user_id", userId)
@@ -39,9 +35,9 @@ class HabuiltWidgetPlugin : Plugin() {
                 .putString("schedule_json", scheduleJson)
                 .putInt("streak", streak)
                 .putInt("today_points", todayPoints)
-                .putInt("adherence_rate", adherenceRate)
-                .putString("compliance_status", complianceStatus)
-                .putString("clinical_directive", clinicalDirective)
+                .remove("adherence_rate")
+                .remove("compliance_status")
+                .remove("clinical_directive")
                 .remove("zoeticoach_api_url")
                 .remove("zoeticoach_token")
             editor.remove("supabase_access_token")
@@ -77,9 +73,9 @@ class HabuiltWidgetPlugin : Plugin() {
             ret.put("scheduleJson", prefs.getString("schedule_json", "{}"))
             ret.put("streak", prefs.getInt("streak", 0))
             ret.put("todayPoints", prefs.getInt("today_points", 0))
-            ret.put("adherenceRate", prefs.getInt("adherence_rate", 0))
-            ret.put("complianceStatus", prefs.getString("compliance_status", "Active Protocol"))
-            ret.put("clinicalDirective", prefs.getString("clinical_directive", ""))
+            ret.put("adherenceRate", 0)
+            ret.put("complianceStatus", "")
+            ret.put("clinicalDirective", "")
             val deadCount = jsonLength(prefs.getString(LaravelCheckInClient.DEAD_LETTER_KEY, "[]"))
             ret.put("lastSyncSuccessAt", prefs.getString(LaravelCheckInClient.LAST_SUCCESS_KEY, "") ?: "")
             ret.put("deadLetterCount", deadCount)

@@ -79,9 +79,10 @@ final class OfflineSyncReliabilityTest extends TestCase
         $response2->assertStatus(200)
             ->assertJson(['success' => true]);
 
-        // Total count should still be 1 (upserted, not duplicated)
+        // Total count should still be 1 (upserted, not duplicated).
+        // A replay cannot raise the stored point value.
         $this->assertEquals(1, DB::table('habit_check_ins')->where('user_id', $userId)->count());
-        $this->assertEquals(15, DB::table('habit_check_ins')->where('user_id', $userId)->first()->points);
+        $this->assertEquals(1, DB::table('habit_check_ins')->where('user_id', $userId)->first()->points);
     }
 
     public function test_sync_deletion_removes_exact_checkin(): void
@@ -149,7 +150,7 @@ final class OfflineSyncReliabilityTest extends TestCase
         $this->assertEquals(0, DB::table('habit_check_ins')->count());
     }
 
-    public function test_sync_caps_client_supplied_points(): void
+    public function test_sync_ignores_client_supplied_points(): void
     {
         $userId = 'sync_user_104';
         $token = $this->createMockJwt($userId);
@@ -165,6 +166,6 @@ final class OfflineSyncReliabilityTest extends TestCase
             ]);
 
         $response->assertStatus(200);
-        $this->assertSame(100, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+        $this->assertSame(1, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
     }
 }
