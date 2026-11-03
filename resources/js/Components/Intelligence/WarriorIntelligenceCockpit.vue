@@ -195,7 +195,7 @@ const circadianWindow = computed(() => {
   if (timeNum >= 285 && timeNum < 510) { // 04:45 - 08:30
     return {
       id: 'morning_sadhana',
-      title: 'Morning Sadhana & Circadian Anchor',
+      title: 'Morning',
       time: '04:45 – 08:30',
       icon: Sun,
       advice: 'Start the first habit on today\'s list.',
@@ -204,10 +204,10 @@ const circadianWindow = computed(() => {
   } else if (timeNum >= 510 && timeNum < 780) { // 08:30 - 13:00
     return {
       id: 'deep_work_1',
-      title: 'Peak Cognitive Flow Block',
+      title: 'Day block',
       time: '08:30 – 13:00',
       icon: Zap,
-      advice: 'High-leverage outputs, architecture decisions & deep execution.',
+      advice: 'Take the next habit on today\'s list.',
       mode: 'midday',
     };
   } else if (timeNum >= 780 && timeNum < 870) { // 13:00 - 14:30
@@ -222,10 +222,10 @@ const circadianWindow = computed(() => {
   } else if (timeNum >= 870 && timeNum < 1110) { // 14:30 - 18:30
     return {
       id: 'deep_work_2',
-      title: 'Secondary Deep Work & Execution',
+      title: 'Afternoon',
       time: '14:30 – 18:30',
       icon: Zap,
-      advice: 'Resolve blockers, wrap code deliveries & prepare clean closure.',
+      advice: 'Finish the habits still open this afternoon.',
       mode: 'midday',
     };
   } else if (timeNum >= 1110 && timeNum < 1290) { // 18:30 - 21:30
