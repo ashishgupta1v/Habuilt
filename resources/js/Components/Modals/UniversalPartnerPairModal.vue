@@ -278,31 +278,31 @@ const handleDisconnect = async () => {
               <svg viewBox="0 0 100 100" class="partner-pair-qr-svg">
                 <rect x="0" y="0" width="100" height="100" fill="white" />
                 <!-- Corner 1 -->
-                <rect x="10" y="10" width="24" height="24" fill="#0f172a" />
+                <rect x="10" y="10" width="24" height="24" fill="#0C110D" />
                 <rect x="14" y="14" width="16" height="16" fill="white" />
-                <rect x="18" y="18" width="8" height="8" fill="#0f172a" />
+                <rect x="18" y="18" width="8" height="8" fill="#0C110D" />
                 <!-- Corner 2 -->
-                <rect x="66" y="10" width="24" height="24" fill="#0f172a" />
+                <rect x="66" y="10" width="24" height="24" fill="#0C110D" />
                 <rect x="70" y="14" width="16" height="16" fill="white" />
-                <rect x="74" y="18" width="8" height="8" fill="#0f172a" />
+                <rect x="74" y="18" width="8" height="8" fill="#0C110D" />
                 <!-- Corner 3 -->
-                <rect x="10" y="66" width="24" height="24" fill="#0f172a" />
+                <rect x="10" y="66" width="24" height="24" fill="#0C110D" />
                 <rect x="14" y="70" width="16" height="16" fill="white" />
-                <rect x="18" y="74" width="8" height="8" fill="#0f172a" />
+                <rect x="18" y="74" width="8" height="8" fill="#0C110D" />
                 <!-- Data blocks -->
-                <rect x="42" y="12" width="6" height="6" fill="#0f172a" />
-                <rect x="52" y="18" width="6" height="6" fill="#0f172a" />
-                <rect x="42" y="28" width="6" height="6" fill="#0f172a" />
-                <rect x="18" y="44" width="6" height="6" fill="#0f172a" />
-                <rect x="28" y="44" width="6" height="6" fill="#0f172a" />
-                <rect x="44" y="44" width="12" height="12" fill="#0f172a" />
-                <rect x="64" y="44" width="6" height="6" fill="#0f172a" />
-                <rect x="78" y="44" width="8" height="8" fill="#0f172a" />
-                <rect x="44" y="64" width="6" height="6" fill="#0f172a" />
-                <rect x="56" y="68" width="6" height="6" fill="#0f172a" />
-                <rect x="72" y="68" width="14" height="6" fill="#0f172a" />
-                <rect x="44" y="80" width="14" height="6" fill="#0f172a" />
-                <rect x="68" y="82" width="6" height="6" fill="#0f172a" />
+                <rect x="42" y="12" width="6" height="6" fill="#0C110D" />
+                <rect x="52" y="18" width="6" height="6" fill="#0C110D" />
+                <rect x="42" y="28" width="6" height="6" fill="#0C110D" />
+                <rect x="18" y="44" width="6" height="6" fill="#0C110D" />
+                <rect x="28" y="44" width="6" height="6" fill="#0C110D" />
+                <rect x="44" y="44" width="12" height="12" fill="#0C110D" />
+                <rect x="64" y="44" width="6" height="6" fill="#0C110D" />
+                <rect x="78" y="44" width="8" height="8" fill="#0C110D" />
+                <rect x="44" y="64" width="6" height="6" fill="#0C110D" />
+                <rect x="56" y="68" width="6" height="6" fill="#0C110D" />
+                <rect x="72" y="68" width="14" height="6" fill="#0C110D" />
+                <rect x="44" y="80" width="14" height="6" fill="#0C110D" />
+                <rect x="68" y="82" width="6" height="6" fill="#0C110D" />
               </svg>
             </div>
             <div class="partner-pair-qr-sub">Scan with your partner's phone camera to connect</div>

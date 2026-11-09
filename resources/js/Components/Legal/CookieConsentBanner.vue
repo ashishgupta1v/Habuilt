@@ -50,7 +50,7 @@ const acceptEssential = () => {
         </div>
         <div class="banner-body">
           <div class="banner-header">
-            <h4 class="banner-title">Sovereign Privacy &amp; Cookies</h4>
+            <h4 class="banner-title">Privacy and cookies</h4>
             <button
               type="button"
               @click="acceptEssential"
@@ -96,28 +96,37 @@ const acceptEssential = () => {
 <style scoped>
 .cookie-banner {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 16px;
+  right: 16px;
   max-width: 420px;
-  width: calc(100% - 40px);
-  z-index: 9999;
-  background: rgba(15, 20, 31, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  max-height: 220px;
+  overflow: auto;
+  width: calc(100% - 32px);
+  z-index: 30;
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 18px 20px;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(16, 185, 129, 0.08);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #e2e8f0;
+  box-shadow: 0 16px 36px -18px rgba(12, 17, 13, 0.28);
+  font-family: Inter, sans-serif;
+  color: #0C110D;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .cookie-banner {
-    bottom: 12px;
-    right: 12px;
     left: 12px;
+    right: 12px;
     width: auto;
+    max-width: none;
+    max-height: min(34dvh, 168px);
+    bottom: calc(8px + var(--calm-tab-offset, 0px) + var(--calm-offline-stack, 0px));
+  }
+  .banner-actions {
+    flex-wrap: wrap;
+  }
+  .btn-accept,
+  .btn-essential {
+    white-space: nowrap;
   }
 }
 
@@ -131,9 +140,9 @@ const acceptEssential = () => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  color: #34d399;
+  background: #D9F27A;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,9 +165,8 @@ const acceptEssential = () => {
 .banner-title {
   font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #ffffff;
+  letter-spacing: -0.01em;
+  color: #0C110D;
   margin: 0;
 }
 
@@ -174,24 +182,24 @@ const acceptEssential = () => {
   transition: color 0.15s ease;
 }
 .banner-close-btn:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .banner-desc {
   font-size: 12px;
   line-height: 1.55;
-  color: #94a3b8;
+  color: #3A4338;
   margin: 0;
 }
 
 .banner-link {
-  color: #34d399;
+  color: #0C110D;
   font-weight: 600;
   text-decoration: underline;
   transition: color 0.15s ease;
 }
 .banner-link:hover {
-  color: #6ee7b7;
+  color: #0C110D;
 }
 
 .banner-actions {
@@ -211,9 +219,9 @@ const acceptEssential = () => {
   gap: 6px;
   padding: 9px 14px;
   border-radius: 12px;
-  background: #10b981;
+  background: #D9F27A;
   border: none;
-  color: #022c22;
+  color: #0C110D;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -221,15 +229,15 @@ const acceptEssential = () => {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 .btn-accept:hover {
-  background: #34d399;
+  background: #E7F7A8;
 }
 
 .btn-essential {
   padding: 9px 14px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: #ffffff;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -237,7 +245,7 @@ const acceptEssential = () => {
 }
 .btn-essential:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .banner-slide-enter-active {

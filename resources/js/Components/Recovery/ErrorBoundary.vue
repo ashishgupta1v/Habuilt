@@ -140,15 +140,15 @@ const handleDismiss = () => {
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: #080b11;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #e2e8f0;
+  background: #F7F8F2;
+  font-family: Inter, sans-serif;
+  color: #0C110D;
 }
 
 .recovery-card {
   max-width: 580px;
   width: 100%;
-  background: rgba(15, 20, 31, 0.95);
+  background: #ffffff;
   border: 1px solid rgba(244, 63, 94, 0.3);
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 63, 94, 0.08);
   border-radius: 24px;
@@ -173,14 +173,14 @@ const handleDismiss = () => {
 .recovery-title {
   font-size: 1.65rem;
   font-weight: 850;
-  color: #ffffff;
+  color: #0C110D;
   margin: 0 0 10px;
   letter-spacing: -0.02em;
 }
 
 .recovery-desc {
   font-size: 13.5px;
-  color: #94a3b8;
+  color: #3A4338;
   line-height: 1.6;
   margin: 0 0 24px;
 }
@@ -207,9 +207,9 @@ const handleDismiss = () => {
   gap: 8px;
   padding: 12px 18px;
   border-radius: 14px;
-  background: #10b981;
+  background: #D9F27A;
   border: none;
-  color: #022c22;
+  color: #0C110D;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
@@ -217,7 +217,7 @@ const handleDismiss = () => {
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
 .btn-recovery-primary:hover {
-  background: #34d399;
+  background: #E7F7A8;
 }
 
 .btn-recovery-secondary {
@@ -227,9 +227,9 @@ const handleDismiss = () => {
   gap: 8px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
+  background: #ffffff;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -237,7 +237,7 @@ const handleDismiss = () => {
 }
 .btn-recovery-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .tech-details-wrap {
@@ -260,18 +260,18 @@ const handleDismiss = () => {
   transition: color 0.15s ease;
 }
 .tech-toggle-btn:hover {
-  color: #94a3b8;
+  color: #3A4338;
 }
 
 .tech-log-content {
   margin-top: 12px;
   padding: 14px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
   border-radius: 12px;
   font-size: 11.5px;
-  font-family: monospace;
-  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  color: #0C110D;
 }
 
 .tech-log-row {
@@ -281,10 +281,10 @@ const handleDismiss = () => {
 .tech-log-stack {
   margin: 10px 0 0;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.3);
+  background: #ffffff;
   border-radius: 8px;
   font-size: 10.5px;
-  color: #94a3b8;
+  color: #3A4338;
   max-height: 140px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -306,7 +306,7 @@ const handleDismiss = () => {
   transition: color 0.15s ease;
 }
 .dismiss-link:hover {
-  color: #94a3b8;
+  color: #3A4338;
 }
 
 .icon-14 { width: 14px; height: 14px; }

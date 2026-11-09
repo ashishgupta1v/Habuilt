@@ -1,13 +1,12 @@
 /**
- * Habuilt Design System - Pure Light Theme Tokens (ZoetiCoach Spec)
- * Crisp typography, immaculate light surfaces, precision hairline borders, and purposeful vibrant accents.
- * Dark theme entirely removed.
+ * Habuilt Design System — calm light theme.
+ * Lime is a fill. Body text on the light ground is charcoal.
  */
 
 :root {
-  /* Typography System (ZoetiCoach Design System) */
-  --font-base: 'Manrope', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Sora', 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Typography */
+  --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Urbanist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
   --letter-spacing-tight: -0.022em;
@@ -23,53 +22,54 @@
   --font-size-2xl: 28px;
 
   /* Pure Light Theme Canvas & Surface Depth */
-  --page-bg: #f8fafc;
+  --page-bg: #F7F8F2;
   --shell-bg: #ffffff;
-  --shell-border: #e2e8f0;
+  --shell-border: #E4E6DC;
   
-  --surface-ground: #f8fafc;
+  --surface-ground: #F7F8F2;
   --surface-card: #ffffff;
   --surface-overlay: #ffffff;
   --surface-inset: #f1f5f9;
-  --surface-border: #e2e8f0;
+  --surface-border: #E4E6DC;
   --surface-border-subtle: rgba(15, 23, 42, 0.06);
   
-  --text-primary: #090d16;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
+  --text-primary: #0C110D;
+  --text-secondary: #3A4338;
+  --text-muted: #3A4338;
   --text-tertiary: #94a3b8;
   
   --hero-bg: #ffffff;
   --hero-panel: #ffffff;
   --hero-border: #e2e8f0;
-  --hero-text: #090d16;
+  --hero-text: #0C110D;
   --hero-muted: #64748b;
   
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
   --card-border-hover: rgba(15, 23, 42, 0.16);
   --muted-bg: #f1f5f9;
-  --hover-bg: #f8fafc;
+  --hover-bg: #F7F8F2;
 
-  /* Signature ZoetiCoach Accents (Light Mode) */
-  --brand-gold: #0d9488;
-  --brand-gold-solid: #0f766e;
-  --brand-gold-subtle: rgba(13, 148, 136, 0.08);
-  --brand-gold-glow: rgba(13, 148, 136, 0.2);
-  --brand-gold-border: rgba(13, 148, 136, 0.3);
+  /* Calm accents. Gold-named tokens are text-safe charcoal because existing CSS uses them as text color. */
+  --brand-gold: #0C110D;
+  --brand-gold-solid: #D9F27A;
+  --brand-gold-subtle: rgba(217, 242, 122, 0.35);
+  --brand-gold-glow: rgba(217, 242, 122, 0.55);
+  --brand-gold-border: rgba(12, 17, 13, 0.18);
 
   /* Semantic State Tokens */
-  --semantic-success: #0d9488;
-  --semantic-success-subtle: #f0fdf4;
-  --semantic-success-border: rgba(13, 148, 136, 0.25);
-  --accent: #0d9488;
-  --accent-strong: #0f766e;
-  --accent-light: rgba(13, 148, 136, 0.08);
-  --accent-glow: rgba(13, 148, 136, 0.2);
+  --semantic-success: #2F6B3A;
+  --semantic-success-subtle: rgba(217, 242, 122, 0.35);
+  --semantic-success-border: rgba(47, 107, 58, 0.28);
+  --accent: #D9F27A;
+  --accent-ink: #0C110D;
+  --accent-strong: #0C110D;
+  --accent-light: rgba(217, 242, 122, 0.45);
+  --accent-glow: rgba(217, 242, 122, 0.65);
   
   /* 3-Tier Enterprise Button Tokens */
-  --btn-primary-bg: #0d9488;
-  --btn-primary-text: #ffffff;
+  --btn-primary-bg: #D9F27A;
+  --btn-primary-text: #0C110D;
   --btn-secondary-bg: #ffffff;
   --btn-secondary-border: #cbd5e1;
   --btn-secondary-text: #334155;
@@ -87,13 +87,13 @@
   --badge-grade-text: #ea580c;
   --badge-grade-border: rgba(255, 107, 53, 0.25);
 
-  --brand-emerald: #0d9488;
-  --brand-emerald-subtle: rgba(13, 148, 136, 0.1);
-  --brand-amber: #ff6b35;
-  --brand-amber-subtle: rgba(255, 107, 53, 0.12);
-  --brand-saffron: #ff6b35;
-  --brand-saffron-glow: rgba(255, 107, 53, 0.25);
-  --brand-saffron-subtle: rgba(255, 107, 53, 0.1);
+  --brand-emerald: #D9F27A;
+  --brand-emerald-subtle: rgba(217, 242, 122, 0.35);
+  --brand-amber: #FBEA86;
+  --brand-amber-subtle: rgba(251, 234, 134, 0.45);
+  --brand-saffron: #FBEA86;
+  --brand-saffron-glow: rgba(251, 234, 134, 0.55);
+  --brand-saffron-subtle: rgba(251, 234, 134, 0.35);
   --brand-violet: #7c3aed;
   --brand-violet-subtle: rgba(124, 58, 237, 0.1);
   --brand-sky: #0284c7;
@@ -123,4 +123,33 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-full: 9999px;
+
+  --type-fluid-hero: clamp(2rem, 1.05rem + 2.8vw, 4.15rem);
+  --type-fluid-display: clamp(2.35rem, 1.2rem + 3.6vw, 5.25rem);
+  --calm-card-radius: 22px;
+  --calm-card-pad: clamp(16px, 2vw, 24px);
+  --calm-measure: 68ch;
+  --calm-page-gutter: clamp(16px, 3vw, 40px);
+  --calm-tab-offset: 0px;
+  --calm-cookie-stack: 0px;
+  --calm-offline-stack: 0px;
+  --calm-shell-pad: calc(24px + var(--calm-tab-offset) + var(--calm-cookie-stack) + var(--calm-offline-stack));
+}
+
+@media (max-width: 767px) {
+  :root {
+    --calm-tab-offset: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+body.has-calm-tabs {
+  --calm-shell-pad: calc(24px + var(--calm-tab-offset) + var(--calm-cookie-stack) + var(--calm-offline-stack));
+}
+
+body.has-calm-tabs:has(#cookie-consent-banner) {
+  --calm-cookie-stack: 176px;
+}
+
+body.has-calm-tabs:has(#offline-status-pill) {
+  --calm-offline-stack: 64px;
 }

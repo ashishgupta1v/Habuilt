@@ -48,7 +48,7 @@ const goals = [
   },
   {
     id: 'vitality',
-    title: 'Physical Vitality & Joint Mobility',
+    title: 'Movement and joint mobility',
     subtitle: 'Spinal alignment, consistent metabolic movement, hydration & restorative sleep',
     icon: Activity,
     color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400'
@@ -166,8 +166,8 @@ const handleSkip = () => {
 </script>
 
 <template>
-  <div class="first-run-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#07090e] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,119,6,0.15),rgba(255,255,255,0))] text-slate-100 overflow-y-auto">
-    <div class="relative w-full max-w-2xl my-auto bg-[#0e1118]/95 border border-white/10 rounded-3xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col first-run-modal">
+  <div class="first-run-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#F7F8F2] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,119,6,0.15),rgba(255,255,255,0))] text-slate-100 overflow-y-auto">
+    <div class="relative w-full max-w-2xl my-auto rounded-3xl overflow-hidden flex flex-col first-run-modal">
       
       <!-- Top Ambient Bar & Step Tracker -->
       <div class="px-6 sm:px-8 pt-6 pb-4 border-b border-white/10 bg-white/[0.02]">
@@ -402,6 +402,24 @@ const handleSkip = () => {
   animation: fadeIn 0.25s ease-out forwards;
 }
 .shadow-glow-gold {
-  box-shadow: 0 0 25px rgba(217, 119, 6, 0.2);
+  box-shadow: 0 0 25px rgba(217, 242, 122, 0.45);
+}
+.first-run-overlay {
+  background: #F7F8F2 !important;
+  color: #0C110D !important;
+}
+.first-run-modal {
+  background: #ffffff !important;
+  color: #0C110D !important;
+  border: 1px solid #E4E6DC !important;
+}
+.first-run-overlay h1,
+.first-run-overlay h2,
+.first-run-overlay h3,
+.first-run-overlay p,
+.first-run-overlay label,
+.first-run-overlay button,
+.first-run-overlay span {
+  color: #0C110D;
 }
 </style>

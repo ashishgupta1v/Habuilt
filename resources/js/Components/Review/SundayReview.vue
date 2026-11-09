@@ -156,7 +156,7 @@ const copyWhatsAppDebrief = async () => {
         </div>
         <div>
           <div class="sunday-review-title-row">
-            <h3 class="sunday-review-title">Sunday Weekly Review</h3>
+            <h3 class="sunday-review-title">Sunday review</h3>
             <span v-if="weeklyReview.reviewDate" class="sunday-review-date-badge mono-num">
               {{ weeklyReview.reviewDate }}
             </span>

@@ -428,13 +428,12 @@ onUnmounted(() => {
           <span class="hud-btn-text">Sync Live</span>
         </button>
 
-        <!-- Direct WhatsApp Coach Vikas Trigger -->
         <a
           href="https://zoeticoach.com/join/vikas"
           target="_blank"
           rel="noopener noreferrer"
           class="hud-btn zc-btn-wa"
-          title="Open direct WhatsApp chat with Coach Vikas for real-time accountability"
+          title="Open a coach chat"
         >
           <MessageSquare class="w-3.5 h-3.5" />
           <span class="hud-btn-text">Ask Coach</span>
@@ -713,12 +712,12 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  color: #090d16;
+  color: #0C110D;
 }
 
 .zoeticoach-hud:hover {
-  border-color: rgba(13, 148, 136, 0.35);
-  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 0 20px -4px rgba(13, 148, 136, 0.15);
+  border-color: rgba(217, 242, 122, 0.35);
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 0 20px -4px rgba(217, 242, 122, 0.15);
 }
 
 /* ── Header ── */
@@ -752,23 +751,23 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #0d9488;
+  background: #D9F27A;
 }
 
 .beacon-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid #0d9488;
+  border: 2px solid #0C110D;
   animation: beacon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .hud-beacon--standby .beacon-dot {
-  background: #ff6b35;
+  background: #FBEA86;
 }
 
 .hud-beacon--standby .beacon-ring {
-  border-color: #ff6b35;
+  border-color: #FBEA86;
 }
 
 @keyframes beacon-pulse {
@@ -804,8 +803,8 @@ onUnmounted(() => {
   font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #090d16;
-  background: linear-gradient(90deg, #090d16 0%, #0d9488 100%);
+  color: #0C110D;
+  background: linear-gradient(90deg, #F7F8F2 0%, #0C110D 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -818,9 +817,9 @@ onUnmounted(() => {
   border-radius: 9999px;
   font-size: 0.68rem;
   font-weight: 700;
-  background: rgba(13, 148, 136, 0.1);
-  border: 1px solid rgba(13, 148, 136, 0.3);
-  color: #0d9488;
+  background: rgba(217, 242, 122, 0.1);
+  border: 1px solid rgba(217, 242, 122, 0.3);
+  color: #0C110D;
 }
 
 .hud-submeta {
@@ -833,7 +832,7 @@ onUnmounted(() => {
 
 .hud-participant {
   font-weight: 700;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .hud-sep {
@@ -865,18 +864,18 @@ onUnmounted(() => {
 
 .hud-btn:hover {
   background: #f1f5f9;
-  color: #090d16;
+  color: #0C110D;
   border-color: #94a3b8;
 }
 
 .hud-btn--sync:hover {
-  border-color: #0d9488;
-  color: #0d9488;
-  background: rgba(13, 148, 136, 0.08);
+  border-color: #0C110D;
+  color: #0C110D;
+  background: rgba(217, 242, 122, 0.08);
 }
 
 .hud-btn--portal:hover {
-  border-color: #ff6b35;
+  border-color: #FBEA86;
   color: #ea580c;
   background: rgba(255, 107, 53, 0.08);
 }
@@ -897,7 +896,7 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ff6b35;
+  background: #FBEA86;
   display: inline-block;
   box-shadow: 0 0 8px rgba(255, 107, 53, 0.6);
 }
@@ -939,14 +938,14 @@ onUnmounted(() => {
 }
 
 .hud-tab:hover {
-  color: #090d16;
+  color: #0C110D;
   background: #f1f5f9;
 }
 
 .hud-tab--active {
-  color: #0d9488;
-  background: rgba(13, 148, 136, 0.08);
-  border-color: rgba(13, 148, 136, 0.35);
+  color: #0C110D;
+  background: rgba(217, 242, 122, 0.08);
+  border-color: rgba(217, 242, 122, 0.35);
   font-weight: 700;
 }
 
@@ -963,8 +962,8 @@ onUnmounted(() => {
   font-size: 0.62rem;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  background: rgba(13, 148, 136, 0.12);
-  color: #0d9488;
+  background: rgba(217, 242, 122, 0.12);
+  color: #0C110D;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-weight: 700;
@@ -1005,7 +1004,7 @@ onUnmounted(() => {
 
 .metric-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(13, 148, 136, 0.35);
+  border-color: rgba(217, 242, 122, 0.35);
   box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.06);
 }
 
@@ -1034,9 +1033,9 @@ onUnmounted(() => {
 }
 
 .grade-emerald {
-  background: rgba(13, 148, 136, 0.1);
-  border: 1px solid rgba(13, 148, 136, 0.35);
-  color: #0d9488;
+  background: rgba(217, 242, 122, 0.1);
+  border: 1px solid rgba(217, 242, 122, 0.35);
+  color: #0C110D;
 }
 
 .grade-gold {
@@ -1079,7 +1078,7 @@ onUnmounted(() => {
   font-size: 1.55rem;
   font-weight: 800;
   line-height: 1;
-  color: #090d16;
+  color: #0C110D;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -1106,11 +1105,11 @@ onUnmounted(() => {
 }
 
 .metric-bar-fill.grade-emerald {
-  background: linear-gradient(90deg, #0d9488, #20beaa);
+  background: linear-gradient(90deg, #D9F27A, #E7F7A8);
 }
 
 .metric-bar-fill.grade-gold {
-  background: linear-gradient(90deg, #ff6b35, #f59e0b);
+  background: linear-gradient(90deg, #FBEA86, #f59e0b);
 }
 
 .metric-bar-fill.grade-teal {
@@ -1147,8 +1146,8 @@ onUnmounted(() => {
   align-items: center;
   font-size: 0.65rem;
   font-weight: 700;
-  color: #0d9488;
-  background: rgba(13, 148, 136, 0.1);
+  color: #0C110D;
+  background: rgba(217, 242, 122, 0.1);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
@@ -1168,9 +1167,9 @@ onUnmounted(() => {
 }
 
 .breakdown-tag--completed {
-  background: rgba(13, 148, 136, 0.1);
-  color: #0d9488;
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: rgba(217, 242, 122, 0.1);
+  color: #0C110D;
+  border: 1px solid rgba(217, 242, 122, 0.25);
 }
 
 .breakdown-tag--unmarked {
@@ -1190,17 +1189,17 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ff6b35;
+  background: #FBEA86;
 }
 
 .status-indicator--live {
-  background: #0d9488;
+  background: #D9F27A;
 }
 
 .status-text {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .sync-details {
@@ -1283,7 +1282,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 0.88rem;
   font-weight: 750;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .nudge-text {
@@ -1304,7 +1303,7 @@ onUnmounted(() => {
   gap: 0.5rem;
   font-size: 0.84rem;
   font-weight: 750;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .clinical-intro-desc {
@@ -1338,16 +1337,16 @@ onUnmounted(() => {
 }
 
 .clinical-card:hover {
-  border-color: rgba(13, 148, 136, 0.35);
+  border-color: rgba(217, 242, 122, 0.35);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .clinical-card--gold {
-  border-left: 3px solid #ff6b35;
+  border-left: 3px solid #FBEA86;
 }
 
 .clinical-card--emerald {
-  border-left: 3px solid #0d9488;
+  border-left: 3px solid #0C110D;
 }
 
 .clinical-card--teal {
@@ -1386,7 +1385,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 0.82rem;
   font-weight: 750;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .clinical-status-pill {
@@ -1429,8 +1428,8 @@ onUnmounted(() => {
 }
 
 .milestone-card--unlocked {
-  border-color: rgba(13, 148, 136, 0.35);
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, #ffffff 100%);
+  border-color: rgba(217, 242, 122, 0.35);
+  background: linear-gradient(135deg, rgba(217, 242, 122, 0.05) 0%, #ffffff 100%);
 }
 
 .milestone-card--locked {
@@ -1453,8 +1452,8 @@ onUnmounted(() => {
 }
 
 .icon-wrap--emerald {
-  background: rgba(13, 148, 136, 0.12);
-  color: #0d9488;
+  background: rgba(217, 242, 122, 0.12);
+  color: #0C110D;
 }
 
 .icon-wrap--teal {
@@ -1485,7 +1484,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 750;
-  color: #090d16;
+  color: #0C110D;
 }
 
 .milestone-status-badge {
@@ -1496,9 +1495,9 @@ onUnmounted(() => {
 }
 
 .milestone-status-badge.unlocked {
-  background: rgba(13, 148, 136, 0.12);
-  color: #0d9488;
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: rgba(217, 242, 122, 0.12);
+  color: #0C110D;
+  border: 1px solid rgba(217, 242, 122, 0.25);
 }
 
 .milestone-status-badge.locked {

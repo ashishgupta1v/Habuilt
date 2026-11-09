@@ -686,7 +686,7 @@ const handleDelete = () => {
   border-radius: 1.25rem;
   box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.05);
   overflow: hidden;
-  color: #0f172a;
+  color: #0C110D;
 }
 
 .habit-modal__header {
@@ -711,9 +711,9 @@ const handleDelete = () => {
   align-items: center;
   justify-content: center;
   border-radius: 0.75rem;
-  background: rgba(0, 180, 160, 0.1);
-  border: 1px solid rgba(0, 180, 160, 0.25);
-  color: #0d9488;
+  background: rgba(217, 242, 122, 0.1);
+  border: 1px solid rgba(217, 242, 122, 0.25);
+  color: #0C110D;
 }
 
 .habit-modal__title {
@@ -721,7 +721,7 @@ const handleDelete = () => {
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0;
-  color: #0f172a;
+  color: #0C110D;
 }
 
 .habit-modal__subtitle {
@@ -744,7 +744,7 @@ const handleDelete = () => {
 
 .habit-modal__close-btn:hover {
   background: #f1f5f9;
-  color: #0f172a;
+  color: #0C110D;
 }
 
 .habit-modal__presets {
@@ -793,14 +793,16 @@ const handleDelete = () => {
 }
 
 .habit-preset-chip:hover {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
   transform: translateY(-1px);
 }
 
 .habit-modal__body {
-  padding: 1.25rem 1.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -853,7 +855,7 @@ const handleDelete = () => {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 0.65rem;
-  color: #0f172a;
+  color: #0C110D;
   font-size: 0.92rem;
   padding: 0.65rem 0.85rem;
   outline: none;
@@ -861,8 +863,8 @@ const handleDelete = () => {
 }
 
 .habit-form-input:focus {
-  border-color: #00B4A0;
-  box-shadow: 0 0 0 3px rgba(0, 180, 160, 0.18);
+  border-color: #0C110D;
+  box-shadow: 0 0 0 3px rgba(217, 242, 122, 0.18);
 }
 
 .habit-form-input--hint {
@@ -892,9 +894,9 @@ const handleDelete = () => {
 }
 
 .timing-toggle-btn--active {
-  background: #0f172a;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  background: #D9F27A;
+  color: #0C110D;
+  box-shadow: none;
 }
 
 .timed-pickers-card {
@@ -934,7 +936,7 @@ const handleDelete = () => {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
-  color: #0f172a;
+  color: #0C110D;
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -944,8 +946,8 @@ const handleDelete = () => {
 }
 
 .time-native-input:focus {
-  border-color: #00B4A0;
-  box-shadow: 0 0 0 2px rgba(0, 180, 160, 0.2);
+  border-color: #0C110D;
+  box-shadow: 0 0 0 2px rgba(217, 242, 122, 0.2);
 }
 
 .time-field-arrow {
@@ -955,8 +957,8 @@ const handleDelete = () => {
 }
 
 .time-duration-badge {
-  background: rgba(0, 180, 160, 0.08);
-  border: 1px solid rgba(0, 180, 160, 0.2);
+  background: rgba(217, 242, 122, 0.08);
+  border: 1px solid rgba(217, 242, 122, 0.2);
   border-radius: 0.5rem;
   padding: 0.35rem 0.65rem;
   display: flex;
@@ -969,7 +971,7 @@ const handleDelete = () => {
 .time-duration-val {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0d9488;
+  color: #0C110D;
 }
 
 .time-duration-sub {
@@ -1009,9 +1011,9 @@ const handleDelete = () => {
 }
 
 .duration-chip:hover {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
 }
 
 .flexible-slots-card {
@@ -1044,9 +1046,9 @@ const handleDelete = () => {
 }
 
 .slot-radio-btn--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
 }
 
@@ -1056,9 +1058,45 @@ const handleDelete = () => {
   gap: 1rem;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 800px) {
+  .habit-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .habit-modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 8px));
+    margin-top: auto;
+    border-radius: 22px 22px 0 0;
+  }
+  .habit-modal__header {
+    align-items: flex-start;
+    padding: max(14px, env(safe-area-inset-top, 0px)) 16px 14px;
+  }
+  .habit-modal__title,
+  .habit-modal__subtitle,
+  .habit-form-label {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .habit-modal__close-btn {
+    flex-shrink: 0;
+  }
   .habit-form-two-col {
     grid-template-columns: 1fr;
+  }
+  .habit-modal__footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .habit-modal__footer-right {
+    flex-wrap: wrap;
+  }
+  .habit-modal__footer .btn,
+  .btn-habit-delete {
+    white-space: nowrap;
   }
 }
 
@@ -1081,15 +1119,14 @@ const handleDelete = () => {
   gap: 0.35rem;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .category-option-btn--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
 }
 
 .points-preset-row {
@@ -1112,9 +1149,9 @@ const handleDelete = () => {
 }
 
 .points-preset-btn--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
 }
 
@@ -1127,7 +1164,7 @@ const handleDelete = () => {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
-  color: #0f172a;
+  color: #0C110D;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 0.35rem;
@@ -1154,9 +1191,9 @@ const handleDelete = () => {
 }
 
 .schedule-pill--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
 }
 
 .custom-days-selector {
@@ -1180,9 +1217,9 @@ const handleDelete = () => {
 }
 
 .custom-day-btn--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
+  background: #D9F27A;
+  border-color: #D9F27A;
+  color: #0C110D;
 }
 
 .habit-modal__footer {

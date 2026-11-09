@@ -6,7 +6,7 @@ export const CIRCADIAN_PHASES = {
     name: 'Circadian Deep Night',
     tagline: 'Restorative recovery & cellular rejuvenation',
     icon: '🌙',
-    bgColor: '#070a11',
+    bgColor: '#F7F8F2',
     glow: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(52, 211, 153, 0.035) 0%, transparent 70%)',
     accentColor: '#34d399',
     timeRange: '21:00 – 05:00',
@@ -16,7 +16,7 @@ export const CIRCADIAN_PHASES = {
     name: 'Circadian Dawn Initiation',
     tagline: 'Morning stiffness release & hydration focus',
     icon: '🌅',
-    bgColor: '#0b1322',
+    bgColor: '#F7F8F2',
     glow: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.055) 0%, rgba(52, 211, 153, 0.02) 40%, transparent 75%)',
     accentColor: '#38bdf8',
     timeRange: '05:00 – 09:00',
@@ -26,7 +26,7 @@ export const CIRCADIAN_PHASES = {
     name: 'Solar Zenith Focus',
     tagline: 'Peak cognitive output & deep work sprints',
     icon: '☀️',
-    bgColor: '#080e1a',
+    bgColor: '#F7F8F2',
     glow: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.045) 0%, rgba(14, 165, 233, 0.02) 40%, transparent 75%)',
     accentColor: '#10b981',
     timeRange: '09:00 – 17:00',
@@ -36,7 +36,7 @@ export const CIRCADIAN_PHASES = {
     name: 'Sunset Golden Hour',
     tagline: 'Evening wind-down & executive day debrief',
     icon: '🌇',
-    bgColor: '#0e0c16',
+    bgColor: '#F7F8F2',
     glow: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200, 164, 86, 0.065) 0%, rgba(245, 158, 11, 0.03) 40%, transparent 75%)',
     accentColor: '#C8A456',
     timeRange: '17:00 – 21:00',
@@ -177,7 +177,7 @@ function applyAtmosphereToDOM(phaseKey, isDarkMode = false) {
   document.documentElement.style.removeProperty('--page-bg');
   document.body.style.backgroundColor = '';
   document.body.style.backgroundImage = '';
-  document.documentElement.style.setProperty('--circadian-accent', phase.accentColor || '#0d9488');
+  document.documentElement.style.setProperty('--circadian-accent', '#0C110D');
 }
 
 export function useCircadianAtmosphere(isDarkModeRef = ref(false)) {

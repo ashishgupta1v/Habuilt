@@ -12,11 +12,11 @@ import { telemetry } from './lib/telemetry.js';
 // Early initialization of global error & telemetry listeners
 telemetry.init();
 
-// Native Android Status Bar Harmony (Pure Light Theme)
+// Native status bar: dark icons on the light page ground.
 if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
   try {
-    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-    StatusBar.setBackgroundColor({ color: '#f8fafc' }).catch(() => {});
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#F7F8F2' }).catch(() => {});
   } catch {
     // Non-native / fallback
   }

@@ -1,7 +1,7 @@
 // Habuilt Service Worker — auto-versioned cache with stale-while-revalidate for hashed assets
 // Version is bumped by registration query string (?v=timestamp) from app.js
 
-const CACHE_NAME = 'habuilt-cache';
+const CACHE_NAME = 'habuilt-cache-calm-2026-11-09';
 const SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',

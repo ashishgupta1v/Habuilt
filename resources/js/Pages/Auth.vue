@@ -1,44 +1,26 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { readStoredTodaySummary } from '@/lib/todaySummary';
+import { bindLandingMotion } from '@/lib/calmMotion';
 import { supabase, updateAuthUser } from '@/lib/supabase';
 import { handoffRefreshToken } from '@/lib/browserSession';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import {
-  Mail, Lock, ArrowRight, ShieldCheck, Zap, KeyRound, ArrowLeft,
-  Smartphone, Download, CheckCircle2, Timer, Award,
-  Clock, Check, ChevronRight, Play, Flame, Shield,
-  Layers, Compass, BarChart3, Heart, Activity, MessageSquare
-} from 'lucide-vue-next';
+import { Mail, Lock, ArrowRight } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
-import { APK_DOWNLOAD_URL } from '@/config/appConfig';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
-
-const landingRoot = ref(null);
-let gsapCtx = null;
 
 const emit = defineEmits(['guest-login', 'login-success']);
 
-const email    = ref('');
+const email = ref('');
 const password = ref('');
 const newPassword = ref('');
 const mode = ref('login');
 const loading = ref(false);
 const error = ref('');
 const successMessage = ref('');
-const activeFeature = ref(0);
-const progressPercent = ref(0);
-let ticker = null;
-let progressTicker = null;
 let nativeBackButtonHandle = null;
 
-// PWA Install Prompt State
 const isAppInstallModalOpen = ref(false);
 const deferredInstallPrompt = ref(null);
 const canInstallPwa = ref(false);
@@ -66,247 +48,22 @@ const handleTriggerInstallPwa = async () => {
   }
 };
 
-const apkUrl = APK_DOWNLOAD_URL;
+const landingRoot = ref(null);
+const landingSummary = ref(readStoredTodaySummary(typeof localStorage !== 'undefined' ? localStorage : null));
+let landingMotion = null;
 
-/* ─── Fitflow Nav Menu & Scroll State ────────────────────────────── */
-const isNavMenuOpen = ref(false);
-const scrollToAuth = () => {
-  isNavMenuOpen.value = false;
-  const el = document.getElementById('auth-station');
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth' });
-  }
+const refreshLandingSummary = () => {
+  landingSummary.value = readStoredTodaySummary(typeof localStorage !== 'undefined' ? localStorage : null);
 };
 
-/* ─── Interactive Landing Bento Demo State ────────────────────────── */
-const demoDayType = ref('home');
-const demoHabits = ref([
-  { id: 'h1', time: '05:00 AM', name: 'Morning Hydration & Electrolytes', points: 2, done: false, category: 'Biohacking' },
-  { id: 'h2', time: '07:00 AM', name: '45-Min Zone 2 Cardio & Mobility', points: 4, done: true, category: 'Fitness' },
-  { id: 'h3', time: '09:00 AM', name: 'Deep Work: Core Architecture Sprint', points: 5, done: false, category: 'Mindset' },
-  { id: 'h4', time: '01:00 PM', name: '100g High-Bioavailability Fuel', points: 3, done: false, category: 'Nutrition' },
-  { id: 'h5', time: '09:30 PM', name: 'Circadian Melatonin & Screen Off', points: 2, done: false, category: 'Recovery' },
-]);
-
-const demoPoints = computed(() => {
-  return demoHabits.value.filter(h => h.done).reduce((acc, h) => acc + h.points, 0);
-});
-
-const demoMaxPoints = computed(() => {
-  return demoHabits.value.reduce((acc, h) => acc + h.points, 0);
-});
-
-const demoProgressPercent = computed(() => {
-  if (demoMaxPoints.value === 0) return 0;
-  return Math.round((demoPoints.value / demoMaxPoints.value) * 100);
-});
-
-const onNavMenuEnter = (el, done) => {
-  const backdrop = el.querySelector('.fitflow-menu-backdrop');
-  const card = el.querySelector('.fitflow-menu-card');
-  const links = el.querySelectorAll('.fitflow-menu-link');
-
-  if (backdrop && card) {
-    gsap.set(backdrop, { opacity: 0 });
-    gsap.set(card, { y: -25, scale: 0.93, opacity: 0 });
-    if (links.length > 0) gsap.set(links, { y: 14, opacity: 0 });
-
-    const tl = gsap.timeline({ onComplete: done });
-    tl.to(backdrop, { opacity: 1, duration: 0.28, ease: 'power2.out' })
-      .to(card, { y: 0, scale: 1, opacity: 1, duration: 0.38, ease: 'back.out(1.5)' }, '-=0.15');
-    if (links.length > 0) {
-      tl.to(links, { y: 0, opacity: 1, stagger: 0.04, duration: 0.3, ease: 'power2.out' }, '-=0.22');
-    }
-  } else {
-    done();
-  }
-};
-
-const onNavMenuLeave = (el, done) => {
-  const backdrop = el.querySelector('.fitflow-menu-backdrop');
-  const card = el.querySelector('.fitflow-menu-card');
-
-  if (backdrop && card) {
-    const tl = gsap.timeline({ onComplete: done });
-    tl.to(card, { y: -16, scale: 0.95, opacity: 0, duration: 0.22, ease: 'power2.in' })
-      .to(backdrop, { opacity: 0, duration: 0.2, ease: 'power2.in' }, '-=0.1');
-  } else {
-    done();
-  }
-};
-
-const toggleDemoHabit = (id) => {
-  const habit = demoHabits.value.find(h => h.id === id);
-  if (habit) {
-    habit.done = !habit.done;
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(15);
-    }
-    if (typeof document !== 'undefined') {
-      const el = document.querySelector(`[data-demo-habit="${id}"]`);
-      if (el) {
-        gsap.fromTo(el, { scale: 0.96 }, { scale: 1, duration: 0.35, ease: 'back.out(2.2)' });
-      }
-    }
-  }
-};
-
-const switchDemoDayType = (type) => {
-  demoDayType.value = type;
-  if (type === 'office') {
-    demoHabits.value = [
-      { id: 'h1', time: '06:00 AM', name: 'Early Commute Hydration & Mobility', points: 2, done: true, category: 'Biohacking' },
-      { id: 'h2', time: '08:00 AM', name: 'Commute Audio Mastery & Planning', points: 3, done: true, category: 'Mindset' },
-      { id: 'h3', time: '10:00 AM', name: 'Executive Deep Focus Session', points: 6, done: false, category: 'Discipline' },
-      { id: 'h4', time: '07:30 PM', name: 'Post-Office Spinal Decompression', points: 3, done: false, category: 'Recovery' },
-    ];
-  } else if (type === 'travel') {
-    demoHabits.value = [
-      { id: 'h1', time: 'Anytime', name: 'Streak Shield Protection Active', points: 5, done: true, category: 'Shield' },
-      { id: 'h2', time: 'Morning', name: 'Hotel Mobility & Bodyweight Flow', points: 3, done: false, category: 'Fitness' },
-      { id: 'h3', time: 'Evening', name: 'Zero Late-Night Screen Consumption', points: 3, done: false, category: 'Recovery' },
-    ];
-  } else {
-    demoHabits.value = [
-      { id: 'h1', time: '05:00 AM', name: 'Morning Hydration & Electrolytes', points: 2, done: false, category: 'Biohacking' },
-      { id: 'h2', time: '07:00 AM', name: '45-Min Zone 2 Cardio & Mobility', points: 4, done: true, category: 'Fitness' },
-      { id: 'h3', time: '09:00 AM', name: 'Deep Work: Core Architecture Sprint', points: 5, done: false, category: 'Mindset' },
-      { id: 'h4', time: '01:00 PM', name: '100g High-Bioavailability Fuel', points: 3, done: false, category: 'Nutrition' },
-      { id: 'h5', time: '09:30 PM', name: 'Circadian Melatonin & Screen Off', points: 2, done: false, category: 'Recovery' },
-    ];
-  }
-};
-
-/* ─── Feature Showcase Data ─────────────────────────────────────── */
-const features = [
-  {
-    num: '01',
-    id: 'due-now',
-    color: '#10b981',
-    colorDark: '#059669',
-    shadow: 'rgba(16, 185, 129, 0.22)',
-    badgeBg: 'rgba(16, 185, 129, 0.12)',
-    label: 'Due-Now Engine',
-    headline: "Always know what's next.\nNever lose momentum.",
-    body: 'A live, time-phased schedule surfaces the exact habit needing your attention right now — so you never stare at an overwhelming list.',
-    stat: '3.2×',
-    statLabel: 'Higher Daily Completion',
-    statDesc: 'vs. static habit checklists',
-    pills: ['Dynamic Timeline', 'Auto-Prioritization', 'Smart Alerts'],
-    mock: {
-      type: 'due-now',
-      badge: 'DUE NOW',
-      title: 'Deep Work: Core Architecture',
-      timeSlot: '09:00 – 10:30 AM',
-      streak: '18 Days',
-      progress: 68,
-      subtext: 'Time remaining: 28 mins in flow window'
-    }
-  },
-  {
-    num: '02',
-    id: 'focus-station',
-    color: '#818cf8',
-    colorDark: '#6366f1',
-    shadow: 'rgba(129, 140, 248, 0.22)',
-    badgeBg: 'rgba(129, 140, 248, 0.12)',
-    label: 'Focus Workstation',
-    headline: '90-minute deep flows.\nZero interruptions.',
-    body: 'Integrated Pomodoro workstation with ambient timers and lockscreen widgets keep your mind locked into high-output focus blocks.',
-    stat: '91%',
-    statLabel: 'Flow Session Success',
-    statDesc: 'avg focus session completion',
-    pills: ['Custom Intervals', 'Home Screen Widget', 'Lockscreen Sync'],
-    mock: {
-      type: 'focus',
-      badge: 'FOCUS ACTIVE',
-      title: 'Sprint: System Architecture & Refactor',
-      timeSlot: '28:14 / 45:00',
-      streak: '9 Sessions',
-      progress: 63,
-      subtext: 'High-discipline zone active'
-    }
-  },
-  {
-    num: '03',
-    id: 'warrior-ranks',
-    color: '#f59e0b',
-    colorDark: '#d97706',
-    shadow: 'rgba(245, 158, 11, 0.22)',
-    badgeBg: 'rgba(245, 158, 11, 0.12)',
-    label: 'Warrior Ranks',
-    headline: 'Discipline turned into\na game you master.',
-    body: 'Earn XP for every finished habit. Climb warrior tiers from Novice to Grandmaster. Unlock milestone reward vaults along your journey.',
-    stat: '5.8×',
-    statLabel: '30-Day Habit Retention',
-    statDesc: 'gamified streak consistency',
-    pills: ['Warrior Tiers', 'XP Rewards', 'Milestone Vaults'],
-    mock: {
-      type: 'ranks',
-      badge: 'LEVEL 8 · MASTERY',
-      title: 'Grandmaster Discipline Tier',
-      timeSlot: '1,420 XP · Next Level: 80%',
-      streak: '32 Days',
-      progress: 80,
-      subtext: 'Next milestone reward vault unlocks in 180 XP'
-    }
-  },
-  {
-    num: '04',
-    id: 'adaptive-mode',
-    color: '#38bdf8',
-    colorDark: '#0284c7',
-    shadow: 'rgba(56, 189, 248, 0.22)',
-    badgeBg: 'rgba(56, 189, 248, 0.12)',
-    label: 'Adaptive Schedules',
-    headline: 'Life changes daily.\nYour system adapts.',
-    body: 'Home day? Office commute? Travel or Holiday? Habuilt intelligently shifts your daily habits so you never break a streak when routine changes.',
-    stat: '100%',
-    statLabel: 'Streak Protection',
-    statDesc: 'adaptive routine continuity',
-    pills: ['4 Day Profiles', 'Commute Mode', 'Streak Shield'],
-    mock: {
-      type: 'adaptive',
-      badge: 'OFFICE MODE ACTIVE',
-      title: 'Adaptive Schedule: Office Day',
-      timeSlot: 'Commute · Office · Evening Shift',
-      streak: 'Shield Active',
-      progress: 100,
-      subtext: 'Travel routines automatically re-routed'
-    }
-  }
+const archetypes = [
+  { id: 'archetype-founder', name: 'Founder', detail: 'Workday list', title: 'A workday list with a morning start and an evening check.' },
+  { id: 'archetype-longevity', name: 'Longevity', detail: 'Steady day', title: 'A steady day of movement, meals, and wind-down.' },
+  { id: 'archetype-postpartum', name: 'Postpartum', detail: 'Gentler day', title: 'A gentler day for recovery and family rhythm.' },
+  { id: 'archetype-athlete', name: 'Athlete', detail: 'Training and rest', title: 'Training, fuel, and rest on one list.' },
 ];
 
-const current = computed(() => features[activeFeature.value]);
-
-const setFeature = (i) => {
-  activeFeature.value = i;
-  startTicker();
-};
-
-const CYCLE_DURATION = 4200;
-const TICK_STEP = 50;
-
-const startTicker = () => {
-  clearInterval(ticker);
-  clearInterval(progressTicker);
-  progressPercent.value = 0;
-
-  const startTime = Date.now();
-  progressTicker = setInterval(() => {
-    const elapsed = Date.now() - startTime;
-    progressPercent.value = Math.min(100, (elapsed / CYCLE_DURATION) * 100);
-  }, TICK_STEP);
-
-  ticker = setInterval(() => {
-    activeFeature.value = (activeFeature.value + 1) % features.length;
-    startTicker();
-  }, CYCLE_DURATION);
-};
-
-/* ─── Auth Logic ─────────────────────────────────────────────────── */
 onMounted(() => {
-  startTicker();
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', () => {
@@ -317,12 +74,15 @@ onMounted(() => {
     const h = window.location.hash;
     if (h.includes('type=recovery')) mode.value = 'reset';
 
-    // Check for incoming auth error from redirect
     const lastErr = localStorage.getItem('habuilt_auth_last_error');
     if (lastErr) {
       error.value = lastErr;
       localStorage.removeItem('habuilt_auth_last_error');
     }
+
+    refreshLandingSummary();
+    window.addEventListener('storage', refreshLandingSummary);
+    landingMotion = bindLandingMotion(landingRoot.value);
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -337,156 +97,20 @@ onMounted(() => {
         }).then(handle => {
           nativeBackButtonHandle = handle;
         }).catch(() => {});
-      } catch {}
-    }
-
-    // GSAP Fitflow Cinematic Choreography
-    if (landingRoot.value) {
-      gsapCtx = gsap.context(() => {
-        // 1. Hero Stagger Entrance Timeline
-        const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-
-        heroTl.from('.fitflow-header', {
-          y: -25,
-          opacity: 0,
-          duration: 0.7,
-        })
-        .from('.fitflow-trust-pill', {
-          y: 20,
-          opacity: 0,
-          duration: 0.6,
-        }, '-=0.35')
-        .from('.fitflow-hero-headline', {
-          y: 35,
-          opacity: 0,
-          duration: 0.85,
-        }, '-=0.4')
-        .from('.fitflow-hero-col-right', {
-          y: 30,
-          opacity: 0,
-          duration: 0.75,
-        }, '-=0.55');
-
-        // 2. Ambient Split Illumination Breathing
-        gsap.to('.fitflow-hero-glow--pink', {
-          scale: 1.15,
-          opacity: 0.65,
-          duration: 5.5,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut'
-        });
-        gsap.to('.fitflow-hero-glow--cyan', {
-          scale: 1.12,
-          opacity: 0.7,
-          duration: 6.2,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut'
-        });
-
-        // 3. Typographic Watermark Parallax on Scroll
-        gsap.to('.fitflow-watermark-text', {
-          scrollTrigger: {
-            trigger: '.fitflow-about-section',
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 1.2,
-          },
-          y: -50,
-          ease: 'none',
-        });
-
-        // 4. Monumental Metrics Reveal
-        gsap.from('.fitflow-metric-card', {
-          scrollTrigger: {
-            trigger: '.fitflow-monumental-metrics',
-            start: 'top 85%',
-          },
-          y: 30,
-          opacity: 0,
-          stagger: 0.14,
-          duration: 0.75,
-          ease: 'power3.out',
-        });
-
-        // 5. 3D Bento Props Cards Reveal & Idle Floating Physics
-        gsap.from('.fitflow-prop-card', {
-          scrollTrigger: {
-            trigger: '.fitflow-bento-props-grid',
-            start: 'top 85%',
-          },
-          y: 40,
-          opacity: 0,
-          stagger: 0.16,
-          duration: 0.8,
-          ease: 'power3.out',
-        });
-
-        // Subtle continuous floating for 3D props
-        gsap.to('.fitflow-prop-stage-img--dumbbell', {
-          y: '-=6px',
-          duration: 2.6,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        });
-        gsap.to('.fitflow-prop-stage-img--bottle', {
-          y: '-=8px',
-          duration: 3.1,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        });
-        gsap.to('.fitflow-prop-stage-img--trophy', {
-          y: '-=7px',
-          duration: 2.9,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        });
-
-        // 6. Interactive Playground Reveal
-        gsap.from('.fitflow-playground-section .lp__mock-window', {
-          scrollTrigger: {
-            trigger: '.fitflow-playground-section',
-            start: 'top 80%',
-          },
-          y: 35,
-          opacity: 0,
-          duration: 0.8,
-          ease: 'power3.out',
-        });
-
-        // 7. Blueprint Showcase & Auth Station Reveal
-        gsap.from('.fitflow-blueprints-grid > div', {
-          scrollTrigger: {
-            trigger: '#auth-station',
-            start: 'top 80%',
-          },
-          y: 35,
-          opacity: 0,
-          stagger: 0.18,
-          duration: 0.75,
-          ease: 'power3.out',
-        });
-      }, landingRoot.value);
+      } catch { /* native back button is optional */ }
     }
   }
 });
 
 onUnmounted(() => {
-  if (gsapCtx) {
-    try { gsapCtx.revert(); } catch {}
-    gsapCtx = null;
-  }
   if (nativeBackButtonHandle) {
-    try { nativeBackButtonHandle.remove(); } catch {}
+    try { nativeBackButtonHandle.remove(); } catch { /* already removed */ }
     nativeBackButtonHandle = null;
   }
-  clearInterval(ticker);
-  clearInterval(progressTicker);
+  landingMotion?.revert();
+  landingMotion = null;
   if (typeof window !== 'undefined') {
+    window.removeEventListener('storage', refreshLandingSummary);
     window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
   }
 });
@@ -515,13 +139,13 @@ const handleAuth = async () => {
     if (mode.value === 'signup') {
       const { data, error: e } = await supabase.auth.signUp({
         email: cleanEmail,
-        password: cleanPassword
+        password: cleanPassword,
       });
       if (e) throw e;
       if (data?.session?.user) {
         await finishSignIn(data.session);
       } else {
-        successMessage.value = 'Account created! Please check your email to confirm, then sign in.';
+        successMessage.value = 'Account created. Check your email to confirm, then sign in.';
         mode.value = 'login';
       }
     } else if (mode.value === 'forgot') {
@@ -537,19 +161,19 @@ const handleAuth = async () => {
         email: cleanEmail,
         options: {
           emailRedirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
-        }
+        },
       });
       if (e) throw e;
-      successMessage.value = `Instant sign-in link sent to ${cleanEmail}. Check your inbox!`;
+      successMessage.value = `Sign-in link sent to ${cleanEmail}. Check your inbox.`;
     } else if (mode.value === 'reset') {
       const { error: e } = await updateAuthUser({ password: newPassword.value });
       if (e) throw e;
-      successMessage.value = 'Password updated successfully. You can now sign in.';
+      successMessage.value = 'Password updated. You can sign in.';
       mode.value = 'login';
     } else {
       const { data, error: e } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
-        password: cleanPassword
+        password: cleanPassword,
       });
       if (e) throw e;
       if (data?.session) {
@@ -559,9 +183,9 @@ const handleAuth = async () => {
   } catch (e) {
     const msg = e?.message || 'Authentication error.';
     if (msg.toLowerCase().includes('invalid login credentials')) {
-      error.value = 'Invalid email or password. If you originally signed up with Google, tap "Continue with Google" above or click "Forgot?" to set a password.';
+      error.value = 'Invalid email or password. If you signed up with Google, use Google or set a password.';
     } else if (msg.toLowerCase().includes('email not confirmed')) {
-      error.value = 'Your email address is not confirmed yet. Check your inbox to confirm, or continue with Google / Guest mode.';
+      error.value = 'Your email is not confirmed yet. Check your inbox, or continue with Google or as a guest.';
     } else {
       error.value = msg;
     }
@@ -578,10 +202,7 @@ const handleGoogle = async () => {
     const redirectUrl = isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`;
     const { data, error: e } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isNative
-      },
+      options: { redirectTo: redirectUrl, skipBrowserRedirect: isNative },
     });
     if (e) throw e;
     if (isNative && data?.url) {
@@ -603,10 +224,7 @@ const handleApple = async () => {
     const redirectUrl = isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`;
     const { data, error: e } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isNative
-      },
+      options: { redirectTo: redirectUrl, skipBrowserRedirect: isNative },
     });
     if (e) throw e;
     if (isNative && data?.url) {
@@ -618,6 +236,11 @@ const handleApple = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const startWithHabit = () => {
+  try { sessionStorage.setItem('habuilt_open_add_habit', '1'); } catch { /* storage is optional */ }
+  handleGuest('archetype-founder');
 };
 
 const handleGuest = (preferredArchetype = 'archetype-founder') => {
@@ -633,814 +256,427 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
   }
   window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
   emit('guest-login', user);
+  const path = window.location.pathname;
+  if (path === '/auth' || path === '/login' || path === '/landing') {
+    window.location.assign('/');
+  }
 };
 </script>
 
 <template>
-  <div class="lp fitflow-landing-root" ref="landingRoot">
-
-    <!-- ── Ambient Spatial Background Mesh ───────────────────────── -->
-    <div class="lp__bg" aria-hidden="true">
-      <div class="lp__orb lp__orb--primary"></div>
-      <div class="lp__orb lp__orb--secondary"></div>
-      <div class="lp__orb lp__orb--accent"></div>
-    </div>
-
-    <!-- ── Fitflow Fixed / Floating Top Header Bar ────────────────── -->
-    <header class="fitflow-header">
-      <div class="fitflow-header__inner">
-        <div class="fitflow-header__brand">
-          <HabuiltLogo size="md" :with-text="true" />
-        </div>
-
-        <div class="fitflow-header__actions">
-          <button
-            type="button"
-            class="fitflow-pill-btn fitflow-pill-btn--menu"
-            @click="isNavMenuOpen = !isNavMenuOpen"
-            aria-label="Toggle navigation menu"
-          >
-            MENU
-          </button>
-        </div>
-      </div>
+  <div class="calm-landing" ref="landingRoot">
+    <header class="calm-landing__bar">
+      <HabuiltLogo with-text :show-badge="false" size="sm" />
+      <a class="calm-btn calm-btn--quiet" href="#auth-station">Sign in</a>
     </header>
 
-    <!-- ══════════════════════════════════════════════════════════════
-         SECTION 1: THE FULL-BLEED CINEMATIC FITFLOW HERO
-         ══════════════════════════════════════════════════════════════ -->
-    <section class="fitflow-hero-stage">
-      <!-- Split Dual-Tone Lighting & Cinematic Athlete Visual -->
-      <div class="fitflow-hero-backdrop">
-        <img
-          src="/images/fitflow/hero_athlete.jpg"
-          alt="Fitflow Executive Athlete"
-          class="fitflow-hero-img"
-        />
-        <div class="fitflow-hero-glow fitflow-hero-glow--pink"></div>
-        <div class="fitflow-hero-glow fitflow-hero-glow--cyan"></div>
-        <div class="fitflow-hero-gradient-overlay"></div>
-      </div>
-
-      <div class="fitflow-hero-container">
-        <!-- Floating Trust Badge -->
-        <div class="fitflow-trust-pill">
-          <span>Web and Android habit tracker</span>
-        </div>
-
-        <!-- Hero Main Split: Left Monumental Title, Right Body & CTAs -->
-        <div class="fitflow-hero-split">
-          <div class="fitflow-hero-col-left">
-            <h1 class="fitflow-hero-headline">
-              Discipline.<br>
-              <span class="fitflow-gradient-pink">Momentum.</span><br>
-              <span class="fitflow-gradient-cyan">You.</span>
-            </h1>
-          </div>
-
-          <div class="fitflow-hero-col-right">
-            <p class="fitflow-hero-subtext">
-              Transform vague intentions into automatic executive momentum. Real-time ZoetiCoach Adherence HUD, WhatsApp daily check-ins with Coach Vikas, and adaptive routines tailored to your lifestyle.
-            </p>
-
-            <div class="fitflow-hero-ctas">
-              <button
-                type="button"
-                class="fitflow-pill-btn fitflow-pill-btn--white"
-                @click="handleGuest('archetype-founder')"
-              >
-                <span>Start Your Protocol</span>
-                <span class="fitflow-pill-btn__arrow">↗</span>
-              </button>
-
-              <a
-                href="https://zoeticoach.com/join/vikas"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="fitflow-pill-btn fitflow-pill-btn--glass"
-              >
-                <span>Chat with Coach Vikas</span>
-                <span class="fitflow-pill-btn__arrow" style="background: #25d366; color: #ffffff;">💬</span>
-              </a>
-            </div>
-
-            <p class="fitflow-social-caption">Guest check-ins stay on this device. Points are not cash.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════
-         SECTION 2: ABOUT / WATERMARK & MONUMENTAL METRIC RIBBON
-         ══════════════════════════════════════════════════════════════ -->
-    <section class="fitflow-section fitflow-about-section">
-      <!-- Faint Oversized Watermark Typography -->
-      <div class="fitflow-watermark-text" aria-hidden="true">
-        HABIT VELOCITY
-      </div>
-
-      <div class="fitflow-content-container">
-        <div class="fitflow-section-header">
-          <span class="fitflow-eyebrow">ABOUT HABUILT</span>
-          <h2 class="fitflow-section-title">
-            Your Discipline, <span class="fitflow-gradient-pink">Your Flow.</span>
-          </h2>
-          <p class="fitflow-section-desc">
-            At Habuilt, habit consistency is more than checklists. It is an executive operating system tailored to your energy, calendar, and mindset. Whether you are optimizing deep work, dialing in sleep, or building athletic endurance, the protocols guide every step.
+    <main>
+      <section class="calm-landing__hero">
+        <div class="calm-landing__copy">
+          <h1 data-calm-reveal>Keep today's<br>list.</h1>
+          <p data-calm-reveal>
+            Habuilt keeps the habits on today's list, the next reminder, and a partner's Kept or Not yet.
+            An empty day says Nothing scheduled today.
           </p>
-        </div>
-
-        <!-- 3 Monumental Metric Cards -->
-        <div class="fitflow-monumental-metrics">
-          <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--pink">Guest</span>
-            <span class="fitflow-metric-label">STAYS ON THIS DEVICE</span>
-          </div>
-          <div style="width: 1px; height: 50px; background: rgba(15, 23, 42, 0.08);"></div>
-          <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--purple">Sync</span>
-            <span class="fitflow-metric-label">WHEN YOU SIGN IN</span>
-          </div>
-          <div style="width: 1px; height: 50px; background: rgba(15, 23, 42, 0.08);"></div>
-          <div class="fitflow-metric-card">
-            <span class="fitflow-metric-number fitflow-metric-number--cyan">Points</span>
-            <span class="fitflow-metric-label">ARE NOT CASH</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════
-         SECTION 3: SIGNATURE 3D BENTO CARDS WITH PROTRUDING PROPS
-         ══════════════════════════════════════════════════════════════ -->
-    <section class="fitflow-section fitflow-bento-section">
-      <div class="fitflow-content-container">
-        <div class="fitflow-section-header">
-          <span class="fitflow-eyebrow">ENGINEERED FOR EXECUTION</span>
-          <h2 class="fitflow-section-title">
-            Precision Habit Architecture.
-          </h2>
-          <p class="fitflow-section-desc">
-            Tangible physical depth meets 0ms reactive software. Built to keep high performers locked in flow state without mental fatigue.
-          </p>
-        </div>
-
-        <div class="fitflow-bento-props-grid">
-          <!-- Bento Card 1: 3D Yellow Dumbbell Prop -->
-          <div class="fitflow-prop-card fitflow-prop-card--dumbbell">
-            <div class="fitflow-card-corner-arrow">↗</div>
-            <div class="fitflow-prop-stage fitflow-prop-stage--yellow">
-              <div class="fitflow-prop-stage-glow"></div>
-              <img src="/images/fitflow/prop_dumbbell.jpg" alt="Fitness Dumbbell" class="fitflow-prop-stage-img fitflow-prop-stage-img--dumbbell" />
-            </div>
-            <div class="fitflow-prop-card__content">
-              <h3 class="fitflow-prop-card__title">Kinetic Flow &amp; Mobility.</h3>
-              <p class="fitflow-prop-card__desc">
-                Build daily strength, posture alignment, and physical resilience with structured progressive movement training.
-              </p>
-              <div class="fitflow-check-list">
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon">✓</div>
-                  <span>10-Minute Morning Spinal Decompression</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon">✓</div>
-                  <span>Zone 2 Cardio &amp; Metabolic Pacing</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon">✓</div>
-                  <span>Posture &amp; Energy Alignment</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bento Card 2: 3D Blue Water Bottle Prop -->
-          <div class="fitflow-prop-card fitflow-prop-card--bottle">
-            <div class="fitflow-card-corner-arrow">↗</div>
-            <div class="fitflow-prop-stage fitflow-prop-stage--blue">
-              <div class="fitflow-prop-stage-glow"></div>
-              <img src="/images/fitflow/prop_bottle.jpg" alt="Hydration Shaker" class="fitflow-prop-stage-img fitflow-prop-stage-img--bottle" />
-            </div>
-            <div class="fitflow-prop-card__content">
-              <h3 class="fitflow-prop-card__title">Circadian Hydration &amp; Rest.</h3>
-              <p class="fitflow-prop-card__desc">
-                Optimize cellular recovery, eliminate brain fog, and lock in uninterrupted restorative slow-wave sleep.
-              </p>
-              <div class="fitflow-check-list">
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--teal">✓</div>
-                  <span>500ml Electrolyte Jumpstart on Waking</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--teal">✓</div>
-                  <span>Caffeine Curfew at 02:00 PM Sharp</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--teal">✓</div>
-                  <span>90-Minute Circadian Melatonin Shield</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bento Card 3: 3D Golden Trophy Prop -->
-          <div class="fitflow-prop-card fitflow-prop-card--trophy">
-            <div class="fitflow-card-corner-arrow">↗</div>
-            <div class="fitflow-prop-stage fitflow-prop-stage--gold">
-              <div class="fitflow-prop-stage-glow"></div>
-              <img src="/images/fitflow/prop_trophy.jpg" alt="Discipline Trophy" class="fitflow-prop-stage-img fitflow-prop-stage-img--trophy" />
-            </div>
-            <div class="fitflow-prop-card__content">
-              <h3 class="fitflow-prop-card__title">Gamified XP &amp; Reward Vault.</h3>
-              <p class="fitflow-prop-card__desc">
-                Transform mundane discipline into dopamine wins with real-time XP, streak shields, and real-world milestone rewards.
-              </p>
-              <div class="fitflow-check-list">
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--purple">✓</div>
-                  <span>0ms Reactive Instant Point Feedback</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--purple">✓</div>
-                  <span>Streak Shield Protection on Travel Days</span>
-                </div>
-                <div class="fitflow-check-item">
-                  <div class="fitflow-check-icon fitflow-check-icon--purple">✓</div>
-                  <span>Milestone Tier Unlocks from Baseline to Master</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════
-         SECTION 4: LIVE 0MS INTERACTIVE BENTO PLAYGROUND
-         ══════════════════════════════════════════════════════════════ -->
-    <section class="fitflow-section fitflow-playground-section" style="background: #ffffff;">
-      <div class="fitflow-content-container">
-        <div class="fitflow-section-header">
-          <span class="fitflow-eyebrow">INTERACTIVE HABIT ENGINE</span>
-          <h2 class="fitflow-section-title">
-            Try the 0ms Experience.
-          </h2>
-          <p class="fitflow-section-desc">
-            Toggle schedules and tap habits below to experience zero-latency state synchronization in real time.
-          </p>
-        </div>
-
-        <div class="framer-card framer-glow-box" style="padding: 0; border-radius: 24px; border: 1px solid #e2e8f0; background: #ffffff; max-width: 900px; margin: 0 auto; width: 100%;">
-          <div class="lp__mock-window" style="background: #ffffff; border: none;">
-            <div class="lp__mock-titlebar" style="border-bottom: 1px solid #e2e8f0; background: #f8fafc; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-radius: 24px 24px 0 0;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="lp__mock-dots">
-                  <span class="lp__dot lp__dot--red"></span>
-                  <span class="lp__dot lp__dot--yellow"></span>
-                  <span class="lp__dot lp__dot--green"></span>
-                </div>
-                <span style="font-size: 13px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0d9488; box-shadow: 0 0 8px rgba(13, 148, 136, 0.4);"></span>
-                  Live Habit Playground • <strong style="color: #0d9488;">Coach Vikas System</strong>
-                </span>
-              </div>
-
-              <!-- Day Mode Switcher -->
-              <div style="display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                <button
-                  type="button"
-                  class="framer-spring-btn"
-                  :style="demoDayType === 'home' ? 'background: #ffffff; color: #0d9488; font-weight: 750; border-radius: 7px; padding: 5px 12px; font-size: 12px; border: 1px solid rgba(13, 148, 136, 0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;' : 'background: transparent; color: #64748b; padding: 5px 12px; font-size: 12px; border: none; cursor: pointer;'"
-                  @click="switchDemoDayType('home')"
-                >
-                  Home
-                </button>
-                <button
-                  type="button"
-                  class="framer-spring-btn"
-                  :style="demoDayType === 'office' ? 'background: #ffffff; color: #0284c7; font-weight: 750; border-radius: 7px; padding: 5px 12px; font-size: 12px; border: 1px solid rgba(2, 132, 199, 0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;' : 'background: transparent; color: #64748b; padding: 5px 12px; font-size: 12px; border: none; cursor: pointer;'"
-                  @click="switchDemoDayType('office')"
-                >
-                  Office
-                </button>
-                <button
-                  type="button"
-                  class="framer-spring-btn"
-                  :style="demoDayType === 'travel' ? 'background: #ffffff; color: #ea580c; font-weight: 750; border-radius: 7px; padding: 5px 12px; font-size: 12px; border: 1px solid rgba(255, 107, 53, 0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;' : 'background: transparent; color: #64748b; padding: 5px 12px; font-size: 12px; border: none; cursor: pointer;'"
-                  @click="switchDemoDayType('travel')"
-                >
-                  Travel Shield
-                </button>
-              </div>
-            </div>
-
-            <div style="padding: 20px 24px; background: #ffffff; border-radius: 0 0 24px 24px;">
-              <!-- Progress Ring & XP Header -->
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 20px; flex-wrap: wrap; gap: 14px;">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                  <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
-                    <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="#e2e8f0"
-                        stroke-width="3"
-                      />
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="#0d9488"
-                        stroke-width="3.4"
-                        stroke-linecap="round"
-                        :stroke-dasharray="`${demoProgressPercent}, 100`"
-                        style="transition: stroke-dasharray 0.5s cubic-bezier(0.16, 1, 0.3, 1); filter: drop-shadow(0 0 4px rgba(13, 148, 136, 0.3));"
-                      />
-                    </svg>
-                    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #0f172a; font-family: 'JetBrains Mono', monospace;">
-                      {{ demoProgressPercent }}%
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="font-size: 15px; font-weight: 800; color: #0f172a;">Daily Velocity: {{ demoPoints }} / {{ demoMaxPoints }} pts</span>
-                      <span class="framer-pill framer-pill--emerald" style="color: #0d9488; background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.25);">🔥 18d Streak Active</span>
-                    </div>
-                    <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;">Tap any habit below for instant reactive completion</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  class="fitflow-pill-btn fitflow-pill-btn--dark"
-                  @click="handleGuest('archetype-founder')"
-                  style="padding: 9px 18px; font-size: 13px;"
-                >
-                  <span>Open Full Dashboard</span>
-                  <span class="fitflow-pill-btn__arrow">↗</span>
-                </button>
-              </div>
-
-              <!-- Clickable Habits -->
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div
-                  v-for="h in demoHabits"
-                  :key="h.id"
-                  :data-demo-habit="h.id"
-                  class="framer-spring-btn"
-                  :style="h.done
-                    ? 'display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 14px; background: rgba(13, 148, 136, 0.08); border: 1px solid rgba(13, 148, 136, 0.28); cursor: pointer; transition: all 0.2s ease;'
-                    : 'display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04); cursor: pointer; transition: all 0.2s ease;'"
-                  @click="toggleDemoHabit(h.id)"
-                >
-                  <div style="display: flex; align-items: center; gap: 14px;">
-                    <div
-                      :style="h.done
-                        ? 'width: 26px; height: 26px; border-radius: 8px; background: #0d9488; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(13, 148, 136, 0.35);'
-                        : 'width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center;'"
-                    >
-                      <Check v-if="h.done" class="icon-xs" style="color: #ffffff; width: 15px; height: 15px; stroke-width: 3;" />
-                    </div>
-
-                    <div>
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span :style="h.done ? 'font-size: 14px; font-weight: 600; color: #64748b; text-decoration: line-through;' : 'font-size: 14px; font-weight: 750; color: #0f172a;'">
-                          {{ h.name }}
-                        </span>
-                        <span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
-                          {{ h.category }}
-                        </span>
-                      </div>
-                      <span style="font-size: 12px; color: #64748b;">{{ h.time }}</span>
-                    </div>
-                  </div>
-
-                  <span :style="h.done ? 'font-size: 13px; font-weight: 800; color: #0d9488;' : 'font-size: 13px; font-weight: 700; color: #64748b;'">
-                    +{{ h.points }} pts
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════
-         SECTION 5: BLUEPRINT SHOWCASE & DIRECT SIGN-IN HUB
-         ══════════════════════════════════════════════════════════════ -->
-    <section class="fitflow-section fitflow-blueprints-section" id="auth-station">
-      <div class="fitflow-content-container">
-        <div class="fitflow-section-header">
-          <span class="fitflow-eyebrow">EXECUTIVE ACCESS</span>
-          <h2 class="fitflow-section-title">
-            Choose Your Protocol.
-          </h2>
-          <p class="fitflow-section-desc">
-            Launch instantly with tailored founder routines or sign in to synchronize progress across all your devices.
-          </p>
-        </div>
-
-        <div class="fitflow-blueprints-grid">
-          <!-- Left Column: Blueprint Quick Launchers & Coach Vikas Hub -->
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- WhatsApp Coach Vikas High-Conversion Card -->
-            <div style="padding: 20px 24px; border-radius: 24px; background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.35); display: flex; align-items: center; justify-content: space-between; gap: 14px;">
-              <div style="display: flex; align-items: center; gap: 14px;">
-                <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(37, 211, 102, 0.2); display: flex; align-items: center; justify-content: center; color: #16a34a; flex-shrink: 0;">
-                  <MessageSquare class="icon-sm" />
-                </div>
-                <div>
-                  <span style="font-size: 15px; font-weight: 800; color: #065f46; display: block;">Coach Vikas on WhatsApp</span>
-                  <span style="font-size: 12.5px; color: #047857; font-weight: 500;">Direct accountability &amp; custom routine calibration</span>
-                </div>
-              </div>
-              <a
-                href="https://zoeticoach.com/join/vikas"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="zc-btn-wa"
-                style="padding: 8px 18px; font-size: 13px; text-decoration: none; border-radius: 9999px; font-weight: 750;"
-              >
-                Start Free →
-              </a>
-            </div>
-
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-longevity')" style="padding: 22px 24px;">
-              <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(16, 185, 129, 0.18); color: #047857; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Activity class="icon-sm" />
-                </div>
-                <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #065f46; font-weight: 800; font-size: 15px;">Longevity Protocol</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Circadian health, mobility, and clean daily fuel</span>
-                </div>
-              </div>
-              <ChevronRight class="lp__guest-arrow" />
+          <div class="calm-landing__actions" data-calm-reveal>
+            <button class="calm-btn" type="button" @click="handleGuest('archetype-founder')">
+              Continue as guest
+              <ArrowRight :size="16" />
             </button>
-
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-postpartum')" style="padding: 22px 24px;">
-              <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(244, 114, 182, 0.18); color: #be185d; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Heart class="icon-sm" />
-                </div>
-                <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #9d174d; font-weight: 800; font-size: 15px;">Postpartum Protocol</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Protected recovery, family rhythm, and personal focus</span>
-                </div>
-              </div>
-              <ChevronRight class="lp__guest-arrow" />
-            </button>
-
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-athlete')" style="padding: 22px 24px;">
-              <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(249, 115, 22, 0.18); color: #c2410c; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Flame class="icon-sm" />
-                </div>
-                <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #9a3412; font-weight: 800; font-size: 15px;">Athlete Protocol</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Training blocks, recovery, and high-output discipline</span>
-                </div>
-              </div>
-              <ChevronRight class="lp__guest-arrow" />
-            </button>
-
-            <!-- Instant Guest Workspace -->
-            <button class="lp__hero-guest-btn fitflow-bento-card" type="button" @click="handleGuest('archetype-founder')" style="padding: 22px 24px;">
-              <div class="lp__guest-main">
-                <div class="lp__guest-bolt-wrap" style="background: rgba(13, 148, 136, 0.18); color: #0d9488; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <Zap class="icon-sm" />
-                </div>
-                <div class="lp__guest-text">
-                  <span class="lp__guest-head" style="color: #0f172a; font-weight: 800; font-size: 15px;">🚀 Instant Guest Workspace</span>
-                  <span class="lp__guest-sub" style="color: #475569; font-size: 12.5px;">Try the full executive habit protocol offline with zero setup</span>
-                </div>
-              </div>
-              <ChevronRight class="lp__guest-arrow" />
-            </button>
-
-            <!-- APK Download Strip -->
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #ffffff; border-radius: 18px; border: 1px solid #e2e8f0;">
-              <span style="font-size: 12.5px; color: #475569; font-weight: 600;">Available for Android &amp; Modern Browsers</span>
-              <a :href="apkUrl" download="habuilt.apk" class="lp__apk-btn" style="text-decoration: none; padding: 6px 14px; font-size: 12px;">
-                <Download class="lp__apk-icon" />
-                <span>Download APK</span>
-              </a>
-            </div>
+            <a class="calm-btn calm-btn--quiet" href="#auth-station">Sign in</a>
           </div>
-
-          <!-- Right Column: Frosted Glass Sign-in Card -->
-          <div class="lp__auth-glass" style="box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.08); border-radius: 28px; border: 1px solid rgba(15, 23, 42, 0.08); background: #ffffff; padding: 36px 32px;">
-            <div class="lp__auth-header">
-              <h3 class="lp__auth-h3" style="font-size: 1.45rem; font-weight: 850; color: #0f172a;">
-                <template v-if="mode === 'login'">Sign In to Workspace</template>
-                <template v-else-if="mode === 'signup'">Create Free Account</template>
-                <template v-else-if="mode === 'forgot'">Reset Password</template>
-                <template v-else>Set New Password</template>
-              </h3>
-              <p class="lp__auth-subtext" style="color: #64748b; font-size: 13.5px; margin-top: 4px;">
-                <template v-if="mode === 'login'">Sync habits, streaks, and focus across all devices.</template>
-                <template v-else-if="mode === 'signup'">Join ambitious builders tracking daily discipline.</template>
-                <template v-else-if="mode === 'forgot'">We'll send a secure password reset link to your email.</template>
-                <template v-else>Choose a strong new password for your account.</template>
-              </p>
-            </div>
-
-            <!-- Google OAuth Button -->
-            <template v-if="mode === 'login' || mode === 'signup'">
-              <button class="lp__google-btn" type="button" @click="handleGoogle" style="margin-top: 16px;">
-                <svg class="lp__google-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                <span>Continue with Google</span>
-              </button>
-
-              <!-- Apple OAuth Button (App Store Review Guideline 4.8 Compliance) -->
-              <button
-                class="lp__google-btn lp__apple-btn"
-                type="button"
-                @click="handleApple"
-                id="auth-apple-btn"
-                style="margin-top: 10px; background: #000000; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2);"
-              >
-                <svg class="lp__apple-svg" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px; margin-right: 8px;">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.58.66-1.09 1.73-.95 2.76 1.01.08 2.05-.51 2.68-1.26z"/>
-                </svg>
-                <span>Continue with Apple</span>
-              </button>
-
-              <div class="lp__divider">
-                <span class="lp__divider-line"></span>
-                <span class="lp__divider-text">or email</span>
-                <span class="lp__divider-line"></span>
-              </div>
-            </template>
-
-            <!-- Feedback Alerts -->
-            <div v-if="successMessage" class="lp__alert lp__alert--success">
-              <CheckCircle2 class="lp__alert-icon" />
-              <span>{{ successMessage }}</span>
-            </div>
-            <div v-if="error" class="lp__alert lp__alert--error">
-              <ShieldCheck class="lp__alert-icon" />
-              <span>{{ error }}</span>
-            </div>
-
-            <!-- Auth Form -->
-            <form @submit.prevent="handleAuth" class="lp__form-fields">
-              <div v-if="mode !== 'reset'" class="lp__input-group">
-                <label class="lp__input-label" for="auth-email">Email Address</label>
-                <div class="lp__input-box">
-                  <Mail class="lp__field-icon" />
-                  <input
-                    id="auth-email"
-                    v-model="email"
-                    type="email"
-                    required
-                    placeholder="name@domain.com"
-                    class="lp__text-input"
-                    autocomplete="email"
-                  />
-                </div>
-              </div>
-
-              <div v-if="mode === 'login' || mode === 'signup'" class="lp__input-group">
-                <div class="lp__label-row">
-                  <label class="lp__input-label" for="auth-password">Password</label>
-                  <button
-                    v-if="mode === 'login'"
-                    type="button"
-                    class="lp__forgot-link"
-                    @click="mode = 'otp'; error = ''; successMessage = ''"
-                    style="margin-right: 8px;"
-                  >
-                    Magic Link?
-                  </button>
-                  <button
-                    v-if="mode === 'login'"
-                    type="button"
-                    class="lp__forgot-link"
-                    @click="mode = 'forgot'; error = ''; successMessage = ''"
-                  >
-                    Forgot?
-                  </button>
-                </div>
-                <div class="lp__input-box">
-                  <Lock class="lp__field-icon" />
-                  <input
-                    id="auth-password"
-                    v-model="password"
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    class="lp__text-input"
-                    autocomplete="current-password"
-                  />
-                </div>
-              </div>
-
-              <div v-if="mode === 'reset'" class="lp__input-group">
-                <label class="lp__input-label" for="auth-new-password">New Password</label>
-                <div class="lp__input-box">
-                  <KeyRound class="lp__field-icon" />
-                  <input
-                    id="auth-new-password"
-                    v-model="newPassword"
-                    type="password"
-                    required
-                    minlength="6"
-                    placeholder="Min. 6 characters"
-                    class="lp__text-input"
-                  />
-                </div>
-              </div>
-
-              <!-- Submit Button -->
-              <button type="submit" :disabled="loading" class="lp__submit-btn" style="border-radius: 9999px;">
-                <template v-if="loading">
-                  <svg class="lp__spin-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity=".2"/>
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  <span>Processing…</span>
-                </template>
-                <template v-else>
-                  <span v-if="mode === 'login'">Sign In</span>
-                  <span v-else-if="mode === 'signup'">Create Free Account</span>
-                  <span v-else-if="mode === 'forgot'">Send Reset Link</span>
-                  <span v-else>Update Password</span>
-                  <ArrowRight class="lp__btn-arrow" />
-                </template>
-              </button>
-            </form>
-
-            <!-- Toggle Mode Switcher -->
-            <div class="lp__auth-toggle">
-              <template v-if="mode === 'forgot' || mode === 'reset' || mode === 'otp'">
-                <button type="button" class="lp__back-btn" @click="mode = 'login'; error = ''; successMessage = ''">
-                  <ArrowLeft class="lp__back-icon" />
-                  <span>Back to sign in</span>
-                </button>
-              </template>
-              <template v-else>
-                <span class="lp__toggle-text">
-                  {{ mode === 'login' ? "Don't have an account?" : "Already have an account?" }}
-                  <button
-                    type="button"
-                    class="lp__toggle-link"
-                    @click="mode = mode === 'login' ? 'signup' : 'login'; error = ''; successMessage = ''"
-                  >
-                    {{ mode === 'login' ? 'Sign up free' : 'Sign in' }}
-                  </button>
-                </span>
-              </template>
-            </div>
-
-            <!-- Legal Consent Notice (GDPR/CCPA/App Store Mandate) -->
-            <p class="lp__terms-notice" style="font-size: 11px; color: #64748b; text-align: center; margin-top: 14px; line-height: 1.5;">
-              By continuing, you acknowledge and agree to our
-              <a href="/terms" target="_blank" style="color: #10b981; text-decoration: underline; font-weight: 500;">Terms of Service</a>,
-              <a href="/privacy" target="_blank" style="color: #10b981; text-decoration: underline; font-weight: 500;">Privacy Policy</a>, and
-              <a href="/disclaimer" target="_blank" style="color: #10b981; text-decoration: underline; font-weight: 500;">Wellness Disclaimer</a>.
-            </p>
-
-            <!-- Privacy & Encryption Micro-Badge -->
-            <div class="lp__auth-badges">
-              <span class="lp__security-pill">
-                <Shield class="lp__sec-icon" />
-                End-to-End Encrypted Sync
-              </span>
-            </div>
+          <div class="calm-pills" aria-label="Starting lists">
+            <button
+              v-for="item in archetypes"
+              :key="item.id"
+              class="calm-pill"
+              type="button"
+              :title="item.title"
+              @click="handleGuest(item.id)"
+            >
+              <strong>{{ item.name }}</strong>
+              <span>{{ item.detail }}</span>
+            </button>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════════
-         LANDING FOOTER (Legal, Compliance & Digital Sovereignty)
-         ══════════════════════════════════════════════════════════════ -->
-    <footer class="lp__footer">
-      <div class="lp__footer-inner">
-        <div class="lp__footer-brand">
-          <HabuiltLogo size="sm" :with-text="true" />
-          <span style="color: #334155;">|</span>
-          <span class="lp__footer-brand-tag">Sovereign Behavior Architecture</span>
+        <div class="calm-landing__phone-col">
+          <aside class="calm-phone" data-calm-phone aria-label="Today on this device">
+            <div class="calm-phone__screen">
+              <p class="calm-phone__mark">Today</p>
+              <p class="calm-phone__hero">{{ landingSummary.hero }}</p>
+              <ul>
+                <li><span>Streak</span><strong>{{ landingSummary.streak }}</strong></li>
+                <li><span>Reminder</span><strong>{{ landingSummary.reminder }}</strong></li>
+                <li><span>Partner</span><strong>{{ landingSummary.partner }}</strong></li>
+              </ul>
+              <button v-if="landingSummary.showAddHabit" class="calm-btn" type="button" @click="startWithHabit">Add a habit</button>
+            </div>
+          </aside>
         </div>
+      </section>
 
-        <div class="lp__footer-links">
-          <a href="/privacy" class="lp__footer-link">Privacy Policy</a>
-          <a href="/terms" class="lp__footer-link">Terms of Service</a>
-          <a href="/disclaimer" class="lp__footer-link">Medical Disclaimer</a>
-          <a href="https://zoeticoach.com/join/vikas" target="_blank" rel="noopener noreferrer" class="lp__footer-link">ZoetiCoach AI</a>
-        </div>
+      <section class="calm-landing__facts" data-calm-section aria-label="What Habuilt keeps">
+        <article>
+          <h2>Today</h2>
+          <p>Habits kept today, your streak, and the next reminder.</p>
+        </article>
+        <article>
+          <h2>Partner</h2>
+          <p>An accepted partner shows Kept or Not yet. A pending invite stays No partner yet.</p>
+        </article>
+        <article>
+          <h2>Review</h2>
+          <p>Sunday review reads the week from your own check-ins.</p>
+        </article>
+      </section>
 
-        <div class="lp__footer-copy">
-          &copy; {{ new Date().getFullYear() }} Habuilt Inc. All rights reserved.
+      <section id="auth-station" class="calm-auth" data-calm-section>
+        <h2>
+          {{ mode === 'signup' ? 'Create an account' : mode === 'forgot' ? 'Reset password' : mode === 'otp' ? 'Email a sign-in link' : mode === 'reset' ? 'Choose a new password' : 'Sign in' }}
+        </h2>
+        <p v-if="error" class="calm-auth__error" role="alert">{{ error }}</p>
+        <p v-if="successMessage" class="calm-auth__ok" role="status">{{ successMessage }}</p>
+
+        <form @submit.prevent="handleAuth">
+          <label v-if="mode !== 'reset'">
+            <Mail :size="16" />
+            <input v-model="email" type="email" autocomplete="email" required placeholder="Email" />
+          </label>
+          <label v-if="mode === 'login' || mode === 'signup'">
+            <Lock :size="16" />
+            <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" required placeholder="Password" />
+          </label>
+          <label v-if="mode === 'reset'">
+            <Lock :size="16" />
+            <input v-model="newPassword" type="password" autocomplete="new-password" required minlength="6" placeholder="New password" />
+          </label>
+          <button class="calm-btn" type="submit" :disabled="loading">
+            {{ loading ? 'Working…' : 'Continue' }}
+            <ArrowRight :size="16" />
+          </button>
+        </form>
+
+        <div class="calm-auth__alts">
+          <button type="button" @click="handleGoogle">Google</button>
+          <button type="button" @click="handleApple">Apple</button>
+          <button type="button" @click="mode = mode === 'otp' ? 'login' : 'otp'">Email link</button>
+          <button type="button" @click="mode = mode === 'forgot' ? 'login' : 'forgot'">Forgot password</button>
+          <button type="button" @click="mode = mode === 'signup' ? 'login' : 'signup'">
+            {{ mode === 'signup' ? 'Have an account? Sign in' : 'Create an account' }}
+          </button>
         </div>
-      </div>
+      </section>
+    </main>
+
+    <footer>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/disclaimer">Disclaimer</a>
+      <button type="button" @click="isAppInstallModalOpen = true">Install</button>
     </footer>
 
-    <!-- ══════════════════════════════════════════════════════════════
-         NAVIGATION MENU MODAL / SHEET (Triggered by MENU pill)
-         ══════════════════════════════════════════════════════════════ -->
-    <Transition :css="false" @enter="onNavMenuEnter" @leave="onNavMenuLeave">
-      <div v-if="isNavMenuOpen" class="fitflow-menu-modal">
-        <div class="fitflow-menu-backdrop" @click="isNavMenuOpen = false"></div>
-        <div class="fitflow-menu-card">
-          <div class="fitflow-menu-header">
-            <HabuiltLogo size="sm" :with-text="true" />
-            <button
-              type="button"
-              class="fitflow-menu-close-btn"
-              @click="isNavMenuOpen = false"
-              aria-label="Close menu"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div class="fitflow-menu-nav-links">
-            <button
-              type="button"
-              class="fitflow-menu-link"
-              @click="handleGuest('archetype-founder'); isNavMenuOpen = false;"
-            >
-              <span>🚀 Start Guest Protocol Free</span>
-              <span>↗</span>
-            </button>
-
-            <button
-              type="button"
-              class="fitflow-menu-link"
-              @click="handleGuest('archetype-longevity'); isNavMenuOpen = false;"
-            >
-              <span>Longevity Protocol</span>
-              <span>→</span>
-            </button>
-
-            <button
-              type="button"
-              class="fitflow-menu-link"
-              @click="handleGuest('archetype-postpartum'); isNavMenuOpen = false;"
-            >
-              <span>Postpartum Protocol</span>
-              <span>→</span>
-            </button>
-
-            <button
-              type="button"
-              class="fitflow-menu-link"
-              @click="handleGuest('archetype-athlete'); isNavMenuOpen = false;"
-            >
-              <span>Athlete Protocol</span>
-              <span>→</span>
-            </button>
-
-            <a
-              href="https://zoeticoach.com/join/vikas"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="fitflow-menu-link"
-              @click="isNavMenuOpen = false"
-            >
-              <span>💬 Chat with Coach Vikas</span>
-              <span>↗</span>
-            </a>
-
-            <button
-              type="button"
-              class="fitflow-menu-link"
-              @click="scrollToAuth"
-            >
-              <span>🔐 Sign In / Create Account</span>
-              <span>↓</span>
-            </button>
-
-            <button
-              v-if="canInstallPwa"
-              type="button"
-              class="fitflow-menu-link"
-              @click="handleTriggerInstallPwa(); isNavMenuOpen = false;"
-            >
-              <span>📲 Install Web App (PWA)</span>
-              <span>↓</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- PWA Install Modal Component -->
     <AppInstallModal
       :is-open="isAppInstallModalOpen"
       :can-install-native="canInstallPwa"
       @close="isAppInstallModalOpen = false"
       @trigger-install="handleTriggerInstallPwa"
     />
-
   </div>
 </template>
+
+<style scoped>
+.calm-landing {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #F7F8F2;
+  color: #0C110D;
+  font-family: var(--font-base, 'Inter', sans-serif);
+  overflow-x: clip;
+}
+.calm-landing__bar,
+.calm-landing__hero,
+.calm-landing__facts,
+footer {
+  width: min(1120px, calc(100% - (var(--calm-page-gutter, 20px) * 2)));
+  margin-inline: auto;
+}
+.calm-landing__bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  background: rgba(247, 248, 242, 0.9);
+  backdrop-filter: blur(14px);
+}
+.calm-landing__bar .calm-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.calm-landing__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 34rem) minmax(240px, 320px);
+  justify-content: center;
+  gap: clamp(20px, 3vw, 48px);
+  align-items: center;
+  padding: clamp(12px, 3vw, 28px) 0 clamp(40px, 6vw, 72px);
+}
+.calm-landing__copy h1,
+.calm-landing__facts h2,
+.calm-auth h2 {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  letter-spacing: -0.045em;
+}
+.calm-landing__copy h1 {
+  margin: 0 0 18px;
+  max-width: 12ch;
+  font-size: var(--type-fluid-display, clamp(2.35rem, 1.2rem + 3.6vw, 5.25rem));
+  font-weight: 650;
+  line-height: 0.94;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.calm-landing__copy p {
+  max-width: 38rem;
+  margin: 0;
+  color: #3A4338;
+  font-size: clamp(16px, 1.6vw, 18px);
+  line-height: 1.5;
+}
+.calm-landing__actions,
+.calm-pills,
+.calm-auth__alts,
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.calm-landing__actions { margin-top: 28px; }
+.calm-pills { margin-top: 22px; }
+.calm-btn,
+.calm-pill,
+.calm-auth__alts button,
+footer button {
+  font: inherit;
+  color: #0C110D;
+  cursor: pointer;
+}
+.calm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #0C110D;
+  border-radius: 999px;
+  background: #D9F27A;
+  padding: 13px 18px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.calm-btn:hover { background: #E4F59A; }
+.calm-btn--quiet {
+  background: #fff;
+  border: 1px solid #E4E6DC;
+}
+.calm-btn--quiet:hover {
+  background: #fff;
+  border-color: #0C110D;
+}
+.calm-btn:active,
+.calm-pill:active,
+.calm-auth__alts button:active {
+  transform: scale(0.98);
+}
+.calm-pill {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  border: 1px solid #E4E6DC;
+  border-radius: 999px;
+  background: #fff;
+  padding: 10px 14px;
+}
+.calm-pill:hover { border-color: #0C110D; }
+.calm-pill span { color: #3A4338; font-size: 14px; }
+.calm-landing__phone-col {
+  align-self: start;
+}
+.calm-phone {
+  width: min(320px, 100%);
+  margin-inline: auto;
+  padding: 12px;
+  border-radius: 40px;
+  background: #0C110D;
+  box-shadow: 0 30px 70px -36px rgba(12, 17, 13, 0.55);
+  will-change: transform;
+}
+.calm-phone__screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  padding: 22px 18px 18px;
+  border-radius: 30px;
+  background: #F7F8F2;
+  color: #0C110D;
+}
+.calm-phone__mark {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: 8px 0 22px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #D9F27A;
+  color: #0C110D;
+  font-size: 13px;
+  font-weight: 650;
+}
+.calm-phone__hero {
+  margin: 0 0 22px;
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.calm-phone ul {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.calm-phone li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: 1px solid #E4E6DC;
+}
+.calm-phone li span { color: #3A4338; font-size: 13px; }
+.calm-phone li strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+.calm-phone .calm-btn { margin-top: auto; justify-content: center; }
+.calm-landing__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  padding: 24px 0 88px;
+}
+.calm-landing__facts article {
+  padding-top: 18px;
+  border-top: 1px solid #E4E6DC;
+}
+.calm-landing__facts h2 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 650;
+}
+.calm-landing__facts p {
+  margin: 0;
+  color: #3A4338;
+  line-height: 1.5;
+}
+.calm-auth {
+  width: min(560px, calc(100% - (var(--calm-page-gutter, 16px) * 2)));
+  margin: 0 auto 48px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid #E4E6DC;
+  border-radius: 28px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.calm-auth h2 {
+  margin: 0 0 16px;
+  font-size: 36px;
+  font-weight: 650;
+}
+.calm-auth form { display: grid; gap: 10px; }
+.calm-auth label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #E4E6DC;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.calm-auth label:focus-within {
+  border-color: #0C110D;
+  box-shadow: 0 0 0 4px rgba(217, 242, 122, 0.35);
+}
+.calm-auth input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0C110D;
+  font: inherit;
+}
+.calm-auth__error { color: #9f1239; }
+.calm-auth__ok { color: #2F6B3A; }
+.calm-auth__alts { margin-top: 16px; }
+.calm-auth__alts button,
+footer a,
+footer button {
+  border: 0;
+  background: transparent;
+  color: #0C110D;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+footer {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 0 32px;
+}
+@media (min-width: 740px) {
+  .calm-landing__phone-col {
+    position: sticky;
+    top: 96px;
+  }
+}
+@media (max-width: 739px) {
+  .calm-landing__hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding-top: 8px;
+  }
+  .calm-landing__phone-col { order: -1; }
+  .calm-landing__copy h1 { max-width: 12ch; }
+  .calm-phone { width: min(280px, 100%); }
+  .calm-phone__screen { min-height: 0; }
+  .calm-landing__actions,
+  .calm-pills {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calm-landing__actions .calm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .calm-landing__facts { grid-template-columns: 1fr; gap: 22px; padding-bottom: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calm-landing [data-calm-reveal],
+  .calm-landing [data-calm-section],
+  .calm-phone,
+  .calm-btn,
+  .calm-pill {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    transition: none;
+    animation: none;
+  }
+}
+</style>

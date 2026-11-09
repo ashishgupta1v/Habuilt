@@ -9,12 +9,12 @@
   },
   "android": {
     "allowMixedContent": true,
-    "backgroundColor": "#090d16"
+    "backgroundColor": "#F7F8F2"
   },
   "plugins": {
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#090d16"
+      "backgroundColor": "#F7F8F2"
     }
   }
 }

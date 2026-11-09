@@ -135,7 +135,7 @@ const quickNudges = [
     id: 'hydration',
     icon: '💧',
     label: 'Hydration & Posture',
-    time: 'Vitality',
+    time: 'Movement',
     message: 'Drink water, stretch your spine & rest eyes for 2 minutes!',
     accent: 'sky',
   },

@@ -128,10 +128,11 @@ const onCardTouchEnd = () => {
 
 const handleCheckToggle = () => {
   if (props.isPending) return;
+  const motionOk = typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!props.isDone) {
     celebratingNow.value = true;
     triggerCelebrationFeedback();
-    if (cardRef.value) {
+    if (motionOk && cardRef.value) {
       const checkBtn = cardRef.value.querySelector('.mobile-daily__card-check');
       if (checkBtn) {
         gsap.fromTo(checkBtn,

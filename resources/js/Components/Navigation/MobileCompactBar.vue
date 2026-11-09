@@ -208,7 +208,7 @@ const autoProtocolBadge = computed(() => {
                 @click="isToolsOpen = false"
               >
                 <div class="mcb-tool-icon" style="color: #25D366; background: rgba(37, 211, 102, 0.15);"><MessageSquare class="icon-sm" /></div>
-                <span>Coach Vikas</span>
+                <span>Ask a coach</span>
               </a>
 
               <button type="button" class="mcb-tool-item" @click="emit('reload-app'); isToolsOpen = false;">

@@ -344,7 +344,7 @@ onMounted(async () => {
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: '#090D16' });
+    await StatusBar.setBackgroundColor({ color: '#F7F8F2' });
   } catch { /* non-native */ }
 
   // ── URL OAuth & Deep Link Handlers ──

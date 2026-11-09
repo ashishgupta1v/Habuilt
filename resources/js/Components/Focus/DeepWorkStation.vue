@@ -150,9 +150,9 @@ onUnmounted(() => {
           />
           <defs>
             <linearGradient id="focusGoldIndigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#00B4A0" />
-              <stop offset="50%" stop-color="#00E5C9" />
-              <stop offset="100%" stop-color="#FF6B35" />
+              <stop offset="0%" stop-color="#D9F27A" />
+              <stop offset="50%" stop-color="#D9F27A" />
+              <stop offset="100%" stop-color="#FBEA86" />
             </linearGradient>
           </defs>
         </svg>

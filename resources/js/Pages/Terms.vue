@@ -25,7 +25,7 @@ const scrollToSection = (id) => {
     <header class="legal-header">
       <div class="legal-header__inner">
         <a href="/" class="brand-link">
-          <HabuiltLogo size="sm" :with-text="true" />
+          <HabuiltLogo size="sm" :with-text="true" :show-badge="false" />
         </a>
         <div class="header-actions">
           <a href="/privacy" class="header-link">Privacy Policy</a>
@@ -106,7 +106,7 @@ const scrollToSection = (id) => {
             </h2>
             <div class="callout-box amber-box">
               <p>
-                <strong>NOT MEDICAL ADVICE:</strong> Habuilt and the ZoetiCoach intelligence system are habit tracking, cognitive discipline, and lifestyle organization tools. They are NOT certified medical devices, and do NOT provide medical diagnosis, treatment, clinical management, or physical therapy prescriptions.
+                <strong>NOT MEDICAL ADVICE:</strong> Habuilt is a habit tracker. ZoetiCoach is an optional server-side forwarder of habit events. They are NOT certified medical devices, and do NOT provide medical diagnosis, treatment, clinical management, or physical therapy prescriptions.
               </p>
               <p style="margin-top: 10px;">
                 Any routines related to hydration volume, joint decompression, stretching, zone 2 cardiovascular activity, or circadian sleep schedules are general educational references. Always consult a licensed healthcare practitioner or physician before starting any strenuous fitness program or radically altering fluid intake or dietary habits.
@@ -170,7 +170,7 @@ const scrollToSection = (id) => {
               <AlertOctagon class="icon-18 rose-icon" />
               <span>7. Limitation of Liability</span>
             </h2>
-            <p style="font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.7;">
+            <p style="font-size: 12px; color: #0C110D; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.7;">
               TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, HABUILT AND ITS AFFILIATES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, DEVICE DAMAGE, PERSONAL INJURY RESULTING FROM STRENUOUS PHYSICAL ROUTINES, OR SERVICE INTERRUPTIONS. THE PLATFORM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS.
             </p>
           </section>
@@ -210,9 +210,9 @@ const scrollToSection = (id) => {
 <style scoped>
 .legal-root {
   min-height: 100vh;
-  background-color: #07090e;
-  color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #F7F8F2;
+  color: #0C110D;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   position: relative;
   overflow-x: hidden;
 }
@@ -245,8 +245,8 @@ const scrollToSection = (id) => {
   z-index: 40;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(7, 9, 14, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(247, 248, 242, 0.92);
+  border-bottom: 1px solid #E4E6DC;
   padding: 16px 24px;
 }
 .legal-header__inner {
@@ -265,14 +265,14 @@ const scrollToSection = (id) => {
   gap: 16px;
 }
 .header-link {
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 .header-link:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 .back-btn {
   display: inline-flex;
@@ -280,16 +280,16 @@ const scrollToSection = (id) => {
   gap: 8px;
   padding: 8px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   font-size: 12.5px;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #F7F8F2;
 }
 
 .legal-main {
@@ -315,21 +315,22 @@ const scrollToSection = (id) => {
   margin-bottom: 16px;
 }
 .amber-pill {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  color: #fbbf24;
+  background: #D9F27A;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .legal-title {
+  font-family: 'Urbanist', 'Inter', sans-serif;
   font-size: 2.75rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #0C110D;
   letter-spacing: -0.025em;
   margin: 0 0 16px;
   line-height: 1.15;
 }
 .legal-desc {
   font-size: 15px;
-  color: #94a3b8;
+  color: #3A4338;
   line-height: 1.65;
   margin: 0 0 16px;
 }
@@ -339,7 +340,7 @@ const scrollToSection = (id) => {
   gap: 12px;
   font-size: 12px;
   font-family: monospace;
-  color: #64748b;
+  color: #3A4338;
 }
 
 .legal-grid {
@@ -357,11 +358,10 @@ const scrollToSection = (id) => {
 .toc-sidebar {
   position: sticky;
   top: 96px;
-  background: rgba(15, 20, 31, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 18px;
-  backdrop-filter: blur(12px);
 }
 .toc-title {
   font-size: 11px;
@@ -369,9 +369,9 @@ const scrollToSection = (id) => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: #3A4338;
   padding: 0 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #E4E6DC;
   margin-bottom: 10px;
 }
 .toc-nav {
@@ -385,20 +385,20 @@ const scrollToSection = (id) => {
   border: none;
   padding: 8px 12px;
   border-radius: 10px;
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 12.5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .toc-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  color: #0C110D;
+  background: #F7F8F2;
 }
 .toc-btn.active {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
+  background: #D9F27A;
+  color: #0C110D;
   font-weight: 700;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid #E4E6DC;
 }
 
 .legal-content {
@@ -407,28 +407,29 @@ const scrollToSection = (id) => {
   gap: 32px;
 }
 .legal-card {
-  background: rgba(15, 20, 31, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
   border-radius: 22px;
   padding: 28px;
   font-size: 14px;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #0C110D;
 }
 .highlight-card {
-  border-color: rgba(245, 158, 11, 0.25);
+  border-color: #E4E6DC;
+  background: #FFF8F4;
 }
 .card-heading {
   font-size: 1.2rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #0C110D;
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 0 0 16px;
 }
 .amber-heading {
-  color: #fde68a;
+  color: #0C110D;
 }
 
 .styled-list {
@@ -437,10 +438,10 @@ const scrollToSection = (id) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #94a3b8;
+  color: #3A4338;
 }
 .styled-list li strong {
-  color: #e2e8f0;
+  color: #0C110D;
 }
 
 .callout-box {
@@ -451,31 +452,31 @@ const scrollToSection = (id) => {
   margin: 16px 0;
 }
 .amber-box {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  color: #fef3c7;
+  background: #FFF8F4;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .info-box {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 
 .legal-footer {
   margin-top: 60px;
   padding-top: 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #E4E6DC;
   text-align: center;
   font-size: 12px;
-  color: #64748b;
+  color: #3A4338;
 }
 .legal-footer a {
-  color: #94a3b8;
+  color: #3A4338;
   text-decoration: none;
   margin: 0 6px;
 }
 .legal-footer a:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .icon-14 {
@@ -486,9 +487,52 @@ const scrollToSection = (id) => {
   width: 18px;
   height: 18px;
 }
-.amber-icon { color: #fbbf24; }
-.emerald-icon { color: #34d399; }
-.sky-icon { color: #38bdf8; }
-.indigo-icon { color: #818cf8; }
-.rose-icon { color: #fb7185; }
+.amber-icon { color: #6A5A22; }
+.emerald-icon { color: #2F6B3A; }
+.sky-icon { color: #24556B; }
+.indigo-icon { color: #3A4338; }
+.rose-icon { color: #8E3B3B; }
+
+.glow-orb { position: absolute; }
+.legal-main { max-width: 1040px; }
+.legal-content p,
+.legal-desc,
+.legal-card p,
+.callout-body {
+  max-width: var(--calm-measure, 68ch);
+}
+@media (max-width: 720px) {
+  .legal-header { padding: 12px 16px; }
+  .legal-header__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .legal-main {
+    max-width: none;
+    padding: 28px 16px 72px;
+  }
+  .legal-title {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+    overflow-wrap: anywhere;
+  }
+  .hero-intro,
+  .legal-content,
+  .legal-content p,
+  .legal-desc,
+  .legal-card,
+  .legal-card p,
+  .pill-badge {
+    max-width: none;
+    width: 100%;
+  }
+  .pill-badge { width: auto; white-space: normal; }
+  .toc-sidebar { position: static; }
+  .legal-footer { overflow-wrap: anywhere; }
+}
 </style>

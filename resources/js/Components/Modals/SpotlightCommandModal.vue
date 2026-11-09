@@ -257,7 +257,7 @@ const systemCommands = computed(() => {
       id: 'cmd-switch-founder',
       category: 'Protocols',
       title: 'Switch to Founder / Deep Work Executive',
-      subtitle: '16 core habits • 90m deep work sprints, vitality & shutdown',
+      subtitle: '16 core habits • deep work blocks and an evening shutdown',
       icon: Briefcase,
       badge: 'Archetype',
       action: () => emit('switch-protocol', 'archetype-founder'),

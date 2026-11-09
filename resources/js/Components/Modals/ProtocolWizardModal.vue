@@ -142,8 +142,8 @@ const handleActivateProtocol = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fadeIn">
-    <div class="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-[#14151b] border border-gold/30 rounded-2xl shadow-2xl overflow-hidden text-gray-100">
+  <div v-if="isOpen" class="calm-wizard-overlay">
+    <div class="calm-wizard">
       
       <!-- Modal Top Bar -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#191b22]">
@@ -578,6 +578,42 @@ const handleActivateProtocol = () => {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .shadow-glow-gold {
-  box-shadow: 0 0 20px rgba(212, 160, 62, 0.35);
+  box-shadow: 0 0 20px rgba(217, 242, 122, 0.45);
+}
+.calm-wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(12, 17, 13, 0.28);
+}
+.calm-wizard {
+  width: min(760px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #F7F8F2;
+  color: #0C110D;
+  border: 1px solid #E4E6DC;
+  border-radius: 24px;
+}
+.calm-wizard h2,
+.calm-wizard h3,
+.calm-wizard h4,
+.calm-wizard p,
+.calm-wizard label,
+.calm-wizard button,
+.calm-wizard span {
+  color: #0C110D;
+}
+.calm-wizard input,
+.calm-wizard select,
+.calm-wizard textarea {
+  background: #fff;
+  color: #0C110D;
+  border: 1px solid #E4E6DC;
+  border-radius: 12px;
 }
 </style>
