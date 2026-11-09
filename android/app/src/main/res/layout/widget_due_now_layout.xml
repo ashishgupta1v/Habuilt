@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Habuilt"
-            android:textColor="#F1F6FB"
+            android:textColor="#0C110D"
             android:textSize="11sp"
             android:textStyle="bold" />
 
@@ -34,7 +34,7 @@
             android:paddingEnd="5dp"
             android:paddingBottom="2dp"
             android:text="DUE NOW"
-            android:textColor="#4FD3BE"
+            android:textColor="#0C110D"
             android:textSize="9sp"
             android:textStyle="bold" />
 
@@ -54,7 +54,7 @@
             android:paddingEnd="6dp"
             android:paddingBottom="2dp"
             android:text="⭐ 0 pts"
-            android:textColor="#4FD3BE"
+            android:textColor="#0C110D"
             android:textSize="9.5sp"
             android:textStyle="bold" />
 
@@ -70,7 +70,7 @@
             android:paddingEnd="6dp"
             android:paddingBottom="2dp"
             android:text="🔥 0d"
-            android:textColor="#FF834F"
+            android:textColor="#0C110D"
             android:textSize="9.5sp"
             android:textStyle="bold" />
 
@@ -86,7 +86,7 @@
             android:paddingEnd="6dp"
             android:paddingBottom="2dp"
             android:text="🎯 100%"
-            android:textColor="#38BDF8"
+            android:textColor="#0C110D"
             android:textSize="9.5sp"
             android:textStyle="bold"
             android:visibility="gone" />
@@ -98,7 +98,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="5dp"
         android:layout_marginBottom="5dp"
-        android:background="#1A3C5E" />
+        android:background="#E4E6DC" />
 
     <!-- ── Habit Name ── -->
     <TextView
@@ -108,7 +108,7 @@
         android:ellipsize="end"
         android:maxLines="2"
         android:text="🎯 Morning Focus Block (90 min)"
-        android:textColor="#F1F6FB"
+        android:textColor="#0C110D"
         android:textSize="13.5sp"
         android:textStyle="bold" />
 
@@ -125,7 +125,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="⏰ 08:30 AM – 10:00 AM"
-            android:textColor="#9DB7D3"
+            android:textColor="#3A4338"
             android:textSize="10.5sp" />
 
         <TextView
@@ -139,7 +139,7 @@
             android:paddingEnd="5dp"
             android:paddingBottom="1dp"
             android:text="+3 pts"
-            android:textColor="#FF834F"
+            android:textColor="#0C110D"
             android:textSize="9sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -153,7 +153,7 @@
         android:ellipsize="end"
         android:maxLines="2"
         android:text="💡 Silence all notifications &amp; execute your highest leverage task."
-        android:textColor="#CBD5E1"
+        android:textColor="#3A4338"
         android:textSize="10.5sp" />
 
     <FrameLayout
@@ -179,7 +179,7 @@
             android:focusable="true"
             android:gravity="center"
             android:text="✓ MARK DONE"
-            android:textColor="#FFFFFF"
+            android:textColor="#0C110D"
             android:textSize="11.5sp"
             android:textStyle="bold" />
 
@@ -194,7 +194,7 @@
             android:focusable="true"
             android:gravity="center"
             android:text="Open Dashboard"
-            android:textColor="#E2E8F0"
+            android:textColor="#0C110D"
             android:textSize="10.5sp" />
     </LinearLayout>
 

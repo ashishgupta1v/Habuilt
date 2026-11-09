@@ -8,7 +8,7 @@
   min-height: 100vh;
   width: 100%;
   background: #f8fafc;
-  color: #090d16;
+  color: #0C110D;
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
   overflow-x: hidden;
@@ -49,7 +49,7 @@
   height: 800px;
   bottom: -220px;
   right: -150px;
-  background: radial-gradient(circle, rgba(2, 132, 199, 0.18) 0%, rgba(0, 229, 201, 0.09) 45%, transparent 68%);
+  background: radial-gradient(circle, rgba(2, 132, 199, 0.18) 0%, rgba(217, 242, 122, 0.09) 45%, transparent 68%);
   animation: lp-float-b 28s ease-in-out infinite alternate;
 }
 
@@ -933,8 +933,8 @@
 }
 
 .lp__alert--success {
-  background: rgba(13, 148, 136, 0.08);
-  border: 1px solid rgba(13, 148, 136, 0.3);
+  background: rgba(217, 242, 122, 0.08);
+  border: 1px solid rgba(217, 242, 122, 0.3);
   color: #0f766e;
 }
 
@@ -981,7 +981,7 @@
   border: none;
   font-size: 11.5px;
   font-weight: 750;
-  color: #0d9488;
+  color: #0C110D;
   cursor: pointer;
   padding: 0;
   transition: color 0.15s ease;
@@ -1023,8 +1023,8 @@
 .lp__text-input:focus {
   outline: none;
   background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  border-color: #0C110D;
+  box-shadow: 0 0 0 3px rgba(217, 242, 122, 0.15);
 }
 
 .lp__text-input::placeholder {
@@ -1529,11 +1529,11 @@
    ══════════════════════════════════════════════════════════════════ */
 .lp {
   background: #f8fafc !important;
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__orb--primary {
-  background: radial-gradient(circle, rgba(13, 148, 136, 0.1) 0%, transparent 65%) !important;
+  background: radial-gradient(circle, rgba(217, 242, 122, 0.1) 0%, transparent 65%) !important;
 }
 
 .lp__orb--secondary {
@@ -1541,7 +1541,7 @@
 }
 
 .lp__orb--accent {
-  background: radial-gradient(circle, rgba(13, 148, 136, 0.06) 0%, transparent 70%) !important;
+  background: radial-gradient(circle, rgba(217, 242, 122, 0.06) 0%, transparent 70%) !important;
 }
 
 .lp__grid-pattern {
@@ -1550,11 +1550,11 @@
 }
 
 .lp__brand-name {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__h1 {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__sub {
@@ -1572,11 +1572,11 @@
 }
 
 .lp__stat-title {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__feature-title {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__feature-desc {
@@ -1601,7 +1601,7 @@
 }
 
 .lp__auth-h3 {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__auth-subtext {
@@ -1615,13 +1615,13 @@
 .lp__input-box input {
   background: #f8fafc !important;
   border: 1px solid #cbd5e1 !important;
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__input-box input:focus {
   background: #ffffff !important;
-  border-color: #0d9488 !important;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+  border-color: #0C110D !important;
+  box-shadow: 0 0 0 3px rgba(217, 242, 122, 0.15) !important;
 }
 
 .lp__input-box input::placeholder {
@@ -1653,7 +1653,7 @@
 }
 
 .lp__toggle-link {
-  color: #0d9488 !important;
+  color: #0C110D !important;
 }
 
 .lp__security-pill {
@@ -1670,12 +1670,12 @@
 
 .lp__hero-guest-btn:hover {
   background: #f8fafc !important;
-  border-color: rgba(13, 148, 136, 0.4) !important;
+  border-color: rgba(217, 242, 122, 0.4) !important;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
 }
 
 .lp__guest-head {
-  color: #090d16 !important;
+  color: #0C110D !important;
 }
 
 .lp__guest-sub {
@@ -1690,7 +1690,7 @@
 
 .lp__tab-btn--active {
   background: #ffffff !important;
-  border-color: rgba(13, 148, 136, 0.45) !important;
+  border-color: rgba(217, 242, 122, 0.45) !important;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 
@@ -1700,7 +1700,7 @@
 }
 
 .lp__tab-btn--active .lp__tab-label {
-  color: #090d16 !important;
+  color: #0C110D !important;
   font-weight: 800 !important;
 }
 
@@ -1711,7 +1711,7 @@
 }
 
 .lp__tab-btn--active .lp__tab-num {
-  color: #0d9488 !important;
+  color: #0C110D !important;
 }
 
 /* ── Apple OAuth Button (HIG Compliant) ── */

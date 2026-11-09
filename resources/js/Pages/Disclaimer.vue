@@ -12,7 +12,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
     <header class="legal-header">
       <div class="legal-header__inner">
         <a href="/" class="brand-link">
-          <HabuiltLogo size="sm" :with-text="true" />
+          <HabuiltLogo size="sm" :with-text="true" :show-badge="false" />
         </a>
         <div class="header-actions">
           <a href="/privacy" class="header-link">Privacy Policy</a>
@@ -100,9 +100,9 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 <style scoped>
 .legal-root {
   min-height: 100vh;
-  background-color: #07090e;
-  color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #F7F8F2;
+  color: #0C110D;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   position: relative;
   overflow-x: hidden;
 }
@@ -128,8 +128,8 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   z-index: 40;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(7, 9, 14, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(247, 248, 242, 0.92);
+  border-bottom: 1px solid #E4E6DC;
   padding: 16px 24px;
 }
 .legal-header__inner {
@@ -148,14 +148,14 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   gap: 16px;
 }
 .header-link {
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 .header-link:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 .back-btn {
   display: inline-flex;
@@ -163,16 +163,16 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   gap: 8px;
   padding: 8px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   font-size: 12.5px;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #F7F8F2;
 }
 
 .legal-main {
@@ -197,21 +197,22 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   margin-bottom: 16px;
 }
 .rose-pill {
-  background: rgba(244, 63, 94, 0.12);
-  border: 1px solid rgba(244, 63, 94, 0.28);
-  color: #fb7185;
+  background: #D9F27A;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .legal-title {
+  font-family: 'Urbanist', 'Inter', sans-serif;
   font-size: 2.75rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #0C110D;
   letter-spacing: -0.025em;
   margin: 0 0 16px;
   line-height: 1.15;
 }
 .legal-desc {
   font-size: 15px;
-  color: #94a3b8;
+  color: #3A4338;
   line-height: 1.65;
   margin: 0;
 }
@@ -227,9 +228,9 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   border-radius: 20px;
 }
 .rose-callout {
-  background: rgba(225, 29, 72, 0.08);
-  border: 1px solid rgba(225, 29, 72, 0.3);
-  color: #fecdd3;
+  background: #FFF8F4;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .callout-header {
   display: flex;
@@ -237,35 +238,35 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   gap: 10px;
   font-size: 16px;
   font-weight: 800;
-  color: #fda4af;
+  color: #0C110D;
   margin-bottom: 12px;
 }
 .callout-body {
   font-size: 13.5px;
   line-height: 1.65;
   margin: 0 0 8px;
-  color: #cbd5e1;
+  color: #0C110D;
 }
 .callout-highlight {
   font-weight: 700;
-  color: #ffffff;
+  color: #0C110D;
   margin-top: 12px;
   letter-spacing: 0.02em;
 }
 
 .legal-card {
-  background: rgba(15, 20, 31, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 26px;
   font-size: 14px;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #0C110D;
 }
 .card-heading {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #0C110D;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -275,25 +276,63 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 .legal-footer {
   margin-top: 60px;
   padding-top: 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #E4E6DC;
   text-align: center;
   font-size: 12px;
-  color: #64748b;
+  color: #3A4338;
 }
 .legal-footer a {
-  color: #94a3b8;
+  color: #3A4338;
   text-decoration: none;
   margin: 0 6px;
 }
 .legal-footer a:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .icon-14 { width: 14px; height: 14px; }
 .icon-18 { width: 18px; height: 18px; }
 .icon-20 { width: 20px; height: 20px; }
-.text-rose { color: #fb7185; }
-.emerald-icon { color: #34d399; }
-.amber-icon { color: #fbbf24; }
-.sky-icon { color: #38bdf8; }
+.text-rose { color: #8E3B3B; }
+.emerald-icon { color: #2F6B3A; }
+.amber-icon { color: #6A5A22; }
+.sky-icon { color: #24556B; }
+
+.glow-orb { position: absolute; }
+.legal-desc,
+.callout-body,
+.legal-card p {
+  max-width: var(--calm-measure, 68ch);
+}
+@media (max-width: 720px) {
+  .legal-header { padding: 12px 16px; }
+  .legal-header__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .legal-main {
+    max-width: none;
+    padding: 28px 16px 72px;
+  }
+  .legal-title {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+    overflow-wrap: anywhere;
+  }
+  .legal-desc,
+  .callout-body,
+  .legal-card,
+  .legal-card p,
+  .pill-badge,
+  .disclaimer-stack {
+    max-width: none;
+  }
+  .pill-badge { white-space: normal; }
+  .legal-footer { overflow-wrap: anywhere; }
+}
 </style>

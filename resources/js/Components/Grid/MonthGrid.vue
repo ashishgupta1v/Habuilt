@@ -42,7 +42,7 @@ const onCellClick = (habit, day, e) => {
     <table class="habit-grid">
       <thead>
         <tr>
-          <th class="habit-grid__sticky">Core Habit (Leading Indicator)</th>
+          <th class="habit-grid__sticky">Habit</th>
           <th class="habit-grid__pts">Pts</th>
           <th
             v-for="day in days"

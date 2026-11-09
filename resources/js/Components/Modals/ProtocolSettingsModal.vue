@@ -2291,9 +2291,9 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-settings-modal {
   max-width: 680px;
   width: 95%;
-  background: var(--surface-card, #ffffff);
-  border: 1px solid var(--surface-border, #e2e8f0);
-  border-radius: 16px;
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
+  border-radius: 28px;
   box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
@@ -2327,15 +2327,17 @@ const handlePurgeTelemetryBuffer = () => {
 }
 
 .proto-settings-tab:hover {
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-settings-tab--active {
-  color: var(--brand-gold, #0d9488);
-  border-bottom-color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0C110D);
+  border-bottom-color: var(--brand-gold, #D9F27A);
 }
 
 .proto-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem;
   overflow-y: auto;
   display: flex;
@@ -2348,12 +2350,12 @@ const handlePurgeTelemetryBuffer = () => {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  background: rgba(13, 148, 136, 0.08);
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: rgba(217, 242, 122, 0.08);
+  border: 1px solid rgba(217, 242, 122, 0.25);
   border-radius: 10px;
   font-size: 0.85rem;
   line-height: 1.45;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-mode-selector {
@@ -2378,7 +2380,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-mode-btn span {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-mode-btn small {
@@ -2388,12 +2390,12 @@ const handlePurgeTelemetryBuffer = () => {
 }
 
 .proto-mode-btn--active {
-  background: rgba(13, 148, 136, 0.08);
-  border-color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.08);
+  border-color: var(--brand-gold, #0C110D);
 }
 
 .proto-mode-btn--active span {
-  color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0C110D);
 }
 
 .proto-sliders-grid {
@@ -2423,7 +2425,7 @@ const handlePurgeTelemetryBuffer = () => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-tier-control__value {
@@ -2432,27 +2434,27 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 0.5rem;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-pts-chip {
   padding: 0.2rem 0.5rem;
-  background: rgba(13, 148, 136, 0.12);
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: rgba(217, 242, 122, 0.12);
+  border: 1px solid rgba(217, 242, 122, 0.25);
   border-radius: 6px;
   font-size: 0.75rem;
-  color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0C110D);
 }
 
 .proto-slider {
   width: 100%;
-  accent-color: var(--brand-gold, #0d9488);
+  accent-color: var(--brand-gold, #D9F27A);
   cursor: pointer;
 }
 
 .proto-slider--floor { accent-color: #f59e0b; }
 .proto-slider--half { accent-color: #0ea5e9; }
-.proto-slider--full { accent-color: #0d9488; }
+.proto-slider--full { accent-color: #D9F27A; }
 
 .proto-tier-control__desc {
   font-size: 0.75rem;
@@ -2482,7 +2484,7 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 0.4rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-input-wrap {
@@ -2497,7 +2499,7 @@ const handlePurgeTelemetryBuffer = () => {
   background: #ffffff;
   border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 6px;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   font-size: 0.95rem;
   font-weight: 700;
   text-align: center;
@@ -2515,7 +2517,7 @@ const handlePurgeTelemetryBuffer = () => {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0C110D);
   margin-bottom: 0.6rem;
 }
 
@@ -2542,7 +2544,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-preview-val {
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 /* Slots */
@@ -2570,7 +2572,7 @@ const handlePurgeTelemetryBuffer = () => {
   background: #ffffff;
   border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 8px;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-slot-fields {
@@ -2596,7 +2598,7 @@ const handlePurgeTelemetryBuffer = () => {
   background: #ffffff;
   border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 6px;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   font-size: 0.85rem;
 }
 
@@ -2625,12 +2627,12 @@ const handlePurgeTelemetryBuffer = () => {
 }
 
 .proto-preset-card:hover {
-  border-color: rgba(13, 148, 136, 0.4);
+  border-color: rgba(217, 242, 122, 0.4);
 }
 
 .proto-preset-card--active {
-  background: rgba(13, 148, 136, 0.06);
-  border-color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.06);
+  border-color: var(--brand-gold, #0C110D);
 }
 
 .proto-preset-card__head {
@@ -2653,7 +2655,7 @@ const handlePurgeTelemetryBuffer = () => {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-preset-card__badge {
@@ -2676,7 +2678,7 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 1rem;
   padding: 1rem;
   background: var(--surface-ground, #f8fafc);
-  border: 1px dashed rgba(13, 148, 136, 0.35);
+  border: 1px dashed rgba(217, 242, 122, 0.35);
   border-radius: 12px;
   margin-top: 0.5rem;
 }
@@ -2684,7 +2686,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-wizard-launch-strip strong {
   display: block;
   font-size: 0.85rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-wizard-launch-strip p {
@@ -2742,7 +2744,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-audio-card__info strong {
   display: block;
   font-size: 0.9rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   margin-bottom: 2px;
 }
 
@@ -2759,7 +2761,7 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 6px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   margin-bottom: 0.75rem;
 }
 
@@ -2773,7 +2775,38 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 0.75rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .proto-settings-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 8px));
+    margin-top: auto;
+    border-radius: 22px 22px 0 0;
+  }
+  .modal-header {
+    align-items: flex-start;
+  }
+  .modal-title,
+  .modal-subtitle {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .modal-close-btn {
+    flex-shrink: 0;
+  }
+  .proto-settings-tab {
+    white-space: nowrap;
+  }
+  .proto-settings-body {
+    padding: 16px;
+  }
+  .proto-settings-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
   .proto-sound-profiles-grid {
     grid-template-columns: 1fr;
   }
@@ -2794,13 +2827,13 @@ const handlePurgeTelemetryBuffer = () => {
 
 .proto-sound-profile-btn:hover {
   background: var(--surface-inset, #f1f5f9);
-  border-color: rgba(13, 148, 136, 0.3);
+  border-color: rgba(217, 242, 122, 0.3);
 }
 
 .proto-sound-profile-btn--active {
-  background: rgba(13, 148, 136, 0.08);
-  border-color: var(--brand-gold, #0d9488);
-  box-shadow: 0 0 14px rgba(13, 148, 136, 0.12);
+  background: rgba(217, 242, 122, 0.08);
+  border-color: var(--brand-gold, #0C110D);
+  box-shadow: 0 0 14px rgba(217, 242, 122, 0.12);
 }
 
 .proto-sound-profile-btn__head {
@@ -2811,7 +2844,7 @@ const handlePurgeTelemetryBuffer = () => {
 
 .proto-sound-profile-btn__head strong {
   font-size: 0.85rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 
 .proto-sound-profile-btn small {
@@ -2840,9 +2873,9 @@ const handlePurgeTelemetryBuffer = () => {
   font-weight: 600;
 }
 .proto-badge--active {
-  background: rgba(13, 148, 136, 0.15);
-  color: #0d9488;
-  border: 1px solid rgba(13, 148, 136, 0.3);
+  background: rgba(217, 242, 122, 0.15);
+  color: #0C110D;
+  border: 1px solid rgba(217, 242, 122, 0.3);
 }
 .proto-badge--muted {
   background: rgba(148, 163, 184, 0.1);
@@ -2868,7 +2901,7 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-ephemeris-card__city {
   font-weight: 600;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   font-size: 0.85rem;
   margin-right: 0.5rem;
 }
@@ -2878,11 +2911,11 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-ephemeris-phase-badge {
   font-size: 0.75rem;
-  background: rgba(13, 148, 136, 0.1);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.1);
+  color: var(--brand-gold, #0C110D);
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  border: 1px solid rgba(217, 242, 122, 0.25);
   font-weight: 600;
 }
 
@@ -2902,8 +2935,8 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 0.2rem;
 }
 .proto-ephemeris-pill--zenith {
-  background: rgba(13, 148, 136, 0.08);
-  border-color: rgba(13, 148, 136, 0.3);
+  background: rgba(217, 242, 122, 0.08);
+  border-color: rgba(217, 242, 122, 0.3);
 }
 .proto-ephemeris-pill__label {
   font-size: 0.68rem;
@@ -2913,7 +2946,7 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-ephemeris-pill__time {
   font-size: 0.95rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   font-weight: 700;
 }
 
@@ -2934,13 +2967,13 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-city-chip:hover {
   background: var(--surface-inset, #f1f5f9);
-  border-color: var(--brand-gold, #0d9488);
-  color: var(--text-primary, #090d16);
+  border-color: var(--brand-gold, #0C110D);
+  color: var(--text-primary, #0C110D);
 }
 .proto-city-chip--active {
-  background: rgba(13, 148, 136, 0.12);
-  border-color: var(--brand-gold, #0d9488);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.12);
+  border-color: var(--brand-gold, #0C110D);
+  color: var(--brand-gold, #0C110D);
   font-weight: 600;
 }
 
@@ -2968,7 +3001,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-text-input {
   background: transparent;
   border: none;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   padding: 0.35rem 0.55rem;
   font-size: 0.82rem;
   outline: none;
@@ -2985,7 +3018,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-toggle-info strong {
   display: block;
   font-size: 0.85rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 .proto-toggle-info p {
   margin: 0.15rem 0 0;
@@ -3005,7 +3038,7 @@ const handlePurgeTelemetryBuffer = () => {
   padding: 0;
 }
 .proto-switch-btn--on {
-  background: #0d9488;
+  background: #D9F27A;
   border-color: #0f766e;
 }
 .proto-switch-thumb {
@@ -3050,10 +3083,10 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-chip-counter {
   font-size: 0.72rem;
   padding: 0.15rem 0.45rem;
-  background: rgba(13, 148, 136, 0.1);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.1);
+  color: var(--brand-gold, #0C110D);
   border-radius: 10px;
-  border: 1px solid rgba(13, 148, 136, 0.2);
+  border: 1px solid rgba(217, 242, 122, 0.2);
 }
 .proto-empty-keys {
   font-size: 0.76rem;
@@ -3086,7 +3119,7 @@ const handlePurgeTelemetryBuffer = () => {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 .proto-user-tag {
   font-size: 0.68rem;
@@ -3113,11 +3146,11 @@ const handlePurgeTelemetryBuffer = () => {
   border: 1px solid var(--surface-border, #cbd5e1);
   border-radius: 8px;
   padding: 0.45rem 0.65rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 .proto-enroll-msg {
   font-size: 0.72rem;
-  color: #0d9488;
+  color: #0C110D;
 }
 
 /* ── Taxonomy Tab Styles ── */
@@ -3147,12 +3180,12 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-taxonomy-subtab:hover {
   background: var(--surface-inset, #f1f5f9);
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
 }
 .proto-taxonomy-subtab--active {
-  background: rgba(13, 148, 136, 0.12);
-  border-color: rgba(13, 148, 136, 0.4);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.12);
+  border-color: rgba(217, 242, 122, 0.4);
+  color: var(--brand-gold, #0C110D);
 }
 .proto-categories-grid {
   display: grid;
@@ -3189,7 +3222,7 @@ const handlePurgeTelemetryBuffer = () => {
 }
 .proto-cat-name {
   font-size: 0.825rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3198,8 +3231,8 @@ const handlePurgeTelemetryBuffer = () => {
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: rgba(13, 148, 136, 0.15);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.15);
+  color: var(--brand-gold, #0C110D);
   font-weight: 700;
 }
 .proto-cat-meta-row {
@@ -3248,7 +3281,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-order-badge {
   font-size: 11px;
   font-weight: 700;
-  color: var(--brand-gold, #0d9488);
+  color: var(--brand-gold, #0C110D);
   min-width: 26px;
 }
 .proto-habit-info {
@@ -3258,14 +3291,14 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-habit-title {
   display: block;
   font-size: 0.8rem;
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .proto-habit-pts {
   font-size: 10px;
-  color: #0d9488;
+  color: #0C110D;
   font-weight: 600;
 }
 .proto-habit-slot-pill {
@@ -3285,7 +3318,7 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-cat-select {
   background: #ffffff;
   border: 1px solid var(--surface-border, #cbd5e1);
-  color: var(--text-primary, #090d16);
+  color: var(--text-primary, #0C110D);
   font-size: 11px;
   border-radius: 6px;
   padding: 3px 6px;
@@ -3333,7 +3366,7 @@ const handlePurgeTelemetryBuffer = () => {
   transition: transform 0.15s ease;
 }
 .proto-color-dot--active {
-  border-color: #090d16;
+  border-color: #E4E6DC;
   transform: scale(1.15);
 }
 .proto-icon-picker-grid {
@@ -3360,9 +3393,9 @@ const handlePurgeTelemetryBuffer = () => {
   cursor: pointer;
 }
 .proto-icon-btn--active {
-  background: rgba(13, 148, 136, 0.15);
-  border-color: var(--brand-gold, #0d9488);
-  color: var(--brand-gold, #0d9488);
+  background: rgba(217, 242, 122, 0.15);
+  border-color: var(--brand-gold, #0C110D);
+  color: var(--brand-gold, #0C110D);
 }
 .proto-circadian-pill {
   display: flex;
@@ -3381,5 +3414,14 @@ const handlePurgeTelemetryBuffer = () => {
   align-items: center;
   gap: 0.5rem;
   margin-top: auto;
+}
+.proto-card .text-white:not(.btn),
+.proto-account-action-card .text-white:not(.btn) {
+  color: #0C110D !important;
+}
+.proto-card .text-gray-300,
+.proto-card .text-gray-400,
+.proto-account-action-card .text-gray-400 {
+  color: #3A4338 !important;
 }
 </style>

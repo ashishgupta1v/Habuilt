@@ -25,7 +25,7 @@ const scrollToSection = (id) => {
     <header class="legal-header">
       <div class="legal-header__inner">
         <a href="/" class="brand-link">
-          <HabuiltLogo size="sm" :with-text="true" />
+          <HabuiltLogo size="sm" :with-text="true" :show-badge="false" />
         </a>
         <div class="header-actions">
           <a href="/terms" class="header-link">Terms of Service</a>
@@ -93,7 +93,7 @@ const scrollToSection = (id) => {
               <span>1. Information We Collect</span>
             </h2>
             <p>
-              We collect only the minimum information necessary to synchronize your habits, maintain streak integrity, and power ZoetiCoach intelligence:
+              We collect only the minimum information necessary to synchronize your habits and maintain streak integrity. When ZoetiCoach is configured, the server may also forward habit events to that optional service:
             </p>
             <ul class="styled-list">
               <li><strong>Account Credentials:</strong> Email address and authentication tokens generated via Supabase Auth or OAuth providers (Google and Apple). Passwords are never stored in plaintext.</li>
@@ -127,7 +127,7 @@ const scrollToSection = (id) => {
             <ul class="styled-list">
               <li>Computing milestone scoring tiers, dynamic floor/half/full percentages, and warrior ranks.</li>
               <li>Triggering local and push notifications for due habits, Pomodoro deep work timers, and circadian transitions.</li>
-              <li>Synthesizing personalized ZoetiCoach habit coaching briefings and adherence guidance.</li>
+              <li>When ZoetiCoach is configured, forwarding signed-in habit events through that optional server-side forwarder and reading back that account's adherence.</li>
               <li>Syncing progress across multiple devices (phone, desktop web, tablet).</li>
             </ul>
           </section>
@@ -153,8 +153,8 @@ const scrollToSection = (id) => {
                 <div class="proc-desc">Identity authentication via OAuth 2.0 / OpenID Connect without sharing passwords.</div>
               </div>
               <div class="proc-card">
-                <div class="proc-name">ZoetiCoach AI Bridge</div>
-                <div class="proc-desc">Contextual habit analytics and adherence recommendation generation.</div>
+                <div class="proc-name">ZoetiCoach</div>
+                <div class="proc-desc">Optional server-side forwarder. When configured, the server sends signed-in habit events to ZoetiCoach and can read that account's adherence. It stays off when the server is not configured.</div>
               </div>
             </div>
           </section>
@@ -222,10 +222,10 @@ const scrollToSection = (id) => {
               If you have any questions about this Privacy Policy or wish to contact our Data Protection Officer, please reach out:
             </p>
             <div class="contact-box">
-              <div><strong style="color: #ffffff;">Data Controller:</strong> Habuilt Inc.</div>
-              <div><strong style="color: #ffffff;">Email:</strong> <a href="mailto:privacy@habuilt.com" class="accent-link">privacy@habuilt.com</a></div>
-              <div><strong style="color: #ffffff;">Platform:</strong> Habuilt Operating System (habuilt.com)</div>
-              <div><strong style="color: #ffffff;">Response SLA:</strong> Within 48 business hours</div>
+              <div><strong style="color: #0C110D;">Data Controller:</strong> Habuilt Inc.</div>
+              <div><strong style="color: #0C110D;">Email:</strong> <a href="mailto:privacy@habuilt.com" class="accent-link">privacy@habuilt.com</a></div>
+              <div><strong style="color: #0C110D;">Platform:</strong> Habuilt Operating System (habuilt.com)</div>
+              <div><strong style="color: #0C110D;">Response SLA:</strong> Within 48 business hours</div>
             </div>
           </section>
         </article>
@@ -242,9 +242,9 @@ const scrollToSection = (id) => {
 <style scoped>
 .legal-root {
   min-height: 100vh;
-  background-color: #07090e;
-  color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #F7F8F2;
+  color: #0C110D;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   position: relative;
   overflow-x: hidden;
 }
@@ -277,8 +277,8 @@ const scrollToSection = (id) => {
   z-index: 40;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(7, 9, 14, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(247, 248, 242, 0.92);
+  border-bottom: 1px solid #E4E6DC;
   padding: 16px 24px;
 }
 .legal-header__inner {
@@ -297,14 +297,14 @@ const scrollToSection = (id) => {
   gap: 16px;
 }
 .header-link {
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 .header-link:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 .back-btn {
   display: inline-flex;
@@ -312,16 +312,16 @@ const scrollToSection = (id) => {
   gap: 8px;
   padding: 8px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
   font-size: 12.5px;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
 }
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #F7F8F2;
 }
 
 .legal-main {
@@ -347,21 +347,22 @@ const scrollToSection = (id) => {
   margin-bottom: 16px;
 }
 .emerald-pill {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  color: #34d399;
+  background: #D9F27A;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .legal-title {
+  font-family: 'Urbanist', 'Inter', sans-serif;
   font-size: 2.75rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #0C110D;
   letter-spacing: -0.025em;
   margin: 0 0 16px;
   line-height: 1.15;
 }
 .legal-desc {
   font-size: 15px;
-  color: #94a3b8;
+  color: #3A4338;
   line-height: 1.65;
   margin: 0 0 16px;
 }
@@ -371,7 +372,7 @@ const scrollToSection = (id) => {
   gap: 12px;
   font-size: 12px;
   font-family: monospace;
-  color: #64748b;
+  color: #3A4338;
 }
 
 .legal-grid {
@@ -389,11 +390,10 @@ const scrollToSection = (id) => {
 .toc-sidebar {
   position: sticky;
   top: 96px;
-  background: rgba(15, 20, 31, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 18px;
-  backdrop-filter: blur(12px);
 }
 .toc-title {
   font-size: 11px;
@@ -401,9 +401,9 @@ const scrollToSection = (id) => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: #3A4338;
   padding: 0 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #E4E6DC;
   margin-bottom: 10px;
 }
 .toc-nav {
@@ -417,20 +417,20 @@ const scrollToSection = (id) => {
   border: none;
   padding: 8px 12px;
   border-radius: 10px;
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 12.5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .toc-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  color: #0C110D;
+  background: #F7F8F2;
 }
 .toc-btn.active {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
+  background: #D9F27A;
+  color: #0C110D;
   font-weight: 700;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid #E4E6DC;
 }
 
 .legal-content {
@@ -439,18 +439,18 @@ const scrollToSection = (id) => {
   gap: 32px;
 }
 .legal-card {
-  background: rgba(15, 20, 31, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E4E6DC;
   border-radius: 22px;
   padding: 28px;
   font-size: 14px;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #0C110D;
 }
 .card-heading {
   font-size: 1.2rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #0C110D;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -463,10 +463,10 @@ const scrollToSection = (id) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #94a3b8;
+  color: #3A4338;
 }
 .styled-list li strong {
-  color: #e2e8f0;
+  color: #0C110D;
 }
 
 .styled-ol {
@@ -485,20 +485,20 @@ const scrollToSection = (id) => {
   margin: 16px 0;
 }
 .emerald-box {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #6ee7b7;
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .rose-box {
-  background: rgba(225, 29, 72, 0.1);
-  border: 1px solid rgba(225, 29, 72, 0.25);
-  color: #fda4af;
+  background: #FFF8F4;
+  border: 1px solid #E4E6DC;
+  color: #0C110D;
 }
 .callout-title {
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 6px;
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .proc-grid {
@@ -510,16 +510,16 @@ const scrollToSection = (id) => {
 .proc-card {
   padding: 14px;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
 }
 .proc-name {
   font-weight: 700;
-  color: #ffffff;
+  color: #0C110D;
   font-size: 13px;
 }
 .proc-desc {
-  color: #94a3b8;
+  color: #3A4338;
   font-size: 11.5px;
   margin-top: 4px;
 }
@@ -527,8 +527,8 @@ const scrollToSection = (id) => {
 .contact-box {
   padding: 16px;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
   font-size: 12.5px;
   display: flex;
   flex-direction: column;
@@ -536,25 +536,25 @@ const scrollToSection = (id) => {
   margin-top: 14px;
 }
 .accent-link {
-  color: #fbbf24;
+  color: #0C110D;
   text-decoration: underline;
 }
 
 .legal-footer {
   margin-top: 60px;
   padding-top: 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #E4E6DC;
   text-align: center;
   font-size: 12px;
-  color: #64748b;
+  color: #3A4338;
 }
 .legal-footer a {
-  color: #94a3b8;
+  color: #3A4338;
   text-decoration: none;
   margin: 0 6px;
 }
 .legal-footer a:hover {
-  color: #ffffff;
+  color: #0C110D;
 }
 
 .icon-14 {
@@ -565,9 +565,52 @@ const scrollToSection = (id) => {
   width: 18px;
   height: 18px;
 }
-.amber-icon { color: #fbbf24; }
-.emerald-icon { color: #34d399; }
-.sky-icon { color: #38bdf8; }
-.indigo-icon { color: #818cf8; }
-.rose-icon { color: #fb7185; }
+.amber-icon { color: #6A5A22; }
+.emerald-icon { color: #2F6B3A; }
+.sky-icon { color: #24556B; }
+.indigo-icon { color: #3A4338; }
+.rose-icon { color: #8E3B3B; }
+
+.glow-orb { position: absolute; }
+.legal-main { max-width: 1040px; }
+.legal-content p,
+.legal-desc,
+.legal-card p,
+.callout-body {
+  max-width: var(--calm-measure, 68ch);
+}
+@media (max-width: 720px) {
+  .legal-header { padding: 12px 16px; }
+  .legal-header__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .legal-main {
+    max-width: none;
+    padding: 28px 16px 72px;
+  }
+  .legal-title {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+    overflow-wrap: anywhere;
+  }
+  .hero-intro,
+  .legal-content,
+  .legal-content p,
+  .legal-desc,
+  .legal-card,
+  .legal-card p,
+  .pill-badge {
+    max-width: none;
+    width: 100%;
+  }
+  .pill-badge { width: auto; white-space: normal; }
+  .toc-sidebar { position: static; }
+  .legal-footer { overflow-wrap: anywhere; }
+}
 </style>

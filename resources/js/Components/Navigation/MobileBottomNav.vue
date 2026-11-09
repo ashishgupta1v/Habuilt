@@ -208,19 +208,19 @@ const setTab = (tab) => {
 }
 
 .mobile-bottom-nav__item:focus-visible {
-  outline: 2px solid #0d9488;
+  outline: 2px solid #0C110D;
   outline-offset: -2px;
 }
 
 .mobile-bottom-nav__item:active {
   transform: scale(0.93);
-  background-color: rgba(13, 148, 136, 0.06);
+  background-color: rgba(217, 242, 122, 0.06);
 }
 
 .mobile-bottom-nav__item--active {
   color: #0f766e !important;
   font-weight: 750;
-  background-color: rgba(13, 148, 136, 0.08);
+  background-color: rgba(217, 242, 122, 0.08);
 }
 
 .mobile-bottom-nav__icon-wrap {
@@ -241,9 +241,9 @@ const setTab = (tab) => {
 }
 
 .mobile-bottom-nav__item--active .mobile-bottom-nav__icon {
-  color: #0d9488;
+  color: #0C110D;
   transform: translateY(-1px) scale(1.08);
-  filter: drop-shadow(0 2px 6px rgba(13, 148, 136, 0.35));
+  filter: drop-shadow(0 2px 6px rgba(217, 242, 122, 0.35));
 }
 
 .mobile-bottom-nav__label {
@@ -267,9 +267,9 @@ const setTab = (tab) => {
   transform: translateX(-50%);
   width: 20px;
   height: 3px;
-  background: #0d9488;
+  background: #D9F27A;
   border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 1px 4px rgba(217, 242, 122, 0.4);
   animation: navIndicatorIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 

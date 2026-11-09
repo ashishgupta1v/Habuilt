@@ -110,11 +110,13 @@ const nextMilestoneReward = computed(() => {
 
 import { onMounted, onUnmounted } from 'vue';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@/lib/calmMotion';
 
 const shopRef = ref(null);
 let gsapCtx = null;
 
 onMounted(() => {
+  if (prefersReducedMotion()) return;
   if (shopRef.value) {
     gsapCtx = gsap.context(() => {
       gsap.from('.reward-vault-hero-card', {

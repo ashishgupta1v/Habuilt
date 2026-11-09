@@ -72,12 +72,12 @@ const uid = Math.random().toString(36).substring(2, 9);
       >
         <defs>
           <linearGradient :id="`hbg-${uid}`" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#060D17" />
-            <stop offset="100%" stop-color="#0B1524" />
+            <stop offset="0%" stop-color="#0C110D" />
+            <stop offset="100%" stop-color="#0C110D" />
           </linearGradient>
           <linearGradient :id="`haccent-${uid}`" x1="18" y1="17" x2="46" y2="47" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#00B4A0" />
-            <stop offset="100%" stop-color="#00E5C9" />
+            <stop offset="0%" stop-color="#D9F27A" />
+            <stop offset="100%" stop-color="#D9F27A" />
           </linearGradient>
         </defs>
 
@@ -89,7 +89,7 @@ const uid = Math.random().toString(36).substring(2, 9);
           height="60"
           rx="14"
           :fill="`url(#hbg-${uid})`"
-          stroke="rgba(0, 180, 160, 0.45)"
+          stroke="#D9F27A"
           stroke-width="1.5"
         />
 
@@ -99,8 +99,7 @@ const uid = Math.random().toString(36).substring(2, 9);
           :fill="`url(#haccent-${uid})`"
         />
 
-        <!-- Signature Zoeti Saffron Focus Accent Dot -->
-        <circle cx="50" cy="14" r="4.5" fill="#FF6B35" />
+        <circle cx="50" cy="14" r="4.5" fill="#D9F27A" />
       </svg>
     </div>
 
@@ -165,7 +164,8 @@ const uid = Math.random().toString(36).substring(2, 9);
   font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--text-primary, #0f172a);
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  color: var(--text-primary, #0C110D);
 }
 
 .habuilt-logo-brand__tag {

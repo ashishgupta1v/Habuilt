@@ -28,7 +28,7 @@ export const PROTOCOL_ARCHETYPES = {
     name: 'Founder / Deep Work Executive',
     badge: '⚡ High Leverage',
     icon: 'briefcase',
-    tagline: 'Deep work focus sprints, physical vitality, zero-friction shutdown.',
+    tagline: 'Deep work blocks, movement, and an evening shutdown.',
     description: 'Designed for engineering leads, startup founders, and technical architects who need uninterrupted deep work blocks while protecting physical health.',
     wakeTime: '05:30',
     sleepTime: '22:30',

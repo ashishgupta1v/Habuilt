@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import {
   loadUserMonthlyState,
   saveUserMonthlyState,
@@ -26,6 +27,8 @@ import {
 } from '@/lib/supabase';
 import { getMemoryUser } from '@/lib/browserSession';
 import { summarizeSundayReview, checkInsFromHabits } from '@/lib/sundayReview';
+import { buildTodaySummary } from '@/lib/todaySummary';
+import { animateShell, animateToday, pulseCount } from '@/lib/calmMotion';
 import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
 import {
@@ -43,7 +46,6 @@ import {
 // Subcomponents
 import TopCommandBar from '@/Components/Navigation/TopCommandBar.vue';
 import MobileCompactBar from '@/Components/Navigation/MobileCompactBar.vue';
-import MobileBottomNav from '@/Components/Navigation/MobileBottomNav.vue';
 import TodayChecklist from '@/Components/Checklist/TodayChecklist.vue';
 import DeepWorkStation from '@/Components/Focus/DeepWorkStation.vue';
 import MonthGrid from '@/Components/Grid/MonthGrid.vue';
@@ -474,6 +476,18 @@ let realtimePartnerChannel = null;
 
 // ── MOBILE PWA SPA 4-TAB ROUTING & DAY NAV ──
 const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
+const shellTab = ref('today');
+const shellFlow = ref(null);
+const accountMenuOpen = ref(false);
+const openAccountMenu = () => {
+  if (shellTab.value !== 'today') {
+    shellTab.value = 'today';
+    accountMenuOpen.value = true;
+    return;
+  }
+  accountMenuOpen.value = !accountMenuOpen.value;
+};
+const showAdherence = ref(false);
 
 const mobilePrevDay = () => {
   if (mobileSelectedDay.value > 1) {
@@ -1727,6 +1741,22 @@ const getDayTotal = (day) => {
 
 const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
+const calmToday = computed(() => {
+  const connection = activePartnerConnection.value;
+  let partnerState = 'none';
+  if (connection?.status === 'connected') {
+    partnerState = partnerKeptToday.value ? 'accepted_kept' : 'accepted_not_yet';
+  } else if (connection?.status) {
+    partnerState = 'pending';
+  }
+  return buildTodaySummary({
+    habitsDue: todayScheduledCount.value,
+    habitsKept: todayCompletedCount.value,
+    streakDays: systemStreak.value?.current || 0,
+    nextReminderLabel: upNextHabitInfo.value?.timeLabel || '',
+    partnerState,
+  });
+});
 
 // Milestone 4: Dynamic PWA Badging Integration
 const remainingTodayHabitsCount = computed(() => {
@@ -1887,6 +1917,16 @@ const systemStreak = computed(() => {
     else break;
   }
   return { current, best: Math.max(best, current) };
+});
+
+watch(shellTab, async () => {
+  await nextTick();
+  animateShell(shellFlow.value);
+});
+
+watch(() => calmToday.value?.hero, async () => {
+  await nextTick();
+  pulseCount(shellFlow.value?.querySelector('[data-calm-hero-count]'));
 });
 
 const consistencyScore = computed(() => {
@@ -3485,6 +3525,16 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(() => {
+  document.body.classList.add('has-calm-tabs');
+  try {
+    if (sessionStorage.getItem('habuilt_open_add_habit') === '1') {
+      sessionStorage.removeItem('habuilt_open_add_habit');
+      shellTab.value = 'habits';
+      openAddHabitModal('morning');
+    }
+  } catch { /* storage is optional */ }
+  nextTick(() => animateToday(shellFlow.value));
+
   // Check for shared protocol import in URL hash (#import-protocol=base64)
   if (typeof window !== 'undefined' && window.location.hash.includes('#import-protocol=')) {
     try {
@@ -3805,6 +3855,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  document.body.classList.remove('has-calm-tabs');
   if (nativeBackButtonHandle) {
     try { nativeBackButtonHandle.remove(); } catch {}
     nativeBackButtonHandle = null;
@@ -3953,6 +4004,7 @@ onBeforeUnmount(() => {
 
     <!-- ── STICKY MINI HUD — shows after scrolling past hero ── -->
     <StickyMiniHud
+      v-if="shellTab === 'insights'"
       :show-sticky-hud="showStickyHud"
       :today-points="todayPoints"
       :today-possible-daily-points="todayPossibleDailyPoints"
@@ -3963,9 +4015,74 @@ onBeforeUnmount(() => {
     />
 
     <!-- Main Dashboard Flow (Multi-view SPA Tab Coordinator) -->
-    <div class="dashboard-flow" :class="{ 'dashboard-flow--zen': zenMode }">
+    <div class="dashboard-flow" ref="shellFlow" :class="{ 'dashboard-flow--zen': zenMode }">
+      <header class="calm-chrome">
+        <HabuiltLogo with-text :show-badge="false" size="sm" />
+        <button
+          type="button"
+          class="calm-account-btn"
+          :aria-expanded="accountMenuOpen ? 'true' : 'false'"
+          @click="openAccountMenu"
+        >
+          Account
+        </button>
+      </header>
+      <nav class="calm-tabs" aria-label="Habuilt">
+        <button type="button" :class="{ 'is-on': shellTab === 'today' }" @click="shellTab = 'today'">Today</button>
+        <button type="button" :class="{ 'is-on': shellTab === 'habits' }" @click="shellTab = 'habits'">Habits</button>
+        <button type="button" :class="{ 'is-on': shellTab === 'rewards' }" @click="shellTab = 'rewards'">Rewards</button>
+        <button type="button" :class="{ 'is-on': shellTab === 'review' }" @click="shellTab = 'review'">Review</button>
+      </nav>
+      <section v-if="shellTab === 'today'" class="calm-today" data-calm-panel aria-label="Today">
+        <div class="calm-today__stage">
+          <div class="calm-today__lead">
+            <p class="calm-today__mark">Today</p>
+            <p class="calm-today__hero" data-calm-hero-count>{{ calmToday?.hero }}</p>
+            <button
+              v-if="calmToday?.showAddHabit"
+              type="button"
+              class="calm-today__add"
+              data-calm-empty
+              @click="shellTab = 'habits'; openAddHabitModal('morning')"
+            >
+              Add a habit
+            </button>
+          </div>
+          <div class="calm-today__tiles">
+            <button type="button" data-calm-tile @click="shellTab = 'habits'">
+              <span>Streak</span>
+              <strong>{{ calmToday?.streak }}</strong>
+            </button>
+            <button type="button" data-calm-tile @click="shellTab = 'habits'">
+              <span>Reminder</span>
+              <strong>{{ calmToday?.reminder }}</strong>
+            </button>
+            <button type="button" data-calm-tile @click="isUniversalPartnerPairModalOpen = true">
+              <span>Partner</span>
+              <strong>{{ calmToday?.partner }}</strong>
+            </button>
+          </div>
+        </div>
+        <div v-if="accountMenuOpen" class="calm-sheet">
+          <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="accountMenuOpen = false"></button>
+          <div class="calm-account" role="dialog" aria-modal="true" aria-label="Account">
+            <div class="calm-account__bar">
+              <strong>Account</strong>
+              <button type="button" class="calm-account__close" aria-label="Close" @click="accountMenuOpen = false">Close</button>
+            </div>
+            <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Protocol settings</button>
+            <button type="button" @click="accountMenuOpen = false; showAdherence = true">Adherence</button>
+            <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Export</button>
+            <button type="button" @click="emit('sign-out')">Sign out</button>
+            <button type="button" @click="accountMenuOpen = false; shellTab = 'focus'">Focus</button>
+            <button type="button" @click="accountMenuOpen = false; shellTab = 'insights'">Insights</button>
+          </div>
+        </div>
+      </section>
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
+        v-if="shellTab === 'insights'"
+        data-calm-panel
         class="card card--hero mobile-tab-hero"
         :class="{ 'card--hero-compact': activeMobileTab !== 'today' }"
         id="overview"
@@ -4016,7 +4133,7 @@ onBeforeUnmount(() => {
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
         <HeroExecutiveDeck
-          v-if="activeMobileTab === 'today'"
+          v-if="shellTab === 'insights'"
           :time-greeting="timeGreeting"
           :performance-grade="performanceGrade"
           :current-routine-window="currentRoutineWindow"
@@ -4038,7 +4155,7 @@ onBeforeUnmount(() => {
 
         <!-- ── Mission Control Row 2: Executive 4-Card KPI Ribbon ── -->
         <ExecutiveKpiRibbon
-          v-if="activeMobileTab === 'today'"
+          v-if="shellTab === 'insights'"
           :system-streak="systemStreak"
           :available-wallet="availableWallet"
           :monthly-total-earned="monthlyTotalEarned"
@@ -4052,7 +4169,7 @@ onBeforeUnmount(() => {
 
       <!-- ── SECTION: ZOETICOACH LIVE ADHERENCE & AI INSIGHTS HUD ── -->
       <ZoetiCoachAdherenceHud
-        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        v-if="showAdherence"
         :is-ashish="isAshish"
         :is-jyoti="isJyoti"
         :user-id="effectiveUserId"
@@ -4069,7 +4186,7 @@ onBeforeUnmount(() => {
       <!-- ── SECTION: WARRIOR INTELLIGENCE COCKPIT (Circadian Battle Plan, Keystone Analysis & Biometrics) ── -->
       <WarriorIntelligenceCockpit
         ref="cockpitRef"
-        v-if="activeMobileTab === 'today' || activeMobileTab === 'stats'"
+        v-if="shellTab === 'insights'"
         :is-ashish="isAshish"
         :is-jyoti="isJyoti"
         :display-name="displayName"
@@ -4099,13 +4216,14 @@ onBeforeUnmount(() => {
       />
 
       <HouseholdDayCard
-        v-if="isPartnerPaired && (activeMobileTab === 'today' || activeMobileTab === 'stats')"
+        v-if="isPartnerPaired && shellTab === 'today'"
         :suggested-day-type="dayType"
       />
 
       <!-- ── SECTION: DEDICATED DEEP WORK FOCUS STATION (Focus Tab on Mobile) ── -->
       <DeepWorkStation
-        v-if="activeMobileTab === 'focus'"
+        v-if="shellTab === 'focus'"
+        data-calm-panel
         :timer-state="timerState"
         :timer-launcher-duration="timerLauncherDuration"
         :custom-timer-min="customTimerMin"
@@ -4137,17 +4255,18 @@ onBeforeUnmount(() => {
 
       <!-- ── SECTION: HABIT CHECKLIST (Today Tab on Mobile & Main Grid on Desktop) ── -->
       <section
+        data-calm-panel
         class="card mobile-tab-section"
-        :class="[activeMobileTab === 'today' ? 'mobile-tab-section--active' : '']"
+        :class="[shellTab === 'habits' ? 'mobile-tab-section--active' : '']"
         id="habits"
       >
         <div class="section-head">
           <div class="section-title-wrap">
             <h2 class="section-title">
               <span class="section-title__icon"><CheckSquare class="icon-md" /></span>
-              <span>Habit Checklist</span>
+              <span>Habits</span>
             </h2>
-            <small>Core Leading Indicators — day-based completion matrix</small>
+            <small>Mark a day when you kept it.</small>
           </div>
           <div class="section-actions-wrap">
             <button id="habits-btn-add" class="btn btn--primary-action" @click="openAddHabitModal('morning')">
@@ -4274,8 +4393,9 @@ onBeforeUnmount(() => {
 
       <!-- ── SECTION: PERFORMANCE ANALYTICS (Stats Tab on Mobile) ── -->
       <section
+        data-calm-panel
         class="card mobile-tab-section"
-        :class="[activeMobileTab === 'stats' ? 'mobile-tab-section--active' : '']"
+        :class="[shellTab === 'insights' ? 'mobile-tab-section--active' : '']"
         id="analytics"
       >
         <div class="section-head">
@@ -4318,17 +4438,18 @@ onBeforeUnmount(() => {
 
       <!-- ── SECTION: REWARDS SHOP (Rewards Tab on Mobile) ── -->
       <section
+        data-calm-panel
         class="card mobile-tab-section"
-        :class="[activeMobileTab === 'rewards' ? 'mobile-tab-section--active' : '']"
+        :class="[shellTab === 'rewards' ? 'mobile-tab-section--active' : '']"
         id="rewards"
       >
         <div class="section-head">
           <div class="section-title-wrap">
             <h2 class="section-title">
               <span class="section-title__icon"><Gift class="icon-md" /></span>
-              <span>Reward Shop & Wallet</span>
+              <span>Rewards</span>
             </h2>
-            <small>Reinvest earned habit points into real-world rewards</small>
+            <small>Points from habits you kept. They are not cash.</small>
           </div>
         </div>
 
@@ -4368,8 +4489,9 @@ onBeforeUnmount(() => {
 
       <!-- ── SECTION: SUNDAY REVIEW ── -->
       <section
+        data-calm-panel
         class="card mobile-tab-section"
-        :class="[activeMobileTab === 'stats' ? 'mobile-tab-section--active' : '']"
+        :class="[shellTab === 'review' ? 'mobile-tab-section--active' : '']"
         id="weekly-review"
       >
         <SundayReview
@@ -4692,7 +4814,7 @@ onBeforeUnmount(() => {
 
       <!-- Android Floating Action Button (FAB) for Quick Add Habit -->
       <button
-        v-if="activeMobileTab === 'today'"
+        v-if="shellTab === 'habits'"
         id="mobile-habits-fab"
         type="button"
         class="mobile-fab"
@@ -4702,14 +4824,238 @@ onBeforeUnmount(() => {
       >
         <Plus class="mobile-fab__icon" />
       </button>
-
-      <!-- Fixed Mobile PWA Bottom Navigation Bar (Thumb Zone) -->
-      <MobileBottomNav
-        v-model:active-tab="activeMobileTab"
-        :today-completed-count="todayCompletedCount"
-        :total-habits="todayScheduledCount"
-        :timer-running="timerState && timerState.running"
-      />
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+.dashboard-flow {
+  width: min(1080px, calc(100% - 32px));
+  min-width: 0;
+  margin: 12px auto 40px;
+  color: #0C110D;
+}
+.calm-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+.calm-account-btn,
+.calm-tabs button,
+.calm-account button,
+.calm-today__add {
+  font: inherit;
+  color: #0C110D;
+  cursor: pointer;
+}
+.calm-account-btn {
+  border: 1px solid #E4E6DC;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+.calm-account-btn:hover,
+.calm-account button:hover,
+.calm-today__tiles button:hover {
+  border-color: #0C110D;
+}
+.calm-account-btn:active,
+.calm-tabs button:active,
+.calm-account button:active,
+.calm-today__tiles button:active,
+.calm-today__add:active {
+  transform: scale(0.98);
+}
+.calm-tabs {
+  display: flex;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 14px 0 8px;
+  padding: 6px;
+  border: 1px solid #E4E6DC;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.calm-tabs button {
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 10px 16px;
+  font-size: clamp(13px, 3.1vw, 15px);
+  white-space: nowrap;
+}
+.calm-tabs button.is-on,
+.calm-today__add {
+  background: #D9F27A;
+  color: #0C110D;
+}
+.calm-today {
+  padding: 12px 0 8px;
+}
+.calm-today__stage {
+  display: grid;
+  gap: 22px;
+}
+.calm-today__mark {
+  margin: 0 0 10px;
+  color: #3A4338;
+  font-size: 15px;
+}
+.calm-today__hero {
+  margin: 0;
+  max-width: 12em;
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: var(--type-fluid-hero, clamp(2rem, 1.05rem + 2.8vw, 4.15rem));
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.calm-today__add {
+  margin-top: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #D9F27A;
+  padding: 12px 18px;
+  font-weight: 650;
+}
+.calm-today__tiles {
+  display: grid;
+  gap: 10px;
+}
+.calm-today__tiles button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid #E4E6DC;
+  border-radius: 22px;
+  background: #fff;
+  text-align: left;
+}
+.calm-today__tiles button span {
+  color: #3A4338;
+  font-size: 13px;
+}
+.calm-today__tiles button strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.calm-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.calm-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(12, 17, 13, 0.36);
+}
+.calm-account {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  width: min(480px, 100%);
+  max-height: min(86dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 12px));
+  margin: 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  border: 1px solid #E4E6DC;
+  border-radius: 22px 22px 0 0;
+  background: #fff;
+  box-sizing: border-box;
+}
+.calm-account__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+.calm-account__bar strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 22px;
+}
+.calm-account__close {
+  width: auto !important;
+  border-radius: 999px !important;
+  padding: 8px 14px !important;
+  text-align: center !important;
+}
+.calm-account button {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #E4E6DC;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .dashboard-flow {
+    width: min(1080px, calc(100% - clamp(28px, 4vw, 80px)));
+    margin-top: 28px;
+  }
+  .calm-today__stage {
+    grid-template-columns: minmax(0, 1.15fr) minmax(210px, 0.85fr);
+    gap: clamp(16px, 3vw, 40px);
+    align-items: center;
+  }
+  .calm-sheet {
+    align-items: center;
+    padding: 24px;
+  }
+  .calm-account {
+    border-radius: 22px;
+    max-height: min(80vh, 640px);
+    padding: 20px;
+  }
+}
+@media (max-width: 767px) {
+  .dashboard-flow {
+    width: min(100% - 28px, 720px);
+    padding-bottom: var(--calm-shell-pad, calc(96px + env(safe-area-inset-bottom, 0px)));
+  }
+  .calm-tabs {
+    position: fixed;
+    z-index: 70;
+    left: 12px;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    justify-content: space-between;
+    margin: 0;
+    background: rgba(247, 248, 242, 0.94);
+    backdrop-filter: blur(16px);
+  }
+  .calm-tabs button {
+    flex: 1;
+    padding: 10px 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calm-tabs button,
+  .calm-today__tiles button,
+  .calm-today__add,
+  .calm-account button,
+  .calm-account-btn {
+    transition: none;
+  }
+}
+</style>
+

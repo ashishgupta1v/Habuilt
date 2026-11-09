@@ -1,12 +1,12 @@
 {
-  "name": "Habuilt — Executive Habit Protocol",
+  "name": "Habuilt",
   "short_name": "Habuilt",
-  "description": "High-leverage atomic habit protocol and circadian executive command center.",
+  "description": "A calm habit tracker for today's list, reminders, a partner's Kept or Not yet, Sunday review, and the reward shop.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#F7F8F2",
+  "theme_color": "#F7F8F2",
   "id": "/",
   "scope": "/",
   "categories": ["productivity", "health", "lifestyle"],
@@ -59,14 +59,14 @@
       "sizes": "1170x2532",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Habuilt Mobile Executive Dashboard"
+      "label": "Habuilt today"
     },
     {
       "src": "/screenshots/pwa-desktop-preview.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Habuilt Desktop Protocol Station"
+      "label": "Habuilt on a wide screen"
     }
   ],
   "prefer_related_applications": false

@@ -274,7 +274,7 @@ const availableTimeSlots = computed(() => {
     <!-- Timeline-Grouped Habit Cards -->
     <div class="mobile-daily__list">
       <!-- Empty state -->
-      <div v-if="visibleHabits.length === 0" class="checklist-empty">
+      <div v-if="visibleHabits.length === 0" class="checklist-empty" data-calm-empty>
         <div class="checklist-empty__icon"><Sparkles class="icon-md" /></div>
         <h3 class="checklist-empty__title">Your checklist is empty</h3>
         <p class="checklist-empty__body">

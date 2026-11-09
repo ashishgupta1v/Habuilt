@@ -87,20 +87,19 @@ function createHabuiltIconPNG(size, isForeground = false, isRound = false) {
       }
 
       if (isInsideH) {
-        // Linear gradient from Emerald #34D399 (52, 211, 153) to Cyan #22D3EE (34, 211, 238)
-        const t = (lx + ly) / 2;
-        const r = Math.round(52 * (1 - t) + 34 * t);
-        const g = Math.round(211 * (1 - t) + 211 * t);
-        const b = Math.round(153 * (1 - t) + 238 * t);
+        // Lime H on the charcoal plate. #D9F27A
+        const r = 217;
+        const g = 242;
+        const b = 122;
         rawData[pixelOffset] = r;
         rawData[pixelOffset + 1] = g;
         rawData[pixelOffset + 2] = b;
         rawData[pixelOffset + 3] = 255;
       } else if (isInsideDot) {
-        // Bright emerald dot #34D399
-        rawData[pixelOffset] = 52;
-        rawData[pixelOffset + 1] = 211;
-        rawData[pixelOffset + 2] = 153;
+        // Lime dot #D9F27A
+        rawData[pixelOffset] = 217;
+        rawData[pixelOffset + 1] = 242;
+        rawData[pixelOffset + 2] = 122;
         rawData[pixelOffset + 3] = 255;
       } else if (isForeground) {
         // Transparent for adaptive icon foreground
@@ -109,11 +108,10 @@ function createHabuiltIconPNG(size, isForeground = false, isRound = false) {
         rawData[pixelOffset + 2] = 0;
         rawData[pixelOffset + 3] = 0;
       } else {
-        // Background squircle / card: Deep Obsidian gradient #090D16 to #0F172A with border
-        const bgT = (nx + ny) / 2;
-        const bgR = Math.round(9 * (1 - bgT) + 15 * bgT);
-        const bgG = Math.round(13 * (1 - bgT) + 23 * bgT);
-        const bgB = Math.round(22 * (1 - bgT) + 42 * bgT);
+        // Charcoal plate #0C110D
+        const bgR = 12;
+        const bgG = 17;
+        const bgB = 13;
         rawData[pixelOffset] = bgR;
         rawData[pixelOffset + 1] = bgG;
         rawData[pixelOffset + 2] = bgB;
