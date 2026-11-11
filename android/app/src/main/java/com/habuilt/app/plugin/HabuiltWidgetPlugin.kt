@@ -10,6 +10,7 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.habuilt.app.widget.HabitReminderScheduler
 import com.habuilt.app.widget.HabuiltDueNowWidget
 import com.habuilt.app.widget.LaravelCheckInClient
+import com.habuilt.app.widget.WidgetSessionStore
 
 @CapacitorPlugin(name = "HabuiltWidget")
 class HabuiltWidgetPlugin : Plugin() {
@@ -41,12 +42,17 @@ class HabuiltWidgetPlugin : Plugin() {
                 .remove("zoeticoach_api_url")
                 .remove("zoeticoach_token")
             editor.remove("supabase_access_token")
-            if (userId == "guest" || userId.isEmpty() || accessToken.isBlank()) {
-                editor.remove(LaravelCheckInClient.TOKEN_KEY)
-            } else {
-                editor.putString(LaravelCheckInClient.TOKEN_KEY, accessToken)
-            }
+            editor.remove(LaravelCheckInClient.TOKEN_KEY)
             editor.commit()
+            if (userId == "guest" || userId.isEmpty() || accessToken.isBlank()) {
+                WidgetSessionStore.clearToken(context)
+            } else {
+                WidgetSessionStore.writeToken(context, accessToken)
+                context.getSharedPreferences(LaravelCheckInClient.PREFS, Context.MODE_PRIVATE)
+                    .edit()
+                    .remove(LaravelCheckInClient.SESSION_NOTICE_KEY)
+                    .apply()
+            }
 
             // The habits snapshot is only for the home-screen display. Completions go to Laravel.
             Thread { LaravelCheckInClient.flush(context) }.start()
@@ -56,6 +62,29 @@ class HabuiltWidgetPlugin : Plugin() {
             call.resolve()
         } catch (e: Exception) {
             call.reject("Failed to sync widget data: ${e.message}", e)
+        }
+    }
+
+    @PluginMethod
+    fun refreshAccessToken(call: PluginCall) {
+        try {
+            val context = context ?: run {
+                call.reject("Context is null")
+                return
+            }
+            val accessToken = call.getString("accessToken", "") ?: ""
+            if (accessToken.isBlank()) {
+                call.resolve()
+                return
+            }
+            WidgetSessionStore.writeToken(context, accessToken)
+            context.getSharedPreferences(LaravelCheckInClient.PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .remove(LaravelCheckInClient.SESSION_NOTICE_KEY)
+                .apply()
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to refresh the widget session", e)
         }
     }
 

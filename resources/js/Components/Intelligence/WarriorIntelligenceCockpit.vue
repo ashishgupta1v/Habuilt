@@ -35,7 +35,7 @@ import { buildLedgerBriefing } from '@/lib/ledgerBriefing';
 const props = defineProps({
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false },
-  displayName: { type: String, default: 'Warrior' },
+  displayName: { type: String, default: 'You' },
   partnerName: { type: String, default: 'Partner' },
   dayType: { type: String, default: 'home' },
   dayTypeLabel: { type: String, default: '🏠 Home' },
@@ -297,7 +297,7 @@ const addHydration = (amount) => {
   localHydration.value = Math.min(4000, Math.max(0, localHydration.value + amount));
   emit('update-hydration', localHydration.value);
   if (localHydration.value >= 3000 && localHydration.value - amount < 3000) {
-    emit('toast', '💧 Daily Hydration Target (3,000ml) Reached! Outstanding cellular health.');
+    emit('toast', 'Water for today is filled.');
   }
 };
 
@@ -307,7 +307,7 @@ const saveBiomarkers = () => {
     energyRating: Number(localEnergy.value) || 8,
     note: localBioNote.value,
   });
-  emit('toast', '✓ Health biomarkers saved successfully!');
+  emit('toast', 'Saved.');
 };
 
 // Copy AI Prompt for ChatGPT / Claude
@@ -315,7 +315,7 @@ const copyAIPrompt = () => {
   const tFloor = props.tierThresholds?.floor ?? 4;
   const tHalf = props.tierThresholds?.half ?? 8;
   const tFull = props.tierThresholds?.full ?? 15;
-  const text = `### Habuilt Warrior Daily Debrief (${now.value.toLocaleDateString()})
+  const text = `### Habuilt daily check-in (${now.value.toLocaleDateString()})
 - User: ${props.displayName} (${props.displayName}'s System)
 - Day Type: ${props.dayTypeLabel}
 - Daily Points: ${props.todayPoints}/${tFull} pts (Tier: ${props.todayPoints >= tFull ? 'Full Target' : props.todayPoints >= tHalf ? 'Half Protocol' : props.todayPoints >= tFloor ? 'Floor Baseline' : 'Incomplete'})
@@ -326,7 +326,7 @@ const copyAIPrompt = () => {
 - Completed Habits: ${props.todayHabits.filter(h => props.hasCompletedDay(h, props.currentDay)).map(h => h.name).join(', ') || 'None yet'}
 - Pending Habits: ${props.todayHabits.filter(h => !props.hasCompletedDay(h, props.currentDay)).map(h => h.name).join(', ') || 'None'}
 
-Please act as an elite executive performance coach. Analyze my daily execution, identify friction patterns, and provide 3 punchy, high-leverage tactical optimizations for tomorrow.`;
+Please describe the habits I kept and the ones still open. Suggest three small changes for tomorrow.`;
 
   navigator.clipboard.writeText(text).then(() => {
     copySuccess.value = true;
@@ -343,7 +343,7 @@ defineExpose({
 </script>
 
 <template>
-  <section class="card card--warrior-intelligence">
+  <section class="card card--warrior-intelligence calm-tool">
     <!-- Header -->
     <div class="warrior-ai-header" @click="isExpanded = !isExpanded">
       <div class="warrior-ai-header__left">
@@ -353,10 +353,10 @@ defineExpose({
         </div>
         <div class="warrior-ai-title-wrap">
           <div class="warrior-ai-title-row">
-            <h2 class="warrior-ai-title">Sovereign Intelligence Copilot</h2>
-            <span class="warrior-ai-live-badge">REALTIME AI</span>
+            <h2 class="warrior-ai-title">Today's habits</h2>
+            <span class="warrior-ai-live-badge">Check-ins</span>
           </div>
-          <p class="warrior-ai-sub">Circadian bio-rhythms &bull; Daily briefing &bull; Partner alignment</p>
+          <p class="warrior-ai-sub">Kept today, the next habit, and a partner's Kept or Not yet</p>
         </div>
       </div>
 
@@ -381,7 +381,7 @@ defineExpose({
             @click="activeIntelligenceTab = 'biometrics'; isExpanded = true"
           >
             <Droplets class="icon-xs" />
-            <span>Biometrics</span>
+            <span>Notes</span>
           </button>
           <button
             id="btn-cockpit-tab-partner"
@@ -401,7 +401,7 @@ defineExpose({
           class="btn btn--icon-only warrior-ai-expand-btn"
           @click.stop="isExpanded = !isExpanded"
           :aria-expanded="isExpanded"
-          aria-label="Toggle Intelligence Cockpit"
+          aria-label="Toggle today's habits"
         >
           <ChevronUp v-if="isExpanded" class="icon-sm" />
           <ChevronDown v-else class="icon-sm" />
@@ -783,7 +783,7 @@ defineExpose({
               title="Send an instant live high-five with haptic vibration and gold sparkles to partner's screen!"
             >
               <span>🙌</span>
-              <span>Send Warrior High-Five</span>
+              <span>Send a high-five</span>
             </button>
           </div>
 

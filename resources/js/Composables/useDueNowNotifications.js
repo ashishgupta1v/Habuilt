@@ -1,5 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Capacitor } from '@capacitor/core';
+import { reminderScheduleAt } from '@/lib/followUpGates';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export function useDueNowNotifications({
@@ -241,13 +242,11 @@ export function useDueNowNotifications({
       return;
     }
 
-    // Android alarms are armed from the saved widget snapshot, including after reboot.
-    if (isNative) return;
-
     try {
       const now = new Date();
       const habitList = habits?.value || [];
       const webAlerts = [];
+      const nativeAlerts = [];
 
       for (const dayOffset of [0, 1]) {
         const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
@@ -259,24 +258,52 @@ export function useDueNowNotifications({
           const sched = habitTimeSchedule?.[h.id];
           if (!sched || !sched.start) continue;
 
-          const [sh, sm] = sched.start.split(':').map(Number);
+          const scheduled = reminderScheduleAt(sched.start, when);
+          if (!scheduled || scheduled.triggerTimestamp <= now.getTime() + 15000) continue;
           const [eh, em] = (sched.end || '23:59').split(':').map(Number);
-          const startTime = new Date(when.getFullYear(), when.getMonth(), when.getDate(), sh, sm, 0);
           const endTime = new Date(when.getFullYear(), when.getMonth(), when.getDate(), eh, em, 0);
-
-          if (startTime.getTime() <= now.getTime() + 15000) continue;
           const copy = getNotificationCopy(h, sched);
-          webAlerts.push({
+          const alert = {
             habitId: h.id,
             habitName: cleanHabitName(h),
             title: copy.title,
             body: copy.body,
             time: copy.time,
-            triggerTimestamp: startTime.getTime(),
+            triggerTimestamp: scheduled.triggerTimestamp,
             expiryTimestamp: endTime.getTime(),
             day: alertDay,
-          });
+            at: scheduled.at,
+          };
+          if (isNative) nativeAlerts.push(alert);
+          else webAlerts.push(alert);
         }
+      }
+
+      if (isNative) {
+        if (nativeAlerts.length > 0) {
+          try {
+            await LocalNotifications.schedule({
+              notifications: nativeAlerts.map((alert) => ({
+                id: hashHabitId(`${alert.habitId}-${alert.day}`),
+                title: alert.title,
+                body: alert.body,
+                channelId: 'habuilt_reminders',
+                actionTypeId: 'HABUILT_HABIT_ACTION',
+                extra: { habitId: alert.habitId, day: alert.day },
+                schedule: { at: alert.at },
+                sound: 'default',
+                smallIcon: 'ic_launcher_round',
+                iconColor: '#D9F27A',
+              })),
+            });
+          } catch (err) {
+            console.warn('Native reminder schedule warning:', err);
+          }
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(lastSchedKey, dateKey);
+        }
+        return;
       }
 
       if (webAlerts.length > 0) {
@@ -336,9 +363,10 @@ export function useDueNowNotifications({
     const notifId = hashHabitId(habit.id);
     const sched = habitTimeSchedule?.[habit.id];
     const copy = getNotificationCopy(habit, sched);
+    const startAt = reminderScheduleAt(sched?.start, new Date());
 
-    // 1. Native Android Local Notification
-    if (isNative) {
+    // 1. Native Android Local Notification at the saved start.
+    if (isNative && startAt) {
       try {
         await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
         await LocalNotifications.schedule({
@@ -353,10 +381,10 @@ export function useDueNowNotifications({
                 habitId: habit.id,
                 day: day,
               },
-              schedule: { at: new Date(Date.now() + 500) },
+              schedule: { at: startAt.at },
               sound: 'default',
               smallIcon: 'ic_launcher_round',
-              iconColor: '#10B981',
+              iconColor: '#D9F27A',
             },
           ],
         });

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { supabase, isSupabaseConfigured, updateAuthUser } from '@/lib/supabase';
-import { clearNativeWidgetSession } from '@/Composables/useNativeWidget';
+import { clearNativeWidgetSession, refreshNativeWidgetToken } from '@/Composables/useNativeWidget';
+import { importGuestListForSignedInUser } from '@/lib/guestImport';
 import { telemetry } from '@/lib/telemetry';
 import {
   clearBrowserSession,
@@ -23,7 +24,7 @@ import ErrorBoundary from '@/Components/Recovery/ErrorBoundary.vue';
 import { LogOut, Download, Share2, AlertTriangle } from 'lucide-vue-next';
 
 const props = defineProps({
-  appName: { type: String, default: 'Warrior Tracker (Habuilt)' },
+  appName: { type: String, default: 'Habuilt' },
   today: { type: String, default: '' },
   month: { type: Number, default: 0 },
   year: { type: Number, default: 0 },
@@ -117,7 +118,7 @@ const activeUser = ref(isGuestPreCheck ? guestProfile : null);
 const userDisplayName = computed(() => {
   return activeUser.value?.user_metadata?.full_name ||
     activeUser.value?.user_metadata?.name ||
-    (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'Warrior');
+    (activeUser.value?.email ? activeUser.value.email.split('@')[0] : 'You');
 });
 
 const userInitial = computed(() => {
@@ -138,12 +139,6 @@ const checkIsOnboardingComplete = (user) => {
     return true;
   }
   if (user.user_metadata?.onboarding_completed === true) {
-    return true;
-  }
-  if (localStorage.getItem(`habuilt_active_protocol_id_${uid}`)) {
-    return true;
-  }
-  if (localStorage.getItem('habuilt_guest_mode') === 'true') {
     return true;
   }
   return false;
@@ -285,7 +280,17 @@ const enterGuestMode = (guestUser) => {
   enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } });
 };
 
-const handleLoginSuccess = (user) => {
+const importGuestList = async (user) => {
+  if (!user?.id || user.id === 'guest') return;
+  try {
+    await importGuestListForSignedInUser(user.id, localStorage);
+  } catch {
+    console.warn('Dropped guest import');
+  }
+};
+
+const handleLoginSuccess = async (user) => {
+  await importGuestList(user);
   enterUserSession(user);
 };
 
@@ -296,6 +301,7 @@ const adoptSupabaseSession = async (session) => {
   const user = await handoffRefreshToken(refresh);
   try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* cookie holds the refresh token */ }
   if (!user) return null;
+  await importGuestList(user);
   enterUserSession(user);
   return user;
 };
@@ -425,7 +431,9 @@ onMounted(async () => {
     } else {
       const user = await restoreBrowserSession();
       if (user) {
+        await importGuestList(user);
         enterUserSession(user);
+        refreshNativeWidgetToken().catch(() => {});
       } else if (!activeUser.value) {
         activeUser.value = null;
       }
@@ -442,6 +450,17 @@ onMounted(async () => {
       isGuestActive.value = false;
     }
   });
+
+  try {
+    const { App } = await import('@capacitor/app');
+    App.addListener('appStateChange', async ({ isActive }) => {
+      if (!isActive || isGuestMode()) return;
+      try {
+        const user = await restoreBrowserSession();
+        if (user) await refreshNativeWidgetToken();
+      } catch { /* a closed app keeps the last encrypted token */ }
+    });
+  } catch { /* browser sessions do not refresh a widget token */ }
 
   // ── Native Deep Link Handler for OAuth Callback ──
   try {

@@ -9,8 +9,10 @@ use App\Support\BrowserRefreshCookie;
 use App\Support\CurrentUserResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -130,7 +132,8 @@ final class HabitLedgerApiController
     }
 
     /**
-     * Save user settings.
+     * Save the habit definition and the personal Sunday review.
+     * Omitted columns stay as they are. updated_at is the server clock.
      */
     public function saveUserSettings(Request $request): JsonResponse
     {
@@ -139,25 +142,248 @@ final class HabitLedgerApiController
             return $userId;
         }
 
-        $payload = [
-            'user_id' => $userId,
-            'progressive_settings' => json_encode($request->input('progressive_settings', (object) [])),
-            'custom_habits' => json_encode($request->input('custom_habits', [])),
-            'rewards' => json_encode($request->input('rewards', [])),
-            'reward_ledger' => json_encode($request->input('reward_ledger', [])),
-            'weekly_reviews' => json_encode($request->input('weekly_reviews', (object) [])),
-            'enhanced_state' => json_encode($request->input('enhanced_state', (object) [])),
-            'day_type' => (string) $request->input('day_type', 'home'),
-            'dark_mode' => (bool) $request->input('dark_mode', true),
-            'updated_at' => now(),
-        ];
+        $writesHabits = $request->exists('custom_habits');
+        $writesReviews = $request->exists('weekly_reviews');
+        if ($writesHabits && !is_array($request->input('custom_habits'))) {
+            return response()->json(['error' => 'custom_habits must be a list'], 422);
+        }
+        if ($writesReviews && !is_array($request->input('weekly_reviews'))) {
+            return response()->json(['error' => 'weekly_reviews must be an object'], 422);
+        }
 
-        DB::table('user_settings')->upsert($payload, ['user_id'], [
-            'progressive_settings', 'custom_habits', 'rewards', 'reward_ledger',
-            'weekly_reviews', 'enhanced_state', 'day_type', 'dark_mode', 'updated_at',
+        $existing = DB::table('user_settings')->where('user_id', $userId)->first();
+        if (!$writesHabits && !$writesReviews) {
+            return response()->json([
+                'success' => true,
+                'updated_at' => $existing->updated_at ?? null,
+            ]);
+        }
+
+        $incomingHabits = $writesHabits ? $this->habitDefinitions($request->input('custom_habits')) : null;
+        $incomingReview = $writesReviews ? $this->personalReviewDocument($request->input('weekly_reviews')) : null;
+        $deliberate = is_array($incomingReview) && ($incomingReview['listSaved'] ?? false) === true;
+
+        // An unmarked empty list is the old wiped row, not a deliberate blank checklist.
+        if ($writesHabits && $incomingHabits === [] && !$deliberate) {
+            $writesHabits = false;
+        }
+        if ($writesReviews && $this->reviewIsUnmarkedBlank($incomingReview)) {
+            $writesReviews = false;
+        }
+        if (!$writesHabits && !$writesReviews) {
+            return response()->json([
+                'success' => true,
+                'updated_at' => $existing->updated_at ?? null,
+            ]);
+        }
+
+        if ($writesReviews) {
+            $incomingReview['listSaved'] = true;
+            if (($incomingReview['reflections'] ?? []) === []) {
+                $incomingReview['reflections'] = new \stdClass();
+            }
+        }
+
+        $expected = $request->exists('expected_updated_at') ? $request->input('expected_updated_at') : null;
+        if (!$this->updatedAtMatches($existing->updated_at ?? null, $expected)) {
+            Log::warning('Dropped settings retry because updated_at moved');
+
+            return $this->settingsConflict($existing);
+        }
+
+        $update = ['updated_at' => now()];
+        if ($writesHabits) {
+            $update['custom_habits'] = json_encode(array_values($incomingHabits), JSON_UNESCAPED_UNICODE);
+        }
+        if ($writesReviews) {
+            $update['weekly_reviews'] = json_encode($incomingReview, JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($existing === null) {
+            $update['user_id'] = $userId;
+            $update['created_at'] = $update['updated_at'];
+            try {
+                DB::table('user_settings')->insert($update);
+            } catch (\Throwable) {
+                $current = DB::table('user_settings')->where('user_id', $userId)->first();
+                Log::warning('Dropped settings retry because updated_at moved');
+
+                return $this->settingsConflict($current);
+            }
+        } else {
+            $query = DB::table('user_settings')->where('user_id', $userId);
+            if ($existing->updated_at === null) {
+                $query->whereNull('updated_at');
+            } else {
+                $query->where('updated_at', $existing->updated_at);
+            }
+            $wrote = $query->update($update);
+            if ($wrote !== 1) {
+                $current = DB::table('user_settings')->where('user_id', $userId)->first();
+                if (!$current || !$this->updatedAtMatches($current->updated_at, $existing->updated_at)) {
+                    Log::warning('Dropped settings retry because updated_at moved');
+
+                    return $this->settingsConflict($current);
+                }
+                DB::table('user_settings')->where('user_id', $userId)->update($update);
+            }
+        }
+
+        $storedAt = DB::table('user_settings')->where('user_id', $userId)->value('updated_at');
+
+        return response()->json([
+            'success' => true,
+            'updated_at' => $storedAt,
         ]);
+    }
 
-        return response()->json(['success' => true]);
+    /**
+     * Import this phone's guest definitions and missing kept days once.
+     * A saved account list is left unchanged. Existing check-in points stay put.
+     */
+    public function importGuest(Request $request): JsonResponse
+    {
+        $userId = $this->actor($request);
+        if ($userId instanceof JsonResponse) {
+            return $userId;
+        }
+
+        if ($request->exists('custom_habits') && !is_array($request->input('custom_habits'))) {
+            return response()->json(['error' => 'custom_habits must be a list'], 422);
+        }
+        if ($request->exists('weekly_reviews') && !is_array($request->input('weekly_reviews'))) {
+            return response()->json(['error' => 'weekly_reviews must be an object'], 422);
+        }
+
+        $keptDays = $this->guestKeptDays($request->input('kept_days'));
+        $result = ['kind' => 'skipped', 'updated_at' => null, 'row' => null];
+
+        DB::transaction(function () use ($request, $userId, $keptDays, &$result): void {
+            $existing = DB::table('user_settings')->where('user_id', $userId)->first();
+            $storedReview = $this->decodeStoredReview($existing);
+            if (($storedReview['listSaved'] ?? false) === true) {
+                $result = [
+                    'kind' => 'skipped',
+                    'updated_at' => $existing->updated_at ?? null,
+                    'row' => null,
+                ];
+
+                return;
+            }
+
+            $writesHabits = $request->exists('custom_habits');
+            $writesReviews = $request->exists('weekly_reviews');
+            $incomingHabits = $writesHabits ? $this->habitDefinitions($request->input('custom_habits')) : null;
+            $incomingReview = $writesReviews ? $this->personalReviewDocument($request->input('weekly_reviews')) : null;
+            $deliberate = is_array($incomingReview) && ($incomingReview['listSaved'] ?? false) === true;
+            if ($writesHabits && $incomingHabits === [] && !$deliberate) {
+                $writesHabits = false;
+            }
+            if ($writesReviews && $this->reviewIsUnmarkedBlank($incomingReview)) {
+                $writesReviews = false;
+            }
+            if (!$writesHabits && !$writesReviews) {
+                $result = [
+                    'kind' => 'skipped',
+                    'updated_at' => $existing->updated_at ?? null,
+                    'row' => null,
+                ];
+
+                return;
+            }
+            if ($writesReviews) {
+                $incomingReview['listSaved'] = true;
+                if (($incomingReview['reflections'] ?? []) === []) {
+                    $incomingReview['reflections'] = new \stdClass();
+                }
+            }
+
+            $expected = $request->exists('expected_updated_at') ? $request->input('expected_updated_at') : null;
+            if (!$this->updatedAtMatches($existing->updated_at ?? null, $expected)) {
+                Log::warning('Dropped guest import because updated_at moved');
+                $result = ['kind' => 'conflict', 'updated_at' => null, 'row' => $existing];
+
+                return;
+            }
+
+            $update = ['updated_at' => now()];
+            if ($writesHabits) {
+                $update['custom_habits'] = json_encode(array_values($incomingHabits ?? []), JSON_UNESCAPED_UNICODE);
+            }
+            if ($writesReviews) {
+                $update['weekly_reviews'] = json_encode($incomingReview, JSON_UNESCAPED_UNICODE);
+            }
+
+            if ($existing === null) {
+                $update['user_id'] = $userId;
+                $update['created_at'] = $update['updated_at'];
+                try {
+                    DB::table('user_settings')->insert($update);
+                } catch (\Throwable) {
+                    $current = DB::table('user_settings')->where('user_id', $userId)->first();
+                    Log::warning('Dropped guest import because updated_at moved');
+                    $result = ['kind' => 'conflict', 'updated_at' => null, 'row' => $current];
+
+                    return;
+                }
+            } else {
+                $query = DB::table('user_settings')->where('user_id', $userId);
+                if ($existing->updated_at === null) {
+                    $query->whereNull('updated_at');
+                } else {
+                    $query->where('updated_at', $existing->updated_at);
+                }
+                $wrote = $query->update($update);
+                if ($wrote !== 1) {
+                    $current = DB::table('user_settings')->where('user_id', $userId)->first();
+                    if (!$current || !$this->updatedAtMatches($current->updated_at, $existing->updated_at)) {
+                        Log::warning('Dropped guest import because updated_at moved');
+                        $result = ['kind' => 'conflict', 'updated_at' => null, 'row' => $current];
+
+                        return;
+                    }
+                    DB::table('user_settings')->where('user_id', $userId)->update($update);
+                }
+            }
+
+            foreach ($keptDays as $day) {
+                $points = $this->checkIns->resolvePoints($userId, $day['habit_id']);
+                $this->checkIns->insertMissing(
+                    $userId,
+                    $day['habit_id'],
+                    $day['month_key'],
+                    $day['day'],
+                    $day['completed_on'],
+                    $points,
+                    $this->habitNameFromList($incomingHabits, $day['habit_id']),
+                    'guest-import',
+                );
+            }
+
+            $result = [
+                'kind' => 'imported',
+                'updated_at' => DB::table('user_settings')->where('user_id', $userId)->value('updated_at'),
+                'row' => null,
+            ];
+        });
+
+        if ($result['kind'] === 'conflict') {
+            return $this->settingsConflict($result['row'] ?? null);
+        }
+        if ($result['kind'] !== 'imported') {
+            return response()->json([
+                'success' => true,
+                'imported' => false,
+                'reason' => 'list-saved',
+                'updated_at' => $result['updated_at'] ?? null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'imported' => true,
+            'updated_at' => $result['updated_at'] ?? null,
+        ]);
     }
 
     /**
@@ -795,6 +1021,222 @@ final class HabitLedgerApiController
             })
             ->whereRaw('lower(status) in (?, ?)', ['connected', 'accepted'])
             ->exists();
+    }
+
+    /**
+     * @return array<int, array{habit_id: string, month_key: string, day: int, completed_on: string}>
+     */
+    private function guestKeptDays(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $days = [];
+        foreach ($value as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $habitId = trim((string) ($row['habit_id'] ?? ''));
+            $monthKey = trim((string) ($row['month_key'] ?? ''));
+            $day = (int) ($row['day'] ?? 0);
+            if ($habitId === '' || !preg_match('/^\d{4}-\d{2}$/', $monthKey) || $day < 1 || $day > 31) {
+                continue;
+            }
+            $completed = trim((string) ($row['completed_on'] ?? ''));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $completed)) {
+                $completed = sprintf('%s-%02d', $monthKey, $day);
+            }
+            $days[] = [
+                'habit_id' => $habitId,
+                'month_key' => $monthKey,
+                'day' => $day,
+                'completed_on' => $completed,
+            ];
+        }
+
+        return $days;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>>|null $habits
+     */
+    private function habitNameFromList(?array $habits, string $habitId): string
+    {
+        foreach ($habits ?? [] as $habit) {
+            if ((string) ($habit['id'] ?? '') === $habitId) {
+                return (string) ($habit['name'] ?? '');
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeStoredReview(?object $row): array
+    {
+        if ($row === null) {
+            return [];
+        }
+        $decoded = $this->decodeJsonColumn($row->weekly_reviews ?? null, []);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<int, mixed> $habits
+     * @return array<int, array<string, mixed>>
+     */
+    private function habitDefinitions(array $habits): array
+    {
+        $drop = [
+            'completed_days',
+            'completedDays',
+            'coupleChecks',
+            'coupleReflections',
+            'couple_checks',
+            'couple_reflections',
+        ];
+        $definitions = [];
+        foreach ($habits as $habit) {
+            if (!is_array($habit)) {
+                continue;
+            }
+            $id = $habit['id'] ?? null;
+            if ($id === null || $id === '') {
+                continue;
+            }
+            foreach ($drop as $key) {
+                unset($habit[$key]);
+            }
+            if (array_key_exists('points', $habit) && is_numeric($habit['points'])) {
+                $points = $habit['points'] + 0;
+                $habit['points'] = (float) $points === (float) (int) $points ? (int) $points : $points;
+            }
+            $definitions[] = $habit;
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param array<string, mixed> $review
+     * @return array<string, mixed>
+     */
+    private function personalReviewDocument(array $review): array
+    {
+        $reflections = $review['reflections'] ?? [];
+        if (!is_array($reflections) || array_is_list($reflections)) {
+            $reflections = [];
+        }
+        $checks = $review['checks'] ?? [];
+        if (!is_array($checks) || !array_is_list($checks)) {
+            $checks = [];
+        }
+
+        return [
+            'reviewDate' => is_string($review['reviewDate'] ?? null) ? $review['reviewDate'] : '',
+            'checks' => array_values($checks),
+            'reflections' => $reflections,
+            'listSaved' => ($review['listSaved'] ?? false) === true,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $review
+     */
+    private function reviewIsUnmarkedBlank(?array $review): bool
+    {
+        if ($review === null || ($review['listSaved'] ?? false) === true) {
+            return $review === null;
+        }
+        $date = trim((string) ($review['reviewDate'] ?? ''));
+        $checks = $review['checks'] ?? [];
+        $hasCheck = is_array($checks) && $checks !== [];
+        $hasReflection = false;
+        $reflections = $review['reflections'] ?? [];
+        if (is_array($reflections)) {
+            foreach ($reflections as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    $hasReflection = true;
+                    break;
+                }
+            }
+        }
+
+        return $date === '' && !$hasCheck && !$hasReflection;
+    }
+
+    private function updatedAtMatches(mixed $stored, mixed $expected): bool
+    {
+        if ($this->rawUpdatedAt($stored) === $this->rawUpdatedAt($expected)) {
+            return true;
+        }
+        $left = $this->updatedAtToken($stored);
+        $right = $this->updatedAtToken($expected);
+
+        return $left !== '' && $left === $right;
+    }
+
+    private function rawUpdatedAt(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        return trim((string) $value);
+    }
+
+    private function updatedAtToken(mixed $value): string
+    {
+        $raw = $this->rawUpdatedAt($value);
+        if ($raw === '') {
+            return '';
+        }
+        try {
+            return Carbon::parse($raw)->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    private function settingsConflict(?object $row): JsonResponse
+    {
+        $habits = [];
+        $reviews = new \stdClass();
+        if ($row !== null) {
+            $decodedHabits = $this->decodeJsonColumn($row->custom_habits ?? null, []);
+            $habits = is_array($decodedHabits) ? $decodedHabits : [];
+            $decodedReviews = $this->decodeJsonColumn($row->weekly_reviews ?? null, new \stdClass());
+            if (is_array($decodedReviews) && $decodedReviews !== [] && !array_is_list($decodedReviews)) {
+                $reviews = $decodedReviews;
+            } elseif ($decodedReviews instanceof \stdClass) {
+                $reviews = $decodedReviews;
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'conflict' => true,
+            'updated_at' => $row->updated_at ?? null,
+            'custom_habits' => $habits,
+            'weekly_reviews' => $reviews,
+        ], 409);
+    }
+
+    private function decodeJsonColumn(mixed $value, mixed $fallback): mixed
+    {
+        if (is_array($value) || $value instanceof \stdClass) {
+            return $value;
+        }
+        if (!is_string($value) || $value === '') {
+            return $fallback;
+        }
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : $fallback;
     }
 
     private function actor(Request $request): string|JsonResponse

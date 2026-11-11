@@ -58,6 +58,52 @@ final class SpaCheckInLedger
         ]);
     }
 
+    /**
+     * Insert a kept day that is not already stored.
+     * An existing row, including its points, is left unchanged.
+     */
+    public function insertMissing(
+        string $userId,
+        string $habitId,
+        string $monthKey,
+        int $day,
+        string $completedOn,
+        int $points,
+        string $habitName = '',
+        string $source = 'guest-import',
+    ): bool {
+        $exists = DB::table('habit_check_ins')
+            ->where('user_id', $userId)
+            ->where('habit_id', $habitId)
+            ->where('month_key', $monthKey)
+            ->where('day', $day)
+            ->exists();
+        if ($exists) {
+            return false;
+        }
+
+        try {
+            DB::table('habit_check_ins')->insert([
+                'id' => (string) Str::uuid(),
+                'user_id' => $userId,
+                'habit_id' => $habitId,
+                'habit_name' => $habitName,
+                'month_key' => $monthKey,
+                'day' => $day,
+                'completed_on' => $completedOn,
+                'points' => $points,
+                'canonical_key' => null,
+                'source' => $source,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function remove(string $userId, string $habitId, string $monthKey, int $day): void
     {
         DB::table('habit_check_ins')

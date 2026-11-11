@@ -87,8 +87,10 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
             val directEnd = habit.optString("endTime", "")
             val dsM = parseMinutes(directStart)
             val deM = parseMinutes(directEnd)
-            if (dsM != null && deM != null) {
-                return HabitSchedule(dsM, deM, "⏰ $directStart – $directEnd")
+            if (dsM != null) {
+                val endMins = deM ?: ((dsM + 30) % 1440)
+                val endLabel = if (directEnd.isNotBlank()) directEnd else String.format("%02d:%02d", endMins / 60, endMins % 60)
+                return HabitSchedule(dsM, endMins, "⏰ $directStart – $endLabel")
             }
 
             // 3. Fallback: Check explicit range pattern e.g. "05:00 to 08:00" or "09:00–13:00"
@@ -366,6 +368,9 @@ class HabuiltDueNowWidget : AppWidgetProvider() {
                     }
                 } catch (_: Exception) {
                     // A bad local queue must not blank the widget.
+                }
+                if (prefs.getString(LaravelCheckInClient.SESSION_NOTICE_KEY, "") == "Open Habuilt") {
+                    views.setTextViewText(R.id.tv_widget_guidance, "Open Habuilt")
                 }
 
                 appWidgetManager.updateAppWidget(appWidgetId, views)

@@ -39,7 +39,7 @@ const props = defineProps({
   year: { type: Number, default: () => new Date().getFullYear() },
   currentDay: { type: Number, default: () => new Date().getDate() },
   habits: { type: Array, default: () => [] },
-  displayName: { type: String, default: 'Warrior' },
+  displayName: { type: String, default: 'You' },
 });
 
 const emit = defineEmits([
@@ -73,7 +73,7 @@ onMounted(async () => {
   const data = await callLocalApi('/api/user-biomarkers', 'GET', null, { returnError: true });
   if (Array.isArray(data)) {
     savedBiomarkers.value = data;
-  } else {
+  } else if (data && data.offline) {
     biomarkerLoadError.value = true;
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
@@ -108,7 +108,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="analytics-dashboard" ref="analyticsRef">
+  <div class="analytics-dashboard calm-tool" ref="analyticsRef">
     <!-- 4 Luxury Glass KPI Cards -->
     <div class="analytics-kpi-grid">
       <!-- KPI 1: Consistency Score & Grade -->

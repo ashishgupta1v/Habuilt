@@ -118,7 +118,7 @@ const acceptEssential = () => {
     right: 12px;
     width: auto;
     max-width: none;
-    max-height: min(34dvh, 168px);
+    overflow: visible;
     bottom: calc(8px + var(--calm-tab-offset, 0px) + var(--calm-offline-stack, 0px));
   }
   .banner-actions {

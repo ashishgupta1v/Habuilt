@@ -26,8 +26,19 @@ import {
   callLocalApi,
 } from '@/lib/supabase';
 import { getMemoryUser } from '@/lib/browserSession';
+import {
+  applyPersonalReview,
+  decideSyncAction,
+  droppedRetryMessage,
+  habitDefinition,
+  habitsFromDefinitions,
+  listIsSaved,
+  overlayCheckIns,
+  settingsColumns,
+} from '@/lib/savedHabitList';
 import { summarizeSundayReview, checkInsFromHabits } from '@/lib/sundayReview';
 import { buildTodaySummary } from '@/lib/todaySummary';
+import { accountMenuAction, reminderControlCopy } from '@/lib/followUpGates';
 import { animateShell, animateToday, pulseCount } from '@/lib/calmMotion';
 import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
@@ -297,7 +308,10 @@ const displayName = computed(() => {
   return 'Champion';
 });
 
-const isPartnerPaired = computed(() => activePartnerConnection.value?.status === 'connected');
+const isPartnerPaired = computed(() => (
+  activePartnerConnection.value?.confirmed === true
+  && activePartnerConnection.value?.status === 'connected'
+));
 
 const partnerDisplayName = computed(() => {
   if (activePartnerConnection.value?.alias) return activePartnerConnection.value.alias;
@@ -314,6 +328,7 @@ const pairChannelId = computed(() => {
 });
 
 const partnerLiveMetrics = ref(null);
+const partnerStatusReady = ref(false);
 const partnerKeptToday = ref(false);
 const partnerPointsToday = ref(0);
 const partnerCompletedCountToday = ref(0);
@@ -353,6 +368,7 @@ const refreshPartnerLiveMetrics = async () => {
   const pId = partnerUserId.value;
   if (!pId) {
     partnerKeptToday.value = false;
+    partnerStatusReady.value = false;
     partnerPointsToday.value = 0;
     partnerCompletedCountToday.value = 0;
     partnerTotalHabitsCount.value = 0;
@@ -364,9 +380,10 @@ const refreshPartnerLiveMetrics = async () => {
 
   try {
     const metrics = await loadPartnerLiveMetrics(pId);
-    const kept = metrics?.status === 'kept';
-    partnerKeptToday.value = kept;
-    partnerLiveMetrics.value = { status: kept ? 'kept' : 'not_yet', date: metrics?.date || '' };
+    const ready = metrics?.ok === true && (metrics.status === 'kept' || metrics.status === 'not_yet');
+    partnerStatusReady.value = ready;
+    partnerKeptToday.value = ready && metrics.status === 'kept';
+    partnerLiveMetrics.value = ready ? { status: metrics.status, date: metrics.date || '' } : null;
     partnerPointsToday.value = 0;
     partnerCompletedCountToday.value = 0;
     partnerTotalHabitsCount.value = 0;
@@ -480,12 +497,37 @@ const shellTab = ref('today');
 const shellFlow = ref(null);
 const accountMenuOpen = ref(false);
 const openAccountMenu = () => {
-  if (shellTab.value !== 'today') {
-    shellTab.value = 'today';
-    accountMenuOpen.value = true;
+  accountMenuOpen.value = !accountMenuOpen.value;
+};
+const startAccountExport = async () => {
+  accountMenuOpen.value = false;
+  const action = accountMenuAction('export');
+  if (action.opensProtocolSettings || !action.path) return;
+  const guest = effectiveUserId.value === 'guest'
+    || (typeof localStorage !== 'undefined' && localStorage.getItem('habuilt_guest_mode') === 'true');
+  if (guest) {
+    showToast('Guest data stays on this device. Sign in to export an account.');
     return;
   }
-  accountMenuOpen.value = !accountMenuOpen.value;
+  try {
+    const exportData = await callLocalApi(action.path, 'GET', null, { returnError: true });
+    if (!exportData || exportData.success === false || exportData.error || exportData.user_id !== effectiveUserId.value) {
+      showToast('Export failed. Sign in and try again.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `habuilt-data-export-${effectiveUserId.value}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Account export started.');
+  } catch {
+    showToast('Export failed. Sign in and try again.');
+  }
 };
 const showAdherence = ref(false);
 
@@ -1743,9 +1785,12 @@ const todayPoints = computed(() => getDayTotal(props.currentDay));
 const todayCompletedCount = computed(() => todayScheduledHabits.value.filter(h => hasCompletedDay(h, props.currentDay)).length);
 const calmToday = computed(() => {
   const connection = activePartnerConnection.value;
+  const confirmed = connection?.confirmed === true && connection?.status === 'connected';
   let partnerState = 'none';
-  if (connection?.status === 'connected') {
+  if (confirmed && partnerStatusReady.value) {
     partnerState = partnerKeptToday.value ? 'accepted_kept' : 'accepted_not_yet';
+  } else if (confirmed) {
+    partnerState = 'connected_waiting';
   } else if (connection?.status) {
     partnerState = 'pending';
   }
@@ -2646,10 +2691,258 @@ const handleAppReload = async () => {
 // ── State Persistence & Automatic Real-Time Cloud Sync ──
 const isSyncingCloud = ref(false);
 let lastSyncTimestamp = 0;
+let openedWithoutLocalList = false;
+let revisionReady = false;
+let rememberedUpdatedAt = null;
+let latestLedgerRows = [];
+let savedListRetryTimer = null;
+let savedListRetryAttempt = 0;
+let persistChain = Promise.resolve();
+
+function localDashboardPayload() {
+  return {
+    habits: localHabits.value,
+    allHistoricalHabits: allHistoricalHabits.value,
+    rewards: rewards.value,
+    coupleSynergyRewards: coupleSynergyRewards.value,
+    rewardLedger: rewardLedger.value,
+    claimedSynergyRewards: claimedSynergyRewards.value,
+    progressiveSettings: progressiveSettings.value,
+    enhancedState: enhancedState.value,
+    weeklyReview: weeklyReview.value,
+    dayType: dayType.value,
+    darkMode: darkMode.value,
+    biomarkers: biomarkersState.value,
+    hydration_ml: hydrationMlState.value,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function writeLocalDashboardCache() {
+  try {
+    localStorage.setItem(localStateKey.value, JSON.stringify(localDashboardPayload()));
+  } catch { /* offline fallback */ }
+}
+
+function retryStorageKey() {
+  return `habuilt.saved_list_retry.${effectiveUserId.value}`;
+}
+
+function readRetryRecord() {
+  try {
+    const raw = localStorage.getItem(retryStorageKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRetryRecord(sawRevision, expectedUpdatedAt) {
+  try {
+    localStorage.setItem(retryStorageKey(), JSON.stringify({
+      pending: true,
+      sawRevision: sawRevision === true,
+      expectedUpdatedAt: expectedUpdatedAt ?? null,
+    }));
+  } catch { /* the checklist stays in the dashboard cache */ }
+}
+
+function clearRetryRecord() {
+  try { localStorage.removeItem(retryStorageKey()); } catch { /* ignore */ }
+}
+
+function clearSavedListRetryTimer() {
+  if (savedListRetryTimer) clearTimeout(savedListRetryTimer);
+  savedListRetryTimer = null;
+}
+
+function scheduleSavedListRetry() {
+  clearSavedListRetryTimer();
+  const delay = Math.min(30000, 1000 * (2 ** Math.min(savedListRetryAttempt, 5)));
+  savedListRetryAttempt += 1;
+  savedListRetryTimer = setTimeout(() => {
+    enqueueSavedListPersist({ source: 'retry' });
+  }, delay);
+}
+
+async function readSavedSettings() {
+  const data = await loadUserSettings(effectiveUserId.value);
+  if (data == null) {
+    return { missing: true, updated_at: null, custom_habits: [], weekly_reviews: {} };
+  }
+  return data;
+}
+
+function installServerHabits(settings, ledgerRows) {
+  if (!listIsSaved(settings?.weekly_reviews) || !Array.isArray(settings?.custom_habits)) return false;
+  localHabits.value = overlayCheckIns(habitsFromDefinitions(settings.custom_habits), ledgerRows);
+  weeklyReview.value = applyPersonalReview(weeklyReview.value, settings.weekly_reviews);
+  revisionReady = true;
+  rememberedUpdatedAt = settings.updated_at ?? null;
+  writeLocalDashboardCache();
+  return true;
+}
+
+function showPresetList(ledgerRows) {
+  const preset = (fallbackHabits.value || []).map((habit) => ({ ...habit, completed_days: [] }));
+  localHabits.value = overlayCheckIns(preset, ledgerRows);
+  const review = { ...(weeklyReview.value || {}) };
+  delete review.listSaved;
+  weeklyReview.value = review;
+  writeLocalDashboardCache();
+}
+
+async function postHabitList(expectedUpdatedAt) {
+  weeklyReview.value = { ...weeklyReview.value, listSaved: true };
+  writeLocalDashboardCache();
+  writeRetryRecord(true, expectedUpdatedAt);
+  const body = settingsColumns(localHabits.value, weeklyReview.value, expectedUpdatedAt);
+  const result = await saveUserSettings(effectiveUserId.value, body);
+  if (result?.conflict) {
+    console.warn(droppedRetryMessage());
+    clearRetryRecord();
+    clearSavedListRetryTimer();
+    const fresh = (Array.isArray(result.custom_habits) || result.weekly_reviews)
+      ? result
+      : await readSavedSettings();
+    if (!fresh || fresh.error || fresh.offline) return;
+    if (!installServerHabits(fresh, latestLedgerRows)) showPresetList(latestLedgerRows);
+    revisionReady = true;
+    rememberedUpdatedAt = fresh.updated_at ?? null;
+    return;
+  }
+  if (result?.status === 401 || result?.status === 403 || result?.status === 422) {
+    clearRetryRecord();
+    clearSavedListRetryTimer();
+    return;
+  }
+  if (!result || result.success !== true || result.offline || result.error) {
+    scheduleSavedListRetry();
+    return;
+  }
+  clearRetryRecord();
+  clearSavedListRetryTimer();
+  savedListRetryAttempt = 0;
+  revisionReady = true;
+  rememberedUpdatedAt = result.updated_at ?? expectedUpdatedAt;
+}
+
+async function persistSavedHabitList({ source = 'edit', settings = null, ledgerRows = null } = {}) {
+  if (!effectiveUserId.value || effectiveUserId.value === 'guest') return;
+  const rows = Array.isArray(ledgerRows) ? ledgerRows : latestLedgerRows;
+  if (Array.isArray(ledgerRows)) latestLedgerRows = ledgerRows;
+
+  if (source === 'edit' && revisionReady) {
+    await postHabitList(rememberedUpdatedAt);
+    return;
+  }
+
+  let read = settings && !settings.error && !settings.offline ? settings : null;
+  if (!read) read = await readSavedSettings();
+  if (!read || read.error || read.offline) {
+    if (source === 'edit' || source === 'retry' || openedWithoutLocalList || readRetryRecord()) {
+      writeRetryRecord(revisionReady, rememberedUpdatedAt);
+      scheduleSavedListRetry();
+    }
+    return;
+  }
+
+  const readAt = read.updated_at ?? null;
+  const action = source === 'edit'
+    ? (openedWithoutLocalList && listIsSaved(read.weekly_reviews) ? 'load-server' : 'save-local')
+    : decideSyncAction({
+      openedWithoutLocalList,
+      localListSaved: weeklyReview.value?.listSaved === true,
+      serverReview: read.weekly_reviews,
+      retryRecord: readRetryRecord(),
+      readUpdatedAt: readAt,
+    });
+
+  if (action === 'drop-and-load') {
+    console.warn(droppedRetryMessage());
+    clearRetryRecord();
+    clearSavedListRetryTimer();
+    openedWithoutLocalList = false;
+    revisionReady = true;
+    rememberedUpdatedAt = readAt;
+    if (!installServerHabits(read, rows)) showPresetList(rows);
+    return;
+  }
+  if (action === 'load-server') {
+    clearRetryRecord();
+    clearSavedListRetryTimer();
+    openedWithoutLocalList = false;
+    installServerHabits(read, rows);
+    revisionReady = true;
+    rememberedUpdatedAt = readAt;
+    return;
+  }
+  if (action === 'keep-local') {
+    openedWithoutLocalList = false;
+    revisionReady = true;
+    rememberedUpdatedAt = readAt;
+    return;
+  }
+
+  openedWithoutLocalList = false;
+  if (action === 'save-preset') showPresetList(rows);
+  revisionReady = true;
+  rememberedUpdatedAt = readAt;
+  await postHabitList(readAt);
+}
+
+function enqueueSavedListPersist(options) {
+  clearSavedListRetryTimer();
+  persistChain = persistChain
+    .then(() => persistSavedHabitList(options))
+    .catch(() => {
+      scheduleSavedListRetry();
+    });
+  return persistChain;
+}
+
+function preservedHabitList(data) {
+  const incomingSaved = data?.weeklyReview?.listSaved === true && Array.isArray(data.habits);
+  if (incomingSaved) {
+    localHabits.value = data.habits.map((habit) => {
+      const definition = habitDefinition(habit);
+      if (!definition) return null;
+      const days = Array.isArray(habit.completed_days) ? habit.completed_days.map(Number) : [];
+      return { ...definition, completed_days: days };
+    }).filter(Boolean);
+    allHistoricalHabits.value = localHabits.value
+      .filter((habit) => habit.completed_days.length > 0)
+      .map((habit) => ({
+        id: habit.id,
+        name: habit.name,
+        points: Number(habit.points) || 1,
+        completed_days: habit.completed_days,
+        canonicalKey: getCanonicalHabitKey(habit.name),
+      }));
+    return true;
+  }
+  if (weeklyReview.value?.listSaved === true) {
+    const incomingDays = new Map();
+    for (const habit of Array.isArray(data?.habits) ? data.habits : []) {
+      if (!habit?.id || !Array.isArray(habit.completed_days)) continue;
+      incomingDays.set(String(habit.id), habit.completed_days.map(Number));
+    }
+    if (incomingDays.size > 0) {
+      localHabits.value = (localHabits.value || []).map((habit) => (
+        incomingDays.has(String(habit.id))
+          ? { ...habit, completed_days: incomingDays.get(String(habit.id)) }
+          : habit
+      ));
+    }
+    return true;
+  }
+  return false;
+}
 
 const applyLoadedState = (data, isRemote = false) => {
   if (!data) return;
 
+  if (!preservedHabitList(data)) {
   const currentFallbacks = fallbackHabits.value || [];
   const systemHabitIds = new Set(currentFallbacks.map(h => String(h.id)));
 
@@ -2735,6 +3028,7 @@ const applyLoadedState = (data, isRemote = false) => {
     }
   }
   allHistoricalHabits.value = Array.from(historicalUniqueMap.values());
+  }
 
   if (Array.isArray(data.rewards)) {
     rewards.value = data.rewards.map((r, idx) => ({
@@ -2796,25 +3090,7 @@ const applyLoadedState = (data, isRemote = false) => {
     claimedSynergyRewards.value = data.claimedSynergyRewards;
   }
 
-  try {
-    const payload = {
-      habits: localHabits.value,
-      allHistoricalHabits: allHistoricalHabits.value,
-      rewards: rewards.value,
-      coupleSynergyRewards: coupleSynergyRewards.value,
-      rewardLedger: rewardLedger.value,
-      claimedSynergyRewards: claimedSynergyRewards.value,
-      progressiveSettings: progressiveSettings.value,
-      enhancedState: enhancedState.value,
-      weeklyReview: weeklyReview.value,
-      dayType: dayType.value,
-      darkMode: darkMode.value,
-      biomarkers: biomarkersState.value,
-      hydration_ml: hydrationMlState.value,
-      updated_at: new Date().toISOString(),
-    };
-    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
-  } catch { /* offline fallback */ }
+  writeLocalDashboardCache();
 
   // Drain any queued background actions from notifications once habits are loaded
   setTimeout(() => {
@@ -2825,25 +3101,7 @@ const applyLoadedState = (data, isRemote = false) => {
 
 let debouncedSaveTimeout = null;
 const debouncedSaveState = (delayMs = 400) => {
-  try {
-    const payload = {
-      habits: localHabits.value,
-      allHistoricalHabits: allHistoricalHabits.value,
-      rewards: rewards.value,
-      coupleSynergyRewards: coupleSynergyRewards.value,
-      rewardLedger: rewardLedger.value,
-      claimedSynergyRewards: claimedSynergyRewards.value,
-      progressiveSettings: progressiveSettings.value,
-      enhancedState: enhancedState.value,
-      weeklyReview: weeklyReview.value,
-      dayType: dayType.value,
-      darkMode: darkMode.value,
-      biomarkers: biomarkersState.value,
-      hydration_ml: hydrationMlState.value,
-      updated_at: new Date().toISOString(),
-    };
-    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
-  } catch { /* offline fallback */ }
+  writeLocalDashboardCache();
 
   if (debouncedSaveTimeout) clearTimeout(debouncedSaveTimeout);
   debouncedSaveTimeout = setTimeout(() => {
@@ -2853,27 +3111,16 @@ const debouncedSaveState = (delayMs = 400) => {
 
 const saveState = async () => {
   try {
-    const payload = {
-      habits: localHabits.value,
-      allHistoricalHabits: allHistoricalHabits.value,
-      rewards: rewards.value,
-      coupleSynergyRewards: coupleSynergyRewards.value,
-      rewardLedger: rewardLedger.value,
-      claimedSynergyRewards: claimedSynergyRewards.value,
-      progressiveSettings: progressiveSettings.value,
-      enhancedState: enhancedState.value,
-      weeklyReview: weeklyReview.value,
-      dayType: dayType.value,
-      darkMode: darkMode.value,
-      biomarkers: biomarkersState.value,
-      hydration_ml: hydrationMlState.value,
-      updated_at: new Date().toISOString(),
-    };
-    localStorage.setItem(localStateKey.value, JSON.stringify(payload));
+    const signedIn = Boolean(effectiveUserId.value && effectiveUserId.value !== 'guest');
+    if (signedIn) {
+      weeklyReview.value = { ...weeklyReview.value, listSaved: true };
+      writeRetryRecord(revisionReady, rememberedUpdatedAt);
+    }
+    writeLocalDashboardCache();
     pushToNativeWidget();
-    if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
-      await saveUserMonthlyState(effectiveUserId.value, monthScope.value, payload);
-      await saveUserSettings(effectiveUserId.value, payload);
+    if (signedIn) {
+      await saveUserMonthlyState(effectiveUserId.value, monthScope.value, localDashboardPayload());
+      await enqueueSavedListPersist({ source: 'edit' });
     }
   } catch (err) {
     console.warn('Failed to save dashboard state:', err);
@@ -2977,21 +3224,25 @@ const loadLocalState = () => {
       if (parsed.dayType === undefined && (isAshish.value || isAshishProtocol.value)) {
         parsed.dayType = getDayType(new Date());
       }
+      openedWithoutLocalList = false;
       applyLoadedState(parsed, false);
       armSavedSchedule();
       if (lastVersion !== PRESET_VERSION) {
         localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
-        saveState();
       }
     } else {
-      if (isAshish.value || isAshishProtocol.value) {
-        dayType.value = getDayType(new Date());
+      const alreadySaved = weeklyReview.value?.listSaved === true;
+      openedWithoutLocalList = !alreadySaved;
+      if (!alreadySaved) {
+        if (isAshish.value || isAshishProtocol.value) {
+          dayType.value = getDayType(new Date());
+        }
+        localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
       }
-      localHabits.value = fallbackHabits.value.map(h => ({ ...h, completed_days: [] }));
       localStorage.setItem(`habuilt.preset_version.${effectiveUserId.value}.${monthScope.value}`, PRESET_VERSION);
-      saveState();
     }
   } catch {
+    openedWithoutLocalList = true;
     if (isAshish.value || isAshishProtocol.value) {
       dayType.value = getDayType(new Date());
     }
@@ -3002,6 +3253,7 @@ const loadLocalState = () => {
 };
 
 watch(fallbackHabits, (newFallbacks) => {
+  if (weeklyReview.value?.listSaved === true || openedWithoutLocalList) return;
   if (Array.isArray(newFallbacks) && newFallbacks.length > 0) {
     applyLoadedState({ habits: localHabits.value, allHistoricalHabits: allHistoricalHabits.value }, false);
   }
@@ -3025,9 +3277,10 @@ const syncCloudState = async (force = false) => {
 
     // 1. First, attempt to load from normalized habit_check_ins ledger
     const ledgerRows = await loadMonthCheckIns(effectiveUserId.value, monthScope.value);
-    if (Array.isArray(ledgerRows) && ledgerRows.length > 0) {
+    latestLedgerRows = Array.isArray(ledgerRows) ? ledgerRows : [];
+    if (latestLedgerRows.length > 0) {
       const habitDayMap = new Map();
-      ledgerRows.forEach(row => {
+      latestLedgerRows.forEach(row => {
         const hid = String(row.habit_id);
         if (!habitDayMap.has(hid)) habitDayMap.set(hid, new Set());
         habitDayMap.get(hid).add(Number(row.day));
@@ -3056,20 +3309,24 @@ const syncCloudState = async (force = false) => {
     const settingsData = await loadUserSettings(effectiveUserId.value);
     if (settingsData?.error || settingsData?.offline) {
       isOffline.value = true;
-    } else if (settingsData) {
-      if (settingsData.day_type) dayType.value = settingsData.day_type;
-      darkMode.value = false;
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('habuilt_theme', 'light');
+      await enqueueSavedListPersist({ source: 'sync', settings: settingsData, ledgerRows: latestLedgerRows });
+    } else {
+      const settingsRow = settingsData || { missing: true, updated_at: null, custom_habits: [], weekly_reviews: {} };
+      if (settingsData) {
+        if (settingsData.day_type) dayType.value = settingsData.day_type;
+        darkMode.value = false;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('habuilt_theme', 'light');
+        }
+        if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
+        if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
+        if (Array.isArray(settingsData.reward_ledger)) rewardLedger.value = settingsData.reward_ledger;
+        if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
+        if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
+        if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
+        armSavedSchedule();
       }
-      if (settingsData.progressive_settings) progressiveSettings.value = { ...progressiveSettings.value, ...settingsData.progressive_settings };
-      if (Array.isArray(settingsData.rewards)) rewards.value = settingsData.rewards;
-      if (Array.isArray(settingsData.reward_ledger)) rewardLedger.value = settingsData.reward_ledger;
-      if (settingsData.weekly_reviews) weeklyReview.value = { ...weeklyReview.value, ...settingsData.weekly_reviews };
-      if (settingsData.enhanced_state) enhancedState.value = { ...enhancedState.value, ...settingsData.enhanced_state };
-      if (settingsData.biomarkers && typeof settingsData.biomarkers === 'object') biomarkersState.value = { ...biomarkersState.value, ...settingsData.biomarkers };
-      if (settingsData.hydration_ml !== undefined) hydrationMlState.value = Number(settingsData.hydration_ml) || 0;
-      armSavedSchedule();
+      await enqueueSavedListPersist({ source: 'sync', settings: settingsRow, ledgerRows: latestLedgerRows });
     }
     await refreshRewardAccount();
     await refreshSundayReview();
@@ -3119,7 +3376,14 @@ const toggleArchiveHabit = (habit) => {
   saveState();
 };
 const restoreDefaultHabits = () => {
-  applyLoadedState({ habits: localHabits.value, allHistoricalHabits: allHistoricalHabits.value }, false);
+  const keptDays = new Map((localHabits.value || []).map((habit) => [
+    String(habit.id),
+    Array.isArray(habit.completed_days) ? habit.completed_days : [],
+  ]));
+  localHabits.value = (fallbackHabits.value || []).map((habit) => ({
+    ...habit,
+    completed_days: keptDays.get(String(habit.id)) || [],
+  }));
   habitsEditing.value = false;
   saveState();
   showToast('✨ Updated to latest routine preset!');
@@ -3855,6 +4119,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  clearSavedListRetryTimer();
   document.body.classList.remove('has-calm-tabs');
   if (nativeBackButtonHandle) {
     try { nativeBackButtonHandle.remove(); } catch {}
@@ -4055,7 +4320,7 @@ onBeforeUnmount(() => {
             </button>
             <button type="button" data-calm-tile @click="shellTab = 'habits'">
               <span>Reminder</span>
-              <strong>{{ calmToday?.reminder }}</strong>
+              <strong>{{ reminderControlCopy({ permission: notificationPermission, nextLabel: calmToday?.reminder }) }}</strong>
             </button>
             <button type="button" data-calm-tile @click="isUniversalPartnerPairModalOpen = true">
               <span>Partner</span>
@@ -4063,27 +4328,27 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-        <div v-if="accountMenuOpen" class="calm-sheet">
-          <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="accountMenuOpen = false"></button>
-          <div class="calm-account" role="dialog" aria-modal="true" aria-label="Account">
-            <div class="calm-account__bar">
-              <strong>Account</strong>
-              <button type="button" class="calm-account__close" aria-label="Close" @click="accountMenuOpen = false">Close</button>
-            </div>
-            <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Protocol settings</button>
-            <button type="button" @click="accountMenuOpen = false; showAdherence = true">Adherence</button>
-            <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Export</button>
-            <button type="button" @click="emit('sign-out')">Sign out</button>
-            <button type="button" @click="accountMenuOpen = false; shellTab = 'focus'">Focus</button>
-            <button type="button" @click="accountMenuOpen = false; shellTab = 'insights'">Insights</button>
-          </div>
-        </div>
       </section>
+      <div v-if="accountMenuOpen" class="calm-sheet">
+        <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="accountMenuOpen = false"></button>
+        <div class="calm-account" role="dialog" aria-modal="true" aria-label="Account">
+          <div class="calm-account__bar">
+            <strong>Account</strong>
+            <button type="button" class="calm-account__close" aria-label="Close" @click="accountMenuOpen = false">Close</button>
+          </div>
+          <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Protocol settings</button>
+          <button type="button" @click="accountMenuOpen = false; showAdherence = true">Adherence</button>
+          <button type="button" @click="startAccountExport">Export</button>
+          <button type="button" @click="emit('sign-out')">Sign out</button>
+          <button type="button" @click="accountMenuOpen = false; shellTab = 'focus'">Focus</button>
+          <button type="button" @click="accountMenuOpen = false; shellTab = 'insights'">Insights</button>
+        </div>
+      </div>
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
       <section
         v-if="shellTab === 'insights'"
         data-calm-panel
-        class="card card--hero mobile-tab-hero"
+        class="card card--hero mobile-tab-hero calm-tool"
         :class="{ 'card--hero-compact': activeMobileTab !== 'today' }"
         id="overview"
       >
@@ -4394,7 +4659,7 @@ onBeforeUnmount(() => {
       <!-- ── SECTION: PERFORMANCE ANALYTICS (Stats Tab on Mobile) ── -->
       <section
         data-calm-panel
-        class="card mobile-tab-section"
+        class="card mobile-tab-section calm-tool"
         :class="[shellTab === 'insights' ? 'mobile-tab-section--active' : '']"
         id="analytics"
       >
@@ -4745,7 +5010,7 @@ onBeforeUnmount(() => {
         :is-jyoti="isJyoti"
         :display-name="displayName"
         :partner-name="partnerDisplayName"
-        :partner-status="partnerKeptToday ? 'kept' : 'not_yet'"
+        :partner-status="partnerStatusReady ? (partnerKeptToday ? 'kept' : 'not_yet') : 'pending'"
         :partner-completed-count="partnerCompletedCountToday"
         :partner-total-count="partnerTotalHabitsCount"
         :partner-points="partnerPointsToday"

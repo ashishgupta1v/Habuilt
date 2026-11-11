@@ -8654,7 +8654,7 @@ body .analytics-svg__grid line {
       display: flex;
       position: fixed;
       right: 18px;
-      bottom: calc(78px + env(safe-area-inset-bottom, 14px));
+      bottom: calc(12px + var(--calm-tab-offset, 72px) + var(--calm-offline-stack, 0px) + var(--calm-cookie-stack, 0px));
       width: 52px;
       height: 52px;
       border-radius: 50%;
@@ -18406,12 +18406,31 @@ body .mobile-daily__checkmark {
     right: 12px !important;
     width: auto !important;
     max-width: none !important;
-    max-height: 168px !important;
+    max-height: none !important;
+    overflow: visible !important;
     bottom: calc(8px + var(--calm-tab-offset, 72px) + var(--calm-offline-stack, 0px)) !important;
     z-index: 66;
   }
   body.has-calm-tabs .dashboard-flow {
     padding-bottom: var(--calm-shell-pad) !important;
+  }
+  body.has-calm-tabs #habits .section-head {
+    display: flex !important;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  body.has-calm-tabs .mobile-fab {
+    display: none !important;
+  }
+  body.has-calm-tabs #habits,
+  body.has-calm-tabs #overview,
+  body.has-calm-tabs #analytics,
+  body.has-calm-tabs #rewards,
+  body.has-calm-tabs #weekly-review,
+  body.has-calm-tabs #enhanced-stats,
+  body.has-calm-tabs #progressive {
+    order: 0;
   }
 }
 
@@ -18675,6 +18694,42 @@ body .mobile-daily__checkmark {
   .modal-card--protocol-settings {
     max-width: 640px;
   }
+}
+
+/* Focus and Insights use the calm surfaces. Lime is the only fill. */
+body .calm-tool,
+body .calm-tool.card,
+body .calm-tool .card,
+body .dashboard-flow .calm-tool {
+  background: #F7F8F2 !important;
+  color: #0C110D !important;
+}
+body .calm-tool h1,
+body .calm-tool h2,
+body .calm-tool h3,
+body .calm-tool p,
+body .calm-tool span,
+body .calm-tool small,
+body .calm-tool label,
+body .calm-tool li {
+  color: #0C110D;
+}
+body .calm-tool .btn--primary-action,
+body .calm-tool .focus-preset-chip--active,
+body .calm-tool .analytics-xp-bar-fill,
+body .calm-tool .focus-station-live-badge,
+body .calm-tool .warrior-ai-live-badge,
+body .calm-tool .grade-badge {
+  background: #D9F27A !important;
+  color: #0C110D !important;
+  border-color: #D9F27A !important;
+}
+body .calm-tool.card--focus-station::before,
+body .calm-tool.card--warrior-intelligence {
+  background: #F7F8F2 !important;
+}
+body .calm-tool.card--focus-station::before {
+  background: #D9F27A !important;
 }
 
 

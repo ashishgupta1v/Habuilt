@@ -30,6 +30,7 @@ Route::middleware([VerifyApiAuthorization::class])->group(function (): void {
     // User Settings & Progressive Tiers
     Route::get('/user-settings', [HabitLedgerApiController::class, 'getUserSettings']);
     Route::post('/user-settings', [HabitLedgerApiController::class, 'saveUserSettings']);
+    Route::post('/guest-import', [HabitLedgerApiController::class, 'importGuest']);
 
     // User Protocols
     Route::get('/user-protocols', [HabitLedgerApiController::class, 'getUserProtocols']);

@@ -2303,27 +2303,32 @@ const handlePurgeTelemetryBuffer = () => {
 
 .proto-settings-tabs {
   display: flex;
+  flex-wrap: wrap;
   background: var(--surface-inset, #f1f5f9);
   border-bottom: 1px solid var(--surface-border, #e2e8f0);
-  padding: 0 1.25rem;
-  gap: 0.5rem;
-  overflow-x: auto;
+  padding: 0 0.75rem;
+  gap: 0.25rem 0.5rem;
+  overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 .proto-settings-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1rem;
+  gap: 0.4rem;
+  padding: 0.7rem 0.75rem;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted, #64748b);
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: left;
+  flex: 1 1 8.5rem;
+  min-width: 0;
 }
 
 .proto-settings-tab:hover {
@@ -2701,7 +2706,11 @@ const handlePurgeTelemetryBuffer = () => {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: var(--surface-ground, #f8fafc);
+  background: #F7F8F2;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 /* Audio & Haptics Styles */
@@ -2799,7 +2808,8 @@ const handlePurgeTelemetryBuffer = () => {
     flex-shrink: 0;
   }
   .proto-settings-tab {
-    white-space: nowrap;
+    white-space: normal;
+    flex: 1 1 46%;
   }
   .proto-settings-body {
     padding: 16px;

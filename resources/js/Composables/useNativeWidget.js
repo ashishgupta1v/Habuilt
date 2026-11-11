@@ -2,6 +2,21 @@ import { Capacitor } from '@capacitor/core';
 import { enqueueZoetiCoachEvent, flushZoetiCoachQueue } from '@/lib/zoetiCoachBridge';
 import { getMemoryAccessToken } from '@/lib/browserSession';
 
+export async function refreshNativeWidgetToken() {
+  if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
+  const accessToken = getMemoryAccessToken();
+  if (!accessToken) return;
+  try {
+    const plugins = Capacitor.Plugins || (window.Capacitor && window.Capacitor.Plugins);
+    const HabuiltWidget = plugins?.HabuiltWidget;
+    if (HabuiltWidget && typeof HabuiltWidget.refreshAccessToken === 'function') {
+      await HabuiltWidget.refreshAccessToken({ accessToken });
+    }
+  } catch {
+    console.warn('Native widget token refresh did not finish');
+  }
+}
+
 export async function clearNativeWidgetSession({ wipeDisplay = false } = {}) {
   if (typeof window === 'undefined' || !Capacitor.isNativePlatform()) return;
   try {

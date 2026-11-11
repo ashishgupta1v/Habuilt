@@ -4,6 +4,7 @@ import { readStoredTodaySummary } from '@/lib/todaySummary';
 import { bindLandingMotion } from '@/lib/calmMotion';
 import { supabase, updateAuthUser } from '@/lib/supabase';
 import { handoffRefreshToken } from '@/lib/browserSession';
+import { importGuestListForSignedInUser } from '@/lib/guestImport';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Mail, Lock, ArrowRight } from 'lucide-vue-next';
@@ -125,6 +126,11 @@ const finishSignIn = async (session) => {
   try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* refresh material is already in the cookie */ }
   if (!user) {
     throw new Error('Could not start a secure session. Try again.');
+  }
+  try {
+    await importGuestListForSignedInUser(user.id, localStorage);
+  } catch {
+    console.warn('Dropped guest import');
   }
   emit('login-success', user);
 };

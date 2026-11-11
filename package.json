@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prepare-dist.mjs",
-    "test:sync": "node --test tests/js/syncQueuePolicy.test.js tests/js/sundayReview.test.js tests/js/ledgerBriefing.test.js tests/js/biomarkerExport.test.js",
+    "test:sync": "node --test tests/js/syncQueuePolicy.test.js tests/js/sundayReview.test.js tests/js/ledgerBriefing.test.js tests/js/biomarkerExport.test.js tests/js/savedHabitList.test.js",
     "preview": "vite preview --outDir dist",
     "cap:add": "cap add android",
     "cap:sync": "npm run build && cap sync android",

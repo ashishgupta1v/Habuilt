@@ -263,13 +263,13 @@ const handleSendCustomNudge = () => {
               </span>
             </div>
             <span class="partner-banner-sub">
-              Today: {{ partnerStatus === 'kept' ? 'Kept' : 'Not yet' }}
+              Today: {{ partnerStatus === 'kept' ? 'Kept' : partnerStatus === 'not_yet' ? 'Not yet' : 'Partner' }}
             </span>
           </div>
 
           <div class="partner-banner-stats flex items-center gap-2">
             <div class="stat-pill mono-num">
-              <span class="stat-pill__val">{{ partnerStatus === 'kept' ? 'Kept' : 'Not yet' }}</span>
+              <span class="stat-pill__val">{{ partnerStatus === 'kept' ? 'Kept' : partnerStatus === 'not_yet' ? 'Not yet' : 'Partner' }}</span>
               <span class="stat-pill__lbl">Today</span>
             </div>
             <div class="stat-pill mono-num">

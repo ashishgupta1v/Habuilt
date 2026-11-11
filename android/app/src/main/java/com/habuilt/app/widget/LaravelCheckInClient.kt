@@ -22,6 +22,7 @@ object LaravelCheckInClient {
     const val APP_ORIGIN = "https://habuilt.com"
     const val PREFS = "habuilt_widget_prefs"
     const val TOKEN_KEY = "session_access_token"
+    const val SESSION_NOTICE_KEY = "widget_session_notice"
     const val QUEUE_KEY = "pending_laravel_check_ins"
     const val DEAD_LETTER_KEY = "laravel_check_in_dead_letters"
     const val LAST_SUCCESS_KEY = "laravel_check_in_last_success"
@@ -67,7 +68,7 @@ object LaravelCheckInClient {
             return
         }
 
-        val token = prefs.getString(TOKEN_KEY, "") ?: ""
+        val token = WidgetSessionStore.readToken(context)
         val queue = readQueue(prefs)
         if (token.isBlank() || queue.length() == 0) {
             return
@@ -78,7 +79,7 @@ object LaravelCheckInClient {
         var succeeded = false
         for (index in 0 until queue.length()) {
             val row = queue.optJSONObject(index) ?: continue
-            if (postCheckIn(token, row)) {
+            if (postCheckIn(context, token, row)) {
                 succeeded = true
                 continue
             }
@@ -115,8 +116,10 @@ object LaravelCheckInClient {
     }
 
     fun clearSession(context: Context, wipeDisplay: Boolean) {
+        WidgetSessionStore.clearToken(context)
         val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .remove(TOKEN_KEY)
+            .remove(SESSION_NOTICE_KEY)
             .remove("supabase_access_token")
         if (wipeDisplay) {
             editor
@@ -163,7 +166,7 @@ object LaravelCheckInClient {
         }
     }
 
-    private fun postCheckIn(token: String, item: JSONObject): Boolean {
+    private fun postCheckIn(context: Context, token: String, item: JSONObject): Boolean {
         var connection: HttpURLConnection? = null
         return try {
             connection = (URL("$APP_ORIGIN/api/habits/check-ins").openConnection() as HttpURLConnection).apply {
@@ -188,7 +191,21 @@ object LaravelCheckInClient {
                 writer.write(payload.toString())
             }
             val code = connection.responseCode
-            code in 200..299
+            if (code == 401) {
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(SESSION_NOTICE_KEY, "Open Habuilt")
+                    .apply()
+                return false
+            }
+            if (code in 200..299) {
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit()
+                    .remove(SESSION_NOTICE_KEY)
+                    .apply()
+                return true
+            }
+            false
         } catch (e: Exception) {
             Log.w(TAG, "Laravel check-in was not reachable")
             false

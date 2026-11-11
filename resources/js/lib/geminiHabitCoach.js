@@ -23,30 +23,30 @@ forgetPersistedGeminiKey();
 export const VOICE_PERSONAS = {
   executive: {
     id: 'executive',
-    label: 'Executive Commander',
-    badge: '⚡ Tactical',
+    label: 'Clear',
+    badge: 'Plain',
     rate: 1.05,
     pitch: 1.0,
-    prefix: 'Commander',
-    tone: 'Crisp, authoritative, high-leverage execution mindset'
+    prefix: '',
+    tone: 'Plain, calm habit-tracker voice'
   },
   spartan: {
     id: 'spartan',
-    label: 'Spartan Warrior',
-    badge: '🛡️ Relentless',
+    label: 'Steady',
+    badge: 'Quiet',
     rate: 1.0,
-    pitch: 0.85,
-    prefix: 'Warrior',
-    tone: 'Deep, steady, disciplined, anti-complacency focus'
+    pitch: 0.95,
+    prefix: '',
+    tone: 'Steady and brief'
   },
   zen: {
     id: 'zen',
-    label: 'Mindful Scribe',
-    badge: '🌿 Grounded',
+    label: 'Calm',
+    badge: 'Soft',
     rate: 0.95,
-    pitch: 1.1,
-    prefix: 'Champion',
-    tone: 'Calm, breath-synchronized, recovery-first perspective'
+    pitch: 1.05,
+    prefix: '',
+    tone: 'Calm and short'
   }
 };
 
@@ -66,7 +66,7 @@ export function setGeminiApiKey(key = '') {
  * Generate Multi-Dimensional AI Tactical Briefing Context
  */
 export function buildBriefingContext({
-  displayName = 'Warrior',
+  displayName = 'You',
   isAshish = false,
   isJyoti = false,
   dayTypeLabel = 'Home',
@@ -108,77 +108,31 @@ export function buildBriefingContext({
  * Produces crisp, bio-individually tailored briefings without API delays.
  */
 export function generateHeuristicBriefing(ctx, personaKey = 'executive') {
-  const persona = VOICE_PERSONAS[personaKey] || VOICE_PERSONAS.executive;
-  const isMorning = ctx.circadianPhase.toLowerCase().includes('morning') || ctx.circadianPhase.toLowerCase().includes('sadhana');
-  const isEvening = ctx.circadianPhase.toLowerCase().includes('evening') || ctx.circadianPhase.toLowerCase().includes('shutdown');
-
-  let hook = '';
-  if (isMorning) {
-    hook = `Good morning, ${ctx.displayName}. Circadian clock is locked at ${ctx.circadianPhase} on a ${ctx.dayTypeLabel} schedule.`;
-  } else if (isEvening) {
-    hook = `Evening transition initiated, ${ctx.displayName}. Work shutdown window is active.`;
-  } else {
-    hook = `Midday execution check, ${ctx.displayName}. Operating in ${ctx.circadianPhase}.`;
-  }
-
-  // Clinical Rheumatology & Biomarkers Evaluation
-  let clinicalNote = '';
-  if (ctx.clinicalDirective) {
-    clinicalNote = `${ctx.clinicalDirective} `;
-  }
-  if (ctx.stiffnessMinutes > 0) {
-    if (ctx.stiffnessMinutes <= 15) {
-      clinicalNote += `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes — excellent baseline decompression. Keep the thoracic mobility sequence steady.`;
-    } else if (ctx.stiffnessMinutes <= 30) {
-      clinicalNote += `Morning stiffness logged at ${ctx.stiffnessMinutes} minutes. Prioritize warm abhyanga and avoid compressive axial loads before your midday walk.`;
-    } else {
-      clinicalNote += `Elevated stiffness alert: ${ctx.stiffnessMinutes} minutes logged. Defer high-intensity strength; execute restorative pelvic tilts and keep hydration steady.`;
-    }
-  } else if (!ctx.clinicalDirective) {
-    clinicalNote = `Spinal decompression protocol is active. Keep hydration above the 3-litre target to flush metabolic inflammation.`;
-  }
-
-  // Progress & Streak Analysis
-  let progressNote = '';
-  const adherencePrefix = Number(ctx.adherenceRate) > 0 ? `ZoetiCoach verifies ${ctx.adherenceRate}% adherence. ` : '';
-  if (ctx.todayPoints >= 15) {
-    progressNote = `${adherencePrefix}Target crushed with ${ctx.todayPoints} points secured! Full protocol achieved. Protect your evening wind-down.`;
-  } else if (ctx.todayPoints >= 8) {
-    progressNote = `${adherencePrefix}Solid rhythm: ${ctx.todayPoints} of 15 points logged. Half-target cleared. Push through your afternoon execution block.`;
-  } else if (ctx.todayPoints >= 4) {
-    progressNote = `${adherencePrefix}Floor safe at ${ctx.todayPoints} points, protecting your ${ctx.systemStreak}-day streak. Now ramp up to the 8-point half milestone.`;
-  } else {
-    progressNote = `${adherencePrefix}Current score: ${ctx.todayPoints} points. Protect the 4-point floor first to keep your ${ctx.systemStreak}-day streak unbreakable.`;
-  }
-
-  // Keystone Needle-Mover
-  let keystone = '';
-  if (ctx.activeHabitName) {
-    keystone = `Immediate keystone action: "${ctx.activeHabitName}". Complete this now to cement momentum.`;
-  } else {
-    keystone = `Anchor your day with uninterrupted focus blocks and phone-free family presence.`;
-  }
-
-  // Partner Synergy Anchor
-  let partnerSynergy = '';
-  if (ctx.partnerName && ctx.partnerName !== 'Partner') {
-    partnerSynergy = `Accountability link with ${ctx.partnerName} is synchronized. Sync on today's shared anchors and send a live cheer when you hit targets.`;
-  } else {
-    partnerSynergy = `Daily alignment active. Stay focused on your primary commitments and protect your recovery window.`;
-  }
-
-  const fullSpeechText = `${hook} ${progressNote} ${clinicalNote} ${keystone} ${partnerSynergy}`;
+  const kept = Number(ctx.completedCount) || 0;
+  const scheduled = Number(ctx.scheduledCount) || 0;
+  const streak = Number(ctx.systemStreak) || 0;
+  const hook = `${ctx.displayName}, ${kept} of ${scheduled} habits kept today.`;
+  const progressNote = streak > 0
+    ? `${ctx.todayPoints} points today. Streak: ${streak} days.`
+    : `${ctx.todayPoints} points today.`;
+  const note = ctx.activeHabitName
+    ? `Next habit: ${ctx.activeHabitName}.`
+    : 'Nothing else is scheduled right now.';
+  const partnerSynergy = ctx.partnerName && ctx.partnerName !== 'Partner'
+    ? `You and ${ctx.partnerName} each see Kept or Not yet for today.`
+    : 'No partner yet.';
+  const fullSpeechText = `${hook} ${progressNote} ${note} ${partnerSynergy}`;
 
   return {
-    headline: progressNote.split('.')[0] || 'Warrior Protocol Active',
-    directive: `${progressNote} ${clinicalNote}`,
+    headline: hook,
+    directive: `${progressNote} ${note}`,
     executiveSummary: `${hook} ${progressNote}`,
-    clinicalRecovery: clinicalNote,
-    keystoneAction: keystone,
+    clinicalRecovery: note,
+    keystoneAction: note,
     keystoneFocus: ctx.activeHabitName || '',
-    stiffnessAdvisory: ctx.stiffnessMinutes > 30 ? `${ctx.stiffnessMinutes}min stiffness — defer heavy loads` : '',
-    partnerSynergy: partnerSynergy,
-    fullSpeechText: fullSpeechText,
+    stiffnessAdvisory: '',
+    partnerSynergy,
+    fullSpeechText,
     source: 'heuristic',
     timestamp: new Date().toISOString()
   };
@@ -197,24 +151,21 @@ export async function generateAIBriefing(ctx, personaKey = 'executive') {
   }
 
   try {
-    const prompt = `You are the Habuilt Elite Circadian Intelligence Coach integrated with ZoetiCoach Habit Cloud.
-Speak directly to ${ctx.displayName} in a ${VOICE_PERSONAS[personaKey]?.tone || 'crisp, tactical'} tone.
+    const prompt = `You are Habuilt, a plain habit tracker.
+Speak directly to ${ctx.displayName} in a ${VOICE_PERSONAS[personaKey]?.tone || 'plain and calm'} tone.
+Use only the check-ins in this context. Do not invent health scores.
 Context:
-- Day Type: ${ctx.dayTypeLabel}
-- Circadian Phase: ${ctx.circadianPhase}
-- Points Today: ${ctx.todayPoints} / ${ctx.targetPoints} (Streak: ${ctx.systemStreak} days)
-- 30-Day ZoetiCoach Adherence Rate: ${ctx.adherenceRate || 0}%
-- Notes: use only the check-ins and saved numbers in this context.
-- Completed Habits: ${ctx.completedCount} of ${ctx.scheduledCount}
-- Morning Stiffness Log: ${ctx.stiffnessMinutes} minutes
-- Hydration Rail: ${ctx.hydrationMl} ml / 3000 ml
+- Day: ${ctx.dayTypeLabel}
+- Points today: ${ctx.todayPoints} / ${ctx.targetPoints}
+- Streak: ${ctx.systemStreak} days
+- Kept: ${ctx.completedCount} of ${ctx.scheduledCount}
+- Next habit: ${ctx.activeHabitName || 'none'}
 - Partner: ${ctx.partnerName}
-- Next Keystone Habit: ${ctx.activeHabitName || 'Core Deep Work'}
 
 Instructions:
-1. Provide a 4-sentence spoken tactical briefing that analyzes progress, clinical recovery, keystone needle-mover, and partner harmony.
-2. Format as valid JSON with keys: "executiveSummary", "clinicalRecovery", "keystoneAction", "partnerSynergy", "fullSpeechText".
-3. Keep fullSpeechText under 80 words for optimal voice cadence.`;
+1. Write four short sentences about habits kept today, the next habit, and that a partner sees Kept or Not yet.
+2. Format as valid JSON with keys: "executiveSummary", "todayNote", "keystoneAction", "partnerSynergy", "fullSpeechText".
+3. Keep fullSpeechText under 80 words. Use everyday habit-tracker language.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -243,6 +194,7 @@ Instructions:
       const parsed = JSON.parse(rawContent);
       return {
         ...parsed,
+        clinicalRecovery: parsed.todayNote || parsed.note || '',
         source: 'gemini-1.5-flash',
         timestamp: new Date().toISOString()
       };

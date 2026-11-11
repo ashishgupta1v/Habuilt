@@ -441,24 +441,28 @@ export const loadAllCheckIns = async (userId) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const saveUserSettings = async (userId, settingsPayload) => {
-  if (!userId) return false;
+  if (!userId) return { success: false };
+  if (!isRetryableAccountId(String(userId))) return { success: true, guest: true };
 
-  if (USE_LOCAL_API) {
-    const localRes = await callLocalApi('/api/user-settings', 'POST', {
-      user_id: userId,
-      progressive_settings: settingsPayload.progressiveSettings || {},
-      custom_habits: settingsPayload.customHabits || [],
-      rewards: settingsPayload.rewards || [],
-      reward_ledger: settingsPayload.rewardLedger || [],
-      weekly_reviews: settingsPayload.weeklyReviews || {},
-      enhanced_state: settingsPayload.enhancedState || {},
-      day_type: settingsPayload.dayType || 'home',
-      dark_mode: false,
-    });
-    if (localRes && localRes.success) return true;
+  const source = settingsPayload && typeof settingsPayload === 'object' ? settingsPayload : {};
+  const body = {};
+  if (Object.prototype.hasOwnProperty.call(source, 'custom_habits')) {
+    body.custom_habits = source.custom_habits;
+  }
+  if (Object.prototype.hasOwnProperty.call(source, 'weekly_reviews')) {
+    body.weekly_reviews = source.weekly_reviews;
+  }
+  if (Object.prototype.hasOwnProperty.call(source, 'expected_updated_at')) {
+    body.expected_updated_at = source.expected_updated_at;
   }
 
-  return false;
+  if (USE_LOCAL_API) {
+    const localRes = await callLocalApi('/api/user-settings', 'POST', body, { returnError: true });
+    if (!localRes) return { success: false, offline: true };
+    return localRes;
+  }
+
+  return { success: false };
 };
 
 export const loadUserSettings = async (userId) => {

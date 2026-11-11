@@ -63,7 +63,7 @@ const goals = [
   {
     id: 'discipline',
     title: 'Sovereign All-Round Protocol',
-    subtitle: 'Full-spectrum execution across physical, clinical, family, and professional domains',
+    subtitle: 'Movement, family, and work on one list',
     icon: Crown,
     color: 'from-indigo-500/20 to-purple-500/10 border-indigo-500/30 text-indigo-400'
   }
@@ -166,226 +166,204 @@ const handleSkip = () => {
 </script>
 
 <template>
-  <div class="first-run-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#F7F8F2] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,119,6,0.15),rgba(255,255,255,0))] text-slate-100 overflow-y-auto">
-    <div class="relative w-full max-w-2xl my-auto rounded-3xl overflow-hidden flex flex-col first-run-modal">
+  <div class="onb first-run-overlay">
+    <div class="onb-modal first-run-modal">
       
-      <!-- Top Ambient Bar & Step Tracker -->
-      <div class="px-6 sm:px-8 pt-6 pb-4 border-b border-white/10 bg-white/[0.02]">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-gold/15 border border-gold/40 flex items-center justify-center text-gold">
-              <Sparkles class="w-4 h-4" />
+      <div class="onb-top">
+        <div class="onb-top__row">
+          <div class="onb-brand">
+            <div class="onb-brand__mark" aria-hidden="true">
+              <Sparkles />
             </div>
             <div>
-              <span class="text-xs uppercase tracking-widest text-gold font-mono font-semibold">Habuilt Onboarding</span>
-              <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Personalize Your Workspace</h1>
+              <span class="onb-kicker">Habuilt Onboarding</span>
+              <h1>Personalize Your Workspace</h1>
             </div>
           </div>
           <button
             type="button"
             id="onboarding-skip-btn"
+            class="onb-skip"
             @click="handleSkip"
-            class="text-xs font-semibold text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
           >
             Skip to Default
           </button>
         </div>
 
-        <!-- Progress Pills -->
-        <div class="flex items-center gap-2">
-          <div
+        <div class="onb-progress" aria-hidden="true">
+          <span
             v-for="s in [1, 2, 3]"
             :key="s"
-            class="flex-1 h-1.5 rounded-full transition-all duration-300"
-            :class="s <= currentStep ? 'bg-gradient-to-r from-gold to-amber-400 shadow-glow-gold' : 'bg-white/10'"
-          ></div>
+            :class="{ 'is-on': s <= currentStep }"
+          ></span>
         </div>
       </div>
 
-      <!-- Step Content Area -->
-      <div class="p-6 sm:p-8 flex-1 overflow-y-auto max-h-[70vh]">
+      <div class="onb-body">
         
         <!-- ══ STEP 1: IDENTITY & CORE GOAL ══ -->
-        <div v-if="currentStep === 1" class="space-y-6 animate-fadeIn onboarding-step-1">
-          <div>
-            <span class="text-xs uppercase tracking-wider text-amber-400/90 font-mono font-medium">Step 1 of 3</span>
-            <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">What should we call you?</h2>
-            <p class="text-xs sm:text-sm text-gray-400 mt-1">Set your display name and primary focus aspiration for your habit tracking.</p>
+        <div v-if="currentStep === 1" class="onb-step onboarding-step-1">
+          <div class="onb-intro">
+            <span class="onb-step__count">Step 1 of 3</span>
+            <h2>What should we call you?</h2>
+            <p>Set your display name and primary focus aspiration for your habit tracking.</p>
           </div>
 
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1.5">
-              Display Name
-            </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <User class="w-4 h-4" />
-              </div>
+          <div class="onb-field">
+            <label for="onboarding-display-name">Display Name</label>
+            <div class="onb-field__control">
+              <User aria-hidden="true" />
               <input
                 type="text"
                 v-model="displayName"
                 id="onboarding-display-name"
                 placeholder="e.g. Elena Rostova"
-                class="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
               />
             </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">
-              Primary Focus Aspiration
-            </label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="onb-field">
+            <span class="onb-field__legend" id="onboarding-aspiration-label">Primary Focus Aspiration</span>
+            <div class="onb-grid" role="group" aria-labelledby="onboarding-aspiration-label">
               <button
                 v-for="g in goals"
                 :key="g.id"
                 type="button"
+                class="onb-card"
+                :class="{ 'is-selected': selectedGoal === g.id }"
+                :aria-pressed="selectedGoal === g.id ? 'true' : 'false'"
                 @click="selectedGoal = g.id"
-                class="text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 relative group"
-                :class="selectedGoal === g.id ? `${g.color} ring-1 ring-gold shadow-lg` : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-gray-300'"
               >
-                <div class="p-2 rounded-lg bg-black/30 border border-white/10 shrink-0">
-                  <component :is="g.icon" class="w-4 h-4" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-bold text-white truncate">{{ g.title }}</div>
-                  <div class="text-[11px] text-gray-400 line-clamp-2 mt-0.5 leading-snug">{{ g.subtitle }}</div>
-                </div>
-                <div v-if="selectedGoal === g.id" class="w-4 h-4 rounded-full bg-gold text-black flex items-center justify-center shrink-0">
-                  <Check class="w-2.5 h-2.5 stroke-[3]" />
-                </div>
+                <span class="onb-card__icon" aria-hidden="true">
+                  <component :is="g.icon" />
+                </span>
+                <span class="onb-card__copy">
+                  <span class="onb-card__title">{{ g.title }}</span>
+                  <span class="onb-card__sub">{{ g.subtitle }}</span>
+                </span>
+                <span v-if="selectedGoal === g.id" class="onb-card__check" aria-hidden="true">
+                  <Check />
+                </span>
               </button>
             </div>
           </div>
         </div>
 
         <!-- ══ STEP 2: ROUTINE ARCHETYPE ══ -->
-        <div v-else-if="currentStep === 2" class="space-y-6 animate-fadeIn onboarding-step-2">
-          <div>
-            <span class="text-xs uppercase tracking-wider text-amber-400/90 font-mono font-medium">Step 2 of 3</span>
-            <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">Select Your Routine Archetype</h2>
-            <p class="text-xs sm:text-sm text-gray-400 mt-1">Pick a curated blueprint designed for your lifestyle. You can customize habits anytime.</p>
+        <div v-else-if="currentStep === 2" class="onb-step onboarding-step-2">
+          <div class="onb-intro">
+            <span class="onb-step__count">Step 2 of 3</span>
+            <h2>Select Your Routine Archetype</h2>
+            <p>Pick a curated blueprint designed for your lifestyle. You can customize habits anytime.</p>
           </div>
 
-          <div class="space-y-3">
+          <div class="onb-stack">
             <button
               v-for="arch in archetypeOptions"
               :key="arch.id"
               type="button"
-              @click="selectedArchetypeId = arch.id"
               :id="`onboarding-archetype-${arch.key}`"
-              class="w-full text-left p-4 rounded-2xl border transition-all flex items-start gap-4 relative group onboarding-archetype-card"
-              :class="selectedArchetypeId === arch.id ? 'bg-gold/10 border-gold shadow-glow-gold' : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'"
+              class="onb-arch onboarding-archetype-card"
+              :class="{ 'is-selected': selectedArchetypeId === arch.id }"
+              :aria-pressed="selectedArchetypeId === arch.id ? 'true' : 'false'"
+              @click="selectedArchetypeId = arch.id"
             >
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0" :class="arch.colorClass">
-                <component :is="arch.icon" class="w-5 h-5" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-sm font-bold text-white tracking-wide truncate">{{ arch.name }}</h3>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold shrink-0">
-                    {{ arch.badge }}
-                  </span>
-                </div>
-                <p class="text-xs text-amber-300/80 font-medium mt-0.5">{{ arch.tagline }}</p>
-                <p class="text-[11px] text-gray-400 mt-1 leading-relaxed">{{ arch.description }}</p>
-              </div>
-              <div
-                class="w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5"
-                :class="selectedArchetypeId === arch.id ? 'bg-gold border-gold text-black' : 'border-white/20 text-transparent'"
-              >
-                <Check class="w-3 h-3 stroke-[3]" />
-              </div>
+              <span class="onb-card__icon" aria-hidden="true">
+                <component :is="arch.icon" />
+              </span>
+              <span class="onb-card__copy">
+                <span class="onb-arch__head">
+                  <span class="onb-card__title">{{ arch.name }}</span>
+                  <span class="onb-badge">{{ arch.badge }}</span>
+                </span>
+                <span class="onb-arch__tag">{{ arch.tagline }}</span>
+                <span class="onb-card__sub">{{ arch.description }}</span>
+              </span>
+              <span class="onb-card__check" :class="{ 'is-on': selectedArchetypeId === arch.id }" aria-hidden="true">
+                <Check />
+              </span>
             </button>
           </div>
         </div>
 
         <!-- ══ STEP 3: CIRCADIAN SCHEDULE & LAUNCH ══ -->
-        <div v-else-if="currentStep === 3" class="space-y-6 animate-fadeIn onboarding-step-3">
-          <div>
-            <span class="text-xs uppercase tracking-wider text-amber-400/90 font-mono font-medium">Step 3 of 3</span>
-            <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">Circadian Rhythm & Time Blocks</h2>
-            <p class="text-xs sm:text-sm text-gray-400 mt-1">Set your waking and sleeping targets to align your daily task matrix with natural energy curves.</p>
+        <div v-else-if="currentStep === 3" class="onb-step onboarding-step-3">
+          <div class="onb-intro">
+            <span class="onb-step__count">Step 3 of 3</span>
+            <h2>Circadian Rhythm & Time Blocks</h2>
+            <p>Set your waking and sleeping targets to align your daily task matrix with natural energy curves.</p>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-              <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-                <Sun class="w-4 h-4" /> Wake & Morning Window
+          <div class="onb-grid">
+            <div class="onb-time">
+              <div class="onb-time__label">
+                <Sun aria-hidden="true" /> Wake & Morning Window
               </div>
-              <div>
-                <label class="block text-[11px] text-gray-400 mb-1">Target Wake Up Time</label>
-                <input
-                  type="time"
-                  v-model="wakeTime"
-                  id="onboarding-wake-time"
-                  class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-gold"
-                />
-              </div>
-              <div class="text-[11px] text-gray-400 flex items-center justify-between pt-1">
-                <span>Morning Energy Window:</span>
-                <strong class="text-white font-mono">{{ morningWindow }}</strong>
-              </div>
+              <label for="onboarding-wake-time">Target Wake Up Time</label>
+              <input
+                type="time"
+                v-model="wakeTime"
+                id="onboarding-wake-time"
+              />
+              <p class="onb-time__window">
+                <span>Morning Energy Window</span>
+                <strong>{{ morningWindow }}</strong>
+              </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-              <div class="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                <Moon class="w-4 h-4" /> Sleep & Wind-Down Window
+            <div class="onb-time">
+              <div class="onb-time__label">
+                <Moon aria-hidden="true" /> Sleep & Wind-Down Window
               </div>
-              <div>
-                <label class="block text-[11px] text-gray-400 mb-1">Target Sleep Time</label>
-                <input
-                  type="time"
-                  v-model="sleepTime"
-                  id="onboarding-sleep-time"
-                  class="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-gold"
-                />
-              </div>
-              <div class="text-[11px] text-gray-400 flex items-center justify-between pt-1">
-                <span>Evening Calm Window:</span>
-                <strong class="text-white font-mono">{{ eveningWindow }}</strong>
-              </div>
+              <label for="onboarding-sleep-time">Target Sleep Time</label>
+              <input
+                type="time"
+                v-model="sleepTime"
+                id="onboarding-sleep-time"
+              />
+              <p class="onb-time__window">
+                <span>Evening Calm Window</span>
+                <strong>{{ eveningWindow }}</strong>
+              </p>
             </div>
           </div>
 
-          <!-- Summary Matrix Launch Box -->
-          <div class="p-4 rounded-2xl bg-gradient-to-r from-gold/10 via-amber-500/5 to-transparent border border-gold/30 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-gold/20 border border-gold/40 flex items-center justify-center text-gold shrink-0">
-              <Compass class="w-6 h-6" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs uppercase tracking-wider text-gold font-mono font-bold">Ready to Launch</div>
-              <div class="text-sm font-bold text-white truncate">
-                {{ displayName }}'s System • {{ archetypeOptions.find(a => a.id === selectedArchetypeId)?.name }}
-              </div>
-              <div class="text-xs text-gray-400">Offline Web Audio & IndexedDB storage initialized automatically.</div>
-            </div>
+          <div class="onb-launch">
+            <span class="onb-card__icon" aria-hidden="true">
+              <Compass />
+            </span>
+            <span class="onb-card__copy">
+              <span class="onb-kicker">Ready to Launch</span>
+              <span class="onb-card__title">
+                {{ displayName }}'s System · {{ archetypeOptions.find(a => a.id === selectedArchetypeId)?.name }}
+              </span>
+              <span class="onb-card__sub">Your list is saved on this device and can sync when you are signed in.</span>
+            </span>
           </div>
         </div>
 
       </div>
 
-      <!-- Bottom Navigation Footer -->
-      <div class="px-6 sm:px-8 py-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between">
+      <div class="onb-footer">
         <button
           v-if="currentStep > 1"
           type="button"
+          class="onb-back"
           @click="handleBack"
-          class="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-300 hover:text-white rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
         >
-          <ChevronLeft class="w-4 h-4" /> Back
+          <ChevronLeft aria-hidden="true" /> Back
         </button>
-        <div v-else></div>
+        <span v-else></span>
 
         <button
           type="button"
-          @click="handleNext"
           id="onboarding-next-btn"
-          class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-gold to-amber-500 hover:from-gold-light hover:to-amber-400 text-black text-xs font-bold transition-all shadow-glow-gold"
+          class="onb-next"
+          @click="handleNext"
         >
-          <span>{{ currentStep === 3 ? '🚀 Launch My Workspace' : 'Continue' }}</span>
-          <ChevronRight v-if="currentStep < 3" class="w-4 h-4" />
-          <ArrowRight v-else class="w-4 h-4" />
+          <span>{{ currentStep === 3 ? 'Launch My Workspace' : 'Continue' }}</span>
+          <ChevronRight v-if="currentStep < 3" aria-hidden="true" />
+          <ArrowRight v-else aria-hidden="true" />
         </button>
       </div>
 
@@ -394,32 +372,422 @@ const handleSkip = () => {
 </template>
 
 <style scoped>
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fadeIn {
-  animation: fadeIn 0.25s ease-out forwards;
-}
-.shadow-glow-gold {
-  box-shadow: 0 0 25px rgba(217, 242, 122, 0.45);
-}
-.first-run-overlay {
-  background: #F7F8F2 !important;
-  color: #0C110D !important;
-}
-.first-run-modal {
-  background: #ffffff !important;
-  color: #0C110D !important;
-  border: 1px solid #E4E6DC !important;
-}
-.first-run-overlay h1,
-.first-run-overlay h2,
-.first-run-overlay h3,
-.first-run-overlay p,
-.first-run-overlay label,
-.first-run-overlay button,
-.first-run-overlay span {
+.onb {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 16px;
+  background: #F7F8F2;
   color: #0C110D;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.onb-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #0C110D;
+  border: 1px solid #E4E6DC;
+  border-radius: 24px;
+}
+
+.onb-top,
+.onb-body,
+.onb-footer {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.onb-top {
+  flex: 0 0 auto;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #E4E6DC;
+}
+
+.onb-top__row,
+.onb-brand,
+.onb-footer,
+.onb-arch,
+.onb-card,
+.onb-launch,
+.onb-time__label,
+.onb-time__window,
+.onb-arch__head,
+.onb-next,
+.onb-back {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.onb-top__row,
+.onb-arch__head,
+.onb-time__window,
+.onb-footer {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onb-top__row,
+.onb-arch__head,
+.onb-footer {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.onb-brand {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.onb-brand__mark,
+.onb-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #D9F27A;
+  color: #0C110D;
+}
+
+.onb-kicker,
+.onb-step__count {
+  display: block;
+  margin: 0;
+  color: #3A4338;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onb h1,
+.onb h2,
+.onb-card__title {
+  margin: 0;
+  color: #0C110D;
+  font-family: Urbanist, Inter, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.onb h1 {
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  line-height: 1.15;
+}
+
+.onb h2 {
+  margin-top: 4px;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  line-height: 1.15;
+}
+
+.onb p,
+.onb-card__sub,
+.onb-arch__tag {
+  margin: 6px 0 0;
+  color: #3A4338;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.onb-skip,
+.onb-back,
+.onb-next,
+.onb-card,
+.onb-arch {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  height: auto;
+  margin: 0;
+  font: inherit;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.onb-skip,
+.onb-back {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid #E4E6DC;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0C110D;
+}
+
+.onb-progress {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.onb-progress span {
+  flex: 1 1 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #E4E6DC;
+}
+
+.onb-progress span.is-on {
+  background: #D9F27A;
+}
+
+.onb-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 18px 20px 22px;
+}
+
+.onb-step {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.onb-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.onb-field label,
+.onb-field__legend,
+.onb-time label {
+  color: #3A4338;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.onb-field__control {
+  position: relative;
+  min-width: 0;
+}
+
+.onb-field__control svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: #3A4338;
+  pointer-events: none;
+}
+
+.onb input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #E4E6DC;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0C110D;
+  font: inherit;
+  font-size: 16px;
+}
+
+.onb-field__control input {
+  padding-left: 38px;
+}
+
+.onb-grid,
+.onb-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.onb-card,
+.onb-arch {
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 14px;
+  border: 1px solid #E4E6DC;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0C110D;
+}
+
+.onb-card.is-selected,
+.onb-arch.is-selected,
+.onb-launch {
+  background: #D9F27A;
+  border-color: #0C110D;
+}
+
+.onb-card__copy {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.onb-card__title,
+.onb-card__sub,
+.onb-arch__tag {
+  display: block;
+}
+
+.onb-card__title {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.onb-arch__head .onb-card__title {
+  flex: 1 1 12rem;
+}
+
+.onb-card__sub {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.onb-card__icon svg,
+.onb-brand__mark svg,
+.onb-next svg,
+.onb-back svg,
+.onb-time__label svg,
+.onb-card__check svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.onb-card__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 1px solid #E4E6DC;
+  border-radius: 999px;
+  background: #ffffff;
+  color: transparent;
+}
+
+.onb-card.is-selected .onb-card__check,
+.onb-card__check.is-on {
+  border-color: #0C110D;
+  background: #ffffff;
+  color: #0C110D;
+}
+
+.onb-arch__tag {
+  margin-top: 4px;
+  font-weight: 650;
+}
+
+.onb-badge {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #F7F8F2;
+  color: #0C110D;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.onb-time {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #E4E6DC;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.onb-time__label {
+  justify-content: flex-start;
+  gap: 8px;
+  color: #0C110D;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.onb-time__window {
+  margin: 0;
+  gap: 8px;
+}
+
+.onb-time__window strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.onb-launch {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.onb-footer {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-top: 1px solid #E4E6DC;
+  background: #ffffff;
+}
+
+.onb-next {
+  gap: 6px;
+  margin-left: auto;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #D9F27A;
+  color: #0C110D;
+  font-weight: 700;
+}
+
+.onb-back {
+  gap: 4px;
+}
+
+@media (min-width: 720px) {
+  .onb {
+    padding: 28px;
+  }
+
+  .onb-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .onb-top,
+  .onb-body,
+  .onb-footer {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
 }
 </style>

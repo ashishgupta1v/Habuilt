@@ -94,7 +94,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="card card--focus-station" ref="stationRef">
+  <section class="card card--focus-station calm-tool" ref="stationRef">
     <!-- Header Bar -->
     <div class="focus-station-header">
       <div class="focus-station-header__left">
@@ -104,13 +104,13 @@ onUnmounted(() => {
         </div>
         <div class="focus-station-heading">
           <div class="focus-station-title-row">
-            <h2 class="focus-station-title">Deep Work Station</h2>
+            <h2 class="focus-station-title">Focus</h2>
             <span class="focus-station-live-badge" v-if="timerState && timerState.running">
               <span class="focus-station-live-dot"></span>
               LIVE
             </span>
           </div>
-          <p class="focus-station-subtitle">Zero-distraction flow state &bull; Auto-logs linked habits</p>
+          <p class="focus-station-subtitle">A timer for one habit on today's list</p>
         </div>
       </div>
       <button
@@ -151,8 +151,7 @@ onUnmounted(() => {
           <defs>
             <linearGradient id="focusGoldIndigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#D9F27A" />
-              <stop offset="50%" stop-color="#D9F27A" />
-              <stop offset="100%" stop-color="#FBEA86" />
+              <stop offset="100%" stop-color="#D9F27A" />
             </linearGradient>
           </defs>
         </svg>

@@ -49,8 +49,12 @@ const pairUrl = computed(() => {
   return `${origin}${path}#pair=${inviteCode.value}`;
 });
 
+const isGuestAccount = computed(() => props.userId === 'guest');
+
 const isPaired = computed(() => {
-  return Boolean(activeConnection.value && activeConnection.value.status === 'connected');
+  return !isGuestAccount.value
+    && activeConnection.value?.confirmed === true
+    && activeConnection.value?.status === 'connected';
 });
 
 const partnerName = computed(() => {
@@ -103,6 +107,10 @@ const handleCopyLink = async () => {
 };
 
 const handleConnect = async () => {
+  if (isGuestAccount.value) {
+    emit('toast', 'An account is required.');
+    return;
+  }
   if (!partnerInputCode.value.trim()) {
     emit('toast', 'Please enter a valid partner code.');
     return;
@@ -165,10 +173,10 @@ const handleDisconnect = async () => {
                 class="partner-status-pill"
                 :class="isPaired ? 'partner-status-pill--connected' : 'partner-status-pill--standalone'"
               >
-                {{ isPaired ? 'Connected' : 'Standalone' }}
+                {{ isGuestAccount ? 'Account required' : (isPaired ? 'Connected' : 'Not paired') }}
               </span>
             </div>
-            <p class="modal-header__sub">Share habits, sync joint family anchors, and cheer each other live</p>
+            <p class="modal-header__sub">You each see Kept or Not yet for today.</p>
           </div>
         </div>
         <button
@@ -222,6 +230,7 @@ const handleDisconnect = async () => {
       </div>
 
       <!-- Tab Content Area (Scrollable Body) -->
+      <p v-if="isGuestAccount" class="partner-pair-join-sub" role="status">An account is required.</p>
       <div class="partner-pair-body">
         <!-- ══ TAB 1: INVITE PARTNER ══ -->
         <div v-if="activeTab === 'invite'" class="partner-pair-tab-content">
@@ -347,7 +356,7 @@ const handleDisconnect = async () => {
               id="btn-pair-connect"
               type="button"
               class="btn-pair-connect"
-              :disabled="isSubmitting"
+              :disabled="isSubmitting || isGuestAccount"
               @click="handleConnect"
             >
               <RefreshCw v-if="isSubmitting" class="icon-sm animate-spin" />
@@ -361,7 +370,7 @@ const handleDisconnect = async () => {
               <ShieldCheck class="icon-xs" />
               <span>Peer Privacy Guarantee</span>
             </div>
-            <p>Pairing links your daily completion streaks, shared anchors (lunch, stroller walk, date night), and live cheering emotes with zero ad-tracking or third-party sharing.</p>
+            <p>You each see Kept or Not yet for today.</p>
           </div>
         </div>
       </div>

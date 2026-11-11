@@ -1,4 +1,5 @@
 import { callLocalApi } from '@/lib/supabase';
+import { partnerAcceptPayload, partnerConnectionFromAccept } from '@/lib/followUpGates';
 
 const LOCAL_PAIR_PREFIX = 'habuilt_partner_connection_';
 const LOCAL_INVITE_PREFIX = 'habuilt_my_invite_code_';
@@ -68,46 +69,31 @@ export async function pairWithInviteCode(currentUserId, rawCode, partnerAlias = 
   }
 
   const cleanCode = rawCode.trim().toUpperCase();
-
-  let partnerUserId = null;
-
-  if (!isGuestUser(currentUserId)) {
-    const accepted = await callLocalApi('/api/partner-connections/accept', 'POST', {
-      invite_code: cleanCode,
-      alias: partnerAlias || '',
-    }, { returnError: true });
-
-    if (accepted?.success && accepted.connection) {
-      localStorage.setItem(`${LOCAL_PAIR_PREFIX}${currentUserId}`, JSON.stringify(accepted.connection));
-      return accepted.connection;
-    }
-
-    if (accepted?.error) {
-      throw new Error(accepted.error);
-    }
+  if (isGuestUser(currentUserId)) {
+    throw new Error('An account is required.');
   }
 
-  // Save connection to local storage
-  const connection = {
-    user_id: currentUserId,
-    partner_user_id: partnerUserId || `partner-${cleanCode.replace('HAB-', '')}`,
-    invite_code: cleanCode,
-    status: 'connected',
-    alias: partnerAlias || 'My Partner',
-    updated_at: new Date().toISOString()
-  };
+  const accepted = await callLocalApi(
+    '/api/partner-connections/accept',
+    'POST',
+    partnerAcceptPayload(cleanCode, partnerAlias || ''),
+    { returnError: true },
+  );
+  const decision = partnerConnectionFromAccept({ isGuest: false, response: accepted });
+  if (!decision.connected) {
+    throw new Error(decision.message);
+  }
 
-  localStorage.setItem(`${LOCAL_PAIR_PREFIX}${currentUserId}`, JSON.stringify(connection));
-  return connection;
+  localStorage.setItem(`${LOCAL_PAIR_PREFIX}${currentUserId}`, JSON.stringify(decision.connection));
+  return decision.connection;
 }
 
 /**
  * Retrieve active partner connection status
  */
 export async function getPartnerConnection(userId) {
-  if (!userId) return null;
+  if (!userId || isGuestUser(userId)) return null;
 
-  // Local check
   const cached = localStorage.getItem(`${LOCAL_PAIR_PREFIX}${userId}`);
   let localConnection = null;
   if (cached) {
@@ -115,35 +101,40 @@ export async function getPartnerConnection(userId) {
       localConnection = JSON.parse(cached);
     } catch (_) {}
   }
+  const confirmedLocal = localConnection?.confirmed === true && localConnection?.status === 'connected'
+    ? localConnection
+    : null;
 
-  // Local Hostinger KVM 2 API check (Primary)
-  if (!isGuestUser(userId)) {
-    try {
-      const records = await callLocalApi(`/api/partner-connections?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
-      if (records && (records.offline || records.error)) {
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
-        }
-      } else if (Array.isArray(records) && records.length > 0) {
-        const connected = records.find(r => r.status === 'connected');
-        if (connected) {
-          const isHost = connected.user_id === userId;
-          const connection = {
-            user_id: userId,
-            partner_user_id: isHost ? connected.partner_user_id : connected.user_id,
-            invite_code: connected.invite_code,
-            status: 'connected',
-            alias: connected.alias || 'Partner',
-            updated_at: connected.updated_at
-          };
-          localStorage.setItem(`${LOCAL_PAIR_PREFIX}${userId}`, JSON.stringify(connection));
-          return connection;
-        }
+  try {
+    const records = await callLocalApi(`/api/partner-connections?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
+    if (records && (records.offline || records.error)) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('habuilt:read-failed'));
       }
-    } catch (_) {}
-  }
+      return confirmedLocal;
+    }
+    if (Array.isArray(records)) {
+      const connected = records.find((row) => row.status === 'connected' || row.status === 'accepted');
+      if (connected) {
+        const isHost = connected.user_id === userId;
+        const connection = {
+          user_id: userId,
+          partner_user_id: isHost ? connected.partner_user_id : connected.user_id,
+          invite_code: connected.invite_code,
+          status: 'connected',
+          alias: connected.alias || 'Partner',
+          updated_at: connected.updated_at,
+          confirmed: true,
+        };
+        localStorage.setItem(`${LOCAL_PAIR_PREFIX}${userId}`, JSON.stringify(connection));
+        return connection;
+      }
+      localStorage.removeItem(`${LOCAL_PAIR_PREFIX}${userId}`);
+      return null;
+    }
+  } catch (_) {}
 
-  return localConnection;
+  return confirmedLocal;
 }
 
 /**
@@ -177,8 +168,9 @@ export function subscribeToPartnerConnection() {
 export async function loadPartnerLiveMetrics(partnerUserId) {
   const now = new Date();
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const empty = { date, status: 'not_yet' };
-  if (!partnerUserId || isGuestUser(partnerUserId)) return empty;
+  if (!partnerUserId || isGuestUser(partnerUserId)) {
+    return { ok: false, date, status: null };
+  }
 
   try {
     const data = await callLocalApi(
@@ -187,14 +179,14 @@ export async function loadPartnerLiveMetrics(partnerUserId) {
       null,
       { returnError: true },
     );
-    if (data && (data.status === 'kept' || data.status === 'not_yet')) {
-      return { date: data.date || date, status: data.status };
+    if (data && !data.error && !data.offline && (data.status === 'kept' || data.status === 'not_yet')) {
+      return { ok: true, date: data.date || date, status: data.status };
     }
   } catch (e) {
     console.warn('[PartnerPairing] loadPartnerLiveMetrics online fetch warning:', e);
   }
 
-  return empty;
+  return { ok: false, date, status: null };
 }
 
 /**

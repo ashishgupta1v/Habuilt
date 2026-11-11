@@ -12,7 +12,9 @@ export function buildTodaySummary(input) {
       ? 'Kept'
       : partnerState === 'accepted_not_yet'
         ? 'Not yet'
-        : 'No partner yet',
+        : partnerState === 'connected_waiting'
+          ? 'Partner'
+          : 'No partner yet',
     showAddHabit: due === 0,
   };
 }

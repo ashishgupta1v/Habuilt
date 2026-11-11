@@ -60,10 +60,21 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
     }
   });
 
+  const endFromStart = (start, durationMins) => {
+    const match = String(start || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return '23:59';
+    const endMins = ((Number(match[1]) * 60) + Number(match[2]) + durationMins) % 1440;
+    return `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+  };
+
   const getScheduleForHabit = (habit) => {
     if (!habit) return null;
-    if (habit.startTime && habit.endTime) {
-      return { start: habit.startTime, end: habit.endTime };
+    if (habit.startTime) {
+      return { start: String(habit.startTime), end: habit.endTime || endFromStart(habit.startTime, 30) };
+    }
+    if (habit.time && /^\d{1,2}:\d{2}$/.test(String(habit.time).trim())) {
+      const start = String(habit.time).trim();
+      return { start, end: endFromStart(start, 30) };
     }
     const name = habit.name || '';
 
