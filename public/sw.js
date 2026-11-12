@@ -172,27 +172,67 @@ async function showHabitReminder(item) {
   await self.registration.showNotification(title, options);
 }
 
+function alarmKey(item) {
+  return `${item.habitId}|${item.triggerTimestamp}`;
+}
+
+async function markReminderFired(habitId, triggerTimestamp) {
+  const list = await loadReminderList();
+  let changed = false;
+  const next = list.map((row) => {
+    if (row && row.habitId === habitId && row.triggerTimestamp === triggerTimestamp && !row.fired) {
+      changed = true;
+      return { ...row, fired: true };
+    }
+    return row;
+  });
+  if (!changed) return;
+  await saveReminderList(next);
+  await armStoredReminders();
+}
+
+function armAfterShown(item) {
+  const key = alarmKey(item);
+  if (scheduledAlarms.has(key)) clearTimeout(scheduledAlarms.get(key));
+  const delay = Math.max(0, Number(item.triggerTimestamp) - Date.now());
+  const timer = setTimeout(() => {
+    scheduledAlarms.delete(key);
+    markReminderFired(item.habitId, item.triggerTimestamp).catch(() => {});
+  }, delay);
+  scheduledAlarms.set(key, timer);
+}
+
 function armTimeout(item, delay) {
-  if (scheduledAlarms.has(item.habitId)) {
-    clearTimeout(scheduledAlarms.get(item.habitId));
-  }
+  const key = alarmKey(item);
+  if (scheduledAlarms.has(key)) clearTimeout(scheduledAlarms.get(key));
   const timer = setTimeout(async () => {
     try {
       await showHabitReminder(item);
-      const list = await loadReminderList();
-      await saveReminderList(list.map((row) => (
-        row.habitId === item.habitId && row.triggerTimestamp === item.triggerTimestamp
-          ? { ...row, fired: true }
-          : row
-      )));
-      await armStoredReminders();
+      await markReminderFired(item.habitId, item.triggerTimestamp);
     } catch (err) {
       console.warn('[SW] Error showing scheduled notification:', err);
     } finally {
-      scheduledAlarms.delete(item.habitId);
+      scheduledAlarms.delete(key);
     }
   }, delay);
-  scheduledAlarms.set(item.habitId, timer);
+  scheduledAlarms.set(key, timer);
+}
+
+async function handToTimestampTrigger(item) {
+  await self.registration.showNotification(reminderTitle(item), {
+    body: 'Starts now.',
+    tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
+    showTrigger: new TimestampTrigger(item.triggerTimestamp),
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-monochrome-96.png',
+    data: {
+      habitId: item.habitId,
+      habitName: item.habitName,
+      day: item.day,
+      triggerTimestamp: item.triggerTimestamp,
+      url: '/',
+    },
+  });
 }
 
 async function armStoredReminders() {
@@ -200,7 +240,6 @@ async function armStoredReminders() {
   const now = Date.now();
   const sorted = [...list].sort((a, b) => (a.triggerTimestamp || 0) - (b.triggerTimestamp || 0));
   const pending = [];
-  let armed = false;
   for (const item of sorted) {
     if (!item || !item.habitId || !item.triggerTimestamp) continue;
     if (item.fired) {
@@ -214,39 +253,46 @@ async function armStoredReminders() {
       pending.push({ ...item, fired: true });
       continue;
     }
-    if (item.handedOff) {
-      pending.push(item);
-      armed = true;
+    const copy = { ...item };
+    pending.push(copy);
+    if (copy.handedOff) {
+      armAfterShown(copy);
       continue;
     }
-    pending.push(item);
-    if (!armed) {
-      armed = true;
-      const delay = item.triggerTimestamp - now;
-      let triggered = false;
-      if (typeof TimestampTrigger === 'function') {
-        try {
-          await self.registration.showNotification(reminderTitle(item), {
-            body: 'Starts now.',
-            tag: `habuilt-habit-${item.habitId}-${item.day || ''}`,
-            showTrigger: new TimestampTrigger(item.triggerTimestamp),
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/badge-monochrome-96.png',
-            data: {
-              habitId: item.habitId,
-              habitName: item.habitName,
-              day: item.day,
-              url: '/',
-            },
-          });
-          item.handedOff = true;
-          triggered = true;
-        } catch { /* fall back to a timer while this worker is alive */ }
-      }
-      if (!triggered && delay < 172800000) armTimeout(item, delay);
+    const delay = copy.triggerTimestamp - now;
+    let triggered = false;
+    if (typeof TimestampTrigger === 'function') {
+      try {
+        await handToTimestampTrigger(copy);
+        copy.handedOff = true;
+        triggered = true;
+        armAfterShown(copy);
+      } catch { /* fall back to a timer while this worker is alive */ }
     }
+    if (!triggered && delay < 172800000) armTimeout(copy, delay);
   }
   await saveReminderList(pending);
+}
+
+async function closeScheduledHabitNotifications() {
+  const read = async (options) => {
+    try {
+      return await self.registration.getNotifications(options);
+    } catch {
+      return [];
+    }
+  };
+  const notifications = [
+    ...await read({ includeTriggered: true }),
+    ...await read(),
+  ];
+  const seen = new Set();
+  for (const notif of notifications) {
+    if (!notif || !notif.tag || !String(notif.tag).startsWith('habuilt-habit-')) continue;
+    if (seen.has(notif.tag)) continue;
+    seen.add(notif.tag);
+    try { notif.close(); } catch { /* already gone */ }
+  }
 }
 
 const dismissDueNowNotifications = async (targetHabitId = null) => {
@@ -354,6 +400,7 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
       for (const timer of scheduledAlarms.values()) clearTimeout(timer);
       scheduledAlarms.clear();
+      try { await closeScheduledHabitNotifications(); } catch { /* a new schedule replaces the stored list */ }
       const normalized = list
         .filter((item) => item && item.habitId && item.triggerTimestamp)
         .map((item) => ({
@@ -429,6 +476,10 @@ self.addEventListener('notificationclick', (event) => {
   const action = event.action;
   const notif = event.notification;
   const data = notif.data || {};
+
+  if (data.habitId && data.triggerTimestamp) {
+    event.waitUntil(markReminderFired(data.habitId, data.triggerTimestamp));
+  }
 
   notif.close();
 

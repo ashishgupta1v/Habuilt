@@ -11,9 +11,13 @@ import {
   readGuestBlob,
   reminderControlCopy,
   reminderScheduleAt,
+  missingSettingsRowMessage,
+  reminderTileAction,
   runGuestImport,
+  settingsReadFromBody,
   shouldClearGuestBlob,
 } from '../../resources/js/lib/followUpGates.js';
+import { CHECKLIST_REPLACE_COPY, protocolActivateBody, starterListReplacesChecklist } from '../../resources/js/lib/protocolChecklist.js';
 
 function memoryStorage(seed = {}) {
   const data = { ...seed };
@@ -121,6 +125,87 @@ test('a saved account list skips the guest blob without clearing it', async () =
   const blob = readGuestBlob(storage);
   const body = guestImportBody(blob.habits, blob.review, null, blob.keptDays);
   assert.equal('completed_days' in body.custom_habits[0], false);
+});
+
+test('a null settings body is a missing row and the guest days are posted once', async () => {
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const missing = settingsReadFromBody(null);
+    assert.equal(missing.missing, true);
+    assert.equal(missing.updated_at, null);
+    assert.equal(missing.weekly_reviews.listSaved, false);
+
+    const storage = memoryStorage({
+      'habuilt.dashboard.guest.2026-11': JSON.stringify({
+        habits: [{
+          id: 'f-1',
+          name: 'Morning walk',
+          points: 4,
+          startTime: '07:15',
+          completed_days: [2],
+        }],
+        weeklyReview: { reviewDate: 'Nov 8, 2026', checks: [], reflections: { wins: 'Kept the morning' } },
+      }),
+    });
+    let posts = 0;
+    let posted = null;
+    const saved = await runGuestImport({
+      storage,
+      loadSettings: async () => null,
+      postImport: async (body) => {
+        posts += 1;
+        posted = body;
+        return { success: true, imported: true, updated_at: '2026-11-02 00:00:00' };
+      },
+    });
+    assert.equal(saved.cleared, true);
+    assert.equal(posts, 1);
+    assert.equal(posted.expected_updated_at, null);
+    assert.equal(posted.weekly_reviews.listSaved, true);
+    assert.equal(posted.custom_habits[0].points, 4);
+    assert.equal('completed_days' in posted.custom_habits[0], false);
+    assert.equal(warnings.includes(missingSettingsRowMessage()), true);
+    assert.equal(warnings.some((line) => line.includes('updated_at moved')), false);
+    assert.equal(warnings.join(' ').includes('Morning walk'), false);
+    assert.equal(warnings.join(' ').includes('Kept the morning'), false);
+
+    const again = await runGuestImport({
+      storage,
+      loadSettings: async () => null,
+      postImport: async () => {
+        throw new Error('should not post');
+      },
+    });
+    assert.equal(again.action, 'skip');
+    assert.equal(posts, 1);
+  } finally {
+    console.warn = original;
+  }
+});
+
+test('a denied reminder tile asks for permission again', () => {
+  assert.equal(reminderTileAction('denied'), 'request-permission');
+  assert.equal(reminderTileAction('granted'), 'open-habits');
+  assert.equal(reminderTileAction('prompt'), 'open-habits');
+});
+
+test('activating a starter list is a confirmed checklist write, not a second protocol list', () => {
+  const body = protocolActivateBody('archetype-founder', 'user-1');
+  assert.equal('habits' in body, false);
+  assert.equal(body.is_active, true);
+  assert.equal(body.id, 'archetype-founder');
+  assert.equal(starterListReplacesChecklist(
+    [{ id: 'c-1', name: 'Mine' }],
+    [{ id: 'f-1', name: 'Wake' }],
+  ), true);
+  assert.equal(starterListReplacesChecklist(
+    [{ id: 'f-1', name: 'Wake' }],
+    [{ id: 'f-1', name: 'Wake' }],
+  ), false);
+  assert.equal(CHECKLIST_REPLACE_COPY, 'The current checklist will be replaced.');
+  assert.equal(CHECKLIST_REPLACE_COPY.includes('Wake'), false);
 });
 
 test('a denied notification still leaves a plain reminder label', () => {

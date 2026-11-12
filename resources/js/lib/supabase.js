@@ -3,60 +3,12 @@ import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
 import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from './syncEngine.js';
 import { isRetryableAccountId } from './syncQueuePolicy.js';
 import { getMemoryAccessToken, purgeLegacyAuthStorage, restoreBrowserSession } from './browserSession.js';
+import { settingsReadFromBody } from './followUpGates.js';
+import { createTabAuthStorage, HABUILT_AUTH_FLOW } from './authFlow.js';
 
 purgeLegacyAuthStorage();
 
-const memoryStore = new Map();
-
-const isVerifierKey = (key) => typeof key === 'string' && key.endsWith('-code-verifier');
-
-const verifierStore = {
-  get(key) {
-    try {
-      if (typeof sessionStorage === 'undefined') return null;
-      return sessionStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  set(key, value) {
-    try {
-      if (typeof sessionStorage === 'undefined') return;
-      sessionStorage.setItem(key, value);
-    } catch {
-      // The OAuth round trip cannot keep a verifier. Sign-in reports that failure.
-    }
-  },
-  remove(key) {
-    try {
-      if (typeof sessionStorage === 'undefined') return;
-      sessionStorage.removeItem(key);
-    } catch {
-      // Ignore.
-    }
-  },
-};
-
-const tabAuthStorage = {
-  getItem(key) {
-    if (isVerifierKey(key)) return verifierStore.get(key);
-    return memoryStore.has(key) ? memoryStore.get(key) : null;
-  },
-  setItem(key, value) {
-    if (isVerifierKey(key)) {
-      verifierStore.set(key, String(value));
-      return;
-    }
-    memoryStore.set(key, String(value));
-  },
-  removeItem(key) {
-    if (isVerifierKey(key)) {
-      verifierStore.remove(key);
-      return;
-    }
-    memoryStore.delete(key);
-  },
-};
+const tabAuthStorage = createTabAuthStorage();
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -192,6 +144,7 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+      flowType: HABUILT_AUTH_FLOW,
     },
     global: {
       fetch: guardedSupabaseFetch,
@@ -265,7 +218,6 @@ export const recordHabitCheckIn = async ({
   monthKey,
   day,
   completedOn,
-  points = 1,
   canonicalKey = '',
   source = 'web',
 }, skipQueue = false) => {
@@ -286,7 +238,6 @@ export const recordHabitCheckIn = async ({
       month_key: monthKey,
       day: Number(day),
       completed_on: dateStr,
-      points: Number(points) || 1,
       canonical_key: canonicalKey || null,
       source: source,
     });
@@ -314,7 +265,6 @@ export const recordHabitCheckIn = async ({
         eventType: 'habit_completed',
         eventValue: habitName,
         habitId: habitId,
-        points: points,
         occurredAt: dateStr,
         source: source,
       }).catch(() => {});
@@ -332,7 +282,6 @@ export const recordHabitCheckIn = async ({
       monthKey,
       day: Number(day),
       completedOn: dateStr,
-      points,
       canonicalKey,
       source,
     });
@@ -379,7 +328,6 @@ export const removeHabitCheckIn = async ({ userId, habitId, monthKey, day }, ski
         eventType: 'habit_unmarked',
         eventValue: String(habitId),
         habitId: habitId,
-        points: 0,
         occurredAt: `${monthKey}-${String(day).padStart(2, '0')}`,
         source: 'web',
       }).catch(() => {});
@@ -471,7 +419,7 @@ export const loadUserSettings = async (userId) => {
   if (!USE_LOCAL_API) return { error: true, offline: true };
 
   const localData = await callLocalApi(`/api/user-settings?user_id=${encodeURIComponent(userId)}`, 'GET', null, { returnError: true });
-  if (!localData) return null;
+  if (localData == null) return settingsReadFromBody(null);
   if (localData.offline || localData.error || (localData.status && localData.status >= 400)) {
     return { error: true, offline: true };
   }

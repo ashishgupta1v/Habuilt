@@ -58,7 +58,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'send-high-five',
   'update-biomarkers',
   'update-hydration',
   'open-data-backup',
@@ -322,7 +321,7 @@ const copyAIPrompt = () => {
 - Streak: ${props.systemStreak.current} days (Best: ${props.systemStreak.best})
 - Kept rate: ${props.performanceGrade.grade || 'your check-ins'}
 - Circadian Window: ${circadianWindow.value.title} (${circadianWindow.value.time})
-- Biomarkers: Morning Stiffness ${localStiffness.value}m, Energy ${localEnergy.value}/10, Hydration ${localHydration.value}ml
+- Notes: Stiffness ${localStiffness.value} minutes, Energy ${localEnergy.value}/10, Water ${localHydration.value} ml
 - Completed Habits: ${props.todayHabits.filter(h => props.hasCompletedDay(h, props.currentDay)).map(h => h.name).join(', ') || 'None yet'}
 - Pending Habits: ${props.todayHabits.filter(h => !props.hasCompletedDay(h, props.currentDay)).map(h => h.name).join(', ') || 'None'}
 
@@ -648,7 +647,7 @@ defineExpose({
             <div class="warrior-bio-head">
               <div class="warrior-bio-title-wrap">
                 <Droplets class="icon-sm icon-teal" />
-                <span class="warrior-bio-title">Daily Hydration Protocol</span>
+                <span class="warrior-bio-title">Water</span>
               </div>
               <span class="warrior-bio-target mono-num">Target: 3,000ml</span>
             </div>
@@ -701,14 +700,14 @@ defineExpose({
             <div class="warrior-bio-head">
               <div class="warrior-bio-title-wrap">
                 <Activity class="icon-sm icon-focus-gold" />
-                <span class="warrior-bio-title">Morning Stiffness &amp; Vigor</span>
+                <span class="warrior-bio-title">Stiffness</span>
               </div>
               <span
                 id="badge-bio-stiffness-status"
                 class="warrior-bio-status-badge"
                 :class="localStiffness <= 15 ? 'badge--optimal' : localStiffness <= 35 ? 'badge--mild' : 'badge--elevated'"
               >
-                {{ localStiffness <= 15 ? 'Optimal (<15m)' : localStiffness <= 35 ? 'Mild (15-35m)' : 'Elevated (>35m)' }}
+                {{ localStiffness }} min
               </span>
             </div>
 
@@ -775,16 +774,6 @@ defineExpose({
               <span class="warrior-partner-name">{{ partnerContext.partnerName }}'s Co-Presence</span>
               <span class="warrior-partner-stage">{{ partnerContext.stage }}</span>
             </div>
-            <!-- High-Five Action -->
-            <button
-              type="button"
-              class="btn btn--primary-action warrior-highfive-btn"
-              @click="emit('send-high-five')"
-              title="Send an instant live high-five with haptic vibration and gold sparkles to partner's screen!"
-            >
-              <span>🙌</span>
-              <span>Send a high-five</span>
-            </button>
           </div>
 
           <div class="warrior-partner-anchors">

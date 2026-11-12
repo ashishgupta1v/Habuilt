@@ -930,6 +930,32 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
         });
     }
 
+    public function test_zoeticoach_proxy_omits_points_when_the_client_does_not_send_them(): void
+    {
+        config([
+            'services.zoeticoach.api_key' => 'test-only-zoeti-key',
+            'services.zoeticoach.api_url' => 'https://zoeticoach.test',
+        ]);
+        Http::fake([
+            'https://zoeticoach.test/*' => Http::response(['data' => ['event_id' => 'evt_test']], 200),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt('usr_alice'))
+            ->postJson('/api/zoeticoach/events', [
+                'habit_id' => 'water',
+                'event_value' => 'Water',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('skipped', false);
+
+        Http::assertSent(function ($request): bool {
+            $body = $request->data();
+
+            return $request->url() === 'https://zoeticoach.test/api/v3/habit-cloud/events'
+                && !array_key_exists('points', $body['payload'] ?? []);
+        });
+    }
+
     public function test_auth_user_deletion_uses_service_role_only_when_configured(): void
     {
         config([
@@ -977,6 +1003,12 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        DB::table('user_settings')->insert([
+            'user_id' => $userId,
+            'custom_habits' => json_encode([['id' => $habitId, 'name' => 'Hydrate', 'points' => 4]]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($userId))
             ->postJson('/api/habits/check-ins', [
@@ -988,7 +1020,18 @@ final class ApiSecurityAndAccountDeletionTest extends TestCase
             ])
             ->assertStatus(200);
 
-        $this->assertSame(3, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+        $this->assertSame(4, (int) DB::table('habit_check_ins')->where('user_id', $userId)->value('points'));
+
+        $this->withHeader('Authorization', 'Bearer '.$this->createMockJwt($userId))
+            ->postJson('/api/habits/check-ins', [
+                'habit_id' => 'not-saved',
+                'month_key' => '2026-11',
+                'day' => 3,
+                'completed_on' => '2026-11-03',
+                'points' => 1,
+            ])
+            ->assertStatus(422);
+        $this->assertSame(0, DB::table('habit_check_ins')->where('habit_id', 'not-saved')->count());
     }
 
     public function test_client_points_cannot_raise_a_saved_habit_price(): void

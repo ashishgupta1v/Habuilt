@@ -22,6 +22,10 @@ const error = ref('');
 const successMessage = ref('');
 let nativeBackButtonHandle = null;
 
+const onAuthError = (event) => {
+  error.value = event?.detail || 'Google sign-in could not be completed. Try again.';
+};
+
 const isAppInstallModalOpen = ref(false);
 const deferredInstallPrompt = ref(null);
 const canInstallPwa = ref(false);
@@ -66,6 +70,7 @@ const archetypes = [
 
 onMounted(() => {
   if (typeof window !== 'undefined') {
+    window.addEventListener('habuilt-auth-error', onAuthError);
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', () => {
       canInstallPwa.value = false;
@@ -111,6 +116,7 @@ onUnmounted(() => {
   landingMotion?.revert();
   landingMotion = null;
   if (typeof window !== 'undefined') {
+    window.removeEventListener('habuilt-auth-error', onAuthError);
     window.removeEventListener('storage', refreshLandingSummary);
     window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
   }
@@ -332,7 +338,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
         </article>
         <article>
           <h2>Review</h2>
-          <p>Sunday review reads the week from your own check-ins.</p>
+          <p>The review reads the week from your own check-ins.</p>
         </article>
       </section>
 

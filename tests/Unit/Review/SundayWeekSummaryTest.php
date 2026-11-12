@@ -22,10 +22,28 @@ final class SundayWeekSummaryTest extends TestCase
         self::assertSame(3, $summary['completed_slots']);
         self::assertSame(3, $summary['missed_slots']);
         self::assertSame(4, $summary['streak']);
+        self::assertSame('Week of 2-4 Nov', $summary['title']);
         self::assertSame(
-            "Sunday review\nCompleted: 3\nMissed: 3\nStreak: 4 days",
+            "Week of 2-4 Nov\nCompleted: 3\nMissed: 3\nStreak: 4 days",
             $summary['share_text'],
         );
+    }
+
+    public function test_a_miss_counts_only_on_a_scheduled_day_and_archive_leaves_the_denominator(): void
+    {
+        $summary = (new SundayWeekSummary())->summarize([
+            ['habit_id' => 'weekday', 'completed_on' => '2026-11-07'],
+            ['habit_id' => 'paused', 'completed_on' => '2026-11-02'],
+        ], [
+            ['id' => 'weekday', 'name' => 'Desk', 'schedule' => 'weekdays'],
+            ['id' => 'paused', 'name' => 'Old stretch', 'schedule' => 'weekdays', 'archived' => true],
+        ], '2026-11-07');
+
+        self::assertSame(5, $summary['missed_slots']);
+        self::assertSame(0, $summary['completed_slots']);
+        self::assertSame('Week of 2-7 Nov', $summary['title']);
+        self::assertStringNotContainsString('Desk', $summary['share_text']);
+        self::assertStringNotContainsString('Old stretch', $summary['share_text']);
     }
 
     public function test_without_a_saved_schedule_missed_slots_stay_zero(): void

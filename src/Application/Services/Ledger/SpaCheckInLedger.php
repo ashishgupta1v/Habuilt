@@ -19,6 +19,20 @@ final class SpaCheckInLedger
 
     public const MAX_STORED_POINTS = 100;
 
+    public function isOnSavedList(string $userId, string $habitId): bool
+    {
+        if ($userId === '' || $habitId === '' || !Schema::hasTable('user_settings')) {
+            return false;
+        }
+
+        $settings = DB::table('user_settings')->where('user_id', $userId)->first();
+        if ($settings === null) {
+            return false;
+        }
+
+        return $this->pointsFromList($settings->custom_habits ?? null, $habitId) !== null;
+    }
+
     public function resolvePoints(string $userId, string $habitId): int
     {
         $stored = $this->storedHabitPoints($userId, $habitId);
@@ -54,7 +68,7 @@ final class SpaCheckInLedger
             'updated_at' => now(),
             'created_at' => now(),
         ], ['user_id', 'habit_id', 'month_key', 'day'], [
-            'habit_name', 'points', 'canonical_key', 'source', 'updated_at',
+            'habit_name', 'canonical_key', 'source', 'updated_at',
         ]);
     }
 
@@ -128,16 +142,6 @@ final class SpaCheckInLedger
             return null;
         }
 
-        if (Schema::hasTable('habits')) {
-            $row = DB::table('habits')
-                ->where('user_id', $userId)
-                ->get(['id', 'points_per_check_in'])
-                ->first(fn (object $habit): bool => $this->sameId((string) $habit->id, $habitId));
-            if ($row !== null && isset($row->points_per_check_in)) {
-                return (int) $row->points_per_check_in;
-            }
-        }
-
         if (Schema::hasTable('user_settings')) {
             $settings = DB::table('user_settings')->where('user_id', $userId)->first();
             $fromSettings = $this->pointsFromList($settings->custom_habits ?? null, $habitId);
@@ -157,6 +161,16 @@ final class SpaCheckInLedger
                 if ($fromSlots !== null) {
                     return $fromSlots;
                 }
+            }
+        }
+
+        if (Schema::hasTable('habits')) {
+            $row = DB::table('habits')
+                ->where('user_id', $userId)
+                ->get(['id', 'points_per_check_in'])
+                ->first(fn (object $habit): bool => $this->sameId((string) $habit->id, $habitId));
+            if ($row !== null && isset($row->points_per_check_in)) {
+                return (int) $row->points_per_check_in;
             }
         }
 

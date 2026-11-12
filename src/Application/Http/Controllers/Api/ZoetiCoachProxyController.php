@@ -33,19 +33,21 @@ final class ZoetiCoachProxyController
         }
 
         $habitId = substr((string) $request->input('habit_id', ''), 0, 128);
-        $points = max(0, min(100, (int) $request->input('points', 1)));
+        $eventPayload = [
+            'habit_id' => $habitId,
+            'source' => substr((string) $request->input('source', 'web'), 0, 32),
+            'app' => 'habuilt',
+        ];
+        if ($request->exists('points')) {
+            $eventPayload['points'] = max(0, min(100, (int) $request->input('points')));
+        }
         $payload = [
             'external_participant_id' => $userId,
             'event_type' => substr((string) $request->input('event_type', 'habit_completed'), 0, 64),
             'event_value' => substr((string) $request->input('event_value', $habitId), 0, 200),
             'unit' => substr((string) $request->input('unit', 'session'), 0, 32),
             'occurred_at' => substr((string) ($request->input('occurred_at') ?: now()->toIso8601String()), 0, 40),
-            'payload' => [
-                'habit_id' => $habitId,
-                'points' => $points,
-                'source' => substr((string) $request->input('source', 'web'), 0, 32),
-                'app' => 'habuilt',
-            ],
+            'payload' => $eventPayload,
         ];
 
         try {

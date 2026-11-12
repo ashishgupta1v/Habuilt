@@ -12,6 +12,27 @@ export function droppedGuestImportMessage() {
   return 'Dropped guest import because updated_at moved';
 }
 
+export function missingSettingsRowMessage() {
+  return 'Guest import found no settings row';
+}
+
+export function settingsReadFromBody(body) {
+  if (body == null) {
+    return {
+      missing: true,
+      updated_at: null,
+      custom_habits: [],
+      weekly_reviews: { listSaved: false },
+    };
+  }
+  return body;
+}
+
+export function guestBlobIsWaiting(storage) {
+  const blob = readGuestBlob(storage);
+  return decideGuestImport({ listSaved: false, habits: blob.habits }) === 'import';
+}
+
 export function decideGuestImport({ listSaved, habits }) {
   if (listSaved === true) return 'skip';
   if (!Array.isArray(habits) || habits.length === 0) return 'skip';
@@ -124,7 +145,12 @@ export async function runGuestImport({ storage, loadSettings, postImport }) {
     console.warn(droppedGuestImportMessage());
     return { action: 'import', cleared: false };
   }
-  if (!settings || settings.error || settings.offline) {
+  const rawSettings = settings;
+  settings = settingsReadFromBody(rawSettings);
+  if (rawSettings == null || rawSettings.missing === true) {
+    console.warn(missingSettingsRowMessage());
+  }
+  if (settings.error || settings.offline) {
     console.warn(droppedGuestImportMessage());
     return { action: 'import', cleared: false };
   }
@@ -161,6 +187,11 @@ export function reminderControlCopy({ permission, nextLabel }) {
   if (permission === 'denied') return 'Notifications are off';
   const label = String(nextLabel || '').trim();
   return label || 'No reminder yet';
+}
+
+export function reminderTileAction(permission) {
+  if (permission === 'denied') return 'request-permission';
+  return 'open-habits';
 }
 
 export function partnerConnectionFromAccept({ isGuest, response }) {

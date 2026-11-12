@@ -48,15 +48,59 @@ export const getMonthlyHabits = (stateData) => {
   return [];
 };
 
+const checkInKey = (row) => [
+  String(row?.month_key || row?.monthKey || ''),
+  String(row?.habit_id ?? row?.habitId ?? ''),
+  Number(row?.day),
+].join('|');
+
+/**
+ * A server row keeps the points it stored. A pending tick is kept only until that row exists.
+ */
+export const mergeStoredCheckIns = (serverRows, localRows) => {
+  const byKey = new Map();
+  for (const row of Array.isArray(localRows) ? localRows : []) {
+    if (!row?.pending) continue;
+    byKey.set(checkInKey(row), row);
+  }
+  for (const row of Array.isArray(serverRows) ? serverRows : []) {
+    if (!row) continue;
+    byKey.set(checkInKey(row), row);
+  }
+  return [...byKey.values()];
+};
+
+/**
+ * Sum points stored on check-in rows. Does not read the habit's current price.
+ */
+export const sumStoredCheckInPoints = (rows, { monthKey = null, beforeMonthKey = null } = {}) => {
+  let total = 0;
+  const seen = new Set();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row) continue;
+    const rowMonth = String(row.month_key || row.monthKey || '');
+    if (monthKey != null && rowMonth !== String(monthKey)) continue;
+    if (beforeMonthKey != null && !(rowMonth < String(beforeMonthKey))) continue;
+    const key = checkInKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const points = Number(row.points);
+    if (Number.isFinite(points)) total += points;
+  }
+  return total;
+};
+
 /**
  * Compute lifetime stats from an array of monthly state rows.
  * Each row: { month_key: 'YYYY-MM', state_data: { habits/localHabits: [{ id, name, points, completed_days/completedDays }] } }
  *
  * @param {Array} rows            — monthly state rows from Supabase / localStorage
  * @param {Object} currentMonth   — { year, month, day, habits[] } — overlays in-memory data
+ * @param {Array|null} storedCheckIns — signed-in habit_check_ins rows. Null keeps the guest price times days.
  * @returns {Object} lifetime summary
  */
-export const computeLifetimeStats = (rows, currentMonth) => {
+export const computeLifetimeStats = (rows, currentMonth, storedCheckIns = null) => {
+  const useStored = Array.isArray(storedCheckIns);
   const months = [];
   const perHabitCompletions = {};
   const habitNames = {};
@@ -81,7 +125,7 @@ export const computeLifetimeStats = (rows, currentMonth) => {
     habitsInMonth.forEach((h) => {
       const pts = Number(h.points) || 1;
       const cd = getHabitCompletedDays(h);
-      earned += pts * cd.length;
+      if (!useStored) earned += pts * cd.length;
       possible += pts * daysInMonth(pm.year, pm.month);
       if (!perHabitCompletions[h.id]) perHabitCompletions[h.id] = [];
       habitNames[h.id] = h.name || habitNames[h.id] || h.id;
@@ -90,6 +134,9 @@ export const computeLifetimeStats = (rows, currentMonth) => {
         daysWithActivity.add(`${pm.year}-${pm.month}-${d}`);
       });
     });
+    if (useStored) {
+      earned = sumStoredCheckInPoints(storedCheckIns, { monthKey: row.month_key });
+    }
 
     const rewardLedger = Array.isArray(parsed.rewardLedger) ? parsed.rewardLedger : [];
     const redeemed = rewardLedger.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
@@ -117,10 +164,13 @@ export const computeLifetimeStats = (rows, currentMonth) => {
       currentMonth.habits.forEach((h) => {
         const pts = Number(h.points) || 1;
         const cd = getHabitCompletedDays(h);
-        earned += pts * cd.length;
+        if (!useStored) earned += pts * cd.length;
         possible += pts * daysInMonth(pm.year, pm.month);
         cd.forEach((d) => daysWithActivity.add(`${pm.year}-${pm.month}-${d}`));
       });
+      if (useStored) {
+        earned = sumStoredCheckInPoints(storedCheckIns, { monthKey: currentScope });
+      }
       months.push({
         monthKey: currentScope,
         year: pm.year,
@@ -148,6 +198,34 @@ export const computeLifetimeStats = (rows, currentMonth) => {
         }
       });
     });
+  }
+
+  if (useStored) {
+    const seenMonths = new Set(months.map((month) => month.monthKey));
+    const extraMonths = new Set();
+    for (const row of storedCheckIns) {
+      const mk = String(row?.month_key || row?.monthKey || '');
+      if (mk && !seenMonths.has(mk)) extraMonths.add(mk);
+    }
+    for (const mk of extraMonths) {
+      const pm = parseMonthKey(mk);
+      if (!pm) continue;
+      const active = new Set();
+      for (const row of storedCheckIns) {
+        if (String(row?.month_key || row?.monthKey || '') !== mk) continue;
+        active.add(Number(row.day));
+      }
+      months.push({
+        monthKey: mk,
+        year: pm.year,
+        month: pm.month,
+        earned: sumStoredCheckInPoints(storedCheckIns, { monthKey: mk }),
+        possible: 0,
+        redeemed: 0,
+        completionRate: 0,
+        activeDays: active.size,
+      });
+    }
   }
 
   // Per-habit longest & current streak (across months)
@@ -218,6 +296,7 @@ export const computeLifetimeStats = (rows, currentMonth) => {
 
   return {
     months: months.sort((a, b) => sortMonthKeys(a.monthKey, b.monthKey)),
+    usesStoredCheckIns: useStored,
     perHabitStreaks,
     totalXP: months.reduce((s, m) => s + m.earned, 0) * 10,
     totalPointsEarned: months.reduce((s, m) => s + m.earned, 0),

@@ -393,20 +393,28 @@ final class AccountProductController
      */
     private function savedHabitIds(string $userId): array
     {
-        $ids = [];
-        if (Schema::hasTable('user_settings')) {
-            $settings = DB::table('user_settings')->where('user_id', $userId)->first();
-            $ids = array_merge($ids, $this->idsFromJson($settings->custom_habits ?? '[]'));
+        if (!Schema::hasTable('user_settings')) {
+            return [];
         }
-        if (Schema::hasTable('user_protocols')) {
-            $protocols = DB::table('user_protocols')->where('user_id', $userId)->get();
-            foreach ($protocols as $protocol) {
-                $ids = array_merge($ids, $this->idsFromJson($protocol->habits ?? '[]'));
-                $ids = array_merge($ids, $this->idsFromJson($protocol->slots ?? '[]'));
+        $settings = DB::table('user_settings')->where('user_id', $userId)->first();
+        $decoded = is_string($settings->custom_habits ?? null)
+            ? json_decode((string) $settings->custom_habits, true)
+            : ($settings->custom_habits ?? []);
+        if (!is_array($decoded)) {
+            return [];
+        }
+        $habits = [];
+        foreach ($decoded as $item) {
+            if (is_string($item) && trim($item) !== '') {
+                $habits[] = ['id' => trim($item)];
+                continue;
+            }
+            if (is_array($item)) {
+                $habits[] = $item;
             }
         }
 
-        return array_values(array_unique(array_filter($ids)));
+        return $habits;
     }
 
     /**

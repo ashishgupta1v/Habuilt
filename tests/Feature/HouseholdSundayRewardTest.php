@@ -209,13 +209,22 @@ final class HouseholdSundayRewardTest extends TestCase
 
     public function test_sunday_review_uses_the_callers_check_ins(): void
     {
+        DB::table('user_settings')->insert([
+            'user_id' => 'usr_alice',
+            'custom_habits' => json_encode([
+                ['id' => 'a', 'name' => 'Morning start'],
+                ['id' => 'b', 'name' => 'Evening check'],
+            ]),
+            'weekly_reviews' => json_encode(['listSaved' => true]),
+            'created_at' => $this->today,
+            'updated_at' => $this->today,
+        ]);
         DB::table('user_protocols')->insert([
             'id' => 'proto-alice',
             'user_id' => 'usr_alice',
             'name' => 'Week',
             'habits' => json_encode([
-                ['id' => 'a', 'name' => 'Morning start'],
-                ['id' => 'b', 'name' => 'Evening check'],
+                ['id' => 'protocol-only', 'name' => 'Not the daily list'],
             ]),
             'created_at' => $this->today,
             'updated_at' => $this->today,
@@ -260,7 +269,8 @@ final class HouseholdSundayRewardTest extends TestCase
             ->assertJsonPath('completed_slots', 3)
             ->assertJsonPath('missed_slots', 3)
             ->assertJsonPath('streak', 4)
-            ->assertJsonPath('share_text', "Sunday review\nCompleted: 3\nMissed: 3\nStreak: 4 days");
+            ->assertJsonPath('title', 'Week of 2-4 Nov')
+            ->assertJsonPath('share_text', "Week of 2-4 Nov\nCompleted: 3\nMissed: 3\nStreak: 4 days");
     }
 
     public function test_reward_overspend_returns_422_and_balance_ignores_client_input(): void

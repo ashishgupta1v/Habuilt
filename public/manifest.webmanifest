@@ -13,30 +13,23 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "shortcuts": [
     {
-      "name": "Today's Routine Checklist",
-      "short_name": "Checklist",
-      "description": "View and complete today's time-sequenced habits",
+      "name": "Today",
+      "short_name": "Today",
+      "description": "Today's habits",
       "url": "/?tab=today",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Deep Work Focus Station",
-      "short_name": "Focus Station",
-      "description": "Start a 25m or 90m deep work pomodoro block",
-      "url": "/?tab=focus",
+      "name": "Review",
+      "short_name": "Review",
+      "description": "The week that was counted",
+      "url": "/?tab=review",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Progress Analytics",
-      "short_name": "Analytics",
-      "description": "View monthly streaks, points, and consistency scorecards",
-      "url": "/?tab=stats",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Reward Vault",
+      "name": "Rewards",
       "short_name": "Rewards",
-      "description": "Redeem milestone protocol rewards & synergy unlocks",
+      "description": "The reward shop and your point balance",
       "url": "/?tab=rewards",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }

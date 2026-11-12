@@ -30,7 +30,28 @@ final class OfflineSyncReliabilityTest extends TestCase
 
         DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS habit_check_ins_composite_uniq ON habit_check_ins (user_id, habit_id, month_key, day)');
 
+        DB::statement('CREATE TABLE IF NOT EXISTS user_settings (
+            user_id TEXT PRIMARY KEY,
+            custom_habits TEXT DEFAULT "[]",
+            weekly_reviews TEXT DEFAULT "{}",
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )');
+
         DB::table('habit_check_ins')->delete();
+    }
+
+    private function saveHabit(string $userId, string $habitId): void
+    {
+        DB::table('user_settings')->updateOrInsert(
+            ['user_id' => $userId],
+            [
+                'custom_habits' => json_encode([['id' => $habitId, 'name' => 'Saved habit']]),
+                'weekly_reviews' => json_encode(['listSaved' => true]),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
     }
 
     public function test_health_check_returns_operational_status(): void
@@ -47,6 +68,7 @@ final class OfflineSyncReliabilityTest extends TestCase
     public function test_sync_upserts_habit_checkins_idempotently(): void
     {
         $userId = 'sync_user_101';
+        $this->saveHabit($userId, 'hydrate');
         $token = $this->createMockJwt($userId);
 
         $payload = [
@@ -153,6 +175,7 @@ final class OfflineSyncReliabilityTest extends TestCase
     public function test_sync_ignores_client_supplied_points(): void
     {
         $userId = 'sync_user_104';
+        $this->saveHabit($userId, 'hydrate');
         $token = $this->createMockJwt($userId);
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")

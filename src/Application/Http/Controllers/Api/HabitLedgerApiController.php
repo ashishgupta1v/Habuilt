@@ -62,6 +62,10 @@ final class HabitLedgerApiController
             return response()->json(['error' => 'Invalid check-in payload'], 400);
         }
 
+        if (!$this->checkIns->isOnSavedList($userId, $habitId)) {
+            return response()->json(['error' => 'Unknown habit'], 422);
+        }
+
         $completedOn = (string) ($request->input('completed_on') ?: sprintf('%s-%02d', $monthKey, $day));
         $points = $this->checkIns->resolvePoints($userId, $habitId);
         $habitName = (string) $request->input('habit_name', '');
@@ -118,7 +122,7 @@ final class HabitLedgerApiController
 
         $record = DB::table('user_settings')->where('user_id', $userId)->first();
         if (!$record) {
-            return response()->json(null);
+            return JsonResponse::fromJsonString('null');
         }
 
         $data = (array) $record;
@@ -300,7 +304,11 @@ final class HabitLedgerApiController
 
             $expected = $request->exists('expected_updated_at') ? $request->input('expected_updated_at') : null;
             if (!$this->updatedAtMatches($existing->updated_at ?? null, $expected)) {
-                Log::warning('Dropped guest import because updated_at moved');
+                if ($existing === null) {
+                    Log::warning('Dropped guest import because there was no settings row');
+                } else {
+                    Log::warning('Dropped guest import because updated_at moved');
+                }
                 $result = ['kind' => 'conflict', 'updated_at' => null, 'row' => $existing];
 
                 return;
@@ -428,34 +436,77 @@ final class HabitLedgerApiController
         }
 
         $id = trim((string) $request->input('id', ''));
+        $existingRow = null;
         if ($id === '') {
             $id = (string) Str::uuid();
         } else {
-            $existing = DB::table('user_protocols')->where('id', $id)->first();
-            if ($existing !== null && (string) $existing->user_id !== $userId) {
+            $existingRow = DB::table('user_protocols')->where('id', $id)->first();
+            if ($existingRow !== null && (string) $existingRow->user_id !== $userId) {
                 return response()->json(['error' => 'Forbidden'], 403);
             }
         }
-
-        DB::table('user_protocols')->upsert([
+        $now = now();
+        $row = [
             'id' => $id,
             'user_id' => $userId,
-            'name' => (string) $request->input('name', 'Custom Protocol'),
-            'archetype' => (string) $request->input('archetype', 'custom'),
-            'description' => $request->input('description'),
-            'wake_time' => (string) $request->input('wake_time', '05:00'),
-            'sleep_time' => (string) $request->input('sleep_time', '22:00'),
-            'work_start' => (string) $request->input('work_start', '08:30'),
-            'work_end' => (string) $request->input('work_end', '18:30'),
-            'is_active' => (bool) $request->input('is_active', true),
-            'slots' => json_encode($request->input('slots', [])),
-            'habits' => json_encode($request->input('habits', [])),
-            'updated_at' => now(),
-            'created_at' => now(),
-        ], ['id'], [
-            'name', 'archetype', 'description', 'wake_time', 'sleep_time',
-            'work_start', 'work_end', 'is_active', 'slots', 'habits', 'updated_at',
-        ]);
+            'updated_at' => $now,
+            'created_at' => $existingRow->created_at ?? $now,
+        ];
+        $update = ['updated_at'];
+        $textDefaults = [
+            'name' => 'Custom Protocol',
+            'archetype' => 'custom',
+            'description' => null,
+            'wake_time' => '05:00',
+            'sleep_time' => '22:00',
+            'work_start' => '08:30',
+            'work_end' => '18:30',
+        ];
+        foreach ($textDefaults as $field => $default) {
+            if ($request->exists($field) || $existingRow === null) {
+                $row[$field] = $request->exists($field) ? $request->input($field) : $default;
+                if ($existingRow !== null) {
+                    $update[] = $field;
+                }
+            } else {
+                $row[$field] = $existingRow->{$field} ?? $default;
+            }
+        }
+        if ($request->exists('is_active') || $existingRow === null) {
+            $row['is_active'] = (bool) $request->input('is_active', true);
+            if ($existingRow !== null) {
+                $update[] = 'is_active';
+            }
+        } else {
+            $row['is_active'] = (bool) ($existingRow->is_active ?? true);
+        }
+        if ($request->exists('slots')) {
+            $slots = $request->input('slots');
+            $row['slots'] = json_encode(is_array($slots) ? $slots : []);
+            if ($existingRow !== null) {
+                $update[] = 'slots';
+            }
+        } else {
+            $row['slots'] = $existingRow === null
+                ? json_encode([])
+                : (is_string($existingRow->slots ?? null) ? $existingRow->slots : json_encode($existingRow->slots ?? []));
+        }
+        if ($request->exists('habits')) {
+            $habits = $request->input('habits');
+            $row['habits'] = json_encode(is_array($habits) ? $habits : []);
+            if ($existingRow !== null) {
+                $update[] = 'habits';
+            }
+        } else {
+            $row['habits'] = $existingRow === null
+                ? json_encode([])
+                : (is_string($existingRow->habits ?? null) ? $existingRow->habits : json_encode($existingRow->habits ?? []));
+        }
+        if ($existingRow === null) {
+            $update = array_values(array_diff(array_keys($row), ['id', 'created_at', 'user_id']));
+        }
+
+        DB::table('user_protocols')->upsert([$row], ['id'], $update);
 
         return response()->json(['success' => true, 'id' => $id]);
     }

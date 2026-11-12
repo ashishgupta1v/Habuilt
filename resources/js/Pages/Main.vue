@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { supabase, isSupabaseConfigured, updateAuthUser } from '@/lib/supabase';
+import { describeOAuthExchangeError } from '@/lib/authFlow';
 import { clearNativeWidgetSession, refreshNativeWidgetToken } from '@/Composables/useNativeWidget';
 import { importGuestListForSignedInUser } from '@/lib/guestImport';
 import { telemetry } from '@/lib/telemetry';
@@ -353,6 +354,13 @@ onMounted(async () => {
     await StatusBar.setBackgroundColor({ color: '#F7F8F2' });
   } catch { /* non-native */ }
 
+  const publishAuthError = (error, fallback) => {
+    const message = describeOAuthExchangeError(error, fallback);
+    try { localStorage.setItem('habuilt_auth_last_error', message); } catch { /* the sign-in form still opens */ }
+    try { window.history.replaceState({}, document.title, '/'); } catch { /* the code must not stay in the address bar */ }
+    try { window.dispatchEvent(new CustomEvent('habuilt-auth-error', { detail: message })); } catch { /* Auth reads the stored message on mount */ }
+  };
+
   // ── URL OAuth & Deep Link Handlers ──
   const processUrlAuthTokens = async () => {
     if (typeof window === 'undefined') return false;
@@ -368,15 +376,18 @@ onMounted(async () => {
       if (accessToken && refreshToken) {
         try {
           const user = await adoptSupabaseSession({ refresh_token: refreshToken });
-          window.history.replaceState({}, document.title, '/');
-          if (user) return true;
+          if (user) {
+            window.history.replaceState({}, document.title, '/');
+            return true;
+          }
+          publishAuthError(null, 'Sign-in did not start a session.');
         } catch (err) {
           console.warn('[MainAuth] Error setting session from hash:', err);
+          publishAuthError(err, 'Sign-in did not start a session.');
         }
       } else if (errorDesc) {
         console.warn('[MainAuth] OAuth error in hash:', errorDesc);
-        localStorage.setItem('habuilt_auth_last_error', errorDesc);
-        window.history.replaceState({}, document.title, '/');
+        publishAuthError({ message: errorDesc }, errorDesc);
       }
     }
 
@@ -396,13 +407,14 @@ onMounted(async () => {
             window.history.replaceState({}, document.title, '/');
             return true;
           }
+          publishAuthError(null, 'Sign-in did not start a session.');
         } catch (err) {
           console.warn('[MainAuth] Error exchanging code for session:', err);
+          publishAuthError(err, 'Google sign-in could not be completed. Try again.');
         }
       } else if (errorDesc) {
         console.warn('[MainAuth] OAuth error in query:', errorDesc);
-        localStorage.setItem('habuilt_auth_last_error', errorDesc);
-        window.history.replaceState({}, document.title, '/');
+        publishAuthError({ message: errorDesc }, errorDesc);
       }
     }
 
@@ -418,6 +430,11 @@ onMounted(async () => {
   if (hasAuthParams) {
     authLoading.value = true;
     const handled = await processUrlAuthTokens();
+    if (!handled) {
+      try { localStorage.removeItem('habuilt_guest_mode'); } catch { /* guest flag is optional */ }
+      isGuestActive.value = false;
+      if (activeUser.value?.id === 'guest') activeUser.value = null;
+    }
     if (handled) {
       authLoading.value = false;
       return;
@@ -498,21 +515,25 @@ onMounted(async () => {
 
       if (accessToken && refreshToken) {
         try {
-          await adoptSupabaseSession({ refresh_token: refreshToken });
+          const user = await adoptSupabaseSession({ refresh_token: refreshToken });
+          if (!user) publishAuthError(null, 'Sign-in did not start a session.');
         } catch (e) {
           console.warn('[MainDeepLink] Error setting session:', e);
+          publishAuthError(e, 'Sign-in did not start a session.');
         }
       } else if (code) {
         try {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
-          await adoptSupabaseSession(data?.session);
+          const user = await adoptSupabaseSession(data?.session);
+          if (!user) publishAuthError(null, 'Sign-in did not start a session.');
         } catch (e) {
           console.warn('[MainDeepLink] Error exchanging code:', e);
+          publishAuthError(e, 'Google sign-in could not be completed. Try again.');
         }
       } else if (errorDesc) {
         console.warn('[MainDeepLink] OAuth error:', errorDesc);
-        localStorage.setItem('habuilt_auth_last_error', errorDesc);
+        publishAuthError({ message: errorDesc }, errorDesc);
       }
     };
 

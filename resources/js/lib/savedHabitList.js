@@ -19,6 +19,7 @@ const HABIT_FIELDS = [
   'days',
   'daysOfWeek',
   'customDays',
+  'archived',
 ];
 
 export function habitDefinition(habit) {
@@ -143,19 +144,35 @@ export function retryShouldDrop(record, readUpdatedAt) {
   return !sameUpdatedAt(record.expectedUpdatedAt ?? null, readUpdatedAt ?? null);
 }
 
+export function dayTotalFromStoredPoints(rows, monthKey, day) {
+  let total = 0;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row) continue;
+    const rowMonth = String(row.month_key || row.monthKey || '');
+    if (monthKey && rowMonth && rowMonth !== String(monthKey)) continue;
+    if (Number(row.day) !== Number(day)) continue;
+    const points = Number(row.points);
+    total += Number.isFinite(points) ? points : 0;
+  }
+  return total;
+}
+
 export function decideSyncAction({
   openedWithoutLocalList,
   localListSaved,
   serverReview,
   retryRecord,
   readUpdatedAt,
+  guestBlobWaiting = false,
 }) {
   const serverSaved = listIsSaved(serverReview);
   if (retryRecord?.pending && retryShouldDrop(retryRecord, readUpdatedAt)) {
     return 'drop-and-load';
   }
   if (openedWithoutLocalList) {
-    return serverSaved ? 'load-server' : 'save-preset';
+    if (serverSaved) return 'load-server';
+    if (guestBlobWaiting) return 'wait-guest';
+    return 'save-preset';
   }
   if (retryRecord?.pending) return 'save-local';
   if (!localListSaved) {

@@ -125,8 +125,8 @@ const scrollToSection = (id) => {
             </h2>
             <p>Your data is used solely to provide and improve the Habuilt Operating System:</p>
             <ul class="styled-list">
-              <li>Computing milestone scoring tiers, dynamic floor/half/full percentages, and warrior ranks.</li>
-              <li>Triggering local and push notifications for due habits, Pomodoro deep work timers, and circadian transitions.</li>
+              <li>Keeping today's checklist, the weekly review, and the points already stored on each check-in.</li>
+              <li>Scheduling a reminder on this device at a habit's saved start time. Habuilt does not send email, SMS, or web push for reminders.</li>
               <li>When ZoetiCoach is configured, forwarding signed-in habit events through that optional server-side forwarder and reading back that account's adherence.</li>
               <li>Syncing progress across multiple devices (phone, desktop web, tablet).</li>
             </ul>
@@ -142,7 +142,7 @@ const scrollToSection = (id) => {
             <div class="proc-grid">
               <div class="proc-card">
                 <div class="proc-name">Supabase Inc.</div>
-                <div class="proc-desc">Authentication, PostgreSQL hosting, and realtime messaging.</div>
+                <div class="proc-desc">Sign-in. Habit data is stored by the app. There is no realtime chat.</div>
               </div>
               <div class="proc-card">
                 <div class="proc-name">Hostinger VPS (KVM 2)</div>

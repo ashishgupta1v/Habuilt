@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { callLocalApi } from '@/lib/supabase';
+import { protocolActivateBody } from '@/lib/protocolChecklist';
 
 const PUBLIC_PROTOCOL_KEYS = ['founder', 'longevity', 'postpartum', 'athlete'];
 
@@ -313,11 +314,7 @@ export function useDynamicProtocols(userId = 'guest', defaultArchetypeId = null,
     const isGuestMode = typeof window !== 'undefined' && (localStorage.getItem('habuilt_guest_mode') === 'true' || userId === 'guest');
     if (userId && userId !== 'guest' && !isGuestMode) {
       try {
-        await callLocalApi('/api/user-protocols', 'POST', {
-          user_id: userId,
-          id: protocolId,
-          is_active: true
-        });
+        await callLocalApi('/api/user-protocols', 'POST', protocolActivateBody(protocolId, userId));
       } catch (e) {
         console.warn('[useDynamicProtocols] Error updating active protocol in local API:', e);
       }

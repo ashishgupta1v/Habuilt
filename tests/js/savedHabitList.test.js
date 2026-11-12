@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  dayTotalFromStoredPoints,
   decideSyncAction,
   droppedRetryMessage,
   listIsSaved,
@@ -53,6 +54,9 @@ test('settings post keeps the habit definition and drops kept days', () => {
   assert.deepEqual(body.custom_habits[0].days, [1, 2, 3, 4, 5]);
   assert.equal(body.custom_habits[1].id, 'c-11');
   assert.equal('completed_days' in body.custom_habits[0], false);
+  const paused = settingsColumns([{ id: 'f-2', name: 'Paused walk', points: 3, archived: true, completed_days: [1] }], {}, null);
+  assert.equal(paused.custom_habits[0].archived, true);
+  assert.equal('completed_days' in paused.custom_habits[0], false);
   assert.equal('completedDays' in body.custom_habits[0], false);
   assert.equal('completed_days' in body.custom_habits[1], false);
 
@@ -112,6 +116,14 @@ test('a phone with no local list loads a marked server list and otherwise saves 
     readUpdatedAt: '2026-11-01 00:00:00',
   }), 'save-preset');
   assert.equal(decideSyncAction({
+    openedWithoutLocalList: true,
+    localListSaved: false,
+    serverReview: {},
+    retryRecord: null,
+    readUpdatedAt: null,
+    guestBlobWaiting: true,
+  }), 'wait-guest');
+  assert.equal(decideSyncAction({
     openedWithoutLocalList: false,
     localListSaved: true,
     serverReview: { listSaved: true },
@@ -146,4 +158,14 @@ test('a phone with no local list loads a marked server list and otherwise saves 
     retryRecord: null,
     readUpdatedAt: '2026-11-01 00:00:00',
   }), 'keep-local');
+});
+
+test('a signed-in day total uses the stored check-in points', () => {
+  const total = dayTotalFromStoredPoints([
+    { habit_id: 'f-1', month_key: '2026-11', day: 2, points: 1 },
+    { habit_id: 'f-2', month_key: '2026-11', day: 2, points: 4 },
+    { habit_id: 'f-1', month_key: '2026-11', day: 3, points: 4 },
+  ], '2026-11', 2);
+  assert.equal(total, 5);
+  assert.notEqual(total, 4 + 4);
 });

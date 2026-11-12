@@ -204,25 +204,31 @@ if (typeof window !== 'undefined') {
   }, 60000);
 }
 
-const buildPayload = ({
+export function zoetiEventPayload({
   eventType = 'habit_completed',
   eventValue = '',
   habitId = '',
-  points = 1,
+  storedPoints = null,
   unit = 'session',
   occurredAt = null,
   source = 'web',
   metadata = {},
-}) => ({
-  event_type: eventType,
-  event_value: eventValue || habitId || 'Habit Completed',
-  habit_id: String(habitId),
-  unit,
-  occurred_at: occurredAt || new Date().toISOString(),
-  points: Number(points) || 0,
-  source,
-  metadata,
-});
+} = {}) {
+  const payload = {
+    event_type: eventType,
+    event_value: eventValue || habitId || 'Habit Completed',
+    habit_id: String(habitId),
+    unit,
+    occurred_at: occurredAt || new Date().toISOString(),
+    source,
+    metadata,
+  };
+  if (storedPoints !== null && storedPoints !== undefined && storedPoints !== '') {
+    const numeric = Number(storedPoints);
+    if (Number.isFinite(numeric)) payload.points = numeric;
+  }
+  return payload;
+}
 
 /**
  * Dispatches a habit event through the authenticated same-origin proxy.
@@ -233,7 +239,7 @@ export const dispatchZoetiCoachEvent = async ({
   eventType = 'habit_completed',
   eventValue = '',
   habitId = '',
-  points = 1,
+  storedPoints = null,
   unit = 'session',
   occurredAt = null,
   source = 'web',
@@ -244,11 +250,11 @@ export const dispatchZoetiCoachEvent = async ({
     return false;
   }
 
-  const payload = buildPayload({
+  const payload = zoetiEventPayload({
     eventType,
     eventValue,
     habitId,
-    points,
+    storedPoints,
     unit,
     occurredAt,
     source,

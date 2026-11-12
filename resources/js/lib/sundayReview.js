@@ -1,8 +1,10 @@
 /**
- * Sunday review counts from loaded check-ins.
- * A slot counts as completed only when that habit was checked in on that day.
- * Days after `today` are not treated as missed.
+ * Weekly review counts from loaded check-ins.
+ * A miss counts only on a day that habit is scheduled. Days after `today` are not missed.
+ * An archived habit leaves the denominator. Its check-ins stay on the habit.
  */
+
+import { isHabitScheduledOnDate } from './habitSchedule.js';
 
 function parseDay(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -27,7 +29,42 @@ function mondayOf(date) {
   return copy;
 }
 
-export function summarizeSundayReview({ checkIns = [], habitIds = [], today }) {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function weekReviewTitle(weekStart, weekEnd) {
+  const start = parseDay(weekStart);
+  const end = parseDay(weekEnd);
+  if (!start || !end) return 'This week';
+  if (dayKey(start) === dayKey(end)) return `Week of ${start.getDate()} ${MONTHS[start.getMonth()]}`;
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `Week of ${start.getDate()}-${end.getDate()} ${MONTHS[start.getMonth()]}`;
+  }
+  return `Week of ${start.getDate()} ${MONTHS[start.getMonth()]}-${end.getDate()} ${MONTHS[end.getMonth()]}`;
+}
+
+function habitEntries(habits, habitIds) {
+  const source = Array.isArray(habits) ? habits : (habitIds || []).map((id) => ({ id }));
+  const entries = [];
+  for (const habit of source) {
+    if (habit == null) continue;
+    if (typeof habit === 'string' || typeof habit === 'number') {
+      const id = String(habit).trim();
+      if (!id) continue;
+      entries.push({ id, archived: false, definition: { id } });
+      continue;
+    }
+    const id = String(habit.id || habit.habit_id || '').trim();
+    if (!id) continue;
+    entries.push({
+      id,
+      archived: habit.archived === true,
+      definition: habit,
+    });
+  }
+  return entries;
+}
+
+export function summarizeSundayReview({ checkIns = [], habitIds = [], habits = null, today }) {
   const todayDate = parseDay(today) || new Date();
   const todayText = dayKey(todayDate);
   const weekStart = mondayOf(todayDate);
@@ -36,31 +73,42 @@ export function summarizeSundayReview({ checkIns = [], habitIds = [], today }) {
     dates.push(dayKey(cursor));
   }
 
+  const entries = habitEntries(habits, habitIds);
+  const active = new Map();
+  const paused = new Set();
+  for (const entry of entries) {
+    if (entry.archived) {
+      paused.add(entry.id);
+      continue;
+    }
+    active.set(entry.id, entry.definition);
+  }
+
   const done = new Set();
   const daysWithCheckIn = new Set();
   for (const row of checkIns) {
     const date = String(row?.completed_on || row?.completedOn || '').slice(0, 10);
     const habitId = String(row?.habit_id || row?.habitId || '').trim();
-    if (!date || !habitId) continue;
+    if (!date || !habitId || paused.has(habitId)) continue;
     daysWithCheckIn.add(date);
     if (date >= dates[0] && date <= todayText) done.add(`${habitId}|${date}`);
   }
 
-  const ids = [...new Set(habitIds.map((id) => String(id || '').trim()).filter(Boolean))];
   let completed = 0;
   let missed = 0;
-  if (ids.length === 0) {
+  if (active.size === 0) {
     completed = done.size;
   } else {
-    const known = new Set(ids);
     for (const date of dates) {
-      for (const habitId of ids) {
+      const dateObject = parseDay(date);
+      for (const [habitId, definition] of active) {
+        if (!isHabitScheduledOnDate(definition, dateObject)) continue;
         if (done.has(`${habitId}|${date}`)) completed += 1;
         else missed += 1;
       }
     }
     for (const key of done) {
-      if (!known.has(key.split('|')[0])) completed += 1;
+      if (!active.has(key.split('|')[0])) completed += 1;
     }
   }
 
@@ -73,13 +121,15 @@ export function summarizeSundayReview({ checkIns = [], habitIds = [], today }) {
     if (streak > 3660) break;
   }
 
+  const title = weekReviewTitle(dates[0], todayText);
   return {
+    title,
     week_start: dates[0],
     week_end: todayText,
     completed_slots: completed,
     missed_slots: missed,
     streak,
-    share_text: `Sunday review\nCompleted: ${completed}\nMissed: ${missed}\nStreak: ${streak} days`,
+    share_text: `${title}\nCompleted: ${completed}\nMissed: ${missed}\nStreak: ${streak} days`,
   };
 }
 

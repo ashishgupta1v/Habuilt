@@ -886,7 +886,7 @@ const handlePurgeTelemetryBuffer = () => {
           @click="activeTab = 'security'"
           id="proto-tab-security"
         >
-          <Shield class="icon-xs text-amber-400" />
+          <Shield class="icon-xs proto-ink" />
           <span>Vault &amp; Solar</span>
         </button>
         <button
@@ -896,7 +896,7 @@ const handlePurgeTelemetryBuffer = () => {
           @click="activeTab = 'taxonomy'"
           id="proto-tab-taxonomy"
         >
-          <Tag class="icon-xs text-amber-400" />
+          <Tag class="icon-xs proto-ink" />
           <span>Categories &amp; Order</span>
         </button>
       </div>
@@ -941,7 +941,7 @@ const handlePurgeTelemetryBuffer = () => {
             <div class="proto-tier-control proto-tier-control--floor">
               <div class="proto-tier-control__head">
                 <div class="proto-tier-control__label">
-                  <Shield class="icon-xs text-amber-400" />
+                  <Shield class="icon-xs proto-ink" />
                   <strong>Floor Tier (Safety Net)</strong>
                 </div>
                 <div class="proto-tier-control__value">
@@ -987,7 +987,7 @@ const handlePurgeTelemetryBuffer = () => {
             <div class="proto-tier-control proto-tier-control--full">
               <div class="proto-tier-control__head">
                 <div class="proto-tier-control__label">
-                  <Trophy class="icon-xs text-emerald-400" />
+                  <Trophy class="icon-xs proto-ink" />
                   <strong>Full Target (Peak Performance)</strong>
                 </div>
                 <div class="proto-tier-control__value">
@@ -1010,7 +1010,7 @@ const handlePurgeTelemetryBuffer = () => {
           <!-- Fixed Points Controls -->
           <div v-else class="proto-fixed-grid">
             <div class="proto-fixed-item">
-              <label><Shield class="icon-xs text-amber-400" /> Floor Threshold</label>
+              <label><Shield class="icon-xs proto-ink" /> Floor Threshold</label>
               <div class="proto-input-wrap">
                 <input type="number" min="1" max="100" v-model.number="fixedFloor" class="proto-num-input" />
                 <span>pts</span>
@@ -1024,7 +1024,7 @@ const handlePurgeTelemetryBuffer = () => {
               </div>
             </div>
             <div class="proto-fixed-item">
-              <label><Trophy class="icon-xs text-emerald-400" /> Full Threshold</label>
+              <label><Trophy class="icon-xs proto-ink" /> Full Threshold</label>
               <div class="proto-input-wrap">
                 <input type="number" min="1" max="100" v-model.number="fixedFull" class="proto-num-input" />
                 <span>pts</span>
@@ -1100,7 +1100,7 @@ const handlePurgeTelemetryBuffer = () => {
                 @click="removeCustomSlot(key)"
                 title="Remove slot"
               >
-                <Trash2 class="icon-xs text-rose-400" />
+                <Trash2 class="icon-xs proto-ink" />
               </button>
             </div>
           </div>
@@ -1119,11 +1119,11 @@ const handlePurgeTelemetryBuffer = () => {
         <div v-else-if="activeTab === 'presets'" class="proto-section proto-section--studio animate-fadeIn">
           <div class="proto-studio-header flex items-center justify-between mb-3 pb-3 border-b border-slate-200">
             <div>
-              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <h3 class="proto-strong flex items-center gap-2">
                 <Layers class="icon-xs icon-gold" />
                 <span>Protocol Studio &amp; Archetypes</span>
               </h3>
-              <p class="text-xs text-slate-500 mt-0.5">
+              <p class="proto-muted mt-0.5">
                 Design custom protocols, clone blueprints, or export and share your routine.
               </p>
             </div>
@@ -1176,7 +1176,7 @@ const handlePurgeTelemetryBuffer = () => {
               <p class="proto-preset-card__desc">{{ proto.tagline || proto.description }}</p>
 
               <!-- Circadian Anchors Pill -->
-              <div class="proto-circadian-pill mono-num text-[10px] text-gray-400 bg-black/30 border border-white/5 px-2 py-1.5 rounded-lg mb-2 flex items-center justify-between">
+              <div class="proto-circadian-pill mono-num proto-muted proto-panel proto-line px-2 py-1.5 rounded-lg mb-2 flex items-center justify-between">
                 <span>🌅 {{ proto.wakeTime || '05:00' }}</span>
                 <span>⚡ {{ proto.workStart || '08:30' }}–{{ proto.workEnd || '18:00' }}</span>
                 <span>🌙 {{ proto.sleepTime || '22:00' }}</span>
@@ -1243,7 +1243,7 @@ const handlePurgeTelemetryBuffer = () => {
           <div v-if="isStudioEditorOpen" class="proto-cat-form-overlay" id="proto-studio-editor-modal">
             <div class="proto-cat-form-card max-w-lg">
               <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <h4 class="proto-strong flex items-center gap-2">
                   <Layers class="icon-xs icon-gold" />
                   <span>Custom Protocol Studio</span>
                 </h4>
@@ -1254,7 +1254,7 @@ const handlePurgeTelemetryBuffer = () => {
 
               <div class="proto-cat-form-body space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Protocol Name</label>
+                  <label class="block proto-label mb-1">Protocol Name</label>
                   <input
                     type="text"
                     v-model="editingStudioProtocol.name"
@@ -1266,7 +1266,7 @@ const handlePurgeTelemetryBuffer = () => {
 
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Badge Pill</label>
+                    <label class="block proto-label mb-1">Badge Pill</label>
                     <input
                       type="text"
                       v-model="editingStudioProtocol.badge"
@@ -1276,7 +1276,7 @@ const handlePurgeTelemetryBuffer = () => {
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Tagline</label>
+                    <label class="block proto-label mb-1">Tagline</label>
                     <input
                       type="text"
                       v-model="editingStudioProtocol.tagline"
@@ -1288,11 +1288,11 @@ const handlePurgeTelemetryBuffer = () => {
                 </div>
 
                 <!-- Circadian Anchors -->
-                <div class="bg-black/30 border border-white/10 rounded-lg p-2.5">
-                  <span class="block text-xs font-bold text-amber-400 mb-2">Circadian Schedule Anchors</span>
+                <div class="proto-panel proto-line rounded-lg p-2.5">
+                  <span class="block proto-label mb-2">Circadian Schedule Anchors</span>
                   <div class="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span class="text-gray-400 block mb-0.5">🌅 Wake-Up Target</span>
+                      <span class="proto-muted block mb-0.5">🌅 Wake-Up Target</span>
                       <input
                         type="time"
                         v-model="editingStudioProtocol.wakeTime"
@@ -1301,7 +1301,7 @@ const handlePurgeTelemetryBuffer = () => {
                       />
                     </div>
                     <div>
-                      <span class="text-gray-400 block mb-0.5">🌙 Sleep / Lights Out</span>
+                      <span class="proto-muted block mb-0.5">🌙 Sleep / Lights Out</span>
                       <input
                         type="time"
                         v-model="editingStudioProtocol.sleepTime"
@@ -1310,7 +1310,7 @@ const handlePurgeTelemetryBuffer = () => {
                       />
                     </div>
                     <div>
-                      <span class="text-gray-400 block mb-0.5">⚡ Work Block Start</span>
+                      <span class="proto-muted block mb-0.5">⚡ Work Block Start</span>
                       <input
                         type="time"
                         v-model="editingStudioProtocol.workStart"
@@ -1319,7 +1319,7 @@ const handlePurgeTelemetryBuffer = () => {
                       />
                     </div>
                     <div>
-                      <span class="text-gray-400 block mb-0.5">🏁 Work Block End</span>
+                      <span class="proto-muted block mb-0.5">🏁 Work Block End</span>
                       <input
                         type="time"
                         v-model="editingStudioProtocol.workEnd"
@@ -1328,7 +1328,7 @@ const handlePurgeTelemetryBuffer = () => {
                       />
                     </div>
                   </div>
-                  <div class="mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400 mono-num flex items-center justify-between">
+                  <div class="mt-2 pt-2 proto-line proto-muted mono-num flex items-center justify-between">
                     <span>Morning: {{ computedEditorWindows.morning }}</span>
                     <span>Work: {{ computedEditorWindows.work }}</span>
                     <span>Evening: {{ computedEditorWindows.evening }}</span>
@@ -1337,7 +1337,7 @@ const handlePurgeTelemetryBuffer = () => {
 
                 <!-- Starter Habit Source Selector -->
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1.5">Starter Habits Source</label>
+                  <label class="block proto-label mb-1.5">Starter Habits Source</label>
                   <div class="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -1380,24 +1380,24 @@ const handlePurgeTelemetryBuffer = () => {
                 <!-- Included Habits Preview -->
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <span class="text-xs font-semibold text-gray-300">
+                    <span class="proto-label">
                       Included Habits ({{ (editingStudioProtocol.habits || []).length }})
                     </span>
                   </div>
-                  <div class="max-h-36 overflow-y-auto space-y-1 bg-black/20 p-2 rounded-lg border border-white/5">
+                  <div class="max-h-36 overflow-y-auto space-y-1 proto-panel p-2 rounded-lg proto-line">
                     <div
                       v-for="(h, idx) in (editingStudioProtocol.habits || [])"
                       :key="h.id || idx"
-                      class="text-xs text-gray-300 flex items-center justify-between py-0.5 border-b border-white/5 last:border-0"
+                      class="proto-ink flex items-center justify-between py-0.5 proto-line last:border-0"
                     >
                       <span class="truncate mr-2">#{{ idx + 1 }} {{ h.name }}</span>
-                      <span class="text-amber-400 mono-num text-[11px] shrink-0">+{{ h.points }} pts</span>
+                      <span class="proto-ink mono-num proto-muted shrink-0">+{{ h.points }} pts</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 border-t border-white/10">
+              <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 proto-line">
                 <button type="button" class="btn btn--secondary btn--sm" @click="isStudioEditorOpen = false">
                   Cancel
                 </button>
@@ -1418,7 +1418,7 @@ const handlePurgeTelemetryBuffer = () => {
           <div v-if="isShareModalOpen" class="proto-cat-form-overlay" id="proto-studio-share-modal">
             <div class="proto-cat-form-card max-w-md">
               <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <h4 class="proto-strong flex items-center gap-2">
                   <Share2 class="icon-xs text-sky-400" />
                   <span>{{ shareModalMode === 'export' ? 'Export & Share Protocol' : 'Import Protocol' }}</span>
                 </h4>
@@ -1429,20 +1429,20 @@ const handlePurgeTelemetryBuffer = () => {
 
               <!-- Export Mode -->
               <div v-if="shareModalMode === 'export'" class="space-y-3">
-                <div class="text-xs text-slate-500">
+                <div class="proto-muted">
                   Share <strong>{{ exportTargetProtocol?.name }}</strong> via one-click link or JSON file.
                 </div>
 
                 <!-- One-Click Shareable Link -->
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Shareable Universal URL</label>
+                  <label class="block proto-label mb-1">Shareable Universal URL</label>
                   <div class="flex items-center gap-1.5">
                     <input
                       type="text"
                       readonly
                       :value="exportShareUrl"
                       id="proto-share-url-input"
-                      class="proto-text-input mono-num text-[11px]"
+                      class="proto-text-input mono-num proto-muted"
                     />
                     <button
                       type="button"
@@ -1450,7 +1450,7 @@ const handlePurgeTelemetryBuffer = () => {
                       @click="handleCopyShareUrl"
                       id="proto-copy-share-url-btn"
                     >
-                      <Check v-if="copySuccessType === 'url'" class="icon-xs text-emerald-400" />
+                      <Check v-if="copySuccessType === 'url'" class="icon-xs proto-ink" />
                       <Copy v-else class="icon-xs" />
                       <span>{{ copySuccessType === 'url' ? 'Copied' : 'Copy' }}</span>
                     </button>
@@ -1459,7 +1459,7 @@ const handlePurgeTelemetryBuffer = () => {
 
                 <!-- JSON Payload -->
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1">JSON Blueprint Manifest</label>
+                  <label class="block proto-label mb-1">JSON Blueprint Manifest</label>
                   <textarea
                     readonly
                     :value="exportJsonString"
@@ -1469,7 +1469,7 @@ const handlePurgeTelemetryBuffer = () => {
                   ></textarea>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <div class="flex items-center justify-end gap-2 pt-2 proto-line">
                   <button
                     type="button"
                     class="btn btn--secondary btn--sm"
@@ -1493,16 +1493,16 @@ const handlePurgeTelemetryBuffer = () => {
 
               <!-- Import Mode -->
               <div v-else class="space-y-3">
-                <div class="text-xs text-gray-400">
+                <div class="proto-muted">
                   Paste a JSON protocol manifest or upload a downloaded <code>.json</code> file.
                 </div>
 
-                <div v-if="importValidationError" class="habit-modal__alert text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 p-2 rounded">
+                <div v-if="importValidationError" class="habit-modal__alert proto-ink proto-panel p-2 rounded">
                   {{ importValidationError }}
                 </div>
 
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1">Paste JSON Manifest</label>
+                  <label class="block proto-label mb-1">Paste JSON Manifest</label>
                   <textarea
                     v-model="importJsonInput"
                     id="proto-import-json-input"
@@ -1513,17 +1513,17 @@ const handlePurgeTelemetryBuffer = () => {
                 </div>
 
                 <div>
-                  <label class="block text-xs font-semibold text-gray-300 mb-1">Or Upload JSON File</label>
+                  <label class="block proto-label mb-1">Or Upload JSON File</label>
                   <input
                     type="file"
                     accept=".json"
                     @change="handleImportFileUpload"
                     id="proto-import-file-input"
-                    class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-white/10 file:text-white"
+                    class="proto-muted proto-file"
                   />
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <div class="flex items-center justify-end gap-2 pt-2 proto-line">
                   <button type="button" class="btn btn--secondary btn--sm" @click="isShareModalOpen = false">
                     Cancel
                   </button>
@@ -1556,8 +1556,8 @@ const handlePurgeTelemetryBuffer = () => {
           <div class="proto-audio-card">
             <div class="proto-audio-card__head">
               <div class="proto-audio-card__icon-wrap">
-                <Volume2 v-if="soundEnabled" class="icon-sm text-amber-400" />
-                <VolumeX v-else class="icon-sm text-slate-400" />
+                <Volume2 v-if="soundEnabled" class="icon-sm proto-ink" />
+                <VolumeX v-else class="icon-sm proto-muted" />
               </div>
               <div class="proto-audio-card__info">
                 <strong>Procedural Audio Synthesis</strong>
@@ -1582,7 +1582,7 @@ const handlePurgeTelemetryBuffer = () => {
                 <Sliders class="icon-xs text-sky-400" />
                 <strong>Master Acoustic Gain (Volume)</strong>
               </div>
-              <span class="mono-num text-sky-400 font-bold">{{ soundVolume }}%</span>
+              <span class="mono-num text-sky-400 proto-strong">{{ soundVolume }}%</span>
             </div>
             <div class="proto-audio-slider-wrap">
               <input
@@ -1650,7 +1650,7 @@ const handlePurgeTelemetryBuffer = () => {
           <!-- Real-Time Audition Strip -->
           <div class="proto-audio-card" :class="{ 'proto-audio-card--disabled': !soundEnabled }">
             <label class="proto-audio-card__title">
-              <Bell class="icon-xs text-emerald-400" />
+              <Bell class="icon-xs proto-ink" />
               <span>Audition Real-Time Audio Cues</span>
             </label>
             <div class="proto-audition-grid">
@@ -1660,7 +1660,7 @@ const handlePurgeTelemetryBuffer = () => {
                 class="btn btn--secondary btn--sm proto-audition-btn"
                 @click="auditionCue('anchor')"
               >
-                <Play class="icon-xs text-amber-400" />
+                <Play class="icon-xs proto-ink" />
                 <span>Shared Anchor Chime</span>
               </button>
               <button
@@ -1669,7 +1669,7 @@ const handlePurgeTelemetryBuffer = () => {
                 class="btn btn--secondary btn--sm proto-audition-btn"
                 @click="auditionCue('highfive')"
               >
-                <Play class="icon-xs text-rose-400" />
+                <Play class="icon-xs proto-ink" />
                 <span>Warrior High-Five Gong</span>
               </button>
               <button
@@ -1689,7 +1689,7 @@ const handlePurgeTelemetryBuffer = () => {
         <div v-if="activeTab === 'security'" class="proto-section">
           <!-- Information Banner -->
           <div class="proto-info-banner">
-            <Shield class="icon-sm text-amber-400" />
+            <Shield class="icon-sm proto-ink" />
             <p>
               <strong>Solar timing on this device.</strong>
               Calculate solar dawn and dusk on this device. Your account stays behind the Habuilt sign-in, and the phone lock covers the device.
@@ -1700,7 +1700,7 @@ const handlePurgeTelemetryBuffer = () => {
           <div class="proto-card">
             <div class="proto-card__header">
               <div class="proto-card__title">
-                <Sun class="icon-xs text-amber-400" />
+                <Sun class="icon-xs proto-ink" />
                 <span>NOAA Astronomical Solar Calculation (Offline Zenith)</span>
               </div>
               <div class="proto-badge-status" :class="solarCalculationMode === 'astronomical' ? 'proto-badge--active' : 'proto-badge--muted'">
@@ -1818,7 +1818,7 @@ const handlePurgeTelemetryBuffer = () => {
                   class="btn btn--secondary btn--sm"
                   @click="handleSaveCustomCoords"
                 >
-                  <MapPin class="icon-xs text-amber-400" />
+                  <MapPin class="icon-xs proto-ink" />
                   <span>Apply Coords</span>
                 </button>
                 <button
@@ -1838,18 +1838,18 @@ const handlePurgeTelemetryBuffer = () => {
           <div class="proto-card mt-3">
             <div class="proto-card__header">
               <div class="proto-card__title">
-                <Shield class="icon-xs text-emerald-400" />
+                <Shield class="icon-xs proto-ink" />
                 <span>Account session</span>
               </div>
             </div>
-            <p class="text-[12px] text-gray-400 mt-2 leading-relaxed">Habuilt keeps this account behind your sign-in. The device lock covers the phone. This screen does not keep a separate vault.</p>
+            <p class="proto-muted mt-2 leading-relaxed">Habuilt keeps this account behind your sign-in. The device lock covers the phone. This screen does not keep a separate vault.</p>
           </div>
 
                     <!-- SECTION 3: ACCOUNT & DATA MANAGEMENT (Apple Guideline 5.1.1(v) & GDPR Compliance) -->
           <div class="proto-card proto-card--danger mt-3" id="proto-account-management-card">
             <div class="proto-card__header">
               <div class="proto-card__title">
-                <AlertTriangle class="icon-xs text-rose-400" />
+                <AlertTriangle class="icon-xs proto-ink" />
                 <span>Account &amp; Data Sovereignty (GDPR &amp; App Store)</span>
               </div>
               <div class="proto-badge-status proto-badge--danger">
@@ -1859,12 +1859,12 @@ const handlePurgeTelemetryBuffer = () => {
 
             <div class="proto-account-actions-grid mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <!-- Export Data -->
-              <div class="proto-account-action-card p-3 rounded-xl bg-white/[0.02] border border-white/10">
-                <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Download class="icon-xs text-amber-400" />
+              <div class="proto-account-action-card p-3 rounded-xl proto-panel proto-line">
+                <div class="proto-strong flex items-center gap-1.5">
+                  <Download class="icon-xs proto-ink" />
                   <span>Export Personal Data</span>
                 </div>
-                <p class="text-[11px] text-gray-400 mt-1 leading-snug">
+                <p class="proto-muted mt-1 leading-snug">
                   Download a JSON file of your check-ins, settings, protocols, biomarkers, and monthly state from this account.
                 </p>
                 <button
@@ -1879,17 +1879,17 @@ const handlePurgeTelemetryBuffer = () => {
               </div>
 
               <!-- Delete Account & Data -->
-              <div class="proto-account-action-card p-3 rounded-xl bg-rose-500/[0.04] border border-rose-500/20">
-                <div class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
-                  <Trash2 class="icon-xs text-rose-400" />
+              <div class="proto-account-action-card proto-panel p-3 rounded-xl">
+                <div class="text-xs proto-strong proto-ink flex items-center gap-1.5">
+                  <Trash2 class="icon-xs proto-ink" />
                   <span>Delete Account &amp; Purge Data</span>
                 </div>
-                <p class="text-[11px] text-gray-400 mt-1 leading-snug">
+                <p class="proto-muted mt-1 leading-snug">
                   Removes your check-ins, settings, protocols, biomarkers, and monthly state on both databases, plus partner rows where you are a party. Your login is deleted when the server has the service-role key. Browser storage and the phone widget snapshot are not encrypted.
                 </p>
                 <button
                   type="button"
-                  class="btn btn--danger btn--sm mt-3 w-full bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
+                  class="btn btn--danger btn--sm mt-3 w-full"
                   @click="isDeleteConfirmOpen = true"
                   id="proto-delete-account-btn"
                 >
@@ -1900,13 +1900,13 @@ const handlePurgeTelemetryBuffer = () => {
             </div>
 
             <!-- Delete Confirmation Box -->
-            <div v-if="isDeleteConfirmOpen" class="proto-delete-confirm-box mt-3 p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 animate-fadeIn" id="proto-delete-confirm-box">
-              <div class="text-xs font-bold text-rose-300 flex items-center gap-2">
+            <div v-if="isDeleteConfirmOpen" class="proto-delete-confirm-box proto-panel mt-3 p-3.5 rounded-xl" id="proto-delete-confirm-box">
+              <div class="text-xs proto-strong proto-ink flex items-center gap-2">
                 <AlertTriangle class="icon-xs" />
                 <span>Confirm Irreversible Account Deletion</span>
               </div>
-              <p class="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                Type <strong class="text-white font-mono bg-white/10 px-1 py-0.5 rounded">DELETE</strong> to remove your check-ins, settings, protocols, biomarkers, and monthly state, plus partner rows where you are a party. Points are not cash. The login is deleted when the server has the service-role key.
+              <p class="proto-ink mt-1 leading-relaxed">
+                Type <strong class="proto-strong font-mono proto-chip px-1 py-0.5 rounded">DELETE</strong> to remove your check-ins, settings, protocols, biomarkers, and monthly state, plus partner rows where you are a party. Points are not cash. The login is deleted when the server has the service-role key.
               </p>
               <div class="flex items-center gap-2 mt-2.5">
                 <input
@@ -1918,7 +1918,7 @@ const handlePurgeTelemetryBuffer = () => {
                 />
                 <button
                   type="button"
-                  class="btn btn--danger btn--sm shrink-0 bg-rose-600 hover:bg-rose-500 text-white font-bold"
+                  class="btn btn--danger btn--sm shrink-0 proto-strong proto-strong"
                   :disabled="deleteConfirmText !== 'DELETE' || isDeletingAccount"
                   @click="handleConfirmAccountDeletion"
                   id="proto-delete-confirm-final-btn"
@@ -1948,27 +1948,27 @@ const handlePurgeTelemetryBuffer = () => {
               </div>
             </div>
 
-            <p class="text-[12px] text-gray-400 mt-2 leading-relaxed">
+            <p class="proto-muted mt-2 leading-relaxed">
               Client telemetry keeps runtime exceptions in a local ring buffer and can send them through the first-party Sentry tunnel. The buffer is not encrypted.
             </p>
 
             <!-- Metrics Pill Row -->
             <div class="proto-telemetry-metrics-row mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
-                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Ring Buffer</span>
-                <span class="text-sm font-black text-white mono-num">{{ telemetryStatus.ringBufferCount }} / 50</span>
+              <div class="p-2.5 rounded-lg proto-panel proto-line text-center">
+                <span class="text-[10px] uppercase proto-strong proto-muted block tracking-wider">Ring Buffer</span>
+                <span class="proto-strong mono-num">{{ telemetryStatus.ringBufferCount }} / 50</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
-                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Offline Spool</span>
-                <span class="text-sm font-black text-amber-400 mono-num">{{ telemetryStatus.spoolCount }} pending</span>
+              <div class="p-2.5 rounded-lg proto-panel proto-line text-center">
+                <span class="text-[10px] uppercase proto-strong proto-muted block tracking-wider">Offline Spool</span>
+                <span class="proto-body font-black proto-ink mono-num">{{ telemetryStatus.spoolCount }} pending</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
-                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Ingest Route</span>
-                <span class="text-sm font-bold text-sky-400 truncate block">/api/telemetry/tunnel</span>
+              <div class="p-2.5 rounded-lg proto-panel proto-line text-center">
+                <span class="text-[10px] uppercase proto-strong proto-muted block tracking-wider">Ingest Route</span>
+                <span class="proto-body proto-strong text-sky-400 truncate block">/api/telemetry/tunnel</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-white/[0.02] border border-white/10 text-center">
-                <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Upstream</span>
-                <span class="text-sm font-bold text-emerald-400 truncate block">{{ telemetryStatus.sentryHost || 'Local Sovereign' }}</span>
+              <div class="p-2.5 rounded-lg proto-panel proto-line text-center">
+                <span class="text-[10px] uppercase proto-strong proto-muted block tracking-wider">Upstream</span>
+                <span class="proto-body proto-strong proto-ink truncate block">{{ telemetryStatus.sentryHost || 'Local Sovereign' }}</span>
               </div>
             </div>
 
@@ -1987,7 +1987,7 @@ const handlePurgeTelemetryBuffer = () => {
 
             </div>
 
-            <div v-if="testTelemetryMessage" class="mt-2 text-xs mono-num" :class="testTelemetryMessage.startsWith('✅') ? 'text-emerald-400' : 'text-rose-400'">
+            <div v-if="testTelemetryMessage" class="mt-2 text-xs mono-num" :class="testTelemetryMessage.startsWith('✅') ? 'proto-ink' : 'proto-ink'">
               {{ testTelemetryMessage }}
             </div>
           </div>
@@ -2031,7 +2031,7 @@ const handlePurgeTelemetryBuffer = () => {
           <!-- ── SUBSECTION 1: CATEGORY MANAGER ── -->
           <div v-if="taxonomySubTab === 'categories'" class="proto-taxonomy-view">
             <div class="flex items-center justify-between mb-3">
-              <div class="text-xs text-gray-400">
+              <div class="proto-muted">
                 Click any category to edit its color, icon, or point weight.
               </div>
               <div class="flex items-center gap-2">
@@ -2107,8 +2107,8 @@ const handlePurgeTelemetryBuffer = () => {
             <div v-if="isCategoryFormOpen" class="proto-cat-form-overlay" id="proto-category-modal">
               <div class="proto-cat-form-card">
                 <div class="proto-cat-form-head flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-                  <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Palette class="icon-xs text-amber-400" />
+                  <h4 class="proto-strong flex items-center gap-2">
+                    <Palette class="icon-xs proto-ink" />
                     <span>{{ isEditingCategory ? 'Edit Category' : 'Create Custom Category' }}</span>
                   </h4>
                   <button type="button" class="btn-icon" @click="isCategoryFormOpen = false">
@@ -2118,7 +2118,7 @@ const handlePurgeTelemetryBuffer = () => {
 
                 <div class="proto-cat-form-body space-y-3">
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Category Name</label>
+                    <label class="block proto-label mb-1">Category Name</label>
                     <input
                       type="text"
                       v-model="editingCategory.label"
@@ -2129,7 +2129,7 @@ const handlePurgeTelemetryBuffer = () => {
                   </div>
 
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">Accent Color Swatch</label>
+                    <label class="block proto-label mb-1.5">Accent Color Swatch</label>
                     <div class="proto-color-swatches">
                       <button
                         v-for="color in COLOR_PALETTE_PRESETS"
@@ -2141,13 +2141,13 @@ const handlePurgeTelemetryBuffer = () => {
                         @click="editingCategory.accentColor = color"
                         :title="color"
                       >
-                        <Check v-if="editingCategory.accentColor === color" class="icon-xs text-white" />
+                        <Check v-if="editingCategory.accentColor === color" class="icon-xs proto-strong" />
                       </button>
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">Category Icon</label>
+                    <label class="block proto-label mb-1.5">Category Icon</label>
                     <div class="proto-icon-picker-grid">
                       <button
                         v-for="iconName in CATEGORY_ICON_OPTIONS"
@@ -2164,7 +2164,7 @@ const handlePurgeTelemetryBuffer = () => {
                   </div>
 
                   <div>
-                    <label class="block text-xs font-semibold text-gray-300 mb-1">Default Habit Points</label>
+                    <label class="block proto-label mb-1">Default Habit Points</label>
                     <div class="flex items-center gap-2">
                       <button
                         v-for="pts in [1, 2, 3, 5]"
@@ -2180,7 +2180,7 @@ const handlePurgeTelemetryBuffer = () => {
                   </div>
                 </div>
 
-                <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 border-t border-white/10">
+                <div class="proto-cat-form-foot flex justify-end gap-2 mt-4 pt-3 proto-line">
                   <button type="button" class="btn btn--secondary btn--sm" @click="isCategoryFormOpen = false">
                     Cancel
                   </button>
@@ -2200,7 +2200,7 @@ const handlePurgeTelemetryBuffer = () => {
 
           <!-- ── SUBSECTION 2: HABIT SEQUENCE REORDERING ── -->
           <div v-else-if="taxonomySubTab === 'order'" class="proto-taxonomy-view">
-            <div class="text-xs text-gray-400 mb-2">
+            <div class="proto-muted mb-2">
               Move habits up or down to set their sequence on the daily tracker.
             </div>
 
@@ -2216,7 +2216,7 @@ const handlePurgeTelemetryBuffer = () => {
                 :id="`proto-habit-row-${habit.id}`"
               >
                 <div class="proto-reorder-left">
-                  <span class="proto-drag-grip text-gray-500">
+                  <span class="proto-drag-grip proto-muted">
                     <GripVertical class="icon-xs" />
                   </span>
                   <span class="proto-order-badge mono-num">#{{ idx + 1 }}</span>
@@ -3434,4 +3434,62 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-account-action-card .text-gray-400 {
   color: #3A4338 !important;
 }
+
+.proto-muted { color: #5c6758; font-size: 0.75rem; line-height: 1.45; }
+.proto-ink { color: #243026; font-size: 0.8rem; line-height: 1.45; }
+.proto-label { display: block; color: #243026; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; }
+.proto-strong { color: #0c110d; font-weight: 700; }
+.proto-panel { background: #ffffff; border: 1px solid #e4e6dc; border-radius: 12px; color: #243026; }
+.proto-line { border-color: #e4e6dc; }
+.proto-chip { background: rgba(12, 17, 13, 0.06); border-radius: 6px; }
+.proto-file { font-size: 0.75rem; color: #5c6758; }
+.proto-settings-body .flex,
+.proto-settings-modal .flex { display: flex; }
+.proto-settings-body .inline-flex { display: inline-flex; }
+.proto-settings-body .items-center,
+.proto-settings-modal .items-center { align-items: center; }
+.proto-settings-body .items-start { align-items: flex-start; }
+.proto-settings-body .justify-between,
+.proto-settings-modal .justify-between { justify-content: space-between; }
+.proto-settings-body .justify-end,
+.proto-settings-modal .justify-end { justify-content: flex-end; }
+.proto-settings-body .flex-wrap { flex-wrap: wrap; }
+.proto-settings-body .flex-1 { flex: 1 1 auto; }
+.proto-settings-body .gap-1,
+.proto-settings-body .gap-1\.5 { gap: 0.35rem; }
+.proto-settings-body .gap-2 { gap: 0.5rem; }
+.proto-settings-body .gap-3 { gap: 0.75rem; }
+.proto-settings-body .grid { display: grid; }
+.proto-settings-body .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+.proto-settings-body .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.proto-settings-body .space-y-1 > * + * { margin-top: 0.25rem; }
+.proto-settings-body .mt-1 { margin-top: 0.25rem; }
+.proto-settings-body .mt-2 { margin-top: 0.5rem; }
+.proto-settings-body .mt-4 { margin-top: 1rem; }
+.proto-settings-body .mb-1,
+.proto-settings-body .mb-1\.5 { margin-bottom: 0.35rem; }
+.proto-settings-body .mb-2 { margin-bottom: 0.5rem; }
+.proto-settings-body .p-2,
+.proto-settings-body .p-2\.5,
+.proto-settings-body .p-3 { padding: 0.7rem; }
+.proto-settings-body .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.proto-settings-body .py-1,
+.proto-settings-body .py-1\.5 { padding-top: 0.3rem; padding-bottom: 0.3rem; }
+.proto-settings-body .rounded,
+.proto-settings-body .rounded-lg,
+.proto-settings-body .rounded-xl { border-radius: 12px; }
+.proto-settings-body .text-center { text-align: center; }
+.proto-settings-body .leading-snug,
+.proto-settings-body .leading-relaxed { line-height: 1.45; }
+.proto-settings-body .shrink-0 { flex-shrink: 0; }
+.proto-settings-body .max-h-36 { max-height: 9rem; }
+.proto-settings-body .overflow-y-auto { overflow-y: auto; }
+.proto-settings-body .block { display: block; }
+.proto-settings-body .w-full { width: 100%; }
+@media (max-width: 640px) {
+  .proto-settings-body .grid-cols-2,
+  .proto-settings-body .grid-cols-4 { grid-template-columns: 1fr; }
+}
+
+.proto-body { color: #243026; font-size: 0.875rem; line-height: 1.45; }
 </style>
