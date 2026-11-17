@@ -1,7 +1,7 @@
 // Habuilt Service Worker — auto-versioned cache with stale-while-revalidate for hashed assets
 // Version is bumped by registration query string (?v=timestamp) from app.js
 
-const CACHE_NAME = 'habuilt-cache-calm-2026-11-09';
+const CACHE_NAME = 'habuilt-cache-2026-11-13';
 const SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -147,7 +147,7 @@ function reminderTitle(item) {
   if (item?.title) return item.title;
   const name = item?.habitName || 'Habit';
   const time = item?.time || '';
-  return time ? `${name} · ${time}` : name;
+  return time ? `${name} at ${time}` : name;
 }
 
 async function showHabitReminder(item) {
@@ -346,7 +346,7 @@ self.addEventListener('message', (event) => {
     if (activeExpiryTimer) clearTimeout(activeExpiryTimer);
 
     const habitTag = `habuilt-habit-${p.habitId}-${p.day || ''}`;
-    const title = p.title || (p.timeLabel ? `${p.habitName} · ${p.timeLabel}` : (p.habitName || 'Habit'));
+    const title = p.title || (p.timeLabel ? `${p.habitName} at ${p.timeLabel}` : (p.habitName || 'Habit'));
     const options = {
       body: p.customBody || 'Starts now.',
       icon: '/icons/icon-192x192.png',
@@ -363,8 +363,8 @@ self.addEventListener('message', (event) => {
         url: '/',
       },
       actions: [
-        { action: 'mark-done', title: '✅ Mark Done' },
-        { action: 'open-dashboard', title: '🚀 Open Dashboard' },
+        { action: 'mark-done', title: 'Mark done' },
+        { action: 'open-dashboard', title: 'Open' },
       ],
     };
 
@@ -429,44 +429,6 @@ self.addEventListener('message', (event) => {
   if (data.type === 'CHECK_EXPIRED_NOTIFICATIONS') {
     checkAndPurgeExpiredNotifications();
   }
-});
-
-// Push notification handler — receives push from server and shows notification
-self.addEventListener('push', (event) => {
-  const defaults = {
-    title: 'Habuilt',
-    body: 'Time to check in on your habits!',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-monochrome-96.png',
-    tag: 'habuilt-reminder',
-    renotify: true,
-    data: { url: '/' },
-  };
-
-  let payload = defaults;
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      payload = { ...defaults, ...data };
-    } catch {
-      payload.body = event.data.text() || defaults.body;
-    }
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: payload.icon,
-      badge: payload.badge,
-      tag: payload.tag,
-      renotify: payload.renotify,
-      data: payload.data,
-      actions: [
-        { action: 'open-dashboard', title: '🚀 Open Dashboard' },
-        { action: 'dismiss', title: 'Dismiss' },
-      ],
-    })
-  );
 });
 
 // ══════════════════════════════════════════════════════════════════════

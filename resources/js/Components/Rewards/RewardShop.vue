@@ -48,7 +48,7 @@ const nextMilestoneReward = computed(() => {
     const next = higherRewards[0];
     return `${next.item} (${next.cost} pts)`;
   }
-  return 'All Unlocked! 👑';
+  return 'Every reward is within reach.';
 });
 
 import { onMounted, onUnmounted } from 'vue';

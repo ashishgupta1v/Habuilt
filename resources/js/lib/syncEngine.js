@@ -247,7 +247,11 @@ class SyncEngine {
       let outcome;
       try {
         const success = await executor(item.payload);
-        outcome = success ? { ok: true } : { ok: false, error: 'Executor returned false' };
+        if (success && typeof success === 'object' && success.rejected) {
+          outcome = { ok: false, rejected: true, error: success.error || 'The change was rejected.' };
+        } else {
+          outcome = success ? { ok: true } : { ok: false, error: 'Executor returned false' };
+        }
       } catch (err) {
         outcome = { ok: false, error: err?.message || String(err) };
       }

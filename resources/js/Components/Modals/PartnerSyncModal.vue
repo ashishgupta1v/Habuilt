@@ -21,7 +21,7 @@ const props = defineProps({
   isOpen: { type: Boolean, default: false },
   isAshish: { type: Boolean, default: false },
   isJyoti: { type: Boolean, default: false },
-  displayName: { type: String, default: 'Warrior' },
+  displayName: { type: String, default: 'Partner' },
   partnerName: { type: String, default: 'Partner' },
   partnerStatus: { type: String, default: 'not_yet' },
   partnerCompletedCount: { type: Number, default: 0 },
@@ -109,11 +109,11 @@ const calculatedAlignment = computed(() => {
 
 // Interactive Peer Emotes
 const emotes = [
-  { id: 'high-five', label: '🙌 High-Five', message: 'sent you a Warrior High-Five! 🔥' },
-  { id: 'keep-going', label: '💪 Keep Crushing It', message: 'is cheering for you! Keep crushing your goals! ⚡' },
-  { id: 'coffee', label: '☕ Coffee Boost', message: 'sent you a virtual coffee & focus boost! ☕' },
-  { id: 'love', label: '❤️ Thinking of You', message: 'sent you lots of love and gratitude! ❤️' },
-  { id: 'cheer', label: '🎉 Victory Cheer', message: 'is celebrating your consistency! Peak Warrior! 👑' },
+  { id: 'high-five', label: 'High five', message: 'sent a high five.' },
+  { id: 'keep-going', label: 'Keep going', message: 'is cheering you on.' },
+  { id: 'coffee', label: 'Coffee', message: 'sent a coffee.' },
+  { id: 'love', label: 'Thinking of you', message: 'is thinking of you.' },
+  { id: 'cheer', label: 'Cheer', message: 'is glad you kept the list.' },
 ];
 
 const handleSendEmote = (emote) => {
@@ -184,7 +184,7 @@ const handleSendCustomNudge = () => {
   const customNudge = {
     id: `custom-${Date.now()}`,
     icon: selectedNudgeEmoji.value,
-    label: 'Warrior Ping',
+    label: 'Note',
     time: 'Instant',
     message: text,
     accent: 'gold',
@@ -205,9 +205,9 @@ const handleSendCustomNudge = () => {
             <Users class="icon-md icon-teal" />
           </div>
           <div>
-            <h3 id="partner-sync-title" class="modal-header__title">Shared Couple Cockpit</h3>
+            <h3 id="partner-sync-title" class="modal-header__title">Partner</h3>
             <p class="modal-header__sub">
-              Live sync & accountability between <strong>{{ displayName }}</strong> and <strong>{{ partnerName }}</strong>
+              Kept or Not yet for <strong>{{ displayName }}</strong> and <strong>{{ partnerName }}</strong>
             </p>
           </div>
         </div>
@@ -282,8 +282,7 @@ const handleSendCustomNudge = () => {
         <!-- Instant Synchronization Nudges Section -->
         <div class="partner-nudges-section">
           <div class="flex items-center justify-between mb-2">
-            <span class="partner-section-label !mb-0">🔔 Instant Routine Nudges</span>
-            <span class="text-[11px] font-mono font-bold text-teal-700">Zero-Friction Ping</span>
+            <span class="partner-section-label !mb-0">A nudge</span>
           </div>
           <div class="partner-nudges-grid">
             <button
@@ -376,7 +375,7 @@ const handleSendCustomNudge = () => {
         <!-- Shared Couple Anchors Timeline -->
         <div class="partner-anchors-section">
           <div class="flex items-center justify-between mb-2">
-            <span class="partner-section-label !mb-0">🕊️ Shared Couple Anchors (Today)</span>
+            <span class="partner-section-label !mb-0">Shared habits</span>
             <span class="text-[11px] font-mono font-bold text-amber-800">
               {{ calculatedAlignment }}% Synced Today
             </span>
@@ -421,7 +420,7 @@ const handleSendCustomNudge = () => {
                   v-else-if="anchor.completedByUser"
                   class="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-300 shadow-xs"
                 >
-                  ⚡ You Done
+                  You kept
                 </span>
                 <span
                   v-else
@@ -439,7 +438,7 @@ const handleSendCustomNudge = () => {
       <div class="modal-footer">
         <div class="partner-sync-footnote">
           <Heart class="icon-xs icon-rose" />
-          <span>Shared habits automatically celebrate across both devices with confetti & haptics.</span>
+          <span>A nudge is sent when you tap it.</span>
         </div>
         <button
           type="button"

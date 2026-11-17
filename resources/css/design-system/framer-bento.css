@@ -1265,26 +1265,6 @@
   filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35));
 }
 
-/* ─── Mobile Bottom Nav Floating Pill Dock ───────────────────────── */
-@media (max-width: 768px) {
-  .mobile-bottom-nav {
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(24px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-    border-top: 1px solid rgba(226, 232, 240, 0.9) !important;
-    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08) !important;
-  }
-
-  .mobile-bottom-nav__item--active {
-    color: #0f172a !important;
-    font-weight: 750 !important;
-  }
-
-  .mobile-bottom-nav__item--active .mobile-bottom-nav__icon {
-    color: #0C110D !important;
-    transform: translateY(-2px) scale(1.12) !important;
-  }
-}
 
 /* ─── Focus Station Bento Aesthetics (Light Mode) ─────────────────── */
 .card--focus-station {
@@ -2645,30 +2625,6 @@
   padding-top: 8px !important;
 }
 
-.couple-synergy-rewards-panel {
-  padding: 12px 14px !important;
-  border-radius: 14px !important;
-  margin-bottom: 6px !important;
-}
-
-.couple-synergy-desc {
-  margin: 0 0 8px 0 !important;
-}
-
-.couple-synergy-grid {
-  gap: 10px !important;
-}
-
-.couple-synergy-card {
-  padding: 10px 12px !important;
-  gap: 8px !important;
-  border-radius: 10px !important;
-}
-
-.couple-synergy-claim-btn {
-  min-height: 30px !important;
-  padding: 4px 8px !important;
-}
 
 .rewards-grid {
   gap: 8px 10px !important;

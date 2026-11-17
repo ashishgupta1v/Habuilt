@@ -149,7 +149,7 @@ onUnmounted(() => {
         </div>
         <span class="hero-kpi-card__subtext">
           <span v-if="todayScheduledCount - todayCompletedCount > 0" class="hero-kpi-card__sub-highlight">{{ todayScheduledCount - todayCompletedCount }} pending</span>
-          <span v-else class="hero-kpi-card__sub-done">🎉 All Done Today!</span>
+          <span v-else class="hero-kpi-card__sub-done">Today's habits are done.</span>
         </span>
       </div>
     </div>

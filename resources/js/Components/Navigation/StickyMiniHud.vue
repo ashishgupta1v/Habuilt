@@ -17,19 +17,19 @@ const props = defineProps({
     aria-hidden="true"
   >
     <span class="sticky-hud__chip sticky-hud__chip--pts">
-      ⚡ {{ todayPoints }}/{{ todayPossibleDailyPoints }} pts
+      {{ todayPoints }}/{{ todayPossibleDailyPoints }} pts
     </span>
     <span class="sticky-hud__chip sticky-hud__chip--streak">
-      🔥 {{ systemStreak?.current || 0 }}d
+      {{ systemStreak?.current || 0 }} days
     </span>
     <span class="sticky-hud__chip sticky-hud__chip--time">
-      🕐 {{ hudTimeLabel }}
+      {{ hudTimeLabel }}
     </span>
-    <span v-if="zenMode" class="sticky-hud__chip" style="color:#d4af37; font-weight:700;">
-      🧘 ZEN FLOW
+    <span v-if="zenMode" class="sticky-hud__chip">
+      Quiet
     </span>
-    <span v-if="upNextHabitInfo && upNextHabitInfo.habit" class="sticky-hud__chip" style="color:#a78bfa; margin-left:auto;">
-      ▶ {{ upNextHabitInfo.habit.name }}
+    <span v-if="upNextHabitInfo && upNextHabitInfo.habit" class="sticky-hud__chip">
+      {{ upNextHabitInfo.habit.name }}
     </span>
   </div>
 </template>

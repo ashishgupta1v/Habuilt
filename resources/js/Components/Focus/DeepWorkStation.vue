@@ -171,19 +171,19 @@ onUnmounted(() => {
         </div>
         <div v-else-if="timerState.isBreak" class="focus-station-linked-chip focus-station-linked-chip--break">
           <Coffee class="icon-xs" />
-          <span>Rest &amp; Recover (Break Time)</span>
+          <span>Break</span>
         </div>
         <div v-else class="focus-station-linked-chip focus-station-linked-chip--general">
           <Clock class="icon-xs" />
-          <span>General Flow State Block</span>
+          <span>No habit linked</span>
         </div>
       </div>
 
       <!-- Controls Row -->
       <div v-if="timerState._autoCompleted" class="focus-station-actions-bar focus-station-actions-bar--complete">
         <div class="focus-station-complete-msg">
-          <span class="focus-station-complete-title">🎉 Focus Session Complete!</span>
-          <span class="focus-station-complete-sub">Great work. Take a quick rest before your next sprint.</span>
+          <span class="focus-station-complete-title">Focus finished.</span>
+          <span class="focus-station-complete-sub">Take a short rest before the next block.</span>
         </div>
         <div class="focus-station-btn-group">
           <button id="focus-btn-break-5" type="button" class="btn btn--secondary focus-station-btn" @click="emit('start-break', 5)">

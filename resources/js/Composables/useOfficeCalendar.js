@@ -112,15 +112,15 @@ export function getDayType(date) {
  */
 export function getDayTypeLabel(dayType) {
   const labels = {
-    'home':       '🏠 Home Base',
-    'office':     '🏢 Office Day',
-    'office-mon': '🏢 Office (Sprint Launch)',
-    'office-mid': '🏢 Office (Deep Execution)',
-    'office-fri': '🏢 Office (Wrap & Review)',
-    'half-day':   '½ Half Day Sprint',
-    'holiday':    '🌿 Rest & Recovery',
+    'home': 'Home',
+    'office': 'Office day',
+    'office-mon': 'Office, Monday',
+    'office-mid': 'Office, midweek',
+    'office-fri': 'Office, Friday',
+    'half-day': 'Half day',
+    'holiday': 'Rest day',
   };
-  return labels[dayType] || '🏠 Home Base';
+  return labels[dayType] || 'Home';
 }
 
 /**
@@ -137,22 +137,6 @@ export function getDayTypeShortLabel(dayType) {
     'holiday':    'Holiday',
   };
   return labels[dayType] || 'Home';
-}
-
-/**
- * Emoji for the day type.
- */
-export function getDayTypeEmoji(dayType) {
-  const emojis = {
-    'home':       '🏠',
-    'office':     '🏢',
-    'office-mon': '🏢',
-    'office-mid': '🏢',
-    'office-fri': '🏢',
-    'half-day':   '⏳',
-    'holiday':    '🌿',
-  };
-  return emojis[dayType] || '🏠';
 }
 
 /**

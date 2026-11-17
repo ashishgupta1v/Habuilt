@@ -43,6 +43,8 @@ import { summarizeSundayReview, checkInsFromHabits } from '@/lib/sundayReview';
 import { buildTodaySummary } from '@/lib/todaySummary';
 import { CHECKLIST_REPLACE_COPY, starterListReplacesChecklist } from '@/lib/protocolChecklist';
 import { accountMenuAction, guestBlobIsWaiting, reminderControlCopy, reminderTileAction } from '@/lib/followUpGates';
+import { CHECK_IN_REJECTED_EVENT } from '@/lib/checkInWrite';
+import { plainStatusText } from '@/lib/statusCopy';
 import { animateShell, animateToday, pulseCount } from '@/lib/calmMotion';
 import { syncEngine, retryDeadLetterMutations, discardDeadLetterMutations } from '@/lib/syncEngine';
 import { flushZoetiCoachQueue, getZoetiCoachQueueCount } from '@/lib/zoetiCoachBridge';
@@ -114,7 +116,6 @@ import {
   getDayType,
   getDayTypeLabel,
   getDayTypeShortLabel,
-  getDayTypeEmoji,
   isOfficeDay,
   isFlatEvening,
   getNextDayType,
@@ -366,7 +367,7 @@ const handleSendPartnerNudge = (nudge) => {
     from: displayName.value,
     window: currentRoutineWindow.value?.name || 'Active',
   }, pairChannelId.value);
-  showToast(`Sent ${nudge.label || 'nudge'} to ${partnerDisplayName.value}! ✨`);
+  showToast(`Sent ${nudge.label || 'a nudge'} to ${partnerDisplayName.value}.`);
 };
 
 const refreshPartnerLiveMetrics = async () => {
@@ -425,8 +426,8 @@ const dispatchPartnerNotification = async ({ title, body }) => {
       await LocalNotifications.schedule({
         notifications: [
           {
-            title: title || '⚡ Partner Update',
-            body: body || 'Your partner completed an activity in Habuilt.',
+            title: title || 'Partner update',
+            body: body || 'Your partner sent an update.',
             id: Math.floor(Math.random() * 900000) + 1000,
             channelId: 'habuilt_reminders',
             sound: 'default',
@@ -439,8 +440,8 @@ const dispatchPartnerNotification = async ({ title, body }) => {
     }
   } else if (isWebSupported && Notification.permission === 'granted') {
     try {
-      new Notification(title || '⚡ Partner Update', {
-        body: body || 'Your partner completed an activity in Habuilt.',
+      new Notification(title || 'Partner update', {
+        body: body || 'Your partner sent an update.',
         icon: '/favicon.ico',
         badge: '/favicon.ico',
       });
@@ -625,7 +626,6 @@ const enhancedState = ref({
 // Deep Work Timer Composable Integration
 // Confetti & Celebration Physics Engine
 const {
-  fireDualCannons,
   fireTierMilestone,
   firePartnerCelebration,
   fireFocusComplete,
@@ -728,12 +728,11 @@ const handleActivateCustomProtocol = async (customProtocol) => {
       applyConfirmedChecklist(saved.habits);
 
       await saveState();
-      showToast(`⚡ Protocol "${saved.name}" Activated!`);
-      fireDualCannons();
+      showToast(`"${saved.name}" is the current list.`);
     }
   } catch (err) {
     console.error('Failed to activate protocol:', err);
-    showToast('⚠️ Could not activate protocol');
+    showToast('The list could not be saved.');
   }
 };
 
@@ -742,11 +741,11 @@ const handleCloneProtocol = async (sourceProto, newName) => {
     const cloned = await cloneProtocol(sourceProto, newName);
     if (cloned) {
       await handleActivateCustomProtocol(cloned);
-      showToast(`📋 Protocol "${cloned.name}" Cloned & Activated!`);
+      showToast(`"${cloned.name}" is the current list.`);
     }
   } catch (err) {
     console.error('Failed to clone protocol:', err);
-    showToast('⚠️ Could not clone protocol');
+    showToast('The list could not be copied.');
   }
 };
 
@@ -754,11 +753,11 @@ const handleDeleteProtocol = async (protoId) => {
   try {
     const ok = await deleteCustomProtocol(protoId);
     if (ok) {
-      showToast('🗑️ Custom Protocol Deleted');
+      showToast('List removed.');
     }
   } catch (err) {
     console.error('Failed to delete protocol:', err);
-    showToast('⚠️ Could not delete protocol');
+    showToast('The list could not be removed.');
   }
 };
 
@@ -767,11 +766,11 @@ const handleImportProtocol = async (jsonStringOrObj) => {
     const imported = await importProtocolJson(jsonStringOrObj);
     if (imported) {
       await handleActivateCustomProtocol(imported);
-      showToast(`📥 Protocol "${imported.name}" Imported & Activated!`);
+      showToast(`"${imported.name}" is the current list.`);
     }
   } catch (err) {
     console.error('Failed to import protocol:', err);
-    showToast('⚠️ Could not import protocol: ' + (err.message || 'Invalid format'));
+    showToast('The list could not be imported. ' + (err.message || 'The file was not valid.'));
   }
 };
 
@@ -787,11 +786,11 @@ const handleQuickSwitchProtocol = async (protoId) => {
 
       await saveState();
       armSavedSchedule({ prompt: true });
-      showToast(`⚡ Protocol "${targetProto.name}" Activated!`);
+      showToast(`"${targetProto.name}" is the current list.`);
     }
   } catch (err) {
     console.error('Failed to switch protocol:', err);
-    showToast('⚠️ Could not switch protocol');
+    showToast('The list could not be switched.');
   }
 };
 
@@ -803,7 +802,7 @@ const handleSaveProtocolSettings = async (newSettings) => {
   };
   await saveState();
   armSavedSchedule({ prompt: true });
-  showToast('⚡ Protocol settings & scoring tiers saved!');
+  showToast('Settings saved.');
 };
 
 const handleUpdateProtocolHabits = async (updatedHabits) => {
@@ -816,7 +815,7 @@ const handleUpdateProtocolHabits = async (updatedHabits) => {
 
 const handlePartnerPaired = (connection) => {
   activePartnerConnection.value = connection;
-  showToast(`🌸 Connected with ${connection.alias || 'Partner'}!`);
+  showToast(`Connected with ${connection.alias || 'your partner'}.`);
   firePartnerCelebration();
   refreshPartnerLiveMetrics();
 };
@@ -861,12 +860,12 @@ const {
   },
   onSessionComplete: ({ isBreak, habitName }) => {
     if (isBreak) {
-      showToast('☕ Break completed! Ready to resume flow.');
+      showToast('Break finished.');
     } else if (habitName) {
-      showToast(`🎉 Focus session complete! "${habitName}" auto-logged.`);
+      showToast(`Focus finished. "${habitName}" is marked done.`);
       fireFocusComplete();
     } else {
-      showToast('🎉 Focus session complete! Great work.');
+      showToast('Focus finished.');
       fireFocusComplete();
     }
   },
@@ -944,7 +943,7 @@ const fillSundayMetrics = () => {
   };
   weeklyReview.value.reviewDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   saveState();
-  showToast('✨ Weekly metrics auto-filled & saved!');
+  showToast('Week totals filled in.');
 };
 
 // Theme Management (Pure Light Theme Architecture)
@@ -985,7 +984,7 @@ const {
 
 const handleCycleCircadianAtmosphere = () => {
   const next = cycleCircadianPhase();
-  showToast(`✨ Atmosphere: ${next.name} (${activeCircadianMode.value})`);
+  showToast(`${next.name} is on.`);
 };
 
 // ── Service Worker Periodic Background Sync Listener ──
@@ -1016,7 +1015,7 @@ const toggleZenMode = () => {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(zenMode.value ? [20, 40, 20] : 15);
   }
-  showToast(zenMode.value ? '🧘 Zen Focus Mode Activated: Distraction-free flow' : '✨ Zen Focus Mode Deactivated');
+  showToast(zenMode.value ? 'Extra cards are hidden.' : 'Extra cards are showing.');
 };
 
 const handleZenKeyDown = (e) => {
@@ -1083,7 +1082,7 @@ onMounted(async () => {
         const conn = await pairWithInviteCode(effectiveUserId.value, rawPairCode);
         activePartnerConnection.value = conn;
         refreshPartnerLiveMetrics();
-        showToast(`❤️ Partner connection established via invite link (${rawPairCode})!`);
+        showToast('Partner connected from the invite link.');
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       } catch (err) {
         showToast(err.message || 'Could not pair via link');
@@ -1146,7 +1145,7 @@ const executeUndo = () => {
 
   if (targetHabit) {
     toggleHabitForDay(targetHabit, action.day, true /* isUndo */);
-    showToast(`↩️ Reverted "${action.habitName}"`, 2200);
+    showToast(`Reverted "${action.habitName}".`, 2200);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate([15, 30, 15]);
     }
@@ -1154,7 +1153,9 @@ const executeUndo = () => {
 };
 
 const showToast = (message, duration = 2800) => {
-  toastMessage.value = message;
+  const text = plainStatusText(message);
+  if (!text) return;
+  toastMessage.value = text;
   if (toastTimeoutId) clearTimeout(toastTimeoutId);
   toastTimeoutId = setTimeout(() => {
     toastMessage.value = '';
@@ -1194,7 +1195,7 @@ const updateOfflineQueueCount = () => {
 const handleOnline = async () => {
   isOffline.value = false;
   updateOfflineQueueCount();
-  showToast('🟢 Back online · Synchronizing offline actions...', 3000);
+  showToast('Back online. Saving queued changes.', 3000);
 
   try {
     const flushedCheckIns = await flushOfflineQueue();
@@ -1203,9 +1204,9 @@ const handleOnline = async () => {
     updateOfflineQueueCount();
     const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
     if (totalFlushed > 0) {
-      showToast(`✨ Synced ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} with cloud!`, 3000);
+      showToast(`Saved ${totalFlushed} queued change${totalFlushed > 1 ? 's' : ''}.`, 3000);
     } else {
-      showToast('✨ Connected to cloud · Everything is up to date', 2500);
+      showToast('Saved. Nothing is waiting.', 2500);
     }
   } catch (err) {
     console.warn('[Offline Engine] Online recovery sync warning:', err);
@@ -1215,7 +1216,7 @@ const handleOnline = async () => {
 const handleOffline = () => {
   isOffline.value = true;
   updateOfflineQueueCount();
-  showToast('⚡ Offline Mode: Changes saved locally and queued for auto-sync', 3500);
+  showToast('Offline. Changes stay on this device until you reconnect.', 3500);
 };
 
 const handleReadFailed = () => {
@@ -1277,12 +1278,12 @@ const handleManualOfflineSync = async () => {
       updateOfflineQueueCount();
       const totalFlushed = (flushedCheckIns || 0) + (zoetiRes?.flushed || 0);
       if (totalFlushed > 0) {
-        showToast(`🎉 Flushed ${totalFlushed} offline record${totalFlushed > 1 ? 's' : ''} to cloud!`, 3500);
+        showToast(`Saved ${totalFlushed} queued change${totalFlushed > 1 ? 's' : ''}.`, 3500);
       } else {
-        showToast('✅ Cloud connection verified · All records up to date', 3000);
+        showToast('Saved. Nothing is waiting.', 3000);
       }
     } catch (e) {
-      showToast('⚠️ Sync warning. Local records remain safely queued.');
+      showToast('Some changes are still waiting on this device.');
     } finally {
       isManualSyncing.value = false;
     }
@@ -1298,12 +1299,12 @@ const handleManualOfflineSync = async () => {
         await flushZoetiCoachQueue();
         await syncCloudState(true);
         updateOfflineQueueCount();
-        showToast('🟢 Reconnected! Offline records synced.', 3000);
+        showToast('Back online. Queued changes are saved.', 3000);
       } else {
-        showToast('📡 Still offline. All changes safely stored on device.', 3000);
+        showToast('Still offline. Changes stay on this device.', 3000);
       }
     } catch {
-      showToast('📡 Still offline. All changes safely stored on device.', 3000);
+      showToast('Still offline. Changes stay on this device.', 3000);
     } finally {
       isManualSyncing.value = false;
     }
@@ -1420,7 +1421,7 @@ const dynamicTimeSlotDefinitions = computed(() => {
   if (isMobileDayWeekend.value && baseSlots.work) {
     return {
       ...baseSlots,
-      work: { label: 'Weekend Focus & Family', time: baseSlots.work?.time || '08:30–18:30', emoji: '✨', color: '#D4B36A' },
+      work: { label: 'Weekend Focus & Family', time: baseSlots.work?.time || '08:30–18:30', color: 'var(--brand-amber)' },
     };
   }
   return baseSlots;
@@ -1797,10 +1798,10 @@ watch(todayPoints, (newPts, oldPts) => {
 const autoProtocolTier = computed(() => {
   const pts = todayPoints.value;
   const t = tierThresholds.value;
-  if (pts >= t.full) return { title: '🏆 Full Target', tier: 'Full' };
-  if (pts >= t.half)  return { title: '⚡ Half Hit', tier: 'Half' };
-  if (pts >= t.floor)  return { title: '🛡️ Floor Safe', tier: 'Floor' };
-  return { title: '🌱 Building Momentum', tier: 'Base' };
+  if (pts >= t.full) return { title: 'Full target', tier: 'Full' };
+  if (pts >= t.half)  return { title: 'Half hit', tier: 'Half' };
+  if (pts >= t.floor)  return { title: 'Floor safe', tier: 'Floor' };
+  return { title: 'Building momentum', tier: 'Base' };
 });
 
 const monthlyTotalEarned = computed(() => {
@@ -1969,11 +1970,11 @@ const levelData = computed(() => {
 });
 const levelTitle = computed(() => {
   const lv = levelData.value.level;
-  if (lv >= 10) return 'Sovereign Peak';
-  if (lv >= 7) return 'Strategic Mastery';
-  if (lv >= 5) return 'Executive Leverage';
-  if (lv >= 3) return 'Consistent Focus';
-  return 'Baseline Discipline';
+  if (lv >= 10) return 'Long run';
+  if (lv >= 7) return 'Practiced';
+  if (lv >= 5) return 'Steady';
+  if (lv >= 3) return 'Focused';
+  return 'Starting';
 });
 
 // Heatmap Data
@@ -2009,11 +2010,11 @@ const hoveredHeatmapCell = computed(() => {
 
 // Milestone Badges
 const milestoneBadges = computed(() => [
-  { id: 'first_step', icon: '🌱', label: 'First Step', desc: 'Earn 100 XP', threshold: 100, earned: totalXP.value >= 100 },
-  { id: 'bronze_habits', icon: '🥉', label: 'Bronze Builder', desc: 'Earn 500 XP', threshold: 500, earned: totalXP.value >= 500 },
-  { id: 'silver_master', icon: '🥈', label: 'Silver Habitier', desc: 'Earn 1500 XP', threshold: 1500, earned: totalXP.value >= 1500 },
-  { id: 'gold_architect', icon: '🥇', label: 'Gold Architect', desc: 'Earn 3000 XP', threshold: 3000, earned: totalXP.value >= 3000 },
-  { id: 'diamond_legend', icon: '💎', label: 'Diamond Legend', desc: 'Earn 5000 XP', threshold: 5000, earned: totalXP.value >= 5000 },
+  { id: 'first_step', label: 'First Step', desc: 'Earn 100 XP', threshold: 100, earned: totalXP.value >= 100 },
+  { id: 'bronze_habits', label: 'Bronze Builder', desc: 'Earn 500 XP', threshold: 500, earned: totalXP.value >= 500 },
+  { id: 'silver_master', label: 'Silver Habitier', desc: 'Earn 1500 XP', threshold: 1500, earned: totalXP.value >= 1500 },
+  { id: 'gold_architect', label: 'Gold Architect', desc: 'Earn 3000 XP', threshold: 3000, earned: totalXP.value >= 3000 },
+  { id: 'diamond_legend', label: 'Diamond Legend', desc: 'Earn 5000 XP', threshold: 5000, earned: totalXP.value >= 5000 },
 ]);
 
 // Top Streaks
@@ -2051,25 +2052,25 @@ const timeGreeting = computed(() => {
   if (h >= 12 && h < 17) salute = 'Good afternoon';
   else if (h >= 17) salute = 'Good evening';
   const name = displayName.value;
-  const quote = 'Win the morning, conquer the day.';
+  const quote = "Keep today's list.";
   return { salute, name, quote };
 });
 
 
 
 // Toggle Habit Check
-const toggleHabitForDay = (habit, day, isUndo = false) => {
+const toggleHabitForDay = async (habit, day, isUndo = false) => {
   if (!habit) return;
   const numDay = Number(day || mobileDay.value || props.currentDay || new Date().getDate());
 
   // If user tapped on a future day, smoothly jump to Today and show Toast
   if (isFutureDay(numDay)) {
     mobileGoToday();
-    showToast(`📅 Switched to Today (${mobileDayLabel.value})! Tap to mark "${habit.name}" done.`, 3000);
+    showToast(`Switched to today (${mobileDayLabel.value}). Tap to mark "${habit.name}" done.`, 3000);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(20);
     }
-    return;
+    return false;
   }
 
   if (!localHabits.value || localHabits.value.length === 0) {
@@ -2124,8 +2125,9 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
   syncDueNowNotification?.();
   updateOfflineQueueCount();
 
-  // Optimistic Undo Toast Trigger (only for direct user clicks, not during undo rollback)
-  if (!isUndo) {
+  const signedIn = effectiveUserId.value && effectiveUserId.value !== 'guest';
+  const offerUndo = () => {
+    if (isUndo) return;
     triggerUndoToast({
       habitId: habit.id,
       habitName: habit.name,
@@ -2133,13 +2135,23 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
       wasDone: isCurrentlyDone,
       points: habit.points || 1,
     });
-  }
+  };
+  const tellPartnerKept = () => {
+    if (!nextDone || !isPartnerPaired.value) return;
+    broadcastPartnerEvent({
+      type: 'kept_today',
+      partner: displayName.value,
+      userId: effectiveUserId.value,
+    }, pairChannelId.value);
+  };
 
-  // Normalized Real-Time Ledger Persistence & Partner Broadcast
-  if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
+  if (!signedIn) {
+    offerUndo();
+    tellPartnerKept();
+  } else {
     const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
     if (nextDone) {
-      recordHabitCheckIn({
+      const saved = await recordHabitCheckIn({
         userId: effectiveUserId.value,
         habitId: habit.id,
         habitName: habit.name,
@@ -2149,14 +2161,11 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
         canonicalKey: canonKey,
         source: 'web',
       });
-
-      if (isPartnerPaired.value) {
-        broadcastPartnerEvent({
-          type: 'kept_today',
-          partner: displayName.value,
-          userId: effectiveUserId.value,
-        }, pairChannelId.value);
+      if (saved && typeof saved === 'object' && saved.rejected) {
+        return false;
       }
+      offerUndo();
+      if (saved === true && hasCompletedDay(habit, numDay)) tellPartnerKept();
     } else {
       removeHabitCheckIn({
         userId: effectiveUserId.value,
@@ -2164,15 +2173,7 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
         monthKey: monthScope.value,
         day: numDay,
       });
-    }
-  } else {
-    // Guest or offline/local pairing mode: broadcast to local tab channel if paired
-    if (nextDone && isPartnerPaired.value) {
-      broadcastPartnerEvent({
-        type: 'kept_today',
-        partner: displayName.value,
-        userId: effectiveUserId.value,
-      }, pairChannelId.value);
+      offerUndo();
     }
   }
 
@@ -2181,10 +2182,35 @@ const toggleHabitForDay = (habit, day, isUndo = false) => {
       navigator.vibrate([12]);
     } catch (_) {}
   }
+  return true;
 };
 
+const handleCheckInRejected = (event) => {
+  const detail = event?.detail || {};
+  if (String(detail.monthKey) !== String(monthScope.value)) return;
+  if (
+    undoToastAction.value
+    && String(undoToastAction.value.habitId) === String(detail.habitId)
+    && Number(undoToastAction.value.day) === Number(detail.day)
+  ) {
+    undoToastAction.value = null;
+    if (undoToastTimeoutId) clearTimeout(undoToastTimeoutId);
+  }
+  const habit = (localHabits.value || []).find((row) => String(row.id) === String(detail.habitId));
+  if (habit && hasCompletedDay(habit, detail.day)) {
+    toggleHabitForDay(habit, detail.day, true);
+  } else {
+    forgetStoredCheckIn(detail.habitId, detail.day);
+  }
+  showToast('That habit is not on the saved list. The check-in was removed.');
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener(CHECK_IN_REJECTED_EVENT, handleCheckInRejected);
+}
+
 // Direct complete habit handler from background notification action
-const markHabitCompletedDirectly = (habitId, day) => {
+const markHabitCompletedDirectly = async (habitId, day) => {
   const numDay = Number(day);
   const key = keyFor(habitId, numDay);
   delete pendingCells.value[key];
@@ -2256,10 +2282,10 @@ const markHabitCompletedDirectly = (habitId, day) => {
   noteStoredCheckIn(habitId, numDay, targetHabit ? (Number(targetHabit.points) || 1) : 1);
   syncDueNowNotification?.();
 
-  // Normalized Real-Time Ledger Persistence
+  let saved = true;
   if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
     const checkInDate = `${props.year}-${String(props.month).padStart(2, '0')}-${String(numDay).padStart(2, '0')}`;
-    recordHabitCheckIn({
+    saved = await recordHabitCheckIn({
       userId: effectiveUserId.value,
       habitId: habitId,
       habitName: targetHabit ? targetHabit.name : '',
@@ -2271,8 +2297,10 @@ const markHabitCompletedDirectly = (habitId, day) => {
     });
   }
 
+  if (saved && typeof saved === 'object' && saved.rejected) return;
+
   const habitName = targetHabit ? targetHabit.name : 'Habit';
-  showToast(`✅ "${habitName}" marked done!`);
+  showToast(`"${habitName}" marked done.`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
       navigator.vibrate([12]);
@@ -2281,34 +2309,32 @@ const markHabitCompletedDirectly = (habitId, day) => {
 };
 
 // ── Milestone 3: 1-Tap Batch Routine Quick Action ──
-const handleBatchCompleteSlot = (group) => {
+const handleBatchCompleteSlot = async (group) => {
   if (!group || !group.habits || group.habits.length === 0) return;
   const targetDay = Number(mobileDay.value || props.currentDay || new Date().getDate());
   const pendingInSlot = group.habits.filter(h => !hasCompletedDay(h, targetDay));
 
   if (pendingInSlot.length === 0) {
-    showToast(`⚡ All habits in ${group.label} are already completed!`);
+    showToast(`All habits in ${group.label} are already done.`);
     return;
   }
 
-  // Iterate and complete all pending habits in this slot
-  pendingInSlot.forEach(habit => {
-    toggleHabitForDay(habit, targetDay);
-  });
-
-  fireDualCannons();
+  const results = await Promise.all(pendingInSlot.map((habit) => toggleHabitForDay(habit, targetDay)));
+  const kept = results.filter(Boolean).length;
+  if (kept === 0) return;
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([40, 80, 40, 80]);
   }
-  const totalPts = pendingInSlot.reduce((s, h) => s + (Number(h.points) || 1), 0);
-  showToast(`⚡ Blitz! Completed all ${pendingInSlot.length} habits in ${group.label}! (+${totalPts} pts) 🚀`, 4000);
+  showToast(kept === 1
+    ? `Marked 1 habit in ${group.label} done.`
+    : `Marked ${kept} habits in ${group.label} done.`);
 };
 
 // ── Milestone 3: Biometric & Metabolic Journaling Handlers ──
 const handleUpdateBiomarkers = (updatedBio) => {
   biomarkersState.value = { ...biomarkersState.value, ...updatedBio };
   debouncedSaveState();
-  showToast('🧬 Biometrics & morning stiffness updated!');
+  showToast('Today\'s note saved.');
 
   if (effectiveUserId.value && effectiveUserId.value !== 'guest') {
     const todayDate = new Date();
@@ -2367,10 +2393,10 @@ const handleRestoreData = (restoredData) => {
     }
     saveState();
     calculateHistoricalTotals();
-    showToast('✨ Backup restored and synced successfully!');
+    showToast('Backup restored.');
   } catch (err) {
     console.error('Failed to apply restored data:', err);
-    showToast('⚠️ Error applying restored backup data');
+    showToast('The backup could not be applied.');
   }
 };
 
@@ -2385,7 +2411,6 @@ const handleSendPartnerEmote = async (emote) => {
     label: emote.label,
     message: emote.message,
   }, pairChannelId.value);
-  fireDualCannons();
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate([25, 50, 25]);
   }
@@ -2405,7 +2430,7 @@ const cycleDayType = () => {
   syncDueNowNotification?.();
   const label = getDayTypeLabel(nextType);
   const detail = isOfficeDay(nextType) ? ' (Office day)' : '';
-  showToast(`${label}${detail} Routine Activated`);
+  showToast(`${label}${detail} is the day type.`);
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     navigator.vibrate(20);
   }
@@ -2439,9 +2464,9 @@ const {
 const handleToggleDueNowNotifications = async () => {
   const enabled = await toggleDueNowNotifications();
   if (enabled) {
-    showToast('🔔 Live Desktop/Mobile Alerts Active!');
+    showToast('Reminders are on.');
   } else {
-    showToast('🔕 Live alerts paused');
+    showToast('Reminders are paused.');
   }
 };
 
@@ -2465,7 +2490,7 @@ const handleTriggerInstallPwa = async () => {
       deferredInstallPrompt.value.prompt();
       const choiceResult = await deferredInstallPrompt.value.userChoice;
       if (choiceResult.outcome === 'accepted') {
-        showToast('🎉 Habuilt App installed on your desktop!');
+        showToast('Habuilt is installed.');
         canInstallPwa.value = false;
         deferredInstallPrompt.value = null;
       }
@@ -2473,16 +2498,16 @@ const handleTriggerInstallPwa = async () => {
       console.warn('Install prompt error:', e);
     }
   } else {
-    showToast('💡 Click the Install icon (⊕) in your browser address bar');
+    showToast('Use the install icon in the address bar.');
   }
 };
 
 const handleSendTestNotification = async () => {
   const sent = await sendTestNotification();
   if (sent) {
-    showToast('⚡ Test toast notification sent! Look for the action banner.');
+    showToast('Test reminder sent.');
   } else {
-    showToast('⚠️ Please allow notification permission in your browser/Windows');
+    showToast('Allow notifications in the browser to send a test.');
   }
 };
 
@@ -2611,13 +2636,13 @@ const shareDailyScorecard = () => {
 const startQuickFocus = (minutes = 25) => {
   activeMobileTab.value = 'focus';
   startDeepWorkTimer(minutes);
-  showToast(`⚡ Started ${minutes}m Focus Session`);
+  showToast(`Focus started for ${minutes} minutes.`);
 };
 
 const handleAppReload = async () => {
   try {
     isSyncingCloud.value = true;
-    showToast('🔄 Syncing & Refreshing...');
+    showToast('Saving.');
 
     // 1. Re-read and reconcile local storage
     loadLocalState();
@@ -2634,10 +2659,10 @@ const handleAppReload = async () => {
     // 3. Save reconciled state to ensure latest presets are synced
     await saveState();
 
-    showToast('✅ App Synced & Refreshed!');
+    showToast('Saved.');
   } catch (err) {
     console.warn('Reload sync error:', err);
-    showToast('⚡ Refreshed');
+    showToast('Refreshed.');
   } finally {
     isSyncingCloud.value = false;
   }
@@ -3387,7 +3412,7 @@ const restoreDefaultHabits = () => {
   }));
   habitsEditing.value = false;
   saveState();
-  showToast('✨ Updated to latest routine preset!');
+  showToast('List updated.');
 };
 const restoreSingleDefaultHabit = (dh) => {
   localHabits.value.push({ ...dh, completed_days: [] });
@@ -3438,7 +3463,7 @@ const handleSaveHabitForm = (habitData) => {
       }
       return h;
     });
-    showToast(`✨ Updated "${habitData.name}"`);
+    showToast(`Updated "${habitData.name}".`);
   } else {
     // Add new custom habit
     const newHabit = {
@@ -3456,7 +3481,7 @@ const handleSaveHabitForm = (habitData) => {
       completed_days: [],
     };
     localHabits.value.push(newHabit);
-    showToast(`✨ Added "${newHabit.name}" (+${newHabit.points} pts)`);
+    showToast(`Added "${newHabit.name}".`);
   }
 
   saveState();
@@ -3471,7 +3496,7 @@ const handleDeleteHabitFromForm = (habitId) => {
   allHistoricalHabits.value = (allHistoricalHabits.value || []).filter(h => String(h.id) !== String(habitId));
   saveState();
   syncDueNowNotification?.();
-  showToast('🗑️ Habit removed');
+  showToast('Habit removed.');
   if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20);
 };
 
@@ -3512,7 +3537,7 @@ const saveRewardsCatalog = async () => {
 
   rewardsEditing.value = false;
   saveState();
-  showToast('✅ Rewards catalog updated successfully!');
+  showToast('Reward list saved.');
 };
 
 const restoreDefaultRewards = () => {
@@ -3522,7 +3547,7 @@ const restoreDefaultRewards = () => {
   }));
   rewardsEditing.value = false;
   saveState();
-  showToast('🔄 Restored default personal rewards!');
+  showToast('Reward list restored.');
 };
 
 const addDraftReward = () => {
@@ -3766,7 +3791,7 @@ onMounted(() => {
   window.addEventListener('appinstalled', () => {
     canInstallPwa.value = false;
     deferredInstallPrompt.value = null;
-    showToast('🎉 Habuilt Desktop App ready!');
+    showToast('Habuilt is installed.');
   });
 
   // ── Realtime Multi-Device Check-In Subscription ──
@@ -3813,7 +3838,7 @@ onMounted(() => {
     realtimePartnerChannel = subscribeToPartnerConnection(effectiveUserId.value, async (payload) => {
       if (payload?.new && payload.new.status === 'connected') {
         const partnerName = payload.new.alias || 'Partner';
-        showToast(`🤝 Connected with ${partnerName}! Real-time synchronization active. ✨`, 4500);
+        showToast(`Connected with ${partnerName}.`, 4500);
         firePartnerCelebration();
         const updated = await getPartnerConnection(effectiveUserId.value);
         if (updated) {
@@ -3853,15 +3878,14 @@ onMounted(() => {
         refreshPartnerLiveMetrics();
       } else if (msg && msg.type === 'partner_emote') {
         if (!isOwn) {
-          showToast(`${msg.label || '💌'} ${sender} ${msg.message || 'sent you encouragement!'}`, 5500);
-          fireDualCannons();
+          showToast(`${sender} sent ${msg.label || 'a note'}. ${msg.message || ''}`.trim(), 5500);
           playPartnerEmote();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([35, 70, 35, 70]);
           }
           dispatchPartnerNotification({
-            title: `${msg.label || '💌'} ${sender}`,
-            body: `${sender} ${msg.message || 'sent you encouragement!'}`,
+            title: sender,
+            body: msg.message || `${sender} sent a note.`,
           });
         }
       } else if (msg && msg.type === 'partner_heartbeat') {
@@ -3877,14 +3901,14 @@ onMounted(() => {
       } else if (msg && msg.type === 'partner_nudge') {
         if (!isOwn) {
           const nudge = msg.nudge || {};
-          showToast(`${nudge.icon || '🔔'} ${sender}: ${nudge.label || 'Gentle Nudge'} — ${nudge.message || 'Stay focused!'}`, 5500);
+          showToast(`${sender}: ${nudge.label || 'A nudge'}. ${nudge.message || 'Keep going.'}`, 5500);
           playPartnerNudge();
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate([40, 80, 40]);
           }
           dispatchPartnerNotification({
-            title: `${nudge.icon || '🔔'} ${nudge.label || 'Partner Nudge'} from ${sender}`,
-            body: nudge.message || 'Stay focused and conquer your protocol!',
+            title: `${nudge.label || 'Nudge'} from ${sender}`,
+            body: nudge.message || 'A nudge from your partner.',
           });
           const windowName = msg.window || 'Active Protocol';
           partnerPresence.value = {
@@ -4030,6 +4054,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('zoeticoach:queue-flushed', updateOfflineQueueCount);
   window.removeEventListener('keydown', handleZenKeyDown);
   window.removeEventListener('habuilt:open-protocol-settings', handleOpenProtocolSettingsEvent);
+  window.removeEventListener(CHECK_IN_REJECTED_EVENT, handleCheckInRejected);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.removeEventListener('message', handleSwPeriodicSync);
@@ -4103,10 +4128,10 @@ onBeforeUnmount(() => {
           <span class="deep-timer__time mono-num">{{ timerElapsedFormatted }}</span>
           <span class="deep-timer__target mono-num">/ {{ timerState.targetMin }}m</span>
           <span v-if="timerLinkedHabit" class="deep-timer__linked" :title="timerLinkedHabit.name">
-            🎯 {{ timerLinkedHabit.name }}
+            {{ timerLinkedHabit.name }}
           </span>
           <span v-else-if="timerState.isBreak" class="deep-timer__linked deep-timer__linked--break">
-            ☕ Break
+            Break
           </span>
         </div>
         <div class="deep-timer__right">
@@ -4183,7 +4208,6 @@ onBeforeUnmount(() => {
       <section v-if="shellTab === 'today'" class="calm-today" data-calm-panel aria-label="Today">
         <div class="calm-today__stage">
           <div class="calm-today__lead">
-            <p class="calm-today__mark">Today</p>
             <p class="calm-today__hero" data-calm-hero-count>{{ calmToday?.hero }}</p>
             <button
               v-if="calmToday?.showAddHabit"
@@ -4442,7 +4466,7 @@ onBeforeUnmount(() => {
 
         <!-- Zen Focus Mode Active Notice & Fast Exit Bar -->
         <div v-if="zenMode" class="dashboard-flow--zen-banner">
-          <span>🧘 <strong>Zen Flow Mode Active</strong> — Secondary executive cards hidden. Focused on today's execution.</span>
+          <span><strong>Zen flow is on.</strong> The extra cards are hidden.</span>
           <button
             type="button"
             class="dashboard-flow--zen-banner__btn"
@@ -4987,7 +5011,16 @@ onBeforeUnmount(() => {
 .calm-account-btn:hover,
 .calm-account button:hover,
 .calm-today__tiles button:hover {
-  border-color: #0C110D;
+  border-color: var(--text-primary, #0C110D);
+}
+.calm-account-btn:focus-visible,
+.calm-tabs button:focus-visible,
+.calm-account button:focus-visible,
+.calm-today__tiles button:focus-visible,
+.calm-today__add:focus-visible,
+.calm-account__close:focus-visible {
+  outline: 2px solid var(--text-primary, #0C110D);
+  outline-offset: 2px;
 }
 .calm-account-btn:active,
 .calm-tabs button:active,
@@ -5028,11 +5061,6 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 22px;
 }
-.calm-today__mark {
-  margin: 0 0 10px;
-  color: #3A4338;
-  font-size: 15px;
-}
 .calm-today__hero {
   margin: 0;
   max-width: 12em;
@@ -5040,7 +5068,7 @@ onBeforeUnmount(() => {
   font-size: var(--type-fluid-hero, clamp(2rem, 1.05rem + 2.8vw, 4.15rem));
   font-weight: 650;
   line-height: 1.02;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
   overflow-wrap: break-word;
 }

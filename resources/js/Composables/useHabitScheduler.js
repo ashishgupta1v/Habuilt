@@ -127,8 +127,8 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
           return {
             habit,
             status: 'due',
-            badgeText: `DUE NOW (${sched.start})`,
-            shortBadge: 'DUE NOW',
+            badgeText: `Due now, ${sched.start}`,
+            shortBadge: 'Due now',
             timeLabel: `${sched.start}–${sched.end}`
           };
         }
@@ -145,7 +145,7 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
           return {
             habit,
             status: 'upcoming',
-            badgeText: `UP NEXT: ${sched.start}`,
+            badgeText: `Next at ${sched.start}`,
             shortBadge: sched.start,
             timeLabel: `${sched.start}–${sched.end}`
           };
@@ -158,8 +158,8 @@ export function useHabitScheduler(currentClock, activeProtocol = null) {
     return {
       habit: first,
       status: 'next',
-      badgeText: 'UP NEXT',
-      shortBadge: 'UP NEXT',
+      badgeText: 'Next',
+      shortBadge: 'Next',
       timeLabel: 'Next pending'
     };
   };

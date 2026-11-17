@@ -7,7 +7,7 @@ import { handoffRefreshToken } from '@/lib/browserSession';
 import { importGuestListForSignedInUser } from '@/lib/guestImport';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { Mail, Lock, ArrowRight } from 'lucide-vue-next';
+import { Mail, Lock } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
@@ -259,7 +259,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
   const user = {
     id: 'guest',
     email: 'guest@habuilt.com',
-    user_metadata: { full_name: 'Habuilt Champion', preferred_archetype: preferredArchetype },
+    user_metadata: { full_name: 'Guest', preferred_archetype: preferredArchetype },
   };
   localStorage.setItem('habuilt_guest_mode', 'true');
   localStorage.removeItem('habuilt_cached_user');
@@ -293,7 +293,6 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
           <div class="calm-landing__actions" data-calm-reveal>
             <button class="calm-btn" type="button" @click="handleGuest('archetype-founder')">
               Continue as guest
-              <ArrowRight :size="16" />
             </button>
             <a class="calm-btn calm-btn--quiet" href="#auth-station">Sign in</a>
           </div>
@@ -364,7 +363,6 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
           </label>
           <button class="calm-btn" type="submit" :disabled="loading">
             {{ loading ? 'Working…' : 'Continue' }}
-            <ArrowRight :size="16" />
           </button>
         </form>
 
@@ -397,12 +395,18 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
 </template>
 
 <style scoped>
+/* Hallmark · checked: 2026-11-13 · genre: modern-minimal (inferred)
+ * floor: 0 FAIL · fixed: 48, 63, 26a · structural: printed, not rebuilt
+ * waive: 29 landing bar stays a solid tint, not a wash behind the headline
+ * waive: 24b spacing stays, the polish keeps the layout
+ * waive: 47b one phone frame holds the real today summary
+ * built: the project · redesign: polish · v2.0.0 */
 .calm-landing {
   min-height: 100vh;
   min-height: 100dvh;
-  background: #F7F8F2;
-  color: #0C110D;
-  font-family: var(--font-base, 'Inter', sans-serif);
+  background: var(--page-bg);
+  color: var(--text-primary);
+  font-family: var(--font-base);
   overflow-x: clip;
 }
 .calm-landing__bar,
@@ -422,8 +426,7 @@ footer {
   flex-wrap: wrap;
   gap: 12px;
   padding: 16px 0;
-  background: rgba(247, 248, 242, 0.9);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--page-bg) 92%, transparent);
 }
 .calm-landing__bar .calm-btn {
   flex: 0 0 auto;
@@ -440,7 +443,7 @@ footer {
 .calm-landing__copy h1,
 .calm-landing__facts h2,
 .calm-auth h2 {
-  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-family: var(--font-display);
   letter-spacing: -0.045em;
 }
 .calm-landing__copy h1 {
@@ -455,7 +458,7 @@ footer {
 .calm-landing__copy p {
   max-width: 38rem;
   margin: 0;
-  color: #3A4338;
+  color: var(--text-secondary);
   font-size: clamp(16px, 1.6vw, 18px);
   line-height: 1.5;
 }
@@ -474,28 +477,28 @@ footer {
 .calm-auth__alts button,
 footer button {
   font: inherit;
-  color: #0C110D;
+  color: var(--text-primary);
   cursor: pointer;
 }
 .calm-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #0C110D;
+  border: 1px solid var(--text-primary);
   border-radius: 999px;
-  background: #D9F27A;
+  background: var(--accent);
   padding: 13px 18px;
   font-weight: 650;
   text-decoration: none;
 }
-.calm-btn:hover { background: #E4F59A; }
+.calm-btn:hover { background: color-mix(in srgb, var(--accent) 78%, var(--surface-card)); }
 .calm-btn--quiet {
-  background: #fff;
-  border: 1px solid #E4E6DC;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
 }
 .calm-btn--quiet:hover {
-  background: #fff;
-  border-color: #0C110D;
+  background: var(--surface-card);
+  border-color: var(--text-primary);
 }
 .calm-btn:active,
 .calm-pill:active,
@@ -508,13 +511,13 @@ footer button {
   flex-wrap: wrap;
   gap: 8px;
   max-width: 100%;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface-card);
   padding: 10px 14px;
 }
-.calm-pill:hover { border-color: #0C110D; }
-.calm-pill span { color: #3A4338; font-size: 14px; }
+.calm-pill:hover { border-color: var(--text-primary); }
+.calm-pill span { color: var(--text-secondary); font-size: 14px; }
 .calm-landing__phone-col {
   align-self: start;
 }
@@ -523,8 +526,8 @@ footer button {
   margin-inline: auto;
   padding: 12px;
   border-radius: 40px;
-  background: #0C110D;
-  box-shadow: 0 30px 70px -36px rgba(12, 17, 13, 0.55);
+  background: var(--text-primary);
+  box-shadow: var(--card-elev-3);
   will-change: transform;
 }
 .calm-phone__screen {
@@ -533,8 +536,8 @@ footer button {
   min-height: 520px;
   padding: 22px 18px 18px;
   border-radius: 30px;
-  background: #F7F8F2;
-  color: #0C110D;
+  background: var(--page-bg);
+  color: var(--text-primary);
 }
 .calm-phone__mark {
   display: inline-flex;
@@ -542,14 +545,14 @@ footer button {
   margin: 8px 0 22px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #D9F27A;
-  color: #0C110D;
+  background: var(--accent);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
 .calm-phone__hero {
   margin: 0 0 22px;
-  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-family: var(--font-display);
   font-size: clamp(1.7rem, 4vw, 2.5rem);
   font-weight: 650;
   line-height: 1.02;
@@ -567,11 +570,11 @@ footer button {
   flex-direction: column;
   gap: 2px;
   padding: 12px 0;
-  border-top: 1px solid #E4E6DC;
+  border-top: 1px solid var(--surface-border);
 }
-.calm-phone li span { color: #3A4338; font-size: 13px; }
+.calm-phone li span { color: var(--text-secondary); font-size: 13px; }
 .calm-phone li strong {
-  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.03em;
@@ -585,7 +588,7 @@ footer button {
 }
 .calm-landing__facts article {
   padding-top: 18px;
-  border-top: 1px solid #E4E6DC;
+  border-top: 1px solid var(--surface-border);
 }
 .calm-landing__facts h2 {
   margin: 0 0 8px;
@@ -594,16 +597,16 @@ footer button {
 }
 .calm-landing__facts p {
   margin: 0;
-  color: #3A4338;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 .calm-auth {
   width: min(560px, calc(100% - (var(--calm-page-gutter, 16px) * 2)));
   margin: 0 auto 48px;
   padding: clamp(18px, 3vw, 28px);
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 28px;
-  background: #fff;
+  background: var(--surface-card);
   box-sizing: border-box;
 }
 .calm-auth h2 {
@@ -617,13 +620,27 @@ footer button {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 14px;
   padding: 12px 14px;
 }
 .calm-auth label:focus-within {
-  border-color: #0C110D;
-  box-shadow: 0 0 0 4px rgba(217, 242, 122, 0.35);
+  border-color: var(--text-primary);
+}
+.calm-btn:focus-visible,
+.calm-pill:focus-visible,
+.calm-auth input:focus-visible,
+.calm-auth__alts button:focus-visible,
+footer a:focus-visible,
+footer button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+.calm-btn:disabled,
+.calm-pill:disabled,
+.calm-auth__alts button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .calm-auth input {
   width: 100%;
@@ -631,18 +648,18 @@ footer button {
   border: 0;
   outline: 0;
   background: transparent;
-  color: #0C110D;
+  color: var(--text-primary);
   font: inherit;
 }
-.calm-auth__error { color: #9f1239; }
-.calm-auth__ok { color: #2F6B3A; }
+.calm-auth__error { color: var(--danger); }
+.calm-auth__ok { color: var(--semantic-success); }
 .calm-auth__alts { margin-top: 16px; }
 .calm-auth__alts button,
 footer a,
 footer button {
   border: 0;
   background: transparent;
-  color: #0C110D;
+  color: var(--text-primary);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

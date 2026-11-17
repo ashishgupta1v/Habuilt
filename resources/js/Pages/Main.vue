@@ -44,7 +44,7 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
-const guestProfile = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } };
+const guestProfile = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Guest' } };
 const isGuestPreCheck = typeof window !== 'undefined' && isGuestMode();
 const authLoading = ref(!isGuestPreCheck);
 
@@ -127,7 +127,7 @@ const userInitial = computed(() => {
 });
 
 const userTrackLabel = computed(() => {
-  return `✨ ${userDisplayName.value}'s Workspace`;
+  return `${userDisplayName.value}'s list`;
 });
 
 // ── First-Run Onboarding Flow Gate ────────────────────────────────
@@ -278,7 +278,7 @@ const enterUserSession = (user) => {
 const enterGuestMode = (guestUser) => {
   isGuestActive.value = true;
   localStorage.setItem('habuilt_guest_mode', 'true');
-  enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Habuilt Champion' } });
+  enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Guest' } });
 };
 
 const importGuestList = async (user) => {

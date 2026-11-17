@@ -114,7 +114,7 @@ onUnmounted(() => {
       <!-- KPI 1: Consistency Score & Grade -->
       <div class="analytics-glass-card analytics-glass-card--score">
         <div class="analytics-card-header">
-          <span class="analytics-card-label">Consistency Score</span>
+          <span class="analytics-card-label">Kept rate</span>
           <span v-if="consistencyGrade.grade" class="grade-badge" :class="consistencyGrade.class">{{ consistencyGrade.grade }}</span>
         </div>
         <div class="analytics-card-main">
@@ -129,7 +129,7 @@ onUnmounted(() => {
       <!-- KPI 2: System Rank & XP Progress -->
       <div class="analytics-glass-card analytics-glass-card--xp">
         <div class="analytics-card-header">
-          <span class="analytics-card-label">System Rank</span>
+          <span class="analytics-card-label">Level</span>
           <span class="analytics-level-tag">Lv. {{ levelData.level }}</span>
         </div>
         <div class="analytics-card-main">
@@ -146,7 +146,7 @@ onUnmounted(() => {
       <!-- KPI 3: System Streak -->
       <div class="analytics-glass-card analytics-glass-card--streak">
         <div class="analytics-card-header">
-          <span class="analytics-card-label">System Streak</span>
+          <span class="analytics-card-label">Streak</span>
           <Flame class="icon-sm icon-flame-gold" />
         </div>
         <div class="analytics-card-main">
@@ -161,7 +161,7 @@ onUnmounted(() => {
       <!-- KPI 4: Point Wallet -->
       <div class="analytics-glass-card analytics-glass-card--wallet">
         <div class="analytics-card-header">
-          <span class="analytics-card-label">Reward Wallet</span>
+          <span class="analytics-card-label">Points</span>
           <Award class="icon-sm icon-award-gold" />
         </div>
         <div class="analytics-card-main">
@@ -179,7 +179,7 @@ onUnmounted(() => {
       <div class="analytics-panel-head">
         <div class="analytics-panel-title">
           <Calendar class="icon-sm icon-panel-gold" />
-          <span>Monthly Activity Matrix</span>
+          <span>This month</span>
         </div>
         <div class="analytics-heatmap-legend">
           <span class="legend-text">0%</span>
@@ -238,7 +238,7 @@ onUnmounted(() => {
             <span class="analytics-streak-rank">{{ idx + 1 }}</span>
             <span class="analytics-streak-name">{{ s.name }}</span>
             <span class="analytics-streak-pill mono-num" :class="{ 'analytics-streak-pill--hot': s.current >= 7 }">
-              🔥 {{ s.current }}d
+              {{ s.current }} days
             </span>
           </div>
         </div>
@@ -260,7 +260,6 @@ onUnmounted(() => {
             :class="{ 'analytics-milestone-card--unlocked': m.earned, 'analytics-milestone-card--locked': !m.earned }"
             :title="m.desc + (m.earned ? ' (Unlocked!)' : ` (Requires ${m.threshold} XP)`)"
           >
-            <span class="analytics-milestone-icon">{{ m.icon }}</span>
             <div class="analytics-milestone-info">
               <span class="analytics-milestone-label">{{ m.label }}</span>
               <span class="analytics-milestone-xp mono-num">{{ m.threshold }} XP</span>

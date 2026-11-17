@@ -130,15 +130,15 @@ def run_partner_sync_e2e():
             page_a.wait_for_timeout(800)
 
         # Emulate Partner broadcasting Warrior Cheer to Founder via BroadcastChannel
-        print("  👉 Partner broadcasting Warrior Cheer to Founder...")
+        print("  Partner broadcasting a cheer...")
         page_a.evaluate("""
             () => {
                 const bc = new BroadcastChannel('habuilt_local_partner_sync');
                 bc.postMessage({
                     type: 'partner_emote',
                     partner: 'Partner',
-                    label: '🎉 Victory Cheer',
-                    message: 'is celebrating your consistency! Peak Warrior! 👑',
+                    label: 'Cheer',
+                    message: 'is glad you kept the list.',
                     timestamp: Date.now()
                 });
             }

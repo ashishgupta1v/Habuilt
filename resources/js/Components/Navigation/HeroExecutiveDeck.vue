@@ -93,12 +93,10 @@ onUnmounted(() => {
       <div class="hero-greeting-text">
         <div class="hero-greeting-title">
           <span class="hero-greeting-salute">{{ timeGreeting.salute }}, {{ timeGreeting.name }}</span>
-          <span class="hero-greeting-wave">👋</span>
           <span v-if="performanceGrade.grade" class="grade-badge" :class="performanceGrade.class">{{ performanceGrade.grade }}</span>
 
           <!-- Live Routine Phase Window Pill -->
           <div class="hero-routine-pill" :title="`Active Routine Window: ${currentRoutineWindow.name} (${currentRoutineWindow.time})`">
-            <span class="hero-routine-pill__icon">{{ currentRoutineWindow.icon }}</span>
             <span class="hero-routine-pill__name">{{ currentRoutineWindow.name }}</span>
             <span class="hero-routine-pill__time mono-num">{{ currentRoutineWindow.time }}</span>
           </div>
@@ -138,9 +136,9 @@ onUnmounted(() => {
       >
         <div class="hero-upnext-tag hero-upnext-tag--done">
           <Crown class="icon-xs" />
-          <span>ALL PROTOCOLS MET</span>
+          <span>Today's list is done</span>
         </div>
-        <span class="hero-upnext-done-msg">🏆 Elite execution! All {{ todayScheduledCount }} scheduled habits completed for today.</span>
+        <span class="hero-upnext-done-msg">All {{ todayScheduledCount }} scheduled habits are done.</span>
       </div>
 
       <!-- Quick Productivity Launchers -->
@@ -163,7 +161,7 @@ onUnmounted(() => {
           title="Generate and Share your Daily Scorecard"
         >
           <Share2 class="icon-xs" />
-          <span>Share Scorecard</span>
+          <span>Share</span>
         </button>
 
         <button
@@ -236,7 +234,7 @@ onUnmounted(() => {
               <span class="hero-tier-card__title">Floor</span>
             </div>
             <div class="hero-tier-card__status mono-num">
-              {{ todayPoints >= tierThresholds.floor ? '✓ Safe' : `${todayPoints}/${tierThresholds.floor}p` }}
+              {{ todayPoints >= tierThresholds.floor ? 'Safe' : `${todayPoints}/${tierThresholds.floor}p` }}
             </div>
           </div>
 
@@ -250,21 +248,21 @@ onUnmounted(() => {
               <span class="hero-tier-card__title">Half</span>
             </div>
             <div class="hero-tier-card__status mono-num">
-              {{ todayPoints >= tierThresholds.half ? '✓ Hit' : `${todayPoints}/${tierThresholds.half}p` }}
+              {{ todayPoints >= tierThresholds.half ? 'Hit' : `${todayPoints}/${tierThresholds.half}p` }}
             </div>
           </div>
 
           <div
             class="hero-tier-card"
             :class="{ 'hero-tier-card--met': todayPoints >= tierThresholds.full }"
-            :title="todayPoints >= tierThresholds.full ? 'Full Target Achieved (Elite Performance)' : `Need ${tierThresholds.full - todayPoints} more pts for Full`"
+            :title="todayPoints >= tierThresholds.full ? 'Full target' : `Need ${tierThresholds.full - todayPoints} more points for the full target`"
           >
             <div class="hero-tier-card__head">
               <Trophy class="icon-xs hero-tier-card__icon" />
               <span class="hero-tier-card__title">Full</span>
             </div>
             <div class="hero-tier-card__status mono-num">
-              {{ todayPoints >= tierThresholds.full ? '👑 Peak' : `${todayPoints}/${tierThresholds.full}p` }}
+              {{ todayPoints >= tierThresholds.full ? 'Full' : `${todayPoints}/${tierThresholds.full}p` }}
             </div>
           </div>
         </div>

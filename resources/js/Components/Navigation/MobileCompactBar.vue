@@ -46,7 +46,7 @@ const props = defineProps({
   displayName: { type: String, default: '' },
   travelMode: { type: Boolean, default: false },
   dayType: { type: String, default: 'home' },
-  dayTypeLabel: { type: String, default: '🏠 Home' },
+  dayTypeLabel: { type: String, default: 'Home' },
   isSyncing: { type: Boolean, default: false },
   notificationsSupported: { type: Boolean, default: false },
   dueNowNotificationsEnabled: { type: Boolean, default: false },
@@ -76,9 +76,9 @@ const isToolsOpen = ref(false);
 const autoProtocolBadge = computed(() => {
   const pts = props.todayPoints;
   const tiers = props.tierThresholds || { floor: 4, half: 8, full: 15, target: 15 };
-  if (pts >= tiers.full) return { label: '👑 Full', class: 'mcb-auto-badge--full' };
-  if (pts >= tiers.half)  return { label: '⚡ Half', class: 'mcb-auto-badge--half' };
-  if (pts >= tiers.floor)  return { label: '🛡️ Floor', class: 'mcb-auto-badge--floor' };
+  if (pts >= tiers.full) return { label: 'Full', class: 'mcb-auto-badge--full' };
+  if (pts >= tiers.half)  return { label: 'Half', class: 'mcb-auto-badge--half' };
+  if (pts >= tiers.floor)  return { label: 'Floor', class: 'mcb-auto-badge--floor' };
   return { label: `${pts}/${tiers.target}p`, class: 'mcb-auto-badge--base' };
 });
 </script>
@@ -98,7 +98,6 @@ const autoProtocolBadge = computed(() => {
       <div class="mcb-combined-pill" @click="isExpanded = !isExpanded" :title="`Streak: ${systemStreak.current}d | Points: ${todayPoints}/${tierThresholds.target}p`">
         <Flame class="icon-xs icon-flame" />
         <span class="mono-num">{{ systemStreak.current }}d</span>
-        <span class="mcb-pill-dot">&bull;</span>
         <span class="mono-num">{{ todayPoints }}/{{ tierThresholds.target }}p</span>
       </div>
 
@@ -150,7 +149,7 @@ const autoProtocolBadge = computed(() => {
               <Award class="icon-xs icon-vault-gold" /> {{ availableWallet }} pts
             </span>
             <span class="mcb-pts-pill">
-              ⚡ {{ todayPoints }} pts today
+              {{ todayPoints }} pts today
             </span>
           </div>
         </div>
@@ -368,7 +367,7 @@ const autoProtocolBadge = computed(() => {
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .mcb-combined-pill::before {
   content: '';
@@ -380,9 +379,9 @@ const autoProtocolBadge = computed(() => {
   min-height: 44px;
 }
 .mcb--light .mcb-combined-pill {
-  background: rgba(200, 164, 86, 0.1);
-  border-color: rgba(200, 164, 86, 0.35);
-  color: #b45309;
+  background: var(--accent, #D9F27A);
+  border-color: transparent;
+  color: var(--text-primary, #0C110D);
 }
 .mcb-pill-dot {
   opacity: 0.5;
@@ -551,11 +550,11 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--brand-amber, #f59e0b);
+  color: var(--text-secondary, #3A4338);
 }
 
 .mcb-pts-pill {
-  color: var(--accent, #10b981);
+  color: var(--text-primary, #0C110D);
 }
 
 /* Live UP NEXT Card */
@@ -579,14 +578,12 @@ const autoProtocolBadge = computed(() => {
 }
 
 .mcb-upnext-tag {
-  font-size: 9.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 650;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: var(--accent, #D9F27A);
+  color: var(--text-primary, #0C110D);
   white-space: nowrap;
 }
 
@@ -608,16 +605,21 @@ const autoProtocolBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
   border-radius: 6px;
-  background: var(--accent, #10b981);
-  color: #ffffff;
+  background: var(--accent, #D9F27A);
+  color: var(--accent-ink, #0C110D);
   border: none;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+.mcb-upnext-btn:focus-visible {
+  outline: 2px solid var(--text-primary, #0C110D);
+  outline-offset: 2px;
 }
 
 /* Tools Sheet Overlay */

@@ -99,7 +99,7 @@ const copyWhatsAppDebrief = async () => {
               {{ weeklyReview.reviewDate }}
             </span>
           </div>
-          <p class="sunday-review-sub">Completed {{ completedSlots }} · Missed {{ missedSlots }} · Streak {{ streakDays }} days</p>
+          <p class="sunday-review-sub">{{ completedSlots }} kept, {{ missedSlots }} missed, {{ streakDays }} day streak</p>
         </div>
       </div>
 
@@ -111,7 +111,7 @@ const copyWhatsAppDebrief = async () => {
           title="Auto-calculate this week's points and consistency"
         >
           <Sparkles class="icon-xs" />
-          <span>Auto-Fill Metrics</span>
+          <span>Fill this week</span>
         </button>
         <button
           type="button"
@@ -157,7 +157,7 @@ const copyWhatsAppDebrief = async () => {
         <div class="sunday-section">
           <label class="sunday-section-title">
             <Shield class="icon-xs icon-gold" />
-            <span>Execution Honesty Checks</span>
+            <span>This week</span>
           </label>
           <div class="sunday-checks-list">
             <div
@@ -182,48 +182,48 @@ const copyWhatsAppDebrief = async () => {
         <div class="sunday-section">
           <label class="sunday-section-title">
             <Target class="icon-xs icon-gold" />
-            <span>System Reflections &amp; Next Week Intentions</span>
+            <span>Notes</span>
           </label>
           <div class="sunday-reflections-grid">
             <div class="sunday-reflection-box">
-              <span class="sunday-reflection-label">🌟 Big Wins &amp; Breakthroughs</span>
+              <span class="sunday-reflection-label">What went well</span>
               <textarea
                 v-model="weeklyReview.reflections.wins"
                 rows="3"
-                placeholder="What habits flowed effortlessly? What wins deserve celebrating?"
+                placeholder="What did you keep?"
                 class="sunday-textarea"
                 @blur="handleSave"
               ></textarea>
             </div>
 
             <div class="sunday-reflection-box">
-              <span class="sunday-reflection-label">⚠️ Friction, Triggers &amp; Misses</span>
+              <span class="sunday-reflection-label">What got in the way</span>
               <textarea
                 v-model="weeklyReview.reflections.misses"
                 rows="3"
-                placeholder="Where was there resistance? What trigger caused missed habits?"
+                placeholder="What made a habit hard to keep?"
                 class="sunday-textarea"
                 @blur="handleSave"
               ></textarea>
             </div>
 
             <div class="sunday-reflection-box">
-              <span class="sunday-reflection-label">🩺 Energy &amp; Health Check</span>
+              <span class="sunday-reflection-label">Energy</span>
               <textarea
                 v-model="weeklyReview.reflections.healthCheck"
                 rows="3"
-                placeholder="Sleep quality, hydration, recovery, mental clarity..."
+                placeholder="How the week felt."
                 class="sunday-textarea"
                 @blur="handleSave"
               ></textarea>
             </div>
 
             <div class="sunday-reflection-box sunday-reflection-box--focus">
-              <span class="sunday-reflection-label">🎯 Next Week Non-Negotiables</span>
+              <span class="sunday-reflection-label">Next week</span>
               <textarea
                 v-model="weeklyReview.reflections.nextWeekFocus"
                 rows="3"
-                placeholder="Top 1–3 non-negotiable habits to protect at all costs next week..."
+                placeholder="What to protect next week."
                 class="sunday-textarea"
                 @blur="handleSave"
               ></textarea>
@@ -235,7 +235,7 @@ const copyWhatsAppDebrief = async () => {
           <div class="sunday-export-panel__info">
             <div class="sunday-export-panel__badge">
               <Share2 class="icon-xs text-amber-400" />
-              <span>WEEK SUMMARY</span>
+              <span>Week summary</span>
             </div>
             <h5 class="sunday-export-panel__title">Share this week's check-ins</h5>
             <p class="sunday-export-panel__desc" style="white-space: pre-line;">{{ reviewSummaryText() }}</p>

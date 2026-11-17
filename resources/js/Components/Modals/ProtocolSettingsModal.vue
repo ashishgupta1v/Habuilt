@@ -628,7 +628,7 @@ const handleSaveAll = () => {
 const handleToggleSound = () => {
   soundEnabled.value = !soundEnabled.value;
   setSoundEnabled(soundEnabled.value);
-  emit('toast', soundEnabled.value ? '🔔 Sound Effects Enabled' : '🔇 Sound Effects Muted');
+  emit('toast', soundEnabled.value ? 'Sound is on.' : 'Sound is off.');
 };
 
 const handleVolumeChange = () => {
@@ -639,7 +639,8 @@ const handleSetProfile = (profile) => {
   soundProfile.value = profile;
   setSoundProfile(profile);
   testSoundEffect('anchor');
-  emit('toast', `Acoustic Profile: ${profile.toUpperCase()}`);
+  const soundNames = { epic: 'Bright', zen: 'Quiet', minimal: 'Short' };
+  emit('toast', `Sound: ${soundNames[profile] || 'Custom'}`);
 };
 
 const auditionCue = (cueType) => {
@@ -831,8 +832,8 @@ const handlePurgeTelemetryBuffer = () => {
             <Sliders class="icon-md icon-gold" />
           </div>
           <div>
-            <h3 class="modal-title">Protocol & Routine Customizer</h3>
-            <p class="modal-subtitle">Dynamic Milestone Tiers, Flexible Time Slots & Routine Switching</p>
+            <h3 class="modal-title">Settings</h3>
+            <p class="modal-subtitle">List, sound, and account</p>
           </div>
         </div>
         <button type="button" class="modal-close-btn" @click="emit('close')" aria-label="Close">
@@ -849,7 +850,7 @@ const handlePurgeTelemetryBuffer = () => {
           @click="activeTab = 'scoring'"
         >
           <Trophy class="icon-xs" />
-          <span>Milestone Scoring Tiers</span>
+          <span>Tiers</span>
         </button>
         <button
           type="button"
@@ -858,7 +859,7 @@ const handlePurgeTelemetryBuffer = () => {
           @click="activeTab = 'slots'"
         >
           <Clock class="icon-xs" />
-          <span>Time Slot Windows</span>
+          <span>Times</span>
         </button>
         <button
           type="button"
@@ -868,7 +869,7 @@ const handlePurgeTelemetryBuffer = () => {
           id="proto-tab-presets"
         >
           <Layers class="icon-xs" />
-          <span>Protocol Studio</span>
+          <span>Lists</span>
         </button>
         <button
           type="button"
@@ -877,7 +878,7 @@ const handlePurgeTelemetryBuffer = () => {
           @click="activeTab = 'audio'"
         >
           <Volume2 class="icon-xs" />
-          <span>Audio &amp; Haptics</span>
+          <span>Sound</span>
         </button>
         <button
           type="button"
@@ -887,7 +888,7 @@ const handlePurgeTelemetryBuffer = () => {
           id="proto-tab-security"
         >
           <Shield class="icon-xs proto-ink" />
-          <span>Vault &amp; Solar</span>
+          <span>Account</span>
         </button>
         <button
           type="button"
@@ -1560,8 +1561,8 @@ const handlePurgeTelemetryBuffer = () => {
                 <VolumeX v-else class="icon-sm proto-muted" />
               </div>
               <div class="proto-audio-card__info">
-                <strong>Procedural Audio Synthesis</strong>
-                <p>Play acoustic chimes, resonant warrior gongs, and reaction pulses upon completions.</p>
+                <strong>Sound</strong>
+                <p>Play a short chime when a habit is marked done.</p>
               </div>
               <button
                 type="button"
@@ -1580,7 +1581,7 @@ const handlePurgeTelemetryBuffer = () => {
             <div class="proto-audio-card__head">
               <div class="proto-tier-control__label">
                 <Sliders class="icon-xs text-sky-400" />
-                <strong>Master Acoustic Gain (Volume)</strong>
+                <strong>Volume</strong>
               </div>
               <span class="mono-num text-sky-400 proto-strong">{{ soundVolume }}%</span>
             </div>
@@ -1596,14 +1597,14 @@ const handlePurgeTelemetryBuffer = () => {
                 class="proto-slider proto-slider--half"
               />
             </div>
-            <p class="proto-tier-control__desc">Scales oscillator gain smoothly without clipping or acoustic distortion.</p>
+            <p class="proto-tier-control__desc">How loud the chime is.</p>
           </div>
 
           <!-- Acoustic Timbre / Profile Selector -->
           <div class="proto-audio-card" :class="{ 'proto-audio-card--disabled': !soundEnabled }">
             <label class="proto-audio-card__title">
               <Sparkles class="icon-xs icon-gold" />
-              <span>Acoustic Timbre Profile</span>
+              <span>Sound</span>
             </label>
             <div class="proto-sound-profiles-grid">
               <button
@@ -1613,10 +1614,9 @@ const handlePurgeTelemetryBuffer = () => {
                 @click="handleSetProfile('epic')"
               >
                 <div class="proto-sound-profile-btn__head">
-                  <span class="proto-sound-profile-emoji">🌟</span>
-                  <strong>Warrior Epic</strong>
+                  <strong>Bright</strong>
                 </div>
-                <small>Full crystalline chord triads, overtone shimmer &amp; resonant warrior gong.</small>
+                <small>A fuller chime.</small>
               </button>
 
               <button
@@ -1626,10 +1626,9 @@ const handlePurgeTelemetryBuffer = () => {
                 @click="handleSetProfile('zen')"
               >
                 <div class="proto-sound-profile-btn__head">
-                  <span class="proto-sound-profile-emoji">🌿</span>
-                  <strong>Zen Subtle</strong>
+                  <strong>Quiet</strong>
                 </div>
-                <small>Pure meditative sine waves, gentle soft decay &amp; singing bowl warmth.</small>
+                <small>A softer chime.</small>
               </button>
 
               <button
@@ -1639,10 +1638,9 @@ const handlePurgeTelemetryBuffer = () => {
                 @click="handleSetProfile('minimal')"
               >
                 <div class="proto-sound-profile-btn__head">
-                  <span class="proto-sound-profile-emoji">⚡</span>
-                  <strong>Minimal Clean</strong>
+                  <strong>Short</strong>
                 </div>
-                <small>Crisp micro-chimes, quick acoustic ticks &amp; zero lingering reverb.</small>
+                <small>A short tick.</small>
               </button>
             </div>
           </div>
@@ -1670,7 +1668,7 @@ const handlePurgeTelemetryBuffer = () => {
                 @click="auditionCue('highfive')"
               >
                 <Play class="icon-xs proto-ink" />
-                <span>Warrior High-Five Gong</span>
+                <span>Partner chime</span>
               </button>
               <button
                 type="button"
@@ -2949,10 +2947,8 @@ const handlePurgeTelemetryBuffer = () => {
   border-color: rgba(217, 242, 122, 0.3);
 }
 .proto-ephemeris-pill__label {
-  font-size: 0.68rem;
-  color: var(--text-muted, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 13px;
+  color: var(--text-secondary, #3A4338);
 }
 .proto-ephemeris-pill__time {
   font-size: 0.95rem;

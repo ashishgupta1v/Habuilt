@@ -3,8 +3,6 @@ import { ref, computed } from 'vue';
 import {
   Sparkles,
   Check,
-  ChevronRight,
-  ChevronLeft,
   User,
   Target,
   Sun,
@@ -15,7 +13,6 @@ import {
   Briefcase,
   Heart,
   Crown,
-  ArrowRight,
   Zap,
   Sliders,
   CheckCircle2,
@@ -35,34 +32,34 @@ const emit = defineEmits(['complete', 'skip']);
 const currentStep = ref(1);
 
 // Step 1: Identity & Aspiration
-const displayName = ref(props.initialName || (props.userEmail ? props.userEmail.split('@')[0] : 'Champion'));
+const displayName = ref(props.initialName || (props.userEmail ? props.userEmail.split('@')[0] : 'Guest'));
 const selectedGoal = ref('cognitive');
 
 const goals = [
   {
     id: 'cognitive',
-    title: 'Peak Cognitive Output & Deep Work',
-    subtitle: 'Crush high-leverage flow blocks, eliminate distractions, strict evening shutdown',
+    title: 'Work',
+    subtitle: 'Focus blocks and an evening stop',
     icon: Zap,
     color: 'from-amber-500/20 to-yellow-500/10 border-amber-500/30 text-amber-400'
   },
   {
     id: 'vitality',
-    title: 'Movement and joint mobility',
-    subtitle: 'Spinal alignment, consistent metabolic movement, hydration & restorative sleep',
+    title: 'Movement',
+    subtitle: 'A walk, mobility, and rest',
     icon: Activity,
     color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400'
   },
   {
     id: 'harmony',
-    title: 'Family Harmony & Restorative Balance',
-    subtitle: 'Postpartum recovery, shared couple walking anchors, mindful evenings without screens',
+    title: 'Family',
+    subtitle: 'Shared time and a quieter evening',
     icon: Heart,
     color: 'from-rose-500/20 to-pink-500/10 border-rose-500/30 text-rose-400'
   },
   {
     id: 'discipline',
-    title: 'Sovereign All-Round Protocol',
+    title: 'The whole list',
     subtitle: 'Movement, family, and work on one list',
     icon: Crown,
     color: 'from-indigo-500/20 to-purple-500/10 border-indigo-500/30 text-indigo-400'
@@ -147,7 +144,7 @@ const handleFinish = () => {
   const chosenArchetype = options.find(a => a.id === selectedArchetypeId.value) || options[0] || {};
   
   emit('complete', {
-    displayName: displayName.value.trim() || 'Champion',
+    displayName: displayName.value.trim() || 'Guest',
     goal: selectedGoal.value,
     archetypeId: selectedArchetypeId.value,
     archetypeKey: chosenArchetype.key || 'founder',
@@ -176,8 +173,7 @@ const handleSkip = () => {
               <Sparkles />
             </div>
             <div>
-              <span class="onb-kicker">Habuilt Onboarding</span>
-              <h1>Personalize Your Workspace</h1>
+              <h1>Your list</h1>
             </div>
           </div>
           <button
@@ -186,7 +182,7 @@ const handleSkip = () => {
             class="onb-skip"
             @click="handleSkip"
           >
-            Skip to Default
+            Skip
           </button>
         </div>
 
@@ -206,24 +202,24 @@ const handleSkip = () => {
           <div class="onb-intro">
             <span class="onb-step__count">Step 1 of 3</span>
             <h2>What should we call you?</h2>
-            <p>Set your display name and primary focus aspiration for your habit tracking.</p>
+            <p>Set the name on this list.</p>
           </div>
 
           <div class="onb-field">
-            <label for="onboarding-display-name">Display Name</label>
+            <label for="onboarding-display-name">Name</label>
             <div class="onb-field__control">
               <User aria-hidden="true" />
               <input
                 type="text"
                 v-model="displayName"
                 id="onboarding-display-name"
-                placeholder="e.g. Elena Rostova"
+                placeholder="Your name"
               />
             </div>
           </div>
 
           <div class="onb-field">
-            <span class="onb-field__legend" id="onboarding-aspiration-label">Primary Focus Aspiration</span>
+            <span class="onb-field__legend" id="onboarding-aspiration-label">Which list</span>
             <div class="onb-grid" role="group" aria-labelledby="onboarding-aspiration-label">
               <button
                 v-for="g in goals"
@@ -333,7 +329,6 @@ const handleSkip = () => {
               <Compass />
             </span>
             <span class="onb-card__copy">
-              <span class="onb-kicker">Ready to Launch</span>
               <span class="onb-card__title">
                 {{ displayName }}'s System · {{ archetypeOptions.find(a => a.id === selectedArchetypeId)?.name }}
               </span>
@@ -351,7 +346,7 @@ const handleSkip = () => {
           class="onb-back"
           @click="handleBack"
         >
-          <ChevronLeft aria-hidden="true" /> Back
+          Back
         </button>
         <span v-else></span>
 
@@ -361,9 +356,7 @@ const handleSkip = () => {
           class="onb-next"
           @click="handleNext"
         >
-          <span>{{ currentStep === 3 ? 'Launch My Workspace' : 'Continue' }}</span>
-          <ChevronRight v-if="currentStep < 3" aria-hidden="true" />
-          <ArrowRight v-else aria-hidden="true" />
+          <span>{{ currentStep === 3 ? 'Open the list' : 'Continue' }}</span>
         </button>
       </div>
 
@@ -372,6 +365,10 @@ const handleSkip = () => {
 </template>
 
 <style scoped>
+/* Hallmark · checked: 2026-11-13 · genre: modern-minimal (inferred)
+ * floor: 0 FAIL · fixed: 48, 54, 67, 63 · structural: printed, not rebuilt
+ * waive: 24b spacing stays, the polish keeps the layout
+ * built: the project · redesign: polish · v2.0.0 */
 .onb {
   position: fixed;
   inset: 0;
@@ -382,9 +379,9 @@ const handleSkip = () => {
   box-sizing: border-box;
   overflow: auto;
   padding: 16px;
-  background: #F7F8F2;
-  color: #0C110D;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--page-bg);
+  color: var(--text-primary);
+  font-family: var(--font-base);
 }
 
 .onb-modal {
@@ -395,9 +392,9 @@ const handleSkip = () => {
   margin: auto;
   overflow: hidden;
   box-sizing: border-box;
-  background: #ffffff;
-  color: #0C110D;
-  border: 1px solid #E4E6DC;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--surface-border);
   border-radius: 24px;
 }
 
@@ -411,7 +408,7 @@ const handleSkip = () => {
 .onb-top {
   flex: 0 0 auto;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid #E4E6DC;
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .onb-top__row,
@@ -459,30 +456,27 @@ const handleSkip = () => {
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: #D9F27A;
-  color: #0C110D;
+  background: var(--accent);
+  color: var(--text-primary);
 }
 
-.onb-kicker,
 .onb-step__count {
   display: block;
-  margin: 0;
-  color: #3A4338;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .onb h1,
 .onb h2,
 .onb-card__title {
   margin: 0;
-  color: #0C110D;
-  font-family: Urbanist, Inter, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.03em;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .onb h1 {
@@ -500,10 +494,10 @@ const handleSkip = () => {
 .onb-card__sub,
 .onb-arch__tag {
   margin: 6px 0 0;
-  color: #3A4338;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .onb-skip,
@@ -527,10 +521,10 @@ const handleSkip = () => {
 .onb-back {
   flex: 0 0 auto;
   padding: 8px 12px;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 999px;
-  background: #ffffff;
-  color: #0C110D;
+  background: var(--surface-card);
+  color: var(--text-primary);
 }
 
 .onb-progress {
@@ -542,12 +536,12 @@ const handleSkip = () => {
 .onb-progress span {
   flex: 1 1 0;
   height: 4px;
-  border-radius: 999px;
-  background: #E4E6DC;
+  border-radius: 4px;
+  background: var(--surface-border);
 }
 
 .onb-progress span.is-on {
-  background: #D9F27A;
+  background: var(--accent);
 }
 
 .onb-body {
@@ -571,11 +565,9 @@ const handleSkip = () => {
 .onb-field label,
 .onb-field__legend,
 .onb-time label {
-  color: #3A4338;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .onb-field__control {
@@ -590,7 +582,7 @@ const handleSkip = () => {
   width: 16px;
   height: 16px;
   transform: translateY(-50%);
-  color: #3A4338;
+  color: var(--text-secondary);
   pointer-events: none;
 }
 
@@ -599,10 +591,10 @@ const handleSkip = () => {
   box-sizing: border-box;
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
-  background: #ffffff;
-  color: #0C110D;
+  background: var(--surface-card);
+  color: var(--text-primary);
   font: inherit;
   font-size: 16px;
 }
@@ -629,17 +621,17 @@ const handleSkip = () => {
   min-width: 0;
   height: 100%;
   padding: 14px;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
-  background: #ffffff;
-  color: #0C110D;
+  background: var(--surface-card);
+  color: var(--text-primary);
 }
 
 .onb-card.is-selected,
 .onb-arch.is-selected,
 .onb-launch {
-  background: #D9F27A;
-  border-color: #0C110D;
+  background: var(--accent);
+  border-color: var(--text-primary);
 }
 
 .onb-card__copy {
@@ -688,17 +680,17 @@ const handleSkip = () => {
   width: 22px;
   height: 22px;
   margin-top: 1px;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--surface-card);
   color: transparent;
 }
 
 .onb-card.is-selected .onb-card__check,
 .onb-card__check.is-on {
-  border-color: #0C110D;
-  background: #ffffff;
-  color: #0C110D;
+  border-color: var(--text-primary);
+  background: var(--surface-card);
+  color: var(--text-primary);
 }
 
 .onb-arch__tag {
@@ -710,8 +702,8 @@ const handleSkip = () => {
   flex: 0 0 auto;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #F7F8F2;
-  color: #0C110D;
+  background: var(--page-bg);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -722,15 +714,15 @@ const handleSkip = () => {
   gap: 8px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid #E4E6DC;
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .onb-time__label {
   justify-content: flex-start;
   gap: 8px;
-  color: #0C110D;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -755,8 +747,8 @@ const handleSkip = () => {
   flex: 0 0 auto;
   flex-wrap: wrap;
   padding: 14px 20px;
-  border-top: 1px solid #E4E6DC;
-  background: #ffffff;
+  border-top: 1px solid var(--surface-border);
+  background: var(--surface-card);
 }
 
 .onb-next {
@@ -765,13 +757,30 @@ const handleSkip = () => {
   padding: 12px 18px;
   border: 0;
   border-radius: 999px;
-  background: #D9F27A;
-  color: #0C110D;
+  background: var(--accent);
+  color: var(--text-primary);
   font-weight: 700;
 }
 
 .onb-back {
   gap: 4px;
+}
+
+.onb h1,
+.onb h2 {
+  text-wrap: balance;
+}
+.onb button:focus-visible,
+.onb input:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+.onb button:active {
+  transform: scale(0.98);
+}
+.onb button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 @media (min-width: 720px) {
@@ -788,6 +797,11 @@ const handleSkip = () => {
   .onb-footer {
     padding-left: 28px;
     padding-right: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onb button:active {
+    transform: none;
   }
 }
 </style>

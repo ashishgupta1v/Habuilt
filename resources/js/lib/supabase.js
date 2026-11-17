@@ -4,6 +4,7 @@ import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from '.
 import { isRetryableAccountId } from './syncQueuePolicy.js';
 import { getMemoryAccessToken, purgeLegacyAuthStorage, restoreBrowserSession } from './browserSession.js';
 import { settingsReadFromBody } from './followUpGates.js';
+import { CHECK_IN_REJECTED_EVENT, classifyCheckInWrite } from './checkInWrite.js';
 import { createTabAuthStorage, HABUILT_AUTH_FLOW } from './authFlow.js';
 
 purgeLegacyAuthStorage();
@@ -240,7 +241,21 @@ export const recordHabitCheckIn = async ({
       completed_on: dateStr,
       canonical_key: canonicalKey || null,
       source: source,
-    });
+    }, { returnError: true });
+
+    if (classifyCheckInWrite(localRes) === 'rejected') {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(CHECK_IN_REJECTED_EVENT, {
+          detail: {
+            habitId: String(habitId),
+            monthKey,
+            day: Number(day),
+            error: localRes?.error || 'Unknown habit',
+          },
+        }));
+      }
+      return { rejected: true, error: localRes?.error || 'Unknown habit' };
+    }
 
     if (localRes?.guest) {
       return true;

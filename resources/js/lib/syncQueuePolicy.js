@@ -52,6 +52,10 @@ export function settleAttempt(item, nowMs, outcome, random = Math.random) {
     return { disposition: 'drop' };
   }
 
+  if (outcome?.rejected) {
+    return { disposition: 'drop' };
+  }
+
   const attempts = (Number(item?.attempts) || 0) + 1;
   const errorText = outcome?.ok ? null : publicSyncError(outcome?.error || 'The change could not be saved.');
   const next = {

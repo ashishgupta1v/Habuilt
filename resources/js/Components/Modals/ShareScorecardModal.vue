@@ -19,7 +19,7 @@ const props = defineProps({
   wallet: { type: Number, default: 0 },
   todayPoints: { type: Number, default: 0 },
   todayTarget: { type: Number, default: 15 },
-  tierTitle: { type: String, default: '🏆 Full Target' },
+  tierTitle: { type: String, default: 'Full target' },
   completedCount: { type: Number, default: 0 },
   totalHabits: { type: Number, default: 0 },
   performanceGrade: { type: Object, default: () => ({ grade: '', text: 'Your check-ins' }) },
@@ -61,9 +61,9 @@ const shareCaptionText = computed(() => {
   if (activeMode.value === 'couple' && props.isPartnerPaired) {
     const syncedCount = (props.sharedAnchors || []).filter(a => a.completedTogether || a.status === 'both').length;
     const totalAnchors = (props.sharedAnchors || []).length || 3;
-    return `⚡ Habuilt Couple Alignment — ${formattedDate.value}\n⚔️ ${props.displayName} (${props.todayPoints} pts) & 🌸 ${props.partnerDisplayName} (${props.partnerPoints} pts)\n🔥 Mutual Streak: ${props.streak} Days | 🤝 Alignment: ${props.alignmentScore}%\n🏆 Combined Energy: ${props.todayPoints + props.partnerPoints} pts crushed today\n✨ Shared Anchors Synced: ${syncedCount}/${totalAnchors}\n\nBuilt with discipline on https://habuilt.com #HabuiltCouples #HabitMastery #PowerCouple`;
+    return `Habuilt, together — ${formattedDate.value}\n${props.displayName} (${props.todayPoints} pts) and ${props.partnerDisplayName} (${props.partnerPoints} pts)\nStreak: ${props.streak} days. Kept together: ${props.alignmentScore}%\nCombined: ${props.todayPoints + props.partnerPoints} pts\nShared habits kept by both: ${syncedCount}/${totalAnchors}\n\nhttps://habuilt.com`;
   }
-  return `⚡ Habuilt Daily Protocol — ${formattedDate.value}\n👤 ${props.displayName} (${props.levelTitle} Lv. ${props.level})\n🔥 Streak: ${props.streak} Days | 🏆 Vault: ${props.wallet} pts\n🎯 Target: ${props.tierTitle} (${props.todayPoints}/${props.todayTarget} pts)\n✅ ${props.completedCount}/${props.totalHabits} Habits Crushed\n\nBuilt with discipline on https://habuilt.com #Habuilt #HabitMastery #Productivity`;
+  return `Habuilt — ${formattedDate.value}\n${props.displayName}\nStreak: ${props.streak} days. Points saved: ${props.wallet}\n${props.tierTitle}: ${props.todayPoints}/${props.todayTarget} pts\n${props.completedCount}/${props.totalHabits} habits kept\n\nhttps://habuilt.com`;
 });
 
 // Helper: draw smooth rounded rectangle
@@ -100,97 +100,97 @@ const generateScorecardCanvas = async () => {
 
   // 1. Deep Obsidian Base Gradient
   const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-  bgGrad.addColorStop(0, '#060a14');
-  bgGrad.addColorStop(0.25, '#0b1326');
-  bgGrad.addColorStop(0.6, '#0f1b35');
-  bgGrad.addColorStop(0.85, '#0d152a');
-  bgGrad.addColorStop(1, '#05070e');
+  bgGrad.addColorStop(0, '#F7F8F2');
+  bgGrad.addColorStop(0.25, '#F7F8F2');
+  bgGrad.addColorStop(0.6, '#F7F8F2');
+  bgGrad.addColorStop(0.85, '#F7F8F2');
+  bgGrad.addColorStop(1, '#F7F8F2');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
   // 2. Ambient Glow Orbs
   const goldOrb = ctx.createRadialGradient(880, 260, 20, 880, 260, 520);
-  goldOrb.addColorStop(0, 'rgba(200, 164, 86, 0.28)');
+  goldOrb.addColorStop(0, 'rgba(217, 242, 122, 0.45)');
   goldOrb.addColorStop(1, 'rgba(200, 164, 86, 0)');
   ctx.fillStyle = goldOrb;
   ctx.fillRect(0, 0, width, height);
 
   const emeraldOrb = ctx.createRadialGradient(180, 920, 20, 180, 920, 580);
-  emeraldOrb.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
+  emeraldOrb.addColorStop(0, 'rgba(217, 242, 122, 0.35)');
   emeraldOrb.addColorStop(1, 'rgba(16, 185, 129, 0)');
   ctx.fillStyle = emeraldOrb;
   ctx.fillRect(0, 0, width, height);
 
   const indigoOrb = ctx.createRadialGradient(920, 1380, 20, 920, 1380, 550);
-  indigoOrb.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+  indigoOrb.addColorStop(0, 'rgba(217, 242, 122, 0)');
   indigoOrb.addColorStop(1, 'rgba(99, 102, 241, 0)');
   ctx.fillStyle = indigoOrb;
   ctx.fillRect(0, 0, width, height);
 
   const bottomGold = ctx.createRadialGradient(380, 1800, 20, 380, 1800, 500);
-  bottomGold.addColorStop(0, 'rgba(200, 164, 86, 0.2)');
+  bottomGold.addColorStop(0, '#F7F8F2');
   bottomGold.addColorStop(1, 'rgba(200, 164, 86, 0)');
   ctx.fillStyle = bottomGold;
   ctx.fillRect(0, 0, width, height);
 
   // 3. Luxurious Borders
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.45)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 4;
   drawRoundRect(ctx, 36, 36, width - 72, height - 72, 44);
   ctx.stroke();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 2;
   drawRoundRect(ctx, 48, 48, width - 96, height - 96, 34);
   ctx.stroke();
 
   // 4. Top Story Header Badge
   const topPillGrad = ctx.createLinearGradient(width / 2 - 200, 75, width / 2 + 200, 120);
-  topPillGrad.addColorStop(0, 'rgba(200, 164, 86, 0.25)');
-  topPillGrad.addColorStop(1, 'rgba(16, 185, 129, 0.25)');
+  topPillGrad.addColorStop(0, '#D9F27A');
+  topPillGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = topPillGrad;
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.4)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, width / 2 - 220, 75, 440, 46, 23);
   ctx.fill();
   ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 17px "Inter", -apple-system, sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('⚡ DAILY MASTERY PROTOCOL ⚡', width / 2, 105);
+  ctx.letterSpacing = '0px';
+  ctx.fillText("Today's list", width / 2, 105);
 
   // 5. Brand Header & Date Badge
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 52px "Inter", sans-serif';
-  ctx.letterSpacing = '5px';
+  ctx.letterSpacing = '0px';
   ctx.fillText('HABUILT', 85, 195);
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '700 18px "Inter", sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('DISCIPLINE ARCHITECTURE', 85, 228);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Habit tracker', 85, 228);
 
   // Date Tag on Right
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, width - 425, 165, 340, 64, 18);
   ctx.fill();
   ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '700 20px "Inter", sans-serif';
-  ctx.fillText(`📅 ${formattedDate.value}`, width - 255, 206);
+  ctx.fillText(formattedDate.value, width - 255, 206);
 
   // Header Divider
   const headerLine = ctx.createLinearGradient(85, 260, width - 85, 260);
-  headerLine.addColorStop(0, 'rgba(200, 164, 86, 0.6)');
+  headerLine.addColorStop(0, '#E4E6DC');
   headerLine.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
-  headerLine.addColorStop(1, 'rgba(200, 164, 86, 0.15)');
+  headerLine.addColorStop(1, '#E4E6DC');
   ctx.strokeStyle = headerLine;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -200,10 +200,10 @@ const generateScorecardCanvas = async () => {
 
   // 6. User Profile Card
   const profileCardGrad = ctx.createLinearGradient(85, 290, width - 85, 430);
-  profileCardGrad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
-  profileCardGrad.addColorStop(1, 'rgba(15, 23, 42, 0.6)');
+  profileCardGrad.addColorStop(0, '#ffffff');
+  profileCardGrad.addColorStop(1, '#ffffff');
   ctx.fillStyle = profileCardGrad;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, 85, 290, width - 170, 140, 24);
   ctx.fill();
@@ -211,45 +211,45 @@ const generateScorecardCanvas = async () => {
 
   // Avatar Circle
   const avatarGrad = ctx.createLinearGradient(110, 315, 190, 405);
-  avatarGrad.addColorStop(0, '#F6D380');
-  avatarGrad.addColorStop(1, '#9E7424');
+  avatarGrad.addColorStop(0, '#D9F27A');
+  avatarGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = avatarGrad;
   ctx.beginPath();
   ctx.arc(155, 360, 44, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#060a14';
+  ctx.fillStyle = '#F7F8F2';
   ctx.font = '900 38px "Inter", sans-serif';
   ctx.fillText((props.displayName || 'U')[0].toUpperCase(), 155, 374);
 
   // User Name & Rank
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 38px "Inter", sans-serif';
   ctx.fillText(props.displayName, 225, 348);
 
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '700 22px "Inter", sans-serif';
-  ctx.fillText(`👑 ${props.levelTitle}  •  Level ${props.level}`, 225, 388);
+  ctx.fillText(`${props.levelTitle}, level ${props.level}`, 225, 388);
 
   // Performance Grade Tag
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 44px "Inter", sans-serif';
   ctx.fillText(props.performanceGrade?.grade || 'A+', width - 120, 350);
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '600 17px "Inter", sans-serif';
   ctx.fillText(props.performanceGrade?.text || 'Your check-ins', width - 120, 388);
 
   // 7. HERO SECTION: Massive Points & Protocol Hit Card
   const heroGrad = ctx.createLinearGradient(85, 460, width - 85, 800);
-  heroGrad.addColorStop(0, 'rgba(200, 164, 86, 0.18)');
-  heroGrad.addColorStop(0.5, 'rgba(15, 23, 42, 0.85)');
-  heroGrad.addColorStop(1, 'rgba(16, 185, 129, 0.15)');
+  heroGrad.addColorStop(0, '#ffffff');
+  heroGrad.addColorStop(0.5, '#ffffff');
+  heroGrad.addColorStop(1, '#ffffff');
   ctx.fillStyle = heroGrad;
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.5)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 3;
   drawRoundRect(ctx, 85, 460, width - 170, 330, 32);
   ctx.fill();
@@ -257,42 +257,42 @@ const generateScorecardCanvas = async () => {
 
   // Points Big Display
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 130px "Inter", sans-serif';
   ctx.fillText(`${props.todayPoints}`, width / 2 - 65, 605);
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '700 65px "Inter", sans-serif';
   ctx.fillText(`/${props.todayTarget}`, width / 2 + 75, 605);
 
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '800 21px "Inter", sans-serif';
-  ctx.letterSpacing = '4px';
-  ctx.fillText('DAILY PROTOCOL POINTS EARNED', width / 2, 650);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Points today', width / 2, 650);
 
   // Target Status Pill
   const tierPillGrad = ctx.createLinearGradient(width / 2 - 260, 680, width / 2 + 260, 745);
-  tierPillGrad.addColorStop(0, 'rgba(200, 164, 86, 0.35)');
-  tierPillGrad.addColorStop(1, 'rgba(16, 185, 129, 0.35)');
+  tierPillGrad.addColorStop(0, '#D9F27A');
+  tierPillGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = tierPillGrad;
-  ctx.strokeStyle = '#C8A456';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 2.5;
   drawRoundRect(ctx, width / 2 - 280, 680, 560, 64, 32);
   ctx.fill();
   ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 25px "Inter", sans-serif';
-  ctx.letterSpacing = '1.5px';
-  ctx.fillText(props.tierTitle.toUpperCase(), width / 2, 722);
+  ctx.letterSpacing = '0px';
+  ctx.fillText(props.tierTitle, width / 2, 722);
 
   // 8. 4-Metrics Highlights Grid (2x2)
   const stats = [
-    { label: 'ACTIVE STREAK', value: `${props.streak} Days`, icon: '🔥', color: '#f59e0b', sub: 'Unbroken Consistency' },
-    { label: 'HABIT HIT RATE', value: `${props.completedCount}/${props.totalHabits}`, icon: '✅', color: '#10b981', sub: `${props.totalHabits > 0 ? Math.round((props.completedCount / props.totalHabits) * 100) : 0}% Target Crushed` },
-    { label: 'HABUILT VAULT', value: `${props.wallet} pts`, icon: '🏆', color: '#C8A456', sub: 'Available to Claim' },
-    { label: 'XP & PROGRESS', value: `+${props.todayPoints * 10} XP`, icon: '⚡', color: '#818cf8', sub: `Level ${props.level} Progress` },
+    { label: 'Streak', value: `${props.streak} days`, icon: '', color: '#3A4338', sub: 'Days in a row' },
+    { label: 'Kept', value: `${props.completedCount}/${props.totalHabits}`, icon: '', color: '#3A4338', sub: 'Habits kept today' },
+    { label: 'Saved', value: `${props.wallet} pts`, icon: '', color: '#3A4338', sub: 'Points on this account' },
+    { label: 'Today', value: `${props.todayPoints} pts`, icon: '', color: '#3A4338', sub: `Level ${props.level}` },
   ];
 
   const gridX = 85;
@@ -306,8 +306,8 @@ const generateScorecardCanvas = async () => {
     const x = gridX + col * (cardW + 24);
     const y = gridY + row * (cardH + 18);
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#E4E6DC';
     ctx.lineWidth = 1.5;
     drawRoundRect(ctx, x, y, cardW, cardH, 20);
     ctx.fill();
@@ -319,13 +319,13 @@ const generateScorecardCanvas = async () => {
     ctx.fillText(item.icon, x + 24, y + 54);
 
     // Label
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.fillStyle = '#3A4338';
     ctx.font = '800 14px "Inter", sans-serif';
-    ctx.letterSpacing = '1.8px';
+    ctx.letterSpacing = '0px';
     ctx.fillText(item.label, x + 75, y + 46);
 
     // Value
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#0C110D';
     ctx.font = '900 32px "Inter", sans-serif';
     ctx.fillText(item.value, x + 75, y + 90);
 
@@ -338,8 +338,8 @@ const generateScorecardCanvas = async () => {
   // 9. Completed Daily Habits Showcase List Card
   const habitsY = 1175;
   const habitsH = 490;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, 85, habitsY, width - 170, habitsH, 26);
   ctx.fill();
@@ -347,18 +347,18 @@ const generateScorecardCanvas = async () => {
 
   // Section Title
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 21px "Inter", sans-serif';
-  ctx.letterSpacing = '2px';
-  ctx.fillText('⚡ CRUSHED ROUTINES TODAY', 120, habitsY + 48);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Kept today', 120, habitsY + 48);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 18px "Inter", sans-serif';
   ctx.fillText(`${props.completedCount} Completed`, width - 120, habitsY + 48);
 
   // Divider
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(115, habitsY + 66);
@@ -369,7 +369,7 @@ const generateScorecardCanvas = async () => {
   const habitsToRender = (props.completedHabitsList || []).slice(0, 6);
   if (habitsToRender.length === 0) {
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillStyle = '#3A4338';
     ctx.font = '700 24px "Inter", sans-serif';
     ctx.fillText('Daily routine in progress — Keep building momentum!', width / 2, habitsY + 250);
   } else {
@@ -382,42 +382,42 @@ const generateScorecardCanvas = async () => {
       ctx.fill();
 
       // Checkmark icon badge
-      ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+      ctx.fillStyle = '#D9F27A';
       ctx.beginPath();
       ctx.arc(142, rowY + 26, 16, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#10b981';
+      ctx.fillStyle = '#0C110D';
       ctx.font = '900 18px sans-serif';
       ctx.fillText('✓', 142, rowY + 33);
 
       // Habit text
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = '#0C110D';
       ctx.font = '700 22px "Inter", sans-serif';
       const cleanName = habitName.length > 46 ? habitName.slice(0, 43) + '...' : habitName;
       ctx.fillText(cleanName, 178, rowY + 34);
 
       // Point Tag on Right
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#C8A456';
+      ctx.fillStyle = '#0C110D';
       ctx.font = '800 18px "Inter", sans-serif';
-      ctx.fillText('DONE ⚡', width - 135, rowY + 34);
+      ctx.fillText('Kept', width - 135, rowY + 34);
     });
   }
 
   // 10. Motivational Quote & Branding Footer
   const footerY = 1715;
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '600 23px "Inter", sans-serif';
-  ctx.fillText('“We are what we repeatedly do. Excellence is a habit.”', width / 2, footerY);
+  ctx.fillText('Keep today\'s list.', width / 2, footerY);
 
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 21px "Inter", sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('BUILT WITH DISCIPLINE • HABUILT.COM', width / 2, footerY + 44);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('habuilt.com', width / 2, footerY + 44);
 
   previewImageSrc.value = canvas.toDataURL('image/png', 0.96);
   isGenerating.value = false;
@@ -444,99 +444,99 @@ const generateCoupleScorecardCanvas = async () => {
 
   // 1. Deep Obsidian Base Gradient
   const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-  bgGrad.addColorStop(0, '#060a14');
-  bgGrad.addColorStop(0.25, '#0b1326');
-  bgGrad.addColorStop(0.55, '#150d24');
-  bgGrad.addColorStop(0.85, '#0d152a');
-  bgGrad.addColorStop(1, '#05070e');
+  bgGrad.addColorStop(0, '#F7F8F2');
+  bgGrad.addColorStop(0.25, '#F7F8F2');
+  bgGrad.addColorStop(0.55, '#F7F8F2');
+  bgGrad.addColorStop(0.85, '#F7F8F2');
+  bgGrad.addColorStop(1, '#F7F8F2');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
   // 2. Dual Aurora Ambient Glow Orbs
   // Top-Left Gold Glow for User
   const goldOrb = ctx.createRadialGradient(220, 260, 20, 220, 260, 480);
-  goldOrb.addColorStop(0, 'rgba(200, 164, 86, 0.28)');
+  goldOrb.addColorStop(0, 'rgba(217, 242, 122, 0.45)');
   goldOrb.addColorStop(1, 'rgba(200, 164, 86, 0)');
   ctx.fillStyle = goldOrb;
   ctx.fillRect(0, 0, width, height);
 
   // Top-Right Rose Glow for Partner
   const roseOrb = ctx.createRadialGradient(860, 260, 20, 860, 260, 480);
-  roseOrb.addColorStop(0, 'rgba(244, 63, 94, 0.24)');
-  roseOrb.addColorStop(1, 'rgba(244, 63, 94, 0)');
+  roseOrb.addColorStop(0, 'rgba(217, 242, 122, 0.2)');
+  roseOrb.addColorStop(1, 'rgba(217, 242, 122, 0)');
   ctx.fillStyle = roseOrb;
   ctx.fillRect(0, 0, width, height);
 
   // Mid-Center Emerald Alignment Orb
   const emeraldOrb = ctx.createRadialGradient(540, 680, 20, 540, 680, 520);
-  emeraldOrb.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
+  emeraldOrb.addColorStop(0, 'rgba(217, 242, 122, 0.35)');
   emeraldOrb.addColorStop(1, 'rgba(16, 185, 129, 0)');
   ctx.fillStyle = emeraldOrb;
   ctx.fillRect(0, 0, width, height);
 
   // Bottom Violet Glow
   const purpleOrb = ctx.createRadialGradient(540, 1650, 20, 540, 1650, 550);
-  purpleOrb.addColorStop(0, 'rgba(139, 92, 246, 0.18)');
+  purpleOrb.addColorStop(0, 'rgba(217, 242, 122, 0)');
   purpleOrb.addColorStop(1, 'rgba(139, 92, 246, 0)');
   ctx.fillStyle = purpleOrb;
   ctx.fillRect(0, 0, width, height);
 
   // 3. Luxurious Outer & Inner Borders
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.45)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 4;
   drawRoundRect(ctx, 36, 36, width - 72, height - 72, 44);
   ctx.stroke();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 2;
   drawRoundRect(ctx, 48, 48, width - 96, height - 96, 34);
   ctx.stroke();
 
   // 4. Top Header Badge
   const topPillGrad = ctx.createLinearGradient(width / 2 - 260, 75, width / 2 + 260, 120);
-  topPillGrad.addColorStop(0, 'rgba(200, 164, 86, 0.28)');
-  topPillGrad.addColorStop(1, 'rgba(244, 63, 94, 0.28)');
+  topPillGrad.addColorStop(0, 'rgba(217, 242, 122, 0.45)');
+  topPillGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = topPillGrad;
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.4)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, width / 2 - 270, 75, 540, 46, 23);
   ctx.fill();
   ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 17px "Inter", -apple-system, sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('⚡ SHARED WARRIOR ALIGNMENT PROTOCOL ⚡', width / 2, 105);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Kept together', width / 2, 105);
 
   // 5. Brand Header & Date
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 52px "Inter", sans-serif';
-  ctx.letterSpacing = '5px';
+  ctx.letterSpacing = '0px';
   ctx.fillText('HABUILT', 85, 195);
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '700 18px "Inter", sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('COUPLE DISCIPLINE ENGINE', 85, 228);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Together', 85, 228);
 
   // Date Tag on Right
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, width - 425, 165, 340, 64, 18);
   ctx.fill();
   ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '700 20px "Inter", sans-serif';
   ctx.fillText(`📅 ${formattedDate.value}`, width - 255, 206);
 
   // Header Divider
   const headerLine = ctx.createLinearGradient(85, 260, width - 85, 260);
-  headerLine.addColorStop(0, 'rgba(200, 164, 86, 0.6)');
+  headerLine.addColorStop(0, '#E4E6DC');
   headerLine.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
   headerLine.addColorStop(1, 'rgba(244, 63, 94, 0.6)');
   ctx.strokeStyle = headerLine;
@@ -546,17 +546,17 @@ const generateCoupleScorecardCanvas = async () => {
   ctx.lineTo(width - 85, 260);
   ctx.stroke();
 
-  // 6. Dual Warrior Profile Cards
+  // 6. Two profile cards
   const cardW = (width - 170 - 24) / 2; // 443px
   const profileY = 285;
   const profileH = 185;
 
-  // Warrior 1 (Left: User)
+  // Left card: this person
   const userGrad = ctx.createLinearGradient(85, profileY, 85 + cardW, profileY + profileH);
   userGrad.addColorStop(0, 'rgba(200, 164, 86, 0.14)');
-  userGrad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+  userGrad.addColorStop(1, '#ffffff');
   ctx.fillStyle = userGrad;
-  ctx.strokeStyle = 'rgba(200, 164, 86, 0.35)';
+  ctx.strokeStyle = '#D9F27A';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, 85, profileY, cardW, profileH, 24);
   ctx.fill();
@@ -564,48 +564,48 @@ const generateCoupleScorecardCanvas = async () => {
 
   // User Avatar
   const uAvatarGrad = ctx.createLinearGradient(110, profileY + 20, 175, profileY + 85);
-  uAvatarGrad.addColorStop(0, '#F6D380');
-  uAvatarGrad.addColorStop(1, '#9E7424');
+  uAvatarGrad.addColorStop(0, '#D9F27A');
+  uAvatarGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = uAvatarGrad;
   ctx.beginPath();
   ctx.arc(142, profileY + 54, 34, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#060a14';
+  ctx.fillStyle = '#F7F8F2';
   ctx.font = '900 30px "Inter", sans-serif';
   ctx.fillText((props.displayName || 'U')[0].toUpperCase(), 142, profileY + 65);
 
   // User Name & Title
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 26px "Inter", sans-serif';
   const cleanUserName = props.displayName.length > 15 ? props.displayName.slice(0, 14) + '…' : props.displayName;
   ctx.fillText(cleanUserName, 192, profileY + 48);
 
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '700 16px "Inter", sans-serif';
   ctx.fillText(props.levelTitle || 'Practitioner', 192, profileY + 74);
 
   // User Status Tag
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 20px "Inter", sans-serif';
-  ctx.fillText(`⚡ ${props.todayPoints} pts earned`, 110, profileY + 140);
+  ctx.fillText(`${props.todayPoints} pts`, 110, profileY + 140);
 
   // User Badge
   ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(200, 164, 86, 0.9)';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 13px "Inter", sans-serif';
-  ctx.letterSpacing = '1px';
-  ctx.fillText('WARRIOR ⚔️', 85 + cardW - 22, profileY + 40);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('You', 85 + cardW - 22, profileY + 40);
 
-  // Warrior 2 (Right: Partner)
+  // Right: partner
   const pCardX = 85 + cardW + 24; // 552
   const partnerGrad = ctx.createLinearGradient(pCardX, profileY, pCardX + cardW, profileY + profileH);
-  partnerGrad.addColorStop(0, 'rgba(244, 63, 94, 0.14)');
-  partnerGrad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+  partnerGrad.addColorStop(0, '#ffffff');
+  partnerGrad.addColorStop(1, '#ffffff');
   ctx.fillStyle = partnerGrad;
-  ctx.strokeStyle = 'rgba(244, 63, 94, 0.35)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, pCardX, profileY, cardW, profileH, 24);
   ctx.fill();
@@ -621,13 +621,13 @@ const generateCoupleScorecardCanvas = async () => {
   ctx.fill();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 30px "Inter", sans-serif';
   ctx.fillText((props.partnerDisplayName || 'P')[0].toUpperCase(), pCardX + 57, profileY + 65);
 
   // Partner Name & Title
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 26px "Inter", sans-serif';
   const cleanPartnerName = props.partnerDisplayName.length > 15 ? props.partnerDisplayName.slice(0, 14) + '…' : props.partnerDisplayName;
   ctx.fillText(cleanPartnerName, pCardX + 107, profileY + 48);
@@ -637,24 +637,24 @@ const generateCoupleScorecardCanvas = async () => {
   ctx.fillText('Allied Partner', pCardX + 107, profileY + 74);
 
   // Partner Status Tag
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 20px "Inter", sans-serif';
-  ctx.fillText(`🌸 ${props.partnerPoints} pts earned`, pCardX + 25, profileY + 140);
+  ctx.fillText(`${props.partnerPoints} pts`, pCardX + 25, profileY + 140);
 
   // Partner Badge
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(244, 63, 94, 0.9)';
   ctx.font = '800 13px "Inter", sans-serif';
-  ctx.letterSpacing = '1px';
-  ctx.fillText('ALLIED 🌸', pCardX + cardW - 22, profileY + 40);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Partner', pCardX + cardW - 22, profileY + 40);
 
   // 7. HERO SECTION: Massive Alignment Score & Sync Rate Card
   const heroY = 495;
   const heroH = 325;
   const heroGrad = ctx.createLinearGradient(85, heroY, width - 85, heroY + heroH);
   heroGrad.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
-  heroGrad.addColorStop(0.5, 'rgba(15, 23, 42, 0.9)');
-  heroGrad.addColorStop(1, 'rgba(200, 164, 86, 0.2)');
+  heroGrad.addColorStop(0.5, '#ffffff');
+  heroGrad.addColorStop(1, '#F7F8F2');
   ctx.fillStyle = heroGrad;
   ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
   ctx.lineWidth = 3;
@@ -664,36 +664,36 @@ const generateCoupleScorecardCanvas = async () => {
 
   // Alignment Score Big Display
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 128px "Inter", sans-serif';
   ctx.fillText(`${props.alignmentScore}%`, width / 2, heroY + 140);
 
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#3A4338';
   ctx.font = '800 20px "Inter", sans-serif';
-  ctx.letterSpacing = '4px';
-  ctx.fillText('COUPLE SYNCHRONIZATION RATE', width / 2, heroY + 185);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Kept together', width / 2, heroY + 185);
 
   // Dynamic Harmony Status Pill
   const harmonyPillGrad = ctx.createLinearGradient(width / 2 - 270, heroY + 225, width / 2 + 270, heroY + 285);
-  harmonyPillGrad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-  harmonyPillGrad.addColorStop(1, 'rgba(200, 164, 86, 0.35)');
+  harmonyPillGrad.addColorStop(0, '#D9F27A');
+  harmonyPillGrad.addColorStop(1, '#D9F27A');
   ctx.fillStyle = harmonyPillGrad;
-  ctx.strokeStyle = '#10b981';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 2.5;
   drawRoundRect(ctx, width / 2 - 280, heroY + 220, 560, 64, 32);
   ctx.fill();
   ctx.stroke();
 
   const harmonyTitle = props.alignmentScore >= 80
-    ? '🌟 PEAK COUPLE HARMONY 🌟'
+    ? 'Mostly kept together'
     : props.alignmentScore >= 50
-    ? '⚡ STRONG SYNCHRONIZED MOMENTUM ⚡'
-    : '🛡️ BUILDING MUTUAL SYNERGY 🛡️';
+    ? 'Some kept together'
+    : 'Still starting';
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 24px "Inter", sans-serif';
-  ctx.letterSpacing = '1.5px';
+  ctx.letterSpacing = '0px';
   ctx.fillText(harmonyTitle, width / 2, heroY + 262);
 
   // 8. 4-Metrics Highlights Grid (2x2)
@@ -702,10 +702,10 @@ const generateCoupleScorecardCanvas = async () => {
   const combinedPointsTotal = (props.todayPoints || 0) + (props.partnerPoints || 0);
 
   const stats = [
-    { label: 'COMBINED TODAY', value: `${combinedPointsTotal} pts`, icon: '🏆', color: '#C8A456', sub: 'Joint Energy Vault' },
-    { label: 'MUTUAL STREAK', value: `${props.streak} Days`, icon: '🔥', color: '#f59e0b', sub: 'Unbroken Together' },
-    { label: 'SHARED ANCHORS', value: `${syncedAnchorsCount}/${totalAnchorsCount}`, icon: '🤝', color: '#10b981', sub: 'Joint Core Rituals' },
-    { label: 'COUPLE XP BOOST', value: `+${combinedPointsTotal * 10} XP`, icon: '⚡', color: '#818cf8', sub: 'Mutual Synergy Factor' },
+    { label: 'Combined', value: `${combinedPointsTotal} pts`, icon: '', color: '#3A4338', sub: 'Points today' },
+    { label: 'Streak', value: `${props.streak} days`, icon: '', color: '#3A4338', sub: 'Days in a row' },
+    { label: 'Shared', value: `${syncedAnchorsCount}/${totalAnchorsCount}`, icon: '', color: '#3A4338', sub: 'Kept by both' },
+    { label: 'Together', value: `${combinedPointsTotal} pts`, icon: '', color: '#3A4338', sub: 'Combined points' },
   ];
 
   const gridX = 85;
@@ -718,8 +718,8 @@ const generateCoupleScorecardCanvas = async () => {
     const x = gridX + col * (cardW + 24);
     const y = gridY + row * (gridCardH + 18);
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#E4E6DC';
     ctx.lineWidth = 1.5;
     drawRoundRect(ctx, x, y, cardW, gridCardH, 20);
     ctx.fill();
@@ -731,13 +731,13 @@ const generateCoupleScorecardCanvas = async () => {
     ctx.fillText(item.icon, x + 24, y + 54);
 
     // Label
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.fillStyle = '#3A4338';
     ctx.font = '800 14px "Inter", sans-serif';
-    ctx.letterSpacing = '1.8px';
+    ctx.letterSpacing = '0px';
     ctx.fillText(item.label, x + 75, y + 46);
 
     // Value
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#0C110D';
     ctx.font = '900 32px "Inter", sans-serif';
     ctx.fillText(item.value, x + 75, y + 90);
 
@@ -750,8 +750,8 @@ const generateCoupleScorecardCanvas = async () => {
   // 9. Shared Anchors Live Sync Showcase Table
   const anchorsY = 1195;
   const anchorsH = 485;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1.5;
   drawRoundRect(ctx, 85, anchorsY, width - 170, anchorsH, 26);
   ctx.fill();
@@ -759,18 +759,18 @@ const generateCoupleScorecardCanvas = async () => {
 
   // Section Title
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 21px "Inter", sans-serif';
-  ctx.letterSpacing = '2px';
-  ctx.fillText('🤝 SHARED ANCHOR RITUALS', 120, anchorsY + 48);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('Shared habits', 120, anchorsY + 48);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#34d399';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '800 18px "Inter", sans-serif';
   ctx.fillText(`${syncedAnchorsCount}/${totalAnchorsCount} Synced`, width - 120, anchorsY + 48);
 
   // Divider
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeStyle = '#E4E6DC';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(115, anchorsY + 66);
@@ -794,26 +794,26 @@ const generateCoupleScorecardCanvas = async () => {
 
     // Row Card Background
     ctx.fillStyle = isBoth ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.025)';
-    ctx.strokeStyle = isBoth ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeStyle = isBoth ? '#D9F27A' : '#E4E6DC';
     ctx.lineWidth = 1;
     drawRoundRect(ctx, 110, rowY, width - 220, 78, 14);
     ctx.fill();
     ctx.stroke();
 
     // Check Icon Indicator
-    ctx.fillStyle = isBoth ? 'rgba(16, 185, 129, 0.25)' : (isUser || isPartner ? 'rgba(200, 164, 86, 0.2)' : 'rgba(255, 255, 255, 0.06)');
+    ctx.fillStyle = isBoth ? '#D9F27A' : (isUser || isPartner ? '#F7F8F2' : 'rgba(255, 255, 255, 0.06)');
     ctx.beginPath();
     ctx.arc(148, rowY + 39, 20, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = isBoth ? '#10b981' : (isUser || isPartner ? '#C8A456' : '#94a3b8');
+    ctx.fillStyle = '#0C110D';
     ctx.font = '900 20px sans-serif';
-    ctx.fillText(isBoth ? '✓' : (isUser || isPartner ? '⚡' : '⏳'), 148, rowY + 47);
+    ctx.fillText(isBoth ? 'Both' : (isUser || isPartner ? 'One' : 'Open'), 148, rowY + 47);
 
     // Anchor Title
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#f8fafc';
+    ctx.fillStyle = '#0C110D';
     ctx.font = '700 22px "Inter", sans-serif';
     const rawAnchorTitle = anchor.title || anchor.label || anchor.name || 'Shared Routine';
     const cleanAnchorName = rawAnchorTitle.length > 36 ? rawAnchorTitle.slice(0, 33) + '…' : rawAnchorTitle;
@@ -821,25 +821,25 @@ const generateCoupleScorecardCanvas = async () => {
 
     // Subtitle badges (You / Partner status)
     ctx.font = '600 15px "Inter", sans-serif';
-    ctx.fillStyle = (isBoth || isUser) ? '#34d399' : '#94a3b8';
-    ctx.fillText(`You: ${isBoth || isUser ? '✓ Done' : '⏳ Pending'}`, 188, rowY + 60);
+    ctx.fillStyle = '#0C110D';
+    ctx.fillText(`You: ${isBoth || isUser ? 'Kept' : 'Not yet'}`, 188, rowY + 60);
 
-    ctx.fillStyle = (isBoth || isPartner) ? '#fb7185' : '#94a3b8';
-    ctx.fillText(`•   ${props.partnerDisplayName}: ${isBoth || isPartner ? '✓ Done' : '⏳ Pending'}`, 320, rowY + 60);
+    ctx.fillStyle = '#3A4338';
+    ctx.fillText(`${props.partnerDisplayName}: ${isBoth || isPartner ? 'Kept' : 'Not yet'}`, 320, rowY + 60);
 
     // Pill badge on right
     ctx.textAlign = 'right';
-    let badgeText = '⏳ PENDING';
-    let badgeColor = '#94a3b8';
+    let badgeText = 'Not yet';
+    let badgeColor = '#3A4338';
     if (isBoth) {
-      badgeText = '🎉 SYNCED';
-      badgeColor = '#34d399';
+      badgeText = 'Both';
+      badgeColor = '#0C110D';
     } else if (isPartner) {
-      badgeText = '🌸 PARTNER';
-      badgeColor = '#fb7185';
+      badgeText = 'Partner';
+      badgeColor = '#0C110D';
     } else if (isUser) {
-      badgeText = '⚡ YOU DONE';
-      badgeColor = '#C8A456';
+      badgeText = 'You';
+      badgeColor = '#0C110D';
     }
     ctx.fillStyle = badgeColor;
     ctx.font = '900 17px "Inter", sans-serif';
@@ -849,14 +849,14 @@ const generateCoupleScorecardCanvas = async () => {
   // 10. Couple Motivational Quote & Branding Footer
   const footerY = 1715;
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '600 23px "Inter", sans-serif';
-  ctx.fillText('“Iron sharpens iron. Together we conquer every standard.”', width / 2, footerY);
+  ctx.fillText('Kept together.', width / 2, footerY);
 
-  ctx.fillStyle = '#C8A456';
+  ctx.fillStyle = '#0C110D';
   ctx.font = '900 21px "Inter", sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('BUILT WITH DISCIPLINE • HABUILT COUPLES SYNC • HABUILT.COM', width / 2, footerY + 44);
+  ctx.letterSpacing = '0px';
+  ctx.fillText('habuilt.com', width / 2, footerY + 44);
 
   previewImageSrc.value = canvas.toDataURL('image/png', 0.96);
   isGenerating.value = false;
@@ -905,7 +905,7 @@ const shareNativeImage = async () => {
             text: shareCaptionText.value,
             files: [file],
           });
-          emit('toast', '🎉 Story Scorecard shared!');
+          emit('toast', 'Story card shared.');
           return;
         } catch (shareErr) {
           if (shareErr && shareErr.name === 'AbortError') return;
@@ -919,7 +919,7 @@ const shareNativeImage = async () => {
             text: shareCaptionText.value,
             url: 'https://www.habuilt.com',
           });
-          emit('toast', '🎉 Scorecard shared!');
+          emit('toast', 'Scorecard shared.');
           return;
         } catch (e) {
           if (e && e.name === 'AbortError') return;
@@ -1007,7 +1007,7 @@ const fallbackShareText = () => {
       <div class="share-modal-header">
         <div class="share-modal-title-wrap">
           <Sparkles class="icon-sm icon-gold" />
-          <h3 id="share-modal-title" class="share-modal-title">Story Scorecard Generator</h3>
+          <h3 id="share-modal-title" class="share-modal-title">Share today's list</h3>
         </div>
         <button
           type="button"
@@ -1029,7 +1029,7 @@ const fallbackShareText = () => {
           :class="{ 'share-mode-tab--active': activeMode === 'solo' }"
           @click="setMode('solo')"
         >
-          <span>👤 Solo Protocol</span>
+          <span>Personal</span>
         </button>
         <button
           type="button"
@@ -1039,7 +1039,7 @@ const fallbackShareText = () => {
           :class="{ 'share-mode-tab--active': activeMode === 'couple' }"
           @click="setMode('couple')"
         >
-          <span>🤝 Couple Alignment</span>
+          <span>Together</span>
           <span v-if="isPartnerPaired" class="share-mode-badge">{{ alignmentScore }}%</span>
         </button>
       </div>
@@ -1049,9 +1049,9 @@ const fallbackShareText = () => {
         <div class="share-unpaired-icon-wrap">
           <Users class="icon-lg icon-gold" />
         </div>
-        <h4 class="share-unpaired-title">Link Your Partner to Unlock Couple Scorecard</h4>
+        <h4 class="share-unpaired-title">Connect a partner</h4>
         <p class="share-unpaired-desc">
-          Generate high-resolution dual-warrior certificates with mutual streaks, combined points, and synchronized anchor habits.
+          The together card shows both names and the shared habits.
         </p>
         <button
           type="button"
@@ -1059,14 +1059,14 @@ const fallbackShareText = () => {
           @click="emit('open-partner-pair')"
         >
           <Sparkles class="icon-sm" />
-          <span>Link Partner with Invite Code</span>
+          <span>Connect a partner</span>
         </button>
       </div>
 
       <!-- Story Aspect Ratio Preview Tag -->
       <div v-if="activeMode === 'solo' || isPartnerPaired" class="share-story-tag-bar">
         <span class="share-story-tag">
-          {{ activeMode === 'couple' ? '🤝 9:16 Couple Alignment Certificate (HD)' : '📱 9:16 Instagram Story & WhatsApp Status' }}
+          {{ activeMode === 'couple' ? 'Together card' : 'Personal card' }}
         </span>
       </div>
 

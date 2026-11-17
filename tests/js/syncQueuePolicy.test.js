@@ -46,6 +46,15 @@ test('a failed mutation is dead-lettered on the fifth attempt and not before', (
   assert.equal(publicSyncError('Bearer abc.def.ghi').includes('abc.def'), false);
 });
 
+test('a permanent check-in rejection leaves the queue without a retry', () => {
+  const settled = settleAttempt(
+    { payload: { userId: 'user-a' }, attempts: 0 },
+    5_000,
+    { ok: false, rejected: true, error: 'Unknown habit' },
+  );
+  assert.equal(settled.disposition, 'drop');
+});
+
 test('a successful attempt leaves the queue', () => {
   const settled = settleAttempt(
     { payload: { user_id: 'user-a' }, attempts: 2 },
