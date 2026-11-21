@@ -25,6 +25,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e): bool {
+            return $request->expectsJson() || $request->is('api/*');
+        });
         $exceptions->reportable(function (Throwable $e): void {
             SentryRelayService::captureException($e);
         });

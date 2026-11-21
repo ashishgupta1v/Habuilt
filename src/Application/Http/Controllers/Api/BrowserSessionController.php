@@ -24,12 +24,12 @@ final class BrowserSessionController
     {
         $refresh = $request->input('refresh_token');
         if (!is_string($refresh)) {
-            return response()->json(['error' => 'A refresh token is required.'], 422);
+            return $this->jsonNoCache(['error' => 'A refresh token is required.'], 422);
         }
 
         $refresh = trim($refresh);
         if (strlen($refresh) < 10 || strlen($refresh) > 8192) {
-            return response()->json(['error' => 'A refresh token is required.'], 422);
+            return $this->jsonNoCache(['error' => 'A refresh token is required.'], 422);
         }
 
         return $this->exchange($refresh);
@@ -39,7 +39,7 @@ final class BrowserSessionController
     {
         $refresh = BrowserRefreshCookie::read($request);
         if ($refresh === null) {
-            return response()->json(['error' => 'No session.'], 401);
+            return $this->jsonNoCache(['error' => 'No session.'], 401);
         }
 
         return $this->exchange($refresh, true);
@@ -52,23 +52,33 @@ final class BrowserSessionController
             $this->sessions->revoke($refresh);
         }
 
-        return BrowserRefreshCookie::forget(response()->json(['ok' => true]));
+        return BrowserRefreshCookie::forget($this->jsonNoCache(['ok' => true]));
     }
 
     private function exchange(string $refresh, bool $clearOnFailure = false): JsonResponse
     {
         $exchanged = $this->sessions->exchange($refresh);
         if (!$exchanged['ok']) {
-            $response = response()->json(['error' => 'The session could not be started.'], 401);
+            $response = $this->jsonNoCache(['error' => 'The session could not be started.'], 401);
             return $clearOnFailure ? BrowserRefreshCookie::forget($response) : $response;
         }
 
-        $response = response()->json([
+        $response = $this->jsonNoCache([
             'user' => $exchanged['user'],
             'access_token' => $exchanged['access_token'],
             'expires_in' => $exchanged['expires_in'],
         ]);
 
         return BrowserRefreshCookie::attach($response, $exchanged['refresh_token']);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function jsonNoCache(array $data, int $status = 200): JsonResponse
+    {
+        return response()->json($data, $status)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 }

@@ -7,6 +7,10 @@ import {
   createTabAuthStorage,
   describeOAuthExchangeError,
 } from '../../resources/js/lib/authFlow.js';
+import {
+  readSessionResponse,
+  clearMemorySession,
+} from '../../resources/js/lib/browserSession.js';
 
 function memorySession() {
   const data = new Map();
@@ -102,5 +106,82 @@ test('a missing verifier is explained without the raw auth error', () => {
   assert.equal(
     describeOAuthExchangeError(null, 'Sign-in did not start a session.'),
     'Sign-in did not start a session.',
+  );
+});
+
+test('HTML responses or redirects to readSessionResponse fail safely without throwing', async () => {
+  clearMemorySession();
+
+  // Redirected response
+  const redirectedResponse = {
+    ok: true,
+    redirected: true,
+    headers: new Headers({ 'content-type': 'text/html' }),
+    json: async () => { throw new SyntaxError("Unexpected token '<'"); },
+  };
+  const res1 = await readSessionResponse(redirectedResponse);
+  assert.equal(res1, null);
+
+  // HTML content-type response
+  const htmlResponse = {
+    ok: true,
+    redirected: false,
+    headers: new Headers({ 'content-type': 'text/html; charset=UTF-8' }),
+    json: async () => { throw new SyntaxError("Unexpected token '<'"); },
+  };
+  const res2 = await readSessionResponse(htmlResponse);
+  assert.equal(res2, null);
+
+  // Malformed JSON that throws
+  const malformedResponse = {
+    ok: true,
+    redirected: false,
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => { throw new SyntaxError("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"); },
+  };
+  const res3 = await readSessionResponse(malformedResponse);
+  assert.equal(res3, null);
+
+  // Missing or non-ok response
+  assert.equal(await readSessionResponse(null), null);
+  assert.equal(await readSessionResponse({ ok: false }), null);
+
+  // Valid response succeeds
+  const validResponse = {
+    ok: true,
+    redirected: false,
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => ({
+      access_token: 'fake-access-token',
+      expires_in: 3600,
+      user: { id: 'usr_123', email: 'test@example.com' },
+    }),
+  };
+  const user = await readSessionResponse(validResponse);
+  assert.deepEqual(user, {
+    id: 'usr_123',
+    email: 'test@example.com',
+    user_metadata: {},
+  });
+
+  clearMemorySession();
+});
+
+test('raw JSON parse and HTML errors are sanitized with user-friendly copy', () => {
+  assert.equal(
+    describeOAuthExchangeError(new SyntaxError('Unexpected token \'<\', "<!DOCTYPE "... is not valid JSON')),
+    'Authentication service temporarily unavailable. Please try again.',
+  );
+  assert.equal(
+    describeOAuthExchangeError({ message: 'SyntaxError: Unexpected end of JSON input' }),
+    'Authentication service temporarily unavailable. Please try again.',
+  );
+  assert.equal(
+    describeOAuthExchangeError('Unexpected token < in JSON at position 0'),
+    'Authentication service temporarily unavailable. Please try again.',
+  );
+  assert.equal(
+    describeOAuthExchangeError('<!DOCTYPE html><html><body>Error</body></html>'),
+    'Authentication service temporarily unavailable. Please try again.',
   );
 });

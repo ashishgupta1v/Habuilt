@@ -73,10 +73,14 @@ export function createTabAuthStorage(sessionStore = null) {
 }
 
 export function describeOAuthExchangeError(error, fallback = 'Google sign-in could not be completed. Try again.') {
-  const message = typeof error?.message === 'string' ? error.message.trim() : '';
+  const raw = typeof error === 'string' ? error : (typeof error?.message === 'string' ? error.message : '');
+  const message = raw.trim();
   if (!message) return fallback;
   if (/code verifier|both auth code and code verifier/i.test(message)) {
     return 'Google sign-in could not be completed. Start it again from this page.';
+  }
+  if (/unexpected token|valid json|syntaxerror|<!doctype/i.test(message)) {
+    return 'Authentication service temporarily unavailable. Please try again.';
   }
   return message;
 }

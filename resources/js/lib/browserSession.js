@@ -80,9 +80,21 @@ export function clearMemorySession() {
   }
 }
 
-async function readSessionResponse(response) {
-  if (!response || !response.ok) return null;
-  const body = await response.json();
+export async function readSessionResponse(response) {
+  if (!response || !response.ok || response.redirected) return null;
+
+  const contentType = response.headers?.get?.('content-type') || '';
+  if (contentType && !contentType.toLowerCase().includes('application/json')) {
+    return null;
+  }
+
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    return null;
+  }
+
   if (!body || typeof body.access_token !== 'string' || !body.user || !body.user.id) return null;
   remember(body.access_token, body.user, body.expires_in);
   return memory.user;
@@ -91,26 +103,34 @@ async function readSessionResponse(response) {
 export async function handoffRefreshToken(refreshToken) {
   if (isGuestMode()) return null;
   if (typeof refreshToken !== 'string' || refreshToken.trim() === '') return null;
-  const response = await fetch('/api/auth/session', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
-  return readSessionResponse(response);
+  try {
+    const response = await fetch('/api/auth/session', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    return await readSessionResponse(response);
+  } catch {
+    return null;
+  }
 }
 
 export async function restoreBrowserSession() {
   if (isGuestMode()) return null;
-  const response = await fetch('/api/auth/session', {
-    method: 'GET',
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  });
-  return readSessionResponse(response);
+  try {
+    const response = await fetch('/api/auth/session', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    return await readSessionResponse(response);
+  } catch {
+    return null;
+  }
 }
 
 export async function clearBrowserSession() {

@@ -49,6 +49,7 @@ final class BrowserSessionAndContentPolicyTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('user.id', 'usr_real');
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('cache-control'));
         $this->assertArrayNotHasKey('refresh_token', $response->json());
         $this->assertStringNotContainsString('usr_forged', $response->getContent());
         $this->assertStringNotContainsString('client-refresh-token-value', $response->getContent());
@@ -80,6 +81,21 @@ final class BrowserSessionAndContentPolicyTest extends TestCase
         $this->assertInstanceOf(Cookie::class, $clearing);
         $this->assertTrue($clearing->isHttpOnly());
         $this->assertLessThan(time(), $clearing->getExpiresTime());
+    }
+
+    public function test_browser_session_always_returns_json_and_never_redirects(): void
+    {
+        $unauthenticatedGet = $this->get('/api/auth/session', ['Accept' => 'application/json']);
+        $unauthenticatedGet->assertStatus(401);
+        $this->assertTrue(str_contains((string) $unauthenticatedGet->headers->get('content-type'), 'application/json'));
+        $this->assertStringContainsString('no-store', (string) $unauthenticatedGet->headers->get('cache-control'));
+        $this->assertSame('No session.', $unauthenticatedGet->json('error'));
+
+        $invalidPost = $this->post('/api/auth/session', ['refresh_token' => 'short'], ['Accept' => 'application/json']);
+        $invalidPost->assertStatus(422);
+        $this->assertTrue(str_contains((string) $invalidPost->headers->get('content-type'), 'application/json'));
+        $this->assertStringContainsString('no-store', (string) $invalidPost->headers->get('cache-control'));
+        $this->assertSame('A refresh token is required.', $invalidPost->json('error'));
     }
 
     public function test_boot_script_is_external_and_medical_copy_names_habuilt(): void
