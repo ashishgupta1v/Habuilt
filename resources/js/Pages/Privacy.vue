@@ -96,7 +96,7 @@ const scrollToSection = (id) => {
               We collect only the minimum information necessary to synchronize your habits and maintain streak integrity. When ZoetiCoach is configured, the server may also forward habit events to that optional service:
             </p>
             <ul class="styled-list">
-              <li><strong>Account Credentials:</strong> Email address and authentication tokens generated via Supabase Auth or OAuth providers (Google and Apple). Passwords are never stored in plaintext.</li>
+              <li><strong>Account Credentials:</strong> An email address and password, or Google. Passwords are not stored in the app.</li>
               <li><strong>Habit &amp; Activity Ledger:</strong> Custom habits created, category classifications, check-in timestamps, milestone points, and streak counters.</li>
               <li><strong>Partner Pairing Information:</strong> When utilizing Universal Partner Pairing, pairing invite codes and shared anchor completion records are synchronized between mutual consent accounts.</li>
               <li><strong>Technical Device Data:</strong> Client device type, operating system version (for Capacitor native notifications and widgets), and local timezone to properly schedule daily resets.</li>
@@ -149,8 +149,8 @@ const scrollToSection = (id) => {
                 <div class="proc-desc">High-speed regional application server &amp; zero-latency API transport.</div>
               </div>
               <div class="proc-card">
-                <div class="proc-name">Google &amp; Apple OAuth</div>
-                <div class="proc-desc">Identity authentication via OAuth 2.0 / OpenID Connect without sharing passwords.</div>
+                <div class="proc-name">Google sign-in</div>
+                <div class="proc-desc">Google confirms the account. Habuilt does not receive the Google password.</div>
               </div>
               <div class="proc-card">
                 <div class="proc-name">ZoetiCoach</div>
@@ -178,7 +178,7 @@ const scrollToSection = (id) => {
           <section id="account-deletion" class="legal-card">
             <h2 class="card-heading">
               <Trash2 class="icon-18 rose-icon" />
-              <span>6. Self-Service Account Deletion (Apple 5.1.1(v) Compliant)</span>
+              <span>6. Delete your account</span>
             </h2>
             <p>
               Signed-in people can delete their own app data from Protocol Settings. Deletion removes that person's habit check-ins, settings, protocols, biomarkers, and monthly state on the Hostinger database and, when the ledger is configured, on the Supabase ledger. It also removes partner rows where that person is a party. The Supabase Auth user is deleted when the server service-role key is set. Older domain tables use 26-character ids and are not the record for a Supabase login, so deletion does not claim to wipe them for that login. Browser storage and the phone widget snapshot are not encrypted. Points are not cash.
@@ -208,7 +208,6 @@ const scrollToSection = (id) => {
               <li>On this device, habit data is stored in plain browser storage until it syncs. It is not an encrypted local ledger.</li>
               <li>Network access uses HTTPS.</li>
               <li>Bearer tokens are verified on protected API requests, and the token subject has to match the account being changed.</li>
-              <li>You can enroll a device passkey in this browser.</li>
             </ul>
           </section>
 

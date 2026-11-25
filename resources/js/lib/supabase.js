@@ -1,15 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
 import { dispatchZoetiCoachEvent } from './zoetiCoachBridge.js';
 import { syncEngine, enqueueOfflineMutation, flushOfflineMutationQueue } from './syncEngine.js';
 import { isRetryableAccountId } from './syncQueuePolicy.js';
-import { getMemoryAccessToken, purgeLegacyAuthStorage, restoreBrowserSession } from './browserSession.js';
+import { apiUrl, getMemoryAccessToken, isNativeApp, purgeLegacyAuthStorage, restoreBrowserSession } from './browserSession.js';
 import { settingsReadFromBody } from './followUpGates.js';
 import { CHECK_IN_REJECTED_EVENT, classifyCheckInWrite } from './checkInWrite.js';
 import { createTabAuthStorage, HABUILT_AUTH_FLOW } from './authFlow.js';
 
 purgeLegacyAuthStorage();
 
-const tabAuthStorage = createTabAuthStorage();
+function persistentVerifier() {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
+const tabAuthStorage = createTabAuthStorage(null, { persistentVerifier: persistentVerifier() });
 
 const PROD_SUPABASE_URL = 'https://eefrpxxcztapatyqokpv.supabase.co';
 const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZnJweHhjenRhcGF0eXFva3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjQ5MDAsImV4cCI6MjA4OTA0MDkwMH0.1pct7C4PK0q9MicvOOM0CW99cc6pJLsV4jKVMoy9b5c';
@@ -63,12 +72,12 @@ export const callLocalApi = async (endpoint, method = 'GET', body = null, option
     if (token) {
       opts.headers.Authorization = `Bearer ${token}`;
     }
-    opts.credentials = 'same-origin';
+    opts.credentials = isNativeApp() ? 'omit' : 'same-origin';
 
     if (body) {
       opts.body = JSON.stringify(body);
     }
-    const res = await fetch(endpoint, opts);
+    const res = await fetch(apiUrl(endpoint), opts);
     if (res.status === 401 && !(options && options.retried)) {
       const restored = await restoreBrowserSession();
       if (restored && getMemoryAccessToken()) {

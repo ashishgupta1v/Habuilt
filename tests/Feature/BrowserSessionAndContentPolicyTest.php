@@ -83,6 +83,59 @@ final class BrowserSessionAndContentPolicyTest extends TestCase
         $this->assertLessThan(time(), $clearing->getExpiresTime());
     }
 
+    public function test_native_client_receives_the_rotated_refresh_token(): void
+    {
+        config([
+            'services.supabase.url' => 'https://auth.test.supabase.co',
+            'services.supabase.anon_key' => 'test-anon-key',
+        ]);
+
+        $access = $this->createMockJwt('usr_native');
+        Http::fake([
+            'https://auth.test.supabase.co/auth/v1/*' => Http::response([
+                'access_token' => $access,
+                'refresh_token' => 'rotated-native-refresh-token',
+                'expires_in' => 3600,
+                'user' => [
+                    'id' => 'usr_native',
+                    'email' => 'native@example.com',
+                    'user_metadata' => [],
+                ],
+            ]),
+        ]);
+
+        $response = $this->withHeader('X-Habuilt-Client', 'native')
+            ->postJson('/api/auth/session', [
+                'refresh_token' => 'native-refresh-token-value',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('user.id', 'usr_native')
+            ->assertJsonPath('access_token', $access)
+            ->assertJsonPath('refresh_token', 'rotated-native-refresh-token');
+
+        $cookie = $this->cookieNamed($response->headers->getCookies(), 'habuilt_refresh');
+        $this->assertInstanceOf(Cookie::class, $cookie);
+        $this->assertTrue($cookie->isHttpOnly());
+    }
+
+    public function test_localhost_can_call_the_api_without_cookies(): void
+    {
+        $origins = config('cors.allowed_origins');
+        $this->assertContains('https://localhost', $origins);
+        $this->assertFalse((bool) config('cors.supports_credentials'));
+
+        $response = $this->call('OPTIONS', '/api/auth/session', [], [], [], [
+            'HTTP_ORIGIN' => 'https://localhost',
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+            'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'authorization,content-type,x-habuilt-client',
+        ]);
+
+        $this->assertContains($response->getStatusCode(), [200, 204]);
+        $this->assertSame('https://localhost', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertNotSame('true', strtolower((string) $response->headers->get('Access-Control-Allow-Credentials')));
+    }
+
     public function test_browser_session_always_returns_json_and_never_redirects(): void
     {
         $unauthenticatedGet = $this->get('/api/auth/session', ['Accept' => 'application/json']);

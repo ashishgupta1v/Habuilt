@@ -9,9 +9,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
+    'allowed_origins' => array_values(array_unique(array_filter([
         env('APP_URL', 'http://localhost'),
-    ],
+        'https://localhost',
+    ]))),
 
     'allowed_origins_patterns' => [],
 

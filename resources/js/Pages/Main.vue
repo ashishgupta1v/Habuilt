@@ -44,9 +44,7 @@ const props = defineProps({
   staticPreview: { type: Boolean, default: false },
 });
 
-const guestProfile = { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Guest' } };
-const isGuestPreCheck = typeof window !== 'undefined' && isGuestMode();
-const authLoading = ref(!isGuestPreCheck);
+const authLoading = ref(true);
 
 // Client-side routing for public legal views (Privacy, Terms, Disclaimer)
 const currentPath = ref(typeof window !== 'undefined' ? window.location.pathname : '/');
@@ -113,8 +111,8 @@ const nextMonth = computed(() => {
   return { month: m, year: y };
 });
 
-const isGuestActive = ref(isGuestPreCheck);
-const activeUser = ref(isGuestPreCheck ? guestProfile : null);
+const isGuestActive = ref(false);
+const activeUser = ref(null);
 
 const userDisplayName = computed(() => {
   return activeUser.value?.user_metadata?.full_name ||
@@ -262,23 +260,13 @@ const handleKeydown = (e) => {
 };
 
 const enterUserSession = (user) => {
-  if (!user) return;
-  const isGuest = user.id === 'guest';
-  if (isGuest) {
-    isGuestActive.value = true;
-    localStorage.setItem('habuilt_guest_mode', 'true');
-    localStorage.removeItem('habuilt_cached_user');
-  }
+  if (!user || user.id === 'guest') return;
+  try { localStorage.removeItem('habuilt_guest_mode'); } catch { /* the guest flag must not keep the app open */ }
+  isGuestActive.value = false;
   activeUser.value = user;
   isOnboardingComplete.value = checkIsOnboardingComplete(user);
-  telemetry.setUserContext(isGuest ? null : { id: user.id, email: user.email });
+  telemetry.setUserContext({ id: user.id, email: user.email });
   pushAppHistoryEntry();
-};
-
-const enterGuestMode = (guestUser) => {
-  isGuestActive.value = true;
-  localStorage.setItem('habuilt_guest_mode', 'true');
-  enterUserSession(guestUser || { id: 'guest', email: 'guest@habuilt.com', user_metadata: { full_name: 'Guest' } });
 };
 
 const importGuestList = async (user) => {
@@ -342,10 +330,6 @@ onMounted(async () => {
 
   window.addEventListener('popstate', handlePopState);
   window.addEventListener('keydown', handleKeydown);
-
-  window.addEventListener('habuilt-guest-auth', (e) => {
-    enterGuestMode(e?.detail);
-  });
 
   // Configure Native Status Bar
   try {
@@ -441,19 +425,15 @@ onMounted(async () => {
     }
   }
 
-  // 2. Restore the httpOnly session. Guest mode never calls the API.
+  // 2. Restore the session. A leftover guest flag does not open the app.
   try {
-    if (isGuestMode()) {
-      enterGuestMode();
-    } else {
-      const user = await restoreBrowserSession();
-      if (user) {
-        await importGuestList(user);
-        enterUserSession(user);
-        refreshNativeWidgetToken().catch(() => {});
-      } else if (!activeUser.value) {
-        activeUser.value = null;
-      }
+    const user = await restoreBrowserSession();
+    if (user) {
+      await importGuestList(user);
+      enterUserSession(user);
+      refreshNativeWidgetToken().catch(() => {});
+    } else if (!activeUser.value) {
+      activeUser.value = null;
     }
   } catch (err) {
     console.debug('[MainAuth] Session check note:', err);
@@ -471,7 +451,7 @@ onMounted(async () => {
   try {
     const { App } = await import('@capacitor/app');
     App.addListener('appStateChange', async ({ isActive }) => {
-      if (!isActive || isGuestMode()) return;
+      if (!isActive || !getMemoryUser()) return;
       try {
         const user = await restoreBrowserSession();
         if (user) await refreshNativeWidgetToken();
@@ -675,7 +655,7 @@ onUnmounted(() => {
       </div>
     </template>
 
-    <Auth v-else @guest-login="enterGuestMode" @login-success="handleLoginSuccess" />
+    <Auth v-else @login-success="handleLoginSuccess" />
   </template>
 
   <!-- ── Exit / Sign-out Confirmation Dialog ─────────────────────── -->

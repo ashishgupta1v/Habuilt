@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prepare-dist.mjs",
-    "test:sync": "node --test tests/js/syncQueuePolicy.test.js tests/js/checkInWrite.test.js tests/js/sundayReview.test.js tests/js/ledgerBriefing.test.js tests/js/biomarkerExport.test.js tests/js/savedHabitList.test.js tests/js/googleAuth.test.js",
+    "test:sync": "node --test tests/js/syncQueuePolicy.test.js tests/js/checkInWrite.test.js tests/js/sundayReview.test.js tests/js/ledgerBriefing.test.js tests/js/biomarkerExport.test.js tests/js/savedHabitList.test.js tests/js/googleAuth.test.js tests/js/nativeSession.test.js",
     "preview": "vite preview --outDir dist",
     "cap:add": "cap add android",
     "cap:sync": "npm run build && cap sync android",
@@ -19,6 +19,7 @@
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "^8.0.3",
     "@inertiajs/vue3": "^3.0.0",
     "@supabase/supabase-js": "^2.101.1",

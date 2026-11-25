@@ -2,7 +2,8 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { readStoredTodaySummary } from '@/lib/todaySummary';
 import { bindLandingMotion } from '@/lib/calmMotion';
-import { supabase, updateAuthUser } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { authFormError } from '@/lib/authFlow';
 import { handoffRefreshToken } from '@/lib/browserSession';
 import { importGuestListForSignedInUser } from '@/lib/guestImport';
 import { Capacitor } from '@capacitor/core';
@@ -11,11 +12,10 @@ import { Mail, Lock } from 'lucide-vue-next';
 import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 import AppInstallModal from '@/Components/Modals/AppInstallModal.vue';
 
-const emit = defineEmits(['guest-login', 'login-success']);
+const emit = defineEmits(['login-success']);
 
 const email = ref('');
 const password = ref('');
-const newPassword = ref('');
 const mode = ref('login');
 const loading = ref(false);
 const error = ref('');
@@ -61,13 +61,6 @@ const refreshLandingSummary = () => {
   landingSummary.value = readStoredTodaySummary(typeof localStorage !== 'undefined' ? localStorage : null);
 };
 
-const archetypes = [
-  { id: 'archetype-founder', name: 'Founder', detail: 'Workday list', title: 'A workday list with a morning start and an evening check.' },
-  { id: 'archetype-longevity', name: 'Longevity', detail: 'Steady day', title: 'A steady day of movement, meals, and wind-down.' },
-  { id: 'archetype-postpartum', name: 'Postpartum', detail: 'Gentler day', title: 'A gentler day for recovery and family rhythm.' },
-  { id: 'archetype-athlete', name: 'Athlete', detail: 'Training and rest', title: 'Training, fuel, and rest on one list.' },
-];
-
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('habuilt-auth-error', onAuthError);
@@ -76,9 +69,6 @@ onMounted(() => {
       canInstallPwa.value = false;
       deferredInstallPrompt.value = null;
     });
-
-    const h = window.location.hash;
-    if (h.includes('type=recovery')) mode.value = 'reset';
 
     const lastErr = localStorage.getItem('habuilt_auth_last_error');
     if (lastErr) {
@@ -148,6 +138,10 @@ const handleAuth = async () => {
   const cleanEmail = (email.value || '').trim();
   const cleanPassword = password.value;
   try {
+    if (mode.value === 'signup' && cleanPassword.length < 6) {
+      error.value = 'Use at least 6 characters.';
+      return;
+    }
     if (mode.value === 'signup') {
       const { data, error: e } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -160,28 +154,6 @@ const handleAuth = async () => {
         successMessage.value = 'Account created. Check your email to confirm, then sign in.';
         mode.value = 'login';
       }
-    } else if (mode.value === 'forgot') {
-      const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
-      const { error: e } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
-      });
-      if (e) throw e;
-      successMessage.value = `Password reset link sent to ${cleanEmail}. Check your inbox.`;
-    } else if (mode.value === 'otp') {
-      const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
-      const { error: e } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          emailRedirectTo: isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (e) throw e;
-      successMessage.value = `Sign-in link sent to ${cleanEmail}. Check your inbox.`;
-    } else if (mode.value === 'reset') {
-      const { error: e } = await updateAuthUser({ password: newPassword.value });
-      if (e) throw e;
-      successMessage.value = 'Password updated. You can sign in.';
-      mode.value = 'login';
     } else {
       const { data, error: e } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
@@ -193,14 +165,7 @@ const handleAuth = async () => {
       }
     }
   } catch (e) {
-    const msg = e?.message || 'Authentication error.';
-    if (msg.toLowerCase().includes('invalid login credentials')) {
-      error.value = 'Invalid email or password. If you signed up with Google, use Google or set a password.';
-    } else if (msg.toLowerCase().includes('email not confirmed')) {
-      error.value = 'Your email is not confirmed yet. Check your inbox, or continue with Google or as a guest.';
-    } else {
-      error.value = msg;
-    }
+    error.value = authFormError(e);
   } finally {
     loading.value = false;
   }
@@ -228,49 +193,10 @@ const handleGoogle = async () => {
   }
 };
 
-const handleApple = async () => {
-  error.value = '';
-  loading.value = true;
-  try {
-    const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
-    const redirectUrl = isNative ? 'habuilt://auth/callback' : `${window.location.origin}/auth/callback`;
-    const { data, error: e } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: redirectUrl, skipBrowserRedirect: isNative },
-    });
-    if (e) throw e;
-    if (isNative && data?.url) {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url: data.url, windowName: '_self' });
-    }
-  } catch (e) {
-    error.value = e?.message || 'Apple authentication error.';
-  } finally {
-    loading.value = false;
-  }
-};
-
 const startWithHabit = () => {
-  try { sessionStorage.setItem('habuilt_open_add_habit', '1'); } catch { /* storage is optional */ }
-  handleGuest('archetype-founder');
-};
-
-const handleGuest = (preferredArchetype = 'archetype-founder') => {
-  const user = {
-    id: 'guest',
-    email: 'guest@habuilt.com',
-    user_metadata: { full_name: 'Guest', preferred_archetype: preferredArchetype },
-  };
-  localStorage.setItem('habuilt_guest_mode', 'true');
-  localStorage.removeItem('habuilt_cached_user');
-  if (preferredArchetype) {
-    localStorage.setItem('habuilt_active_protocol_id_guest', preferredArchetype);
-  }
-  window.dispatchEvent(new CustomEvent('habuilt-guest-auth', { detail: user }));
-  emit('guest-login', user);
-  const path = window.location.pathname;
-  if (path === '/auth' || path === '/login' || path === '/landing') {
-    window.location.assign('/');
+  const station = typeof document !== 'undefined' ? document.getElementById('auth-station') : null;
+  if (station && typeof station.scrollIntoView === 'function') {
+    station.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 };
 </script>
@@ -291,23 +217,7 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
             An empty day says Nothing scheduled today.
           </p>
           <div class="calm-landing__actions" data-calm-reveal>
-            <button class="calm-btn" type="button" @click="handleGuest('archetype-founder')">
-              Continue as guest
-            </button>
-            <a class="calm-btn calm-btn--quiet" href="#auth-station">Sign in</a>
-          </div>
-          <div class="calm-pills" aria-label="Starting lists">
-            <button
-              v-for="item in archetypes"
-              :key="item.id"
-              class="calm-pill"
-              type="button"
-              :title="item.title"
-              @click="handleGuest(item.id)"
-            >
-              <strong>{{ item.name }}</strong>
-              <span>{{ item.detail }}</span>
-            </button>
+            <a class="calm-btn" href="#auth-station">Sign in</a>
           </div>
         </div>
         <div class="calm-landing__phone-col">
@@ -343,24 +253,21 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
 
       <section id="auth-station" class="calm-auth" data-calm-section>
         <h2>
-          {{ mode === 'signup' ? 'Create an account' : mode === 'forgot' ? 'Reset password' : mode === 'otp' ? 'Email a sign-in link' : mode === 'reset' ? 'Choose a new password' : 'Sign in' }}
+          {{ mode === 'signup' ? 'Create an account' : 'Sign in' }}
         </h2>
         <p v-if="error" class="calm-auth__error" role="alert">{{ error }}</p>
         <p v-if="successMessage" class="calm-auth__ok" role="status">{{ successMessage }}</p>
 
         <form @submit.prevent="handleAuth">
-          <label v-if="mode !== 'reset'">
+          <label>
             <Mail :size="16" />
             <input v-model="email" type="email" autocomplete="email" required placeholder="Email" />
           </label>
-          <label v-if="mode === 'login' || mode === 'signup'">
+          <label>
             <Lock :size="16" />
-            <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" required placeholder="Password" />
+            <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" :minlength="mode === 'signup' ? 6 : undefined" required placeholder="Password" />
           </label>
-          <label v-if="mode === 'reset'">
-            <Lock :size="16" />
-            <input v-model="newPassword" type="password" autocomplete="new-password" required minlength="6" placeholder="New password" />
-          </label>
+          <p v-if="mode === 'signup'" class="calm-auth__hint">Use at least 6 characters.</p>
           <button class="calm-btn" type="submit" :disabled="loading">
             {{ loading ? 'Working…' : 'Continue' }}
           </button>
@@ -368,9 +275,6 @@ const handleGuest = (preferredArchetype = 'archetype-founder') => {
 
         <div class="calm-auth__alts">
           <button type="button" @click="handleGoogle">Google</button>
-          <button type="button" @click="handleApple">Apple</button>
-          <button type="button" @click="mode = mode === 'otp' ? 'login' : 'otp'">Email link</button>
-          <button type="button" @click="mode = mode === 'forgot' ? 'login' : 'forgot'">Forgot password</button>
           <button type="button" @click="mode = mode === 'signup' ? 'login' : 'signup'">
             {{ mode === 'signup' ? 'Have an account? Sign in' : 'Create an account' }}
           </button>
@@ -651,6 +555,7 @@ footer button:focus-visible {
   color: var(--text-primary);
   font: inherit;
 }
+.calm-auth__hint { margin: 0; color: var(--text-muted); font-size: 13px; }
 .calm-auth__error { color: var(--danger); }
 .calm-auth__ok { color: var(--semantic-success); }
 .calm-auth__alts { margin-top: 16px; }

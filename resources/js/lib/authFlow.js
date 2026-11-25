@@ -8,10 +8,15 @@ export const HABUILT_AUTH_FLOW = 'pkce';
 const isVerifierKey = (key) => typeof key === 'string' && key.endsWith('-code-verifier');
 
 /**
- * The code verifier has to survive the Google redirect. Session storage does.
- * Access tokens stay in memory for this tab.
+ * The code verifier has to survive the Google redirect.
+ * The website keeps it in session storage for that tab.
+ * Android keeps it in localStorage because the custom-tab return can
+ * open a fresh WebView, and session storage would be gone.
+ * Access tokens stay in memory.
  */
-export function createTabAuthStorage(sessionStore = null) {
+export function createTabAuthStorage(sessionStore = null, options = null) {
+  const persistentVerifier = Boolean(options && options.persistentVerifier);
+  const localStore = options && options.localStore ? options.localStore : null;
   const memoryStore = new Map();
 
   const session = () => {
@@ -20,10 +25,18 @@ export function createTabAuthStorage(sessionStore = null) {
     return sessionStorage;
   };
 
+  const local = () => {
+    if (localStore) return localStore;
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage;
+  };
+
+  const verifierBackend = () => (persistentVerifier ? local() : session());
+
   const verifierStore = {
     get(key) {
       try {
-        const store = session();
+        const store = verifierBackend();
         if (!store) return null;
         return store.getItem(key);
       } catch {
@@ -32,7 +45,7 @@ export function createTabAuthStorage(sessionStore = null) {
     },
     set(key, value) {
       try {
-        const store = session();
+        const store = verifierBackend();
         if (!store) return;
         store.setItem(key, value);
       } catch {
@@ -41,7 +54,7 @@ export function createTabAuthStorage(sessionStore = null) {
     },
     remove(key) {
       try {
-        const store = session();
+        const store = verifierBackend();
         if (!store) return;
         store.removeItem(key);
       } catch {
@@ -70,6 +83,32 @@ export function createTabAuthStorage(sessionStore = null) {
       memoryStore.delete(key);
     },
   };
+}
+
+export function authFormError(error) {
+  const raw = typeof error === 'string' ? error : (typeof error?.message === 'string' ? error.message : '');
+  const code = typeof error?.code === 'string' ? error.code : '';
+  const msg = `${code} ${raw}`.toLowerCase();
+  if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+    return 'Invalid email or password. If you signed up with Google, use Google.';
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'Your email is not confirmed yet. Check your inbox, or continue with Google.';
+  }
+  if (msg.includes('email_address_invalid') || (msg.includes('email address') && msg.includes('invalid'))) {
+    return 'That email address cannot be used. Try another.';
+  }
+  if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+    return 'The confirmation email could not be sent just now. Wait a little, then try again.';
+  }
+  if (msg.includes('weak_password') || msg.includes('at least 6') || msg.includes('password should be')) {
+    return 'Use at least 6 characters.';
+  }
+  if (msg.includes('already registered') || msg.includes('user already exists')) {
+    return 'An account with that email already exists. Sign in, or use Google.';
+  }
+  const message = raw.trim();
+  return message || 'Authentication error.';
 }
 
 export function describeOAuthExchangeError(error, fallback = 'Google sign-in could not be completed. Try again.') {

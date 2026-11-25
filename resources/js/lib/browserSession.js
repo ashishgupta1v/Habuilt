@@ -1,7 +1,14 @@
 /**
- * Tab memory for the access token. The refresh token lives in an httpOnly cookie.
+ * Tab memory for the access token.
+ * The website keeps the refresh token in an httpOnly cookie.
+ * The bundled Android app cannot store that cookie, so it keeps the refresh
+ * token in Capacitor Preferences and sends a Bearer token to habuilt.com.
  * This module never writes habuilt_cached_user or a Supabase auth token to localStorage.
  */
+
+export const NATIVE_API_ORIGIN = 'https://habuilt.com';
+const NATIVE_CLIENT_HEADER = 'X-Habuilt-Client';
+const NATIVE_REFRESH_KEY = 'habuilt_refresh_token';
 
 const memory = {
   accessToken: '',
@@ -10,6 +17,10 @@ const memory = {
 };
 
 let refreshTimer = 0;
+let rotatedRefresh = '';
+let nativePlatformOverride = null;
+let nativeStoreOverride = null;
+let nativeRefreshInFlight = null;
 
 export function isGuestMode() {
   try {
@@ -74,14 +85,60 @@ export function clearMemorySession() {
   memory.accessToken = '';
   memory.user = null;
   memory.expiresAt = 0;
+  rotatedRefresh = '';
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = 0;
   }
 }
 
+export function configureNativeSessionForTests(options = null) {
+  nativePlatformOverride = options && Object.prototype.hasOwnProperty.call(options, 'native')
+    ? Boolean(options.native)
+    : null;
+  nativeStoreOverride = options && options.store ? options.store : null;
+  nativeRefreshInFlight = null;
+  clearMemorySession();
+}
+
+export function isNativeApp() {
+  if (nativePlatformOverride !== null) return nativePlatformOverride;
+  try {
+    const capacitor = typeof window !== 'undefined' ? window.Capacitor : null;
+    return Boolean(capacitor && typeof capacitor.isNativePlatform === 'function' && capacitor.isNativePlatform());
+  } catch {
+    return false;
+  }
+}
+
+export function apiUrl(path) {
+  const endpoint = String(path || '');
+  if (!isNativeApp() || /^https?:\/\//i.test(endpoint)) return endpoint;
+  return `${NATIVE_API_ORIGIN}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+}
+
+async function refreshStore() {
+  if (nativeStoreOverride) return nativeStoreOverride;
+  const { Preferences } = await import('@capacitor/preferences');
+  return {
+    async get() {
+      const { value } = await Preferences.get({ key: NATIVE_REFRESH_KEY });
+      return typeof value === 'string' ? value : '';
+    },
+    async set(value) {
+      await Preferences.set({ key: NATIVE_REFRESH_KEY, value: String(value) });
+    },
+    async remove() {
+      await Preferences.remove({ key: NATIVE_REFRESH_KEY });
+    },
+  };
+}
+
 export async function readSessionResponse(response) {
-  if (!response || !response.ok || response.redirected) return null;
+  if (!response || !response.ok || response.redirected) {
+    rotatedRefresh = '';
+    return null;
+  }
 
   const contentType = response.headers?.get?.('content-type') || '';
   if (contentType && !contentType.toLowerCase().includes('application/json')) {
@@ -95,33 +152,80 @@ export async function readSessionResponse(response) {
     return null;
   }
 
-  if (!body || typeof body.access_token !== 'string' || !body.user || !body.user.id) return null;
+  if (!body || typeof body.access_token !== 'string' || !body.user || !body.user.id) {
+    rotatedRefresh = '';
+    return null;
+  }
+  rotatedRefresh = typeof body.refresh_token === 'string' ? body.refresh_token.trim() : '';
   remember(body.access_token, body.user, body.expires_in);
   return memory.user;
 }
 
+async function persistNativeRotation() {
+  const store = await refreshStore();
+  if (!rotatedRefresh) {
+    await store.remove();
+    clearMemorySession();
+    return false;
+  }
+  const next = rotatedRefresh;
+  rotatedRefresh = '';
+  await store.set(next);
+  return true;
+}
+
+async function postRefresh(refreshToken) {
+  const headers = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (isNativeApp()) headers[NATIVE_CLIENT_HEADER] = 'native';
+  const response = await fetch(apiUrl('/api/auth/session'), {
+    method: 'POST',
+    credentials: isNativeApp() ? 'omit' : 'same-origin',
+    headers,
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  const user = await readSessionResponse(response);
+  if (!user) return null;
+  if (isNativeApp()) {
+    const saved = await persistNativeRotation();
+    if (!saved) return null;
+  }
+  return user;
+}
+
+async function restoreNativeSession() {
+  const store = await refreshStore();
+  const refresh = String(await store.get() || '').trim();
+  if (!refresh) return null;
+  const user = await postRefresh(refresh);
+  if (!user) {
+    await store.remove();
+    clearMemorySession();
+  }
+  return user;
+}
+
 export async function handoffRefreshToken(refreshToken) {
-  if (isGuestMode()) return null;
   if (typeof refreshToken !== 'string' || refreshToken.trim() === '') return null;
   try {
-    const response = await fetch('/api/auth/session', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    return await readSessionResponse(response);
+    if (nativeRefreshInFlight) await nativeRefreshInFlight.catch(() => {});
+    return await postRefresh(refreshToken.trim());
   } catch {
     return null;
   }
 }
 
 export async function restoreBrowserSession() {
-  if (isGuestMode()) return null;
   try {
+    if (isNativeApp()) {
+      if (nativeRefreshInFlight) return nativeRefreshInFlight;
+      nativeRefreshInFlight = restoreNativeSession().finally(() => {
+        nativeRefreshInFlight = null;
+      });
+      return nativeRefreshInFlight;
+    }
     const response = await fetch('/api/auth/session', {
       method: 'GET',
       credentials: 'same-origin',
@@ -134,13 +238,30 @@ export async function restoreBrowserSession() {
 }
 
 export async function clearBrowserSession() {
+  let nativeRefresh = '';
+  if (isNativeApp()) {
+    try {
+      const store = await refreshStore();
+      nativeRefresh = String(await store.get() || '').trim();
+      await store.remove();
+    } catch {
+      // Memory is still cleared below.
+    }
+  }
   clearMemorySession();
   try {
-    await fetch('/api/auth/session', {
+    const headers = { Accept: 'application/json' };
+    const init = {
       method: 'DELETE',
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    });
+      credentials: isNativeApp() ? 'omit' : 'same-origin',
+      headers,
+    };
+    if (isNativeApp()) {
+      headers[NATIVE_CLIENT_HEADER] = 'native';
+      headers['Content-Type'] = 'application/json';
+      if (nativeRefresh) init.body = JSON.stringify({ refresh_token: nativeRefresh });
+    }
+    await fetch(apiUrl('/api/auth/session'), init);
   } catch {
     // Memory is already clear. The cookie drop is best-effort.
   }

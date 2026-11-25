@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import {
   HABUILT_AUTH_FLOW,
+  authFormError,
   createTabAuthStorage,
   describeOAuthExchangeError,
 } from '../../resources/js/lib/authFlow.js';
@@ -34,7 +35,40 @@ test('Google sign-in uses PKCE because the auth server returns a code', () => {
   assert.equal(HABUILT_AUTH_FLOW, 'pkce');
   const source = fs.readFileSync('resources/js/lib/supabase.js', 'utf8');
   assert.match(source, /flowType:\s*HABUILT_AUTH_FLOW/);
+  assert.match(source, /persistentVerifier:\s*persistentVerifier\(\)/);
   assert.doesNotMatch(source, /flowType:\s*['"]implicit['"]/);
+});
+
+test('the website verifier stays in session storage and the Android verifier stays in localStorage', () => {
+  const session = memorySession();
+  const local = memorySession();
+  const web = createTabAuthStorage(session, { persistentVerifier: false, localStore: local });
+  web.setItem('sb-web-auth-token-code-verifier', 'web-verifier');
+  web.setItem('sb-web-auth-token', 'web-access');
+  assert.equal(session.getItem('sb-web-auth-token-code-verifier'), 'web-verifier');
+  assert.equal(local.getItem('sb-web-auth-token-code-verifier'), null);
+  assert.equal(web.getItem('sb-web-auth-token'), 'web-access');
+
+  const androidSession = memorySession();
+  const androidLocal = memorySession();
+  const android = createTabAuthStorage(androidSession, { persistentVerifier: true, localStore: androidLocal });
+  android.setItem('sb-android-auth-token-code-verifier', 'android-verifier');
+  android.setItem('sb-android-auth-token', 'android-access');
+  assert.equal(androidSession.getItem('sb-android-auth-token-code-verifier'), null);
+  assert.equal(androidLocal.getItem('sb-android-auth-token-code-verifier'), 'android-verifier');
+  assert.equal(android.getItem('sb-android-auth-token'), 'android-access');
+  assert.equal(androidSession.getItem('sb-android-auth-token'), null);
+});
+
+test('the sign-in screen keeps Google and email, and drops the other doors', () => {
+  const source = fs.readFileSync('resources/js/Pages/Auth.vue', 'utf8');
+  assert.match(source, /handleGoogle/);
+  assert.match(source, /signInWithPassword/);
+  assert.doesNotMatch(source, /Continue as guest/);
+  assert.doesNotMatch(source, /handleApple/);
+  assert.doesNotMatch(source, /signInWithOtp/);
+  assert.doesNotMatch(source, /Forgot password/);
+  assert.doesNotMatch(source, /resetPasswordForEmail/);
 });
 
 test('the code verifier survives a redirect and the access token stays in memory', () => {
@@ -92,6 +126,26 @@ test('PKCE Google URL carries a code challenge and the implicit default does not
   assert.equal(implicitResult.error, null);
   const implicitUrl = new URL(implicitResult.data.url);
   assert.equal(implicitUrl.searchParams.get('code_challenge'), null);
+});
+
+test('sign-up and sign-in errors use a sentence instead of the provider code', () => {
+  assert.equal(
+    authFormError({ message: 'Invalid login credentials', code: 'invalid_credentials' }),
+    'Invalid email or password. If you signed up with Google, use Google.',
+  );
+  assert.equal(
+    authFormError({ message: 'Email address "a@example.com" is invalid', code: 'email_address_invalid' }),
+    'That email address cannot be used. Try another.',
+  );
+  assert.equal(
+    authFormError({ message: 'email rate limit exceeded', code: 'over_email_send_rate_limit' }),
+    'The confirmation email could not be sent just now. Wait a little, then try again.',
+  );
+  assert.equal(
+    authFormError({ message: 'Password should be at least 6 characters.', code: 'weak_password' }),
+    'Use at least 6 characters.',
+  );
+  assert.equal(authFormError({ message: '' }), 'Authentication error.');
 });
 
 test('a missing verifier is explained without the raw auth error', () => {

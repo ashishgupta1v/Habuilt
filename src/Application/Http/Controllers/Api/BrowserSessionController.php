@@ -32,7 +32,7 @@ final class BrowserSessionController
             return $this->jsonNoCache(['error' => 'A refresh token is required.'], 422);
         }
 
-        return $this->exchange($refresh);
+        return $this->exchange($request, $refresh);
     }
 
     public function show(Request $request): JsonResponse
@@ -42,12 +42,15 @@ final class BrowserSessionController
             return $this->jsonNoCache(['error' => 'No session.'], 401);
         }
 
-        return $this->exchange($refresh, true);
+        return $this->exchange($request, $refresh, true);
     }
 
     public function destroy(Request $request): JsonResponse
     {
         $refresh = BrowserRefreshCookie::read($request);
+        if ($refresh === null && $this->wantsNativeRefresh($request)) {
+            $refresh = $this->nativeRefreshFromBody($request);
+        }
         if ($refresh !== null) {
             $this->sessions->revoke($refresh);
         }
@@ -55,7 +58,26 @@ final class BrowserSessionController
         return BrowserRefreshCookie::forget($this->jsonNoCache(['ok' => true]));
     }
 
-    private function exchange(string $refresh, bool $clearOnFailure = false): JsonResponse
+    private function wantsNativeRefresh(Request $request): bool
+    {
+        return $request->header('X-Habuilt-Client') === 'native';
+    }
+
+    private function nativeRefreshFromBody(Request $request): ?string
+    {
+        $refresh = $request->input('refresh_token');
+        if (!is_string($refresh)) {
+            return null;
+        }
+        $refresh = trim($refresh);
+        if (strlen($refresh) < 10 || strlen($refresh) > 8192) {
+            return null;
+        }
+
+        return $refresh;
+    }
+
+    private function exchange(Request $request, string $refresh, bool $clearOnFailure = false): JsonResponse
     {
         $exchanged = $this->sessions->exchange($refresh);
         if (!$exchanged['ok']) {
@@ -63,11 +85,16 @@ final class BrowserSessionController
             return $clearOnFailure ? BrowserRefreshCookie::forget($response) : $response;
         }
 
-        $response = $this->jsonNoCache([
+        $payload = [
             'user' => $exchanged['user'],
             'access_token' => $exchanged['access_token'],
             'expires_in' => $exchanged['expires_in'],
-        ]);
+        ];
+        if ($this->wantsNativeRefresh($request)) {
+            $payload['refresh_token'] = $exchanged['refresh_token'];
+        }
+
+        $response = $this->jsonNoCache($payload);
 
         return BrowserRefreshCookie::attach($response, $exchanged['refresh_token']);
     }
