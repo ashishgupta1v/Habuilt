@@ -9,7 +9,7 @@
   width: 100%;
   background: #f8fafc;
   color: #0C110D;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
   position: relative;
   overflow-x: hidden;
   display: flex;
@@ -211,10 +211,7 @@
 }
 
 .lp__h1-gradient {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 28%, #38bdf8 62%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #0C110D;
 }
 
 .lp__sub {

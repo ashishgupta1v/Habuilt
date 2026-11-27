@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@/lib/calmMotion';
 import {
   Timer,
   Play,
@@ -57,14 +58,14 @@ let gsapCtx = null;
 let pulseTween = null;
 
 onMounted(() => {
+  if (prefersReducedMotion()) return;
   if (stationRef.value) {
     gsapCtx = gsap.context(() => {
-      gsap.from(stationRef.value, {
-        y: 16,
-        opacity: 0,
-        duration: 0.45,
-        ease: 'power3.out'
-      });
+      gsap.fromTo(
+        stationRef.value,
+        { y: 8 },
+        { y: 0, duration: 0.34, ease: 'power3.out', clearProps: 'transform' }
+      );
     }, stationRef.value);
   }
 });

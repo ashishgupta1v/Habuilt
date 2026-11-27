@@ -114,7 +114,7 @@
   --card-elev-3: 0 12px 36px -6px rgba(15, 23, 42, 0.1);
 
   /* Touch & Spring Physics */
-  --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-bounce: cubic-bezier(0.16, 1, 0.3, 1);
   --spring-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   --transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);

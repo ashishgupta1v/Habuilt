@@ -141,7 +141,7 @@ const handleDismiss = () => {
   justify-content: center;
   padding: 32px 16px;
   background: #F7F8F2;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-sans, 'Inter', sans-serif);
   color: #0C110D;
 }
 

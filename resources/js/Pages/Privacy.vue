@@ -243,7 +243,7 @@ const scrollToSection = (id) => {
   min-height: 100vh;
   background-color: #F7F8F2;
   color: #0C110D;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
   font-size: 16px;
   position: relative;
   overflow-x: clip;

@@ -1149,7 +1149,7 @@ onMounted(async () => {
   window.addEventListener('habuilt:open-protocol-settings', handleOpenProtocolSettingsEvent);
 });
 
-const weeklyReviewExpanded = ref(false);
+const weeklyReviewExpanded = ref(true);
 const toastMessage = ref('');
 let toastTimeoutId = null;
 
@@ -1793,6 +1793,34 @@ const calmToday = computed(() => {
     nextReminderLabel: upNextHabitInfo.value?.timeLabel || '',
     partnerState,
   });
+});
+
+const todayProgressPct = computed(() => {
+  const due = Number(todayScheduledCount.value || 0);
+  if (due <= 0) return 0;
+  return Math.min(100, Math.round((todayCompletedCount.value / due) * 100));
+});
+
+const todayMaxPoints = computed(() =>
+  todayScheduledHabits.value.reduce((sum, h) => sum + (Number(h.points) || 1), 0)
+);
+
+const todayQuickHabits = computed(() => {
+  const list = todayScheduledHabits.value || [];
+  if (!list.length) return [];
+  const upNextId = upNextHabitInfo.value?.habit?.id || null;
+  const pending = [];
+  const kept = [];
+  for (const h of list) {
+    if (hasCompletedDay(h, props.currentDay)) {
+      kept.push(h);
+    } else if (upNextId && h.id === upNextId) {
+      pending.unshift(h);
+    } else {
+      pending.push(h);
+    }
+  }
+  return [...pending, ...kept].slice(0, 4);
 });
 
 // Milestone 4: Dynamic PWA Badging Integration
@@ -4240,7 +4268,16 @@ onBeforeUnmount(() => {
       <section v-if="shellTab === 'today'" class="calm-today" data-calm-panel aria-label="Today">
         <div class="calm-today__stage">
           <div class="calm-today__lead">
-            <p class="calm-today__hero" data-calm-hero-count>{{ calmToday?.hero }}</p>
+            <div class="calm-today__headline">
+              <p class="calm-today__hero" data-calm-hero-count>{{ calmToday?.hero }}</p>
+              <div v-if="todayScheduledCount > 0" class="calm-today__progress-row">
+                <div class="calm-today__meter" aria-hidden="true">
+                  <span :style="{ width: `${todayProgressPct}%` }"></span>
+                </div>
+                <span class="calm-today__pct">{{ todayProgressPct }}%</span>
+              </div>
+            </div>
+
             <button
               v-if="calmToday?.showAddHabit"
               type="button"
@@ -4250,46 +4287,115 @@ onBeforeUnmount(() => {
             >
               Add a habit
             </button>
+
+            <div v-else-if="todayQuickHabits.length > 0" class="calm-today__queue" aria-label="Quick check today">
+              <div class="calm-today__queue-head">
+                <strong>{{ todayCompletedCount === todayScheduledCount ? 'All kept today' : 'Next on today’s list' }}</strong>
+                <button type="button" class="calm-today__all-link" @click="shellTab = 'habits'">
+                  All {{ todayScheduledCount }} in Habits →
+                </button>
+              </div>
+              <div class="calm-today__queue-list">
+                <button
+                  v-for="(habit, idx) in todayQuickHabits"
+                  :key="habit.id"
+                  type="button"
+                  class="calm-queue-row"
+                  :class="{ 'is-kept': hasCompletedDay(habit, props.currentDay) }"
+                  :aria-pressed="hasCompletedDay(habit, props.currentDay) ? 'true' : 'false'"
+                  @click="toggleHabitForDay(habit, props.currentDay)"
+                >
+                  <span class="calm-queue-row__box" aria-hidden="true">
+                    <Check v-if="hasCompletedDay(habit, props.currentDay)" :size="15" stroke-width="2.7" />
+                  </span>
+                  <span class="calm-queue-row__copy">
+                    <span class="calm-queue-row__title">{{ habit.name }}</span>
+                    <span class="calm-queue-row__meta">
+                      {{ habit.scheduled_time || habit.slot || 'Today' }}
+                      <template v-if="idx === 0 && !hasCompletedDay(habit, props.currentDay) && upNextHabitInfo?.habit?.id === habit.id"> · Due now</template>
+                    </span>
+                  </span>
+                  <span class="calm-queue-row__pts">+{{ habit.points || 1 }}pt</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="calm-today__tiles">
-            <button type="button" data-calm-tile @click="shellTab = 'habits'">
-              <span>Streak</span>
-              <strong>{{ calmToday?.streak }}</strong>
-            </button>
-            <button type="button" data-calm-tile @click="onReminderTile">
-              <span>Reminder</span>
-              <strong>{{ reminderControlCopy({ permission: notificationPermission, nextLabel: calmToday?.reminder }) }}</strong>
-            </button>
-            <button type="button" data-calm-tile @click="isUniversalPartnerPairModalOpen = true">
-              <span>Partner</span>
-              <strong>{{ calmToday?.partner }}</strong>
-            </button>
+
+          <div class="calm-today__rail">
+            <div class="calm-protocol-bento">
+              <div class="calm-protocol-bento__top">
+                <div>
+                  <span class="calm-protocol-bento__label">Today’s points</span>
+                  <strong class="calm-protocol-bento__pts">{{ todayPoints }} <span>/ {{ todayMaxPoints || tierThresholds.full }} pts</span></strong>
+                </div>
+                <span class="calm-protocol-bento__badge" :class="{ 'is-active': todayPoints >= tierThresholds.floor }">
+                  {{ autoProtocolTier.title }}
+                </span>
+              </div>
+              <div class="calm-protocol-bento__tiers" aria-label="Daily targets">
+                <div class="calm-tier-chip" :class="{ 'is-hit': todayPoints >= tierThresholds.floor }">
+                  <span>Floor</span>
+                  <strong>{{ tierThresholds.floor }}p</strong>
+                </div>
+                <div class="calm-tier-chip" :class="{ 'is-hit': todayPoints >= tierThresholds.half }">
+                  <span>Half</span>
+                  <strong>{{ tierThresholds.half }}p</strong>
+                </div>
+                <div class="calm-tier-chip" :class="{ 'is-hit': todayPoints >= tierThresholds.full }">
+                  <span>Full</span>
+                  <strong>{{ tierThresholds.full }}p</strong>
+                </div>
+              </div>
+              <div class="calm-protocol-bento__actions">
+                <button type="button" class="calm-bento-btn" @click="shellTab = 'focus'">Start 25m Focus</button>
+                <button type="button" class="calm-bento-btn calm-bento-btn--lime" @click="shellTab = 'habits'">Open checklist</button>
+              </div>
+            </div>
+
+            <div class="calm-today__tiles">
+              <button type="button" data-calm-tile @click="shellTab = 'habits'">
+                <span>Streak</span>
+                <strong>{{ calmToday?.streak }}</strong>
+              </button>
+              <button type="button" data-calm-tile @click="onReminderTile">
+                <span>Reminder</span>
+                <strong>{{ reminderControlCopy({ permission: notificationPermission, nextLabel: calmToday?.reminder }) }}</strong>
+              </button>
+              <button type="button" data-calm-tile @click="isUniversalPartnerPairModalOpen = true">
+                <span>Partner</span>
+                <strong>{{ calmToday?.partner }}</strong>
+              </button>
+            </div>
           </div>
         </div>
       </section>
-      <div v-if="accountMenuOpen" class="calm-sheet">
-        <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="closeAccountMenu(true)"></button>
-        <div
-          ref="calmAccountDialogRef"
-          class="calm-account"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Account"
-          @keydown.tab="handleAccountSheetTab"
-        >
-          <div class="calm-account__bar">
-            <strong>Account</strong>
-            <button type="button" class="calm-account__close" aria-label="Close" @click="closeAccountMenu(true)">Close</button>
+
+      <Teleport to="body">
+        <div v-if="accountMenuOpen" class="calm-sheet">
+          <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="closeAccountMenu(true)"></button>
+          <div
+            ref="calmAccountDialogRef"
+            class="calm-account"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Account"
+            @keydown.tab="handleAccountSheetTab"
+          >
+            <div class="calm-account__bar">
+              <strong>Account</strong>
+              <button type="button" class="calm-account__close" aria-label="Close" @click="closeAccountMenu(true)">Close</button>
+            </div>
+            <button type="button" @click="closeAccountMenu(false); isProtocolSettingsOpen = true">Protocol settings</button>
+            <button type="button" @click="closeAccountMenu(false); showAdherence = true">Adherence</button>
+            <button type="button" @click="startAccountExport">Export</button>
+            <button type="button" @click="emit('sign-out')">Sign out</button>
+            <button type="button" @click="closeAccountMenu(false); shellTab = 'focus'">Focus</button>
+            <button type="button" @click="closeAccountMenu(false); shellTab = 'insights'">Insights</button>
           </div>
-          <button type="button" @click="closeAccountMenu(false); isProtocolSettingsOpen = true">Protocol settings</button>
-          <button type="button" @click="closeAccountMenu(false); showAdherence = true">Adherence</button>
-          <button type="button" @click="startAccountExport">Export</button>
-          <button type="button" @click="emit('sign-out')">Sign out</button>
-          <button type="button" @click="closeAccountMenu(false); shellTab = 'focus'">Focus</button>
-          <button type="button" @click="closeAccountMenu(false); shellTab = 'insights'">Insights</button>
         </div>
-      </div>
-      <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
+      </Teleport>
+
+      <!-- ── SECTION: INSIGHTS & PROTOCOL SUMMARY ── -->
       <section
         v-if="shellTab === 'insights'"
         data-calm-panel
@@ -4297,49 +4403,14 @@ onBeforeUnmount(() => {
         :class="{ 'card--hero-compact': activeMobileTab !== 'today' }"
         id="overview"
       >
-        <TopCommandBar
-          :is-jyoti="isJyoti"
-          :is-ashish="isAshish"
-          :is-guest-active="isGuestActive"
-          :display-name="displayName"
-          :active-protocol-name="activeProtocolDisplayName"
-          :all-protocols="allProtocols"
-          :active-protocol-id="activeProtocolId"
-          :is-partner-paired="isPartnerPaired"
-          :level-data="levelData"
-          :level-title="levelTitle"
-          :total-x-p="totalXP"
-          :travel-mode="travelMode"
-          :day-type="dayType"
-          :day-type-label="getDayTypeLabel(dayType)"
-          :can-navigate-prev-month="props.canNavigatePrevMonth"
-          :can-navigate-next-month="props.canNavigateNextMonth"
-          :is-navigating-month="isNavigatingMonth"
-          :month-label="monthLabel"
-          :year="props.year"
-          :zen-mode="zenMode"
-          :active-tab="activeMobileTab"
-          :timer-running="timerState && timerState.running"
-          :notifications-enabled="dueNowNotificationsEnabled"
-          :partner-presence="partnerPresence"
-          :circadian-phase="circadianPhase"
-          :active-circadian-mode="activeCircadianMode"
-          @cycle-circadian="handleCycleCircadianAtmosphere"
-          @set-tab="tab => activeMobileTab = tab"
-          @toggle-travel="toggleTravelMode"
-          @prev-month="goToPreviousMonth"
-          @next-month="goToNextMonth"
-          @sign-out="emit('sign-out')"
-          @toggle-zen="toggleZenMode"
-          @open-install-modal="isAppInstallModalOpen = true"
-          @open-spotlight="openSpotlight"
-          @open-calendar-sync="isCalendarSyncModalOpen = true"
-          @open-partner-sync="partnerViewOpen = true"
-          @open-partner-pair="isUniversalPartnerPairModalOpen = true"
-          @open-protocol-wizard="isProtocolWizardOpen = true"
-          @open-protocol-settings="isProtocolSettingsOpen = true"
-          @switch-protocol="handleQuickSwitchProtocol"
-        />
+        <div class="calm-tool-bar">
+          <button type="button" class="calm-tool-bar__back" @click="shellTab = 'today'">← Today</button>
+          <div class="calm-tool-bar__title">
+            <strong>Insights</strong>
+            <span>{{ monthLabel }} {{ props.year }} · {{ activeProtocolDisplayName }}</span>
+          </div>
+          <button type="button" class="calm-tool-bar__action" @click="isProtocolSettingsOpen = true">Protocol settings</button>
+        </div>
 
         <!-- ── Mission Control Main Executive Deck (2-Column Balanced Grid) ── -->
         <HeroExecutiveDeck
@@ -4373,7 +4444,7 @@ onBeforeUnmount(() => {
           :performance-grade="performanceGrade"
           :today-completed-count="todayCompletedCount"
           :today-scheduled-count="todayScheduledCount"
-          @navigate-tab="tab => activeMobileTab = tab"
+          @navigate-tab="tab => { shellTab = tab === 'stats' ? 'review' : tab; activeMobileTab = tab; }"
         />
       </section>
 
@@ -4430,37 +4501,41 @@ onBeforeUnmount(() => {
       />
 
       <!-- ── SECTION: DEDICATED DEEP WORK FOCUS STATION (Focus Tab on Mobile) ── -->
-      <DeepWorkStation
-        v-if="shellTab === 'focus'"
-        data-calm-panel
-        :timer-state="timerState"
-        :timer-launcher-duration="timerLauncherDuration"
-        :custom-timer-min="customTimerMin"
-        :timer-launcher-habit-id="timerLauncherHabitId"
-        :timer-sound-enabled="timerSoundEnabled"
-        :timer-progress-pct="timerProgressPct"
-        :timer-elapsed-formatted="timerElapsedFormatted"
-        :timer-remaining-formatted="timerRemainingFormatted"
-        :timer-linked-habit="timerLinkedHabit"
-        :timer-habit-options="timerHabitOptions"
-        :current-day="props.currentDay"
-        :has-completed-day="hasCompletedDay"
-        :soundscape-type="soundscapeType"
-        :soundscape-volume="soundscapeVolume"
-        :is-soundscape-playing="isSoundscapePlaying"
-        @update:custom-timer-min="val => customTimerMin = val"
-        @update:timer-launcher-duration="val => timerLauncherDuration = val"
-        @update:timer-launcher-habit-id="val => timerLauncherHabitId = val"
-        @update:timer-sound-enabled="val => timerSoundEnabled = val"
-        @set-soundscape-type="setSoundscapeType"
-        @update-soundscape-volume="updateSoundscapeVolume"
-        @toggle-soundscape-manual="toggleSoundscapeManual"
-        @start-timer="startDeepWorkTimer"
-        @pause-timer="pauseDeepWorkTimer"
-        @resume-timer="resumeDeepWorkTimer"
-        @stop-timer="stopDeepWorkTimer"
-        @start-break="startBreakTimer"
-      />
+      <div v-if="shellTab === 'focus'" data-calm-panel class="calm-focus-wrap">
+        <div class="calm-tool-bar calm-tool-bar--compact">
+          <button type="button" class="calm-tool-bar__back" @click="shellTab = 'today'">← Back to Today</button>
+          <span class="calm-tool-bar__hint">Deep work &amp; soundscapes</span>
+        </div>
+        <DeepWorkStation
+          :timer-state="timerState"
+          :timer-launcher-duration="timerLauncherDuration"
+          :custom-timer-min="customTimerMin"
+          :timer-launcher-habit-id="timerLauncherHabitId"
+          :timer-sound-enabled="timerSoundEnabled"
+          :timer-progress-pct="timerProgressPct"
+          :timer-elapsed-formatted="timerElapsedFormatted"
+          :timer-remaining-formatted="timerRemainingFormatted"
+          :timer-linked-habit="timerLinkedHabit"
+          :timer-habit-options="timerHabitOptions"
+          :current-day="props.currentDay"
+          :has-completed-day="hasCompletedDay"
+          :soundscape-type="soundscapeType"
+          :soundscape-volume="soundscapeVolume"
+          :is-soundscape-playing="isSoundscapePlaying"
+          @update:custom-timer-min="val => customTimerMin = val"
+          @update:timer-launcher-duration="val => timerLauncherDuration = val"
+          @update:timer-launcher-habit-id="val => timerLauncherHabitId = val"
+          @update:timer-sound-enabled="val => timerSoundEnabled = val"
+          @set-soundscape-type="setSoundscapeType"
+          @update-soundscape-volume="updateSoundscapeVolume"
+          @toggle-soundscape-manual="toggleSoundscapeManual"
+          @start-timer="startDeepWorkTimer"
+          @pause-timer="pauseDeepWorkTimer"
+          @resume-timer="resumeDeepWorkTimer"
+          @stop-timer="stopDeepWorkTimer"
+          @start-break="startBreakTimer"
+        />
+      </div>
 
       <!-- ── SECTION: HABIT CHECKLIST (Today Tab on Mobile & Main Grid on Desktop) ── -->
       <section
@@ -5107,36 +5182,304 @@ onBeforeUnmount(() => {
   color: #0C110D;
 }
 .calm-today {
-  padding: 12px 0 8px;
+  padding: 14px 0 12px;
 }
 .calm-today__stage {
   display: grid;
-  gap: 22px;
+  gap: 20px;
+}
+.calm-today__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.calm-today__headline {
+  display: grid;
+  gap: 12px;
 }
 .calm-today__hero {
   margin: 0;
   max-width: 12em;
   font-family: var(--font-display, 'Urbanist', sans-serif);
-  font-size: var(--type-fluid-hero, clamp(2rem, 1.05rem + 2.8vw, 4.15rem));
+  font-size: var(--type-fluid-hero, clamp(2rem, 1.05rem + 2.6vw, 3.85rem));
   font-weight: 650;
   line-height: 1.02;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
   text-wrap: balance;
   overflow-wrap: break-word;
+}
+.calm-today__progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 440px;
+}
+.calm-today__meter {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #E4E6DC;
+  overflow: hidden;
+}
+.calm-today__meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #0C110D;
+  transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.calm-today__pct {
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: #3A4338;
 }
 .calm-today__add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: flex-start;
   min-height: 44px;
   min-width: 44px;
   box-sizing: border-box;
-  margin-top: 22px;
-  border: 0;
+  margin-top: 4px;
+  border: 1px solid #0C110D;
   border-radius: 999px;
   background: #D9F27A;
-  padding: 11px 18px;
+  padding: 11px 20px;
   font-weight: 650;
+}
+.calm-today__queue {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #E4E6DC;
+  border-radius: 22px;
+  background: #ffffff;
+}
+.calm-today__queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.calm-today__queue-head strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.calm-today__all-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: transparent;
+  color: #3A4338;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.calm-today__all-link:hover {
+  color: #0C110D;
+}
+.calm-today__queue-list {
+  display: grid;
+  gap: 8px;
+}
+.calm-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #E4E6DC;
+  border-radius: 16px;
+  background: #F7F8F2;
+  color: #0C110D;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.calm-queue-row:hover {
+  border-color: #0C110D;
+}
+.calm-queue-row:active {
+  transform: scale(0.99);
+}
+.calm-queue-row.is-kept {
+  background: color-mix(in srgb, #D9F27A 26%, #ffffff);
+  border-color: color-mix(in srgb, #0C110D 22%, #E4E6DC);
+}
+.calm-queue-row__box {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1.5px solid #BFC4B6;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.calm-queue-row.is-kept .calm-queue-row__box {
+  background: #D9F27A;
+  border-color: #0C110D;
+  color: #0C110D;
+}
+.calm-queue-row__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.calm-queue-row__title {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.calm-queue-row.is-kept .calm-queue-row__title {
+  text-decoration: line-through;
+  color: #3A4338;
+}
+.calm-queue-row__meta {
+  font-size: 12.5px;
+  color: #3A4338;
+}
+.calm-queue-row__pts {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #E4E6DC;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.calm-today__rail {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.calm-protocol-bento {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #E4E6DC;
+  border-radius: 22px;
+  background: #ffffff;
+}
+.calm-protocol-bento__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.calm-protocol-bento__label {
+  display: block;
+  font-size: 13px;
+  color: #3A4338;
+  margin-bottom: 2px;
+}
+.calm-protocol-bento__pts {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: #0C110D;
+}
+.calm-protocol-bento__pts span {
+  font-size: 15px;
+  font-weight: 500;
+  color: #3A4338;
+}
+.calm-protocol-bento__badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #F7F8F2;
+  border: 1px solid #E4E6DC;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3A4338;
+  white-space: nowrap;
+}
+.calm-protocol-bento__badge.is-active {
+  background: #D9F27A;
+  border-color: #0C110D;
+  color: #0C110D;
+}
+.calm-protocol-bento__tiers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.calm-tier-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid #E4E6DC;
+  background: #F7F8F2;
+  font-variant-numeric: tabular-nums;
+}
+.calm-tier-chip span {
+  font-size: 11.5px;
+  color: #3A4338;
+}
+.calm-tier-chip strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 15px;
+  font-weight: 650;
+}
+.calm-tier-chip.is-hit {
+  background: color-mix(in srgb, #D9F27A 35%, #ffffff);
+  border-color: #0C110D;
+}
+.calm-protocol-bento__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.calm-bento-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid #E4E6DC;
+  background: #F7F8F2;
+  color: #0C110D;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.calm-bento-btn:hover {
+  border-color: #0C110D;
+  background: #ffffff;
+}
+.calm-bento-btn--lime {
+  background: #D9F27A;
+  border-color: #0C110D;
+  font-weight: 650;
+}
+.calm-bento-btn--lime:hover {
+  background: #E7F7A8;
 }
 .calm-today__tiles {
   display: grid;
@@ -5146,13 +5489,17 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  min-height: 92px;
-  padding: 16px 18px;
+  gap: 4px;
+  min-height: 76px;
+  padding: 14px 16px;
   border: 1px solid #E4E6DC;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #fff;
   text-align: left;
+  transition: border-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.calm-today__tiles button:hover {
+  border-color: #0C110D;
 }
 .calm-today__tiles button span {
   color: #3A4338;
@@ -5160,16 +5507,77 @@ onBeforeUnmount(() => {
 }
 .calm-today__tiles button strong {
   font-family: var(--font-display, 'Urbanist', sans-serif);
-  font-size: clamp(18px, 2.2vw, 22px);
+  font-size: clamp(17px, 2vw, 20px);
   font-weight: 650;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   line-height: 1.15;
   overflow-wrap: anywhere;
+}
+.calm-tool-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid #E4E6DC;
+  border-radius: 18px;
+  background: #ffffff;
+}
+.calm-tool-bar__back,
+.calm-tool-bar__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #E4E6DC;
+  background: #F7F8F2;
+  color: #0C110D;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.calm-tool-bar__back:hover,
+.calm-tool-bar__action:hover {
+  border-color: #0C110D;
+}
+.calm-tool-bar__title {
+  display: flex;
+  flex-direction: column;
+  margin-right: auto;
+  min-width: 0;
+}
+.calm-tool-bar__title strong {
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.calm-tool-bar__title span {
+  font-size: 12.5px;
+  color: #3A4338;
+}
+.calm-focus-wrap {
+  display: grid;
+  gap: 12px;
+}
+.calm-queue-row:focus-visible,
+.calm-bento-btn:focus-visible,
+.calm-today__all-link:focus-visible,
+.calm-tool-bar__back:focus-visible,
+.calm-tool-bar__action:focus-visible {
+  outline: 2px solid var(--text-primary, #0C110D);
+  outline-offset: 2px;
 }
 .calm-sheet {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 260;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -5234,9 +5642,9 @@ onBeforeUnmount(() => {
     margin-top: 28px;
   }
   .calm-today__stage {
-    grid-template-columns: minmax(0, 1.15fr) minmax(210px, 0.85fr);
-    gap: clamp(16px, 3vw, 40px);
-    align-items: center;
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+    gap: clamp(18px, 3vw, 36px);
+    align-items: start;
   }
   .calm-sheet {
     align-items: center;
@@ -5269,11 +5677,17 @@ onBeforeUnmount(() => {
     flex: 1 1 0;
     padding: 10px 4px;
   }
+  .calm-protocol-bento__actions {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .calm-tabs button,
   .calm-today__tiles button,
   .calm-today__add,
+  .calm-today__meter span,
+  .calm-queue-row,
+  .calm-bento-btn,
   .calm-account button,
   .calm-account-btn {
     transition: none;

@@ -62,7 +62,7 @@ const goals = [
     title: 'The whole list',
     subtitle: 'Movement, family, and work on one list',
     icon: Crown,
-    color: 'from-indigo-500/20 to-purple-500/10 border-indigo-500/30 text-indigo-400'
+    color: 'from-[#D9F27A]/35 to-[#F7F8F2] border-[#E4E6DC] text-[#0C110D]'
   }
 ];
 

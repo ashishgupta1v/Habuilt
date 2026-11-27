@@ -99,7 +99,10 @@ const copyWhatsAppDebrief = async () => {
               {{ weeklyReview.reviewDate }}
             </span>
           </div>
-          <p class="sunday-review-sub">{{ completedSlots }} kept, {{ missedSlots }} missed, {{ streakDays }} day streak</p>
+          <p class="sunday-review-sub">
+            <template v-if="completedSlots === 0 && streakDays === 0">0 kept · Ready when you check off today</template>
+            <template v-else>{{ completedSlots }} kept, {{ missedSlots }} missed, {{ streakDays }} day streak</template>
+          </p>
         </div>
       </div>
 

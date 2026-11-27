@@ -62,21 +62,16 @@ onMounted(() => {
   if (prefersReducedMotion()) return;
   if (shopRef.value) {
     gsapCtx = gsap.context(() => {
-      gsap.from('.reward-vault-hero-card', {
-        y: 18,
-        opacity: 0,
-        duration: 0.5,
-        ease: 'power3.out'
-      });
-      gsap.from('.reward-card-deluxe', {
-        scale: 0.94,
-        y: 12,
-        opacity: 0,
-        stagger: 0.05,
-        duration: 0.45,
-        ease: 'back.out(1.5)',
-        delay: 0.1
-      });
+      gsap.fromTo(
+        '.reward-vault-hero-card',
+        { y: 8 },
+        { y: 0, duration: 0.36, ease: 'power3.out', clearProps: 'transform' }
+      );
+      gsap.fromTo(
+        '.reward-catalog-card',
+        { y: 8 },
+        { y: 0, stagger: 0.03, duration: 0.32, ease: 'power3.out', clearProps: 'transform' }
+      );
     }, shopRef.value);
   }
 });
@@ -90,9 +85,8 @@ onUnmounted(() => {
 
 <template>
   <div class="reward-vault-dashboard" ref="shopRef">
-    <!-- Grand Glowing Gold Wallet Card -->
+    <!-- Calm Wallet Bento Card -->
     <div class="reward-vault-hero-card">
-      <div class="reward-vault-hero-bg-glow"></div>
       <div class="reward-vault-hero-content">
         <div class="reward-vault-hero-top flex items-center justify-between">
           <div class="reward-vault-chip">
@@ -234,6 +228,17 @@ onUnmounted(() => {
               <span class="reward-catalog-cost-pill mono-num">{{ reward.cost }} pts</span>
             </div>
             <h4 class="reward-catalog-item-name">{{ reward.item }}</h4>
+            <div v-if="!isClaimedThisMonth(reward.id)" class="reward-progress-wrap" aria-hidden="true">
+              <div class="reward-progress-track">
+                <span
+                  class="reward-progress-fill"
+                  :style="{ width: `${Math.min(100, Math.round((Math.max(0, availableWallet) / Math.max(1, Number(reward.cost) || 1)) * 100))}%` }"
+                ></span>
+              </div>
+              <span class="reward-progress-label mono-num">
+                {{ Math.min(availableWallet, Number(reward.cost) || 0) }}/{{ reward.cost }}
+              </span>
+            </div>
           </div>
 
           <div class="reward-catalog-card-footer">

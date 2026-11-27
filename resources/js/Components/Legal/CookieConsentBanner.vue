@@ -44,11 +44,11 @@ const acceptEssential = () => {
       aria-label="Privacy & Cookie Preferences"
       class="cookie-banner"
     >
-      <div class="banner-top">
-        <div class="banner-icon-wrap">
+      <div class="banner-row">
+        <div class="banner-icon-wrap" aria-hidden="true">
           <Shield class="icon-16" />
         </div>
-        <div class="banner-body">
+        <div class="banner-copy">
           <div class="banner-header">
             <h4 class="banner-title">Privacy and cookies</h4>
             <button
@@ -61,12 +61,13 @@ const acceptEssential = () => {
             </button>
           </div>
           <p class="banner-desc">
-            Habuilt keeps habit check-ins in plain browser storage on this device until you sign in and sync. Essential cookies are used for the session. We do not sell your data.
+            Check-ins stay in browser storage until you sign in and sync. Essential session cookies only.
+            <span class="banner-links-inline">
+              <a href="/privacy" class="banner-link">Privacy Policy</a>
+              <span aria-hidden="true" class="banner-dot">·</span>
+              <a href="/terms" class="banner-link">Terms</a>
+            </span>
           </p>
-          <div class="banner-links">
-            <a href="/privacy" class="banner-link">Privacy Policy</a>
-            <a href="/terms" class="banner-link">Terms</a>
-          </div>
         </div>
       </div>
 
@@ -97,19 +98,20 @@ const acceptEssential = () => {
 .cookie-banner {
   position: fixed;
   bottom: 16px;
-  right: 16px;
-  max-width: 420px;
-  max-height: min(320px, 60dvh);
-  overflow: auto;
+  left: 16px;
+  max-width: 440px;
   width: calc(100% - 32px);
-  z-index: 30;
-  background: #F7F8F2;
+  z-index: 60;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid #E4E6DC;
-  border-radius: 20px;
-  padding: 18px 20px;
-  box-shadow: 0 16px 36px -18px rgba(12, 17, 13, 0.28);
-  font-family: Inter, sans-serif;
+  border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow: 0 18px 40px -18px rgba(12, 17, 13, 0.18), 0 2px 6px rgba(12, 17, 13, 0.04);
+  font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
   color: #0C110D;
+  box-sizing: border-box;
 }
 
 @media (max-width: 767px) {
@@ -119,6 +121,7 @@ const acceptEssential = () => {
     width: auto;
     max-width: none;
     overflow: visible;
+    padding: 12px 14px;
     bottom: calc(8px + var(--calm-tab-offset, 0px) + var(--calm-offline-stack, 0px));
   }
   .banner-actions {
@@ -130,18 +133,18 @@ const acceptEssential = () => {
   }
 }
 
-.banner-top {
+.banner-row {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
 }
 
 .banner-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: #D9F27A;
-  border: 1px solid #E4E6DC;
+  border: 1px solid #0C110D;
   color: #0C110D;
   display: flex;
   align-items: center;
@@ -150,7 +153,7 @@ const acceptEssential = () => {
   margin-top: 2px;
 }
 
-.banner-body {
+.banner-copy {
   flex: 1;
   min-width: 0;
 }
@@ -159,13 +162,14 @@ const acceptEssential = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  gap: 8px;
 }
 
 .banner-title {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display, 'Urbanist', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: #0C110D;
   margin: 0;
 }
@@ -174,7 +178,7 @@ const acceptEssential = () => {
   background: transparent;
   border: none;
   border-radius: 10px;
-  color: #64748b;
+  color: #3A4338;
   cursor: pointer;
   min-width: 44px;
   min-height: 44px;
@@ -184,25 +188,29 @@ const acceptEssential = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .banner-close-btn:hover {
   color: #0C110D;
+  background: #F7F8F2;
 }
 
 .banner-desc {
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.45;
   color: #3A4338;
-  margin: 0;
+  margin: 2px 0 0;
 }
 
-.banner-links {
-  display: flex;
-  flex-wrap: wrap;
+.banner-links-inline {
+  display: inline-flex;
   align-items: center;
-  gap: 8px 12px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.banner-dot {
+  color: #6B7266;
 }
 
 .banner-link {
@@ -215,19 +223,20 @@ const acceptEssential = () => {
   align-items: center;
   min-height: 44px;
   min-width: 44px;
-  transition: color 0.15s ease;
+  margin-block: -12px;
+  transition: opacity 0.15s ease;
 }
 .banner-link:hover {
-  color: #0C110D;
+  opacity: 0.72;
 }
 
 .banner-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #E4E6DC;
 }
 
 .btn-accept {
@@ -240,15 +249,14 @@ const acceptEssential = () => {
   min-width: 44px;
   box-sizing: border-box;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #D9F27A;
-  border: none;
+  border: 1px solid #0C110D;
   color: #0C110D;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s ease;
 }
 .btn-accept:hover {
   background: #E7F7A8;
@@ -262,14 +270,14 @@ const acceptEssential = () => {
   min-width: 44px;
   box-sizing: border-box;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #ffffff;
   border: 1px solid #E4E6DC;
   color: #0C110D;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 .btn-accept:focus-visible,
 .btn-essential:focus-visible,
@@ -279,23 +287,20 @@ const acceptEssential = () => {
   outline-offset: 2px;
 }
 .btn-essential:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #0C110D;
+  border-color: #0C110D;
+  background: #F7F8F2;
 }
 
 .banner-slide-enter-active {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
 }
 .banner-slide-leave-active {
-  transition: all 0.25s ease-in;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1), opacity 0.18s ease;
 }
-.banner-slide-enter-from {
-  opacity: 0;
-  transform: translateY(24px) scale(0.96);
-}
+.banner-slide-enter-from,
 .banner-slide-leave-to {
   opacity: 0;
-  transform: translateY(20px) scale(0.96);
+  transform: translateY(16px);
 }
 
 .icon-14 { width: 14px; height: 14px; }

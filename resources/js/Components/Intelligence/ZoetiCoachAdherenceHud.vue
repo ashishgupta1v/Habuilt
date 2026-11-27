@@ -804,9 +804,6 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #0C110D;
-  background: linear-gradient(90deg, #F7F8F2 0%, #0C110D 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .hud-badge--channel {
