@@ -304,7 +304,7 @@ const autoProtocolBadge = computed(() => {
   margin-right: 2px;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .mobile-compact-bar {
     display: none !important;
   }

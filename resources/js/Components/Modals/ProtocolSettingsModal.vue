@@ -2314,6 +2314,8 @@ const handlePurgeTelemetryBuffer = () => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0.7rem 0.75rem;
   background: transparent;
   border: none;
@@ -2326,7 +2328,12 @@ const handlePurgeTelemetryBuffer = () => {
   white-space: normal;
   text-align: left;
   flex: 1 1 8.5rem;
-  min-width: 0;
+}
+.proto-settings-tab:focus-visible,
+.proto-icon-btn:focus-visible,
+.proto-mode-btn:focus-visible {
+  outline: 2px solid #0C110D;
+  outline-offset: -2px;
 }
 
 .proto-settings-tab:hover {
@@ -2782,7 +2789,7 @@ const handlePurgeTelemetryBuffer = () => {
   gap: 0.75rem;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 767px) {
   .modal-backdrop {
     align-items: flex-end;
     padding: 0;
@@ -2804,6 +2811,8 @@ const handlePurgeTelemetryBuffer = () => {
   }
   .modal-close-btn {
     flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
   }
   .proto-settings-tab {
     white-space: normal;
@@ -3390,7 +3399,10 @@ const handlePurgeTelemetryBuffer = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px;
   border-radius: 6px;
   border: 1px solid transparent;
@@ -3482,9 +3494,13 @@ const handlePurgeTelemetryBuffer = () => {
 .proto-settings-body .overflow-y-auto { overflow-y: auto; }
 .proto-settings-body .block { display: block; }
 .proto-settings-body .w-full { width: 100%; }
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .proto-settings-body .grid-cols-2,
   .proto-settings-body .grid-cols-4 { grid-template-columns: 1fr; }
+  .proto-icon-picker-grid {
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+    max-height: 180px;
+  }
 }
 
 .proto-body { color: #243026; font-size: 0.875rem; line-height: 1.45; }

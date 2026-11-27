@@ -501,8 +501,38 @@ const activeMobileTab = ref('today'); // 'today' | 'focus' | 'stats' | 'rewards'
 const shellTab = ref('today');
 const shellFlow = ref(null);
 const accountMenuOpen = ref(false);
-const openAccountMenu = () => {
+const calmAccountBtnRef = ref(null);
+const calmAccountDialogRef = ref(null);
+const openAccountMenu = async () => {
   accountMenuOpen.value = !accountMenuOpen.value;
+  if (accountMenuOpen.value) {
+    await nextTick();
+    const closeBtn = calmAccountDialogRef.value?.querySelector('.calm-account__close');
+    closeBtn?.focus();
+  }
+};
+const closeAccountMenu = (restoreFocus = true) => {
+  accountMenuOpen.value = false;
+  if (restoreFocus) {
+    nextTick(() => {
+      calmAccountBtnRef.value?.focus();
+    });
+  }
+};
+const handleAccountSheetTab = (e) => {
+  const dialog = calmAccountDialogRef.value;
+  if (!dialog) return;
+  const focusables = [...dialog.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])')];
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 };
 const startAccountExport = async () => {
   accountMenuOpen.value = false;
@@ -668,7 +698,7 @@ onMounted(() => {
     if (heroEl && typeof IntersectionObserver !== 'undefined') {
       _heroObserver = new IntersectionObserver(
         ([entry]) => {
-          const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+          const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
           showStickyHud.value = isDesktop && !entry.isIntersecting;
         },
         { threshold: 0.05 }
@@ -1020,6 +1050,7 @@ const toggleZenMode = () => {
 
 const handleZenKeyDown = (e) => {
   if (e.key === 'Escape') {
+    if (accountMenuOpen.value) { closeAccountMenu(true); return; }
     if (isShareModalOpen.value) { isShareModalOpen.value = false; return; }
     if (isProtocolSettingsOpen.value) { isProtocolSettingsOpen.value = false; return; }
     if (isUniversalPartnerPairModalOpen.value) { isUniversalPartnerPairModalOpen.value = false; return; }
@@ -4191,6 +4222,7 @@ onBeforeUnmount(() => {
       <header class="calm-chrome">
         <HabuiltLogo with-text :show-badge="false" size="sm" />
         <button
+          ref="calmAccountBtnRef"
           type="button"
           class="calm-account-btn"
           :aria-expanded="accountMenuOpen ? 'true' : 'false'"
@@ -4236,18 +4268,25 @@ onBeforeUnmount(() => {
         </div>
       </section>
       <div v-if="accountMenuOpen" class="calm-sheet">
-        <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="accountMenuOpen = false"></button>
-        <div class="calm-account" role="dialog" aria-modal="true" aria-label="Account">
+        <button type="button" class="calm-sheet__backdrop" aria-label="Close account menu" @click="closeAccountMenu(true)"></button>
+        <div
+          ref="calmAccountDialogRef"
+          class="calm-account"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Account"
+          @keydown.tab="handleAccountSheetTab"
+        >
           <div class="calm-account__bar">
             <strong>Account</strong>
-            <button type="button" class="calm-account__close" aria-label="Close" @click="accountMenuOpen = false">Close</button>
+            <button type="button" class="calm-account__close" aria-label="Close" @click="closeAccountMenu(true)">Close</button>
           </div>
-          <button type="button" @click="accountMenuOpen = false; isProtocolSettingsOpen = true">Protocol settings</button>
-          <button type="button" @click="accountMenuOpen = false; showAdherence = true">Adherence</button>
+          <button type="button" @click="closeAccountMenu(false); isProtocolSettingsOpen = true">Protocol settings</button>
+          <button type="button" @click="closeAccountMenu(false); showAdherence = true">Adherence</button>
           <button type="button" @click="startAccountExport">Export</button>
           <button type="button" @click="emit('sign-out')">Sign out</button>
-          <button type="button" @click="accountMenuOpen = false; shellTab = 'focus'">Focus</button>
-          <button type="button" @click="accountMenuOpen = false; shellTab = 'insights'">Insights</button>
+          <button type="button" @click="closeAccountMenu(false); shellTab = 'focus'">Focus</button>
+          <button type="button" @click="closeAccountMenu(false); shellTab = 'insights'">Insights</button>
         </div>
       </div>
       <!-- ── SECTION: TOP HERO & COMMAND BAR (Desktop & Mobile Command Bar) ── -->
@@ -4986,13 +5025,14 @@ onBeforeUnmount(() => {
   min-width: 0;
   margin: 12px auto 40px;
   color: #0C110D;
+  font-size: 16px;
 }
 .calm-chrome {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 8px 0 4px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 0 4px;
 }
 .calm-account-btn,
 .calm-tabs button,
@@ -5003,10 +5043,16 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .calm-account-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
   border: 1px solid #E4E6DC;
   background: #fff;
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 10px 16px;
 }
 .calm-account-btn:hover,
 .calm-account button:hover,
@@ -5031,7 +5077,7 @@ onBeforeUnmount(() => {
 }
 .calm-tabs {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   width: fit-content;
   max-width: 100%;
   margin: 14px 0 8px;
@@ -5039,9 +5085,15 @@ onBeforeUnmount(() => {
   border: 1px solid #E4E6DC;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
+  box-sizing: border-box;
 }
 .calm-tabs button {
-  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -5073,11 +5125,17 @@ onBeforeUnmount(() => {
   overflow-wrap: break-word;
 }
 .calm-today__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
   margin-top: 22px;
   border: 0;
   border-radius: 999px;
   background: #D9F27A;
-  padding: 12px 18px;
+  padding: 11px 18px;
   font-weight: 650;
 }
 .calm-today__tiles {
@@ -5148,14 +5206,22 @@ onBeforeUnmount(() => {
   font-size: 22px;
 }
 .calm-account__close {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
   width: auto !important;
+  min-width: 44px;
+  min-height: 44px !important;
+  box-sizing: border-box;
   border-radius: 999px !important;
-  padding: 8px 14px !important;
+  padding: 10px 16px !important;
   text-align: center !important;
 }
 .calm-account button {
   width: 100%;
-  padding: 14px 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 12px 16px;
   border: 1px solid #E4E6DC;
   border-radius: 16px;
   background: #fff;
@@ -5190,8 +5256,8 @@ onBeforeUnmount(() => {
   .calm-tabs {
     position: fixed;
     z-index: 70;
-    left: 12px;
-    right: 12px;
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
     bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     width: auto;
     justify-content: space-between;
@@ -5200,7 +5266,7 @@ onBeforeUnmount(() => {
     backdrop-filter: blur(16px);
   }
   .calm-tabs button {
-    flex: 1;
+    flex: 1 1 0;
     padding: 10px 4px;
   }
 }

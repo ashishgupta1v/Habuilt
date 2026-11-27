@@ -378,7 +378,7 @@ const handleSkip = () => {
   justify-content: center;
   box-sizing: border-box;
   overflow: auto;
-  padding: 16px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   background: var(--page-bg);
   color: var(--text-primary);
   font-family: var(--font-base);
@@ -520,7 +520,10 @@ const handleSkip = () => {
 .onb-skip,
 .onb-back {
   flex: 0 0 auto;
-  padding: 8px 12px;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 10px 14px;
   border: 1px solid var(--surface-border);
   border-radius: 999px;
   background: var(--surface-card);
@@ -754,7 +757,10 @@ const handleSkip = () => {
 .onb-next {
   gap: 6px;
   margin-left: auto;
-  padding: 12px 18px;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 11px 18px;
   border: 0;
   border-radius: 999px;
   background: var(--accent);
@@ -783,7 +789,7 @@ const handleSkip = () => {
   cursor: not-allowed;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 768px) {
   .onb {
     padding: 28px;
   }
