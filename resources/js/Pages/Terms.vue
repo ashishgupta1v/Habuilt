@@ -170,7 +170,7 @@ const scrollToSection = (id) => {
               <AlertOctagon class="icon-18 rose-icon" />
               <span>7. Limitation of Liability</span>
             </h2>
-            <p style="font-size: 12px; color: #0C110D; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.7;">
+            <p style="font-size: 16px; color: #0C110D; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.7;">
               TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, HABUILT AND ITS AFFILIATES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, DEVICE DAMAGE, PERSONAL INJURY RESULTING FROM STRENUOUS PHYSICAL ROUTINES, OR SERVICE INTERRUPTIONS. THE PLATFORM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS.
             </p>
           </section>
@@ -213,8 +213,9 @@ const scrollToSection = (id) => {
   background-color: #F7F8F2;
   color: #0C110D;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .glow-orb {
@@ -247,7 +248,7 @@ const scrollToSection = (id) => {
   -webkit-backdrop-filter: blur(16px);
   background: rgba(247, 248, 242, 0.92);
   border-bottom: 1px solid #E4E6DC;
-  padding: 16px 24px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 16px max(24px, env(safe-area-inset-left, 0px));
 }
 .legal-header__inner {
   max-width: 1150px;
@@ -257,19 +258,28 @@ const scrollToSection = (id) => {
   justify-content: space-between;
 }
 .brand-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
   text-decoration: none;
 }
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px 16px;
 }
 .header-link {
   color: #3A4338;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s ease;
+  /* 44px touch target */
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .header-link:hover {
   color: #0C110D;
@@ -278,12 +288,15 @@ const scrollToSection = (id) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
   border-radius: 12px;
   background: #FFFFFF;
   border: 1px solid #E4E6DC;
   color: #0C110D;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -329,7 +342,7 @@ const scrollToSection = (id) => {
   line-height: 1.15;
 }
 .legal-desc {
-  font-size: 15px;
+  font-size: 16px;
   color: #3A4338;
   line-height: 1.65;
   margin: 0 0 16px;
@@ -349,7 +362,7 @@ const scrollToSection = (id) => {
   gap: 36px;
   align-items: start;
 }
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .legal-grid {
     grid-template-columns: 1fr;
   }
@@ -362,6 +375,11 @@ const scrollToSection = (id) => {
   border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 18px;
+}
+@media (max-width: 1023px) {
+  .toc-sidebar {
+    position: static;
+  }
 }
 .toc-title {
   font-size: 11px;
@@ -377,16 +395,21 @@ const scrollToSection = (id) => {
 .toc-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 .toc-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
   text-align: left;
   background: transparent;
   border: none;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  min-height: 44px;
   border-radius: 10px;
   color: #3A4338;
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -411,7 +434,7 @@ const scrollToSection = (id) => {
   border: 1px solid #E4E6DC;
   border-radius: 22px;
   padding: 28px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
   color: #0C110D;
 }
@@ -447,7 +470,7 @@ const scrollToSection = (id) => {
 .callout-box {
   padding: 18px;
   border-radius: 16px;
-  font-size: 12.5px;
+  font-size: 16px;
   line-height: 1.6;
   margin: 16px 0;
 }
@@ -464,19 +487,40 @@ const scrollToSection = (id) => {
 
 .legal-footer {
   margin-top: 60px;
-  padding-top: 32px;
+  padding: 32px 0 calc(24px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid #E4E6DC;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   color: #3A4338;
+}
+.legal-footer p {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
 }
 .legal-footer a {
   color: #3A4338;
   text-decoration: none;
-  margin: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
 }
 .legal-footer a:hover {
   color: #0C110D;
+}
+.brand-link:focus-visible,
+.header-link:focus-visible,
+.back-btn:focus-visible,
+.toc-btn:focus-visible,
+.legal-footer a:focus-visible {
+  outline: 2px solid #0C110D;
+  outline-offset: 2px;
 }
 
 .icon-14 {
@@ -494,15 +538,27 @@ const scrollToSection = (id) => {
 .rose-icon { color: #8E3B3B; }
 
 .glow-orb { position: absolute; }
-.legal-main { max-width: 1040px; }
+.legal-main {
+  max-width: 1040px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
 .legal-content p,
 .legal-desc,
 .legal-card p,
 .callout-body {
   max-width: var(--calm-measure, 68ch);
 }
-@media (max-width: 720px) {
-  .legal-header { padding: 12px 16px; }
+@media (max-width: 767px) {
+  .glow-orb {
+    width: min(100%, 280px);
+    height: 280px;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+  }
+  .legal-header {
+    padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+  }
   .legal-header__inner {
     flex-direction: column;
     align-items: flex-start;
@@ -515,7 +571,7 @@ const scrollToSection = (id) => {
   }
   .legal-main {
     max-width: none;
-    padding: 28px 16px 72px;
+    padding: 28px 16px calc(72px + env(safe-area-inset-bottom, 0px));
   }
   .legal-title {
     font-size: clamp(2rem, 8vw, 2.6rem);
@@ -532,7 +588,14 @@ const scrollToSection = (id) => {
     width: 100%;
   }
   .pill-badge { width: auto; white-space: normal; }
-  .toc-sidebar { position: static; }
   .legal-footer { overflow-wrap: anywhere; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-link,
+  .back-btn,
+  .toc-btn,
+  .legal-footer a {
+    transition: none;
+  }
 }
 </style>

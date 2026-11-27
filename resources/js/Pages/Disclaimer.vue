@@ -103,8 +103,9 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   background-color: #F7F8F2;
   color: #0C110D;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .glow-orb {
@@ -130,7 +131,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   -webkit-backdrop-filter: blur(16px);
   background: rgba(247, 248, 242, 0.92);
   border-bottom: 1px solid #E4E6DC;
-  padding: 16px 24px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 16px max(24px, env(safe-area-inset-left, 0px));
 }
 .legal-header__inner {
   max-width: 860px;
@@ -140,19 +141,28 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   justify-content: space-between;
 }
 .brand-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
   text-decoration: none;
 }
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px 16px;
 }
 .header-link {
   color: #3A4338;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s ease;
+  /* 44px touch target */
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .header-link:hover {
   color: #0C110D;
@@ -161,12 +171,15 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
   border-radius: 12px;
   background: #FFFFFF;
   border: 1px solid #E4E6DC;
   color: #0C110D;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -180,7 +193,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   z-index: 10;
   max-width: 860px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 48px 24px calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 .hero-intro {
@@ -211,7 +224,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   line-height: 1.15;
 }
 .legal-desc {
-  font-size: 15px;
+  font-size: 16px;
   color: #3A4338;
   line-height: 1.65;
   margin: 0;
@@ -242,7 +255,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   margin-bottom: 12px;
 }
 .callout-body {
-  font-size: 13.5px;
+  font-size: 16px;
   line-height: 1.65;
   margin: 0 0 8px;
   color: #0C110D;
@@ -259,7 +272,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   border: 1px solid #E4E6DC;
   border-radius: 20px;
   padding: 26px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
   color: #0C110D;
 }
@@ -275,19 +288,39 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 
 .legal-footer {
   margin-top: 60px;
-  padding-top: 32px;
+  padding: 32px 0 calc(24px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid #E4E6DC;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   color: #3A4338;
+}
+.legal-footer p {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
 }
 .legal-footer a {
   color: #3A4338;
   text-decoration: none;
-  margin: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
 }
 .legal-footer a:hover {
   color: #0C110D;
+}
+.brand-link:focus-visible,
+.header-link:focus-visible,
+.back-btn:focus-visible,
+.legal-footer a:focus-visible {
+  outline: 2px solid #0C110D;
+  outline-offset: 2px;
 }
 
 .icon-14 { width: 14px; height: 14px; }
@@ -304,8 +337,17 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
 .legal-card p {
   max-width: var(--calm-measure, 68ch);
 }
-@media (max-width: 720px) {
-  .legal-header { padding: 12px 16px; }
+@media (max-width: 767px) {
+  .glow-orb {
+    width: min(100%, 280px);
+    height: 280px;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+  }
+  .legal-header {
+    padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+  }
   .legal-header__inner {
     flex-direction: column;
     align-items: flex-start;
@@ -318,7 +360,7 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   }
   .legal-main {
     max-width: none;
-    padding: 28px 16px 72px;
+    padding: 28px 16px calc(72px + env(safe-area-inset-bottom, 0px));
   }
   .legal-title {
     font-size: clamp(2rem, 8vw, 2.6rem);
@@ -334,5 +376,12 @@ import HabuiltLogo from '@/Components/Brand/HabuiltLogo.vue';
   }
   .pill-badge { white-space: normal; }
   .legal-footer { overflow-wrap: anywhere; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-link,
+  .back-btn,
+  .legal-footer a {
+    transition: none;
+  }
 }
 </style>

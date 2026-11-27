@@ -311,6 +311,7 @@ const startWithHabit = () => {
   background: var(--page-bg);
   color: var(--text-primary);
   font-family: var(--font-base);
+  font-size: 16px;
   overflow-x: clip;
 }
 .calm-landing__bar,
@@ -329,7 +330,7 @@ footer {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 0;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 0 16px;
   background: color-mix(in srgb, var(--page-bg) 92%, transparent);
 }
 .calm-landing__bar .calm-btn {
@@ -388,10 +389,13 @@ footer button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
   border: 1px solid var(--text-primary);
   border-radius: 999px;
   background: var(--accent);
-  padding: 13px 18px;
+  padding: 11px 18px;
   font-weight: 650;
   text-decoration: none;
 }
@@ -567,19 +571,27 @@ footer button {
   color: var(--text-primary);
   text-decoration: underline;
   text-underline-offset: 3px;
+  /* 44px touch target via min-height/min-width; keep text-button appearance */
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 10px;
 }
 footer {
   align-items: center;
   justify-content: flex-start;
-  padding: 8px 0 32px;
+  padding: 8px 0 calc(32px + env(safe-area-inset-bottom, 0px));
 }
-@media (min-width: 740px) {
+@media (min-width: 768px) {
   .calm-landing__phone-col {
     position: sticky;
     top: 96px;
   }
 }
-@media (max-width: 739px) {
+@media (max-width: 767px) {
   .calm-landing__hero {
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
