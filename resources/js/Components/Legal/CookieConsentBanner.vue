@@ -62,11 +62,11 @@ const acceptEssential = () => {
           </div>
           <p class="banner-desc">
             Habuilt keeps habit check-ins in plain browser storage on this device until you sign in and sync. Essential cookies are used for the session. We do not sell your data.
-            Read our
-            <a href="/privacy" class="banner-link">Privacy Policy</a>
-            and
-            <a href="/terms" class="banner-link">Terms</a>.
           </p>
+          <div class="banner-links">
+            <a href="/privacy" class="banner-link">Privacy Policy</a>
+            <a href="/terms" class="banner-link">Terms</a>
+          </div>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ const acceptEssential = () => {
   bottom: 16px;
   right: 16px;
   max-width: 420px;
-  max-height: 220px;
+  max-height: min(320px, 60dvh);
   overflow: auto;
   width: calc(100% - 32px);
   z-index: 30;
@@ -173,10 +173,15 @@ const acceptEssential = () => {
 .banner-close-btn {
   background: transparent;
   border: none;
+  border-radius: 10px;
   color: #64748b;
   cursor: pointer;
-  padding: 2px;
-  display: flex;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  margin: -10px -10px -10px 0;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: color 0.15s ease;
@@ -186,16 +191,30 @@ const acceptEssential = () => {
 }
 
 .banner-desc {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
   color: #3A4338;
   margin: 0;
 }
 
+.banner-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 4px;
+}
+
 .banner-link {
   color: #0C110D;
+  font-size: 13px;
   font-weight: 600;
   text-decoration: underline;
+  text-underline-offset: 3px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
   transition: color 0.15s ease;
 }
 .banner-link:hover {
@@ -206,7 +225,7 @@ const acceptEssential = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 8px;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -217,12 +236,15 @@ const acceptEssential = () => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 9px 14px;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+  padding: 10px 14px;
   border-radius: 12px;
   background: #D9F27A;
   border: none;
   color: #0C110D;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -233,15 +255,28 @@ const acceptEssential = () => {
 }
 
 .btn-essential {
-  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+  padding: 10px 14px;
   border-radius: 12px;
   background: #ffffff;
   border: 1px solid #E4E6DC;
   color: #0C110D;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+.btn-accept:focus-visible,
+.btn-essential:focus-visible,
+.banner-close-btn:focus-visible,
+.banner-link:focus-visible {
+  outline: 2px solid #0C110D;
+  outline-offset: 2px;
 }
 .btn-essential:hover {
   background: rgba(255, 255, 255, 0.1);
